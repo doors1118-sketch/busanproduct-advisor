@@ -19,7 +19,7 @@ import mcp_client as mcp  # Korean Law MCP 원격 클라이언트
 # Gemini 클라이언트 초기화
 # ─────────────────────────────────────────────
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-MODEL_ID = "gemini-2.5-flash"
+MODEL_ID = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 
 # ─────────────────────────────────────────────
 # Function Calling 도구 정의
