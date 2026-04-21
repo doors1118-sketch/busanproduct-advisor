@@ -1,0 +1,14 @@
+[Unit]
+Description=Korean Law MCP Server
+After=network.target
+
+[Service]
+Type=simple
+Environment=LAW_OC=busanproduct
+ExecStart=/usr/bin/npx korean-law-mcp --mode http --port 3000
+Restart=always
+RestartSec=10
+WorkingDirectory=/root
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,32 @@
+# 환경변수
+.env
+
+# Python 캐시
+__pycache__/
+*.pyc
+.chroma/
+
+# 대용량 참고자료
+*.pdf
+*.xlsx
+*.hwpx
+*.odt
+*.crdownload
+*.png
+
+# 참고 텍스트 파일 (법령 추출물 등)
+*.txt
+
+# 임시/분석 파일
+*.xml
+
+# MCP 참고 문서 (korean-law-mcp 프로젝트에서 복사한 것)
+API.md
+ARCHITECTURE.md
+DEVELOPMENT.md
+README.md
+
+# 에디터 / 시스템
+.vscode/
+.idea/
+.gemini/
