@@ -217,6 +217,34 @@ def _verify_and_annotate(answer: str) -> str:
         return answer  # 검증 실패해도 원본 답변 유지
 
 
+def _search_pps_qa(query: str, n_results: int = 3) -> str:
+    """조달청 질의응답 DB에서 유사 해석사례 검색 (RAG)."""
+    try:
+        from ingest_pps_qa import search_qa
+        results = search_qa(query, n_results=n_results)
+
+        if not results:
+            return ""
+
+        lines = []
+        for i, r in enumerate(results):
+            lines.append(f"━ 해석사례 {i+1}: {r['title']} ({r['date']})")
+            lines.append(f"  분류: {r['category']}")
+            if r.get('answer'):
+                # 핵심만 추출 (너무 길면 잘라냄)
+                answer_summary = r['answer'][:800]
+                lines.append(f"  회신: {answer_summary}")
+            lines.append("")
+
+        context = "\n".join(lines)
+        print(f"  [RAG] 조달청 해석사례 {len(results)}건 검색 완료")
+        return context
+
+    except Exception as e:
+        print(f"  [RAG] 검색 실패 (무시): {e}")
+        return ""
+
+
 def chat(user_message: str, history: list[dict] = None) -> tuple[str, list[dict]]:
     """
     사용자 메시지를 받아 Gemini와 대화.
@@ -242,11 +270,22 @@ def chat(user_message: str, history: list[dict] = None) -> tuple[str, list[dict]
             )
         )
 
-    # 현재 사용자 메시지 추가
+    # ─── RAG: 조달청 질의응답 유사 사례 검색 ───
+    rag_context = _search_pps_qa(user_message)
+
+    # 현재 사용자 메시지 추가 (RAG 컨텍스트 포함)
+    user_text = user_message
+    if rag_context:
+        user_text = f"""[참고: 조달청 종합민원센터 관련 해석사례]
+{rag_context}
+
+[사용자 질문]
+{user_message}"""
+
     contents.append(
         types.Content(
             role="user",
-            parts=[types.Part.from_text(text=user_message)]
+            parts=[types.Part.from_text(text=user_text)]
         )
     )
 
