@@ -1,7 +1,17 @@
+"""Gemini API 키 테스트 (환경변수 사용)"""
+import os
 import urllib.request
 import json
+from dotenv import load_dotenv
 
-url = "https://generativelanguage.googleapis.com/v1beta/models?key=AIzaSyDJMCFzpNGpjtpyC85deojMqR9yPl_0cPA"
+load_dotenv()
+
+api_key = os.getenv("GEMINI_API_KEY")
+if not api_key:
+    print("❌ GEMINI_API_KEY 환경변수가 설정되지 않았습니다.")
+    exit(1)
+
+url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
 try:
     resp = urllib.request.urlopen(url)
     data = json.loads(resp.read())

@@ -177,6 +177,45 @@ def _execute_function_call(function_call) -> str:
         return json.dumps({"error": str(e)}, ensure_ascii=False)
 
 
+import re
+
+def _verify_and_annotate(answer: str) -> str:
+    """
+    AI 답변의 법령 인용을 verify_citations로 교차검증.
+    검증 오류 발견 시 답변 하단에 경고 추가.
+    """
+    # 법령 인용 패턴이 없으면 스킵 (성능 최적화)
+    if not re.search(r'제\d+조', answer):
+        return answer
+
+    try:
+        print("  [검증] verify_citations 실행 중...")
+        verification = mcp.verify_citations(answer)
+
+        if not verification or "error" in verification.lower():
+            return answer  # 검증 실패 시 원본 유지
+
+        # 검증 결과에서 문제 발견 여부 확인
+        has_issues = any(kw in verification for kw in [
+            "NOT_FOUND", "불일치", "확인불가", "없는", "오류",
+            "mismatch", "invalid", "not found"
+        ])
+
+        if has_issues:
+            answer += "\n\n---\n"
+            answer += "🔍 **인용 검증 결과**\n"
+            answer += verification
+            print("  [검증] ⚠️ 인용 문제 발견 — 경고 추가")
+        else:
+            answer += "\n\n✅ *법령 인용이 검증되었습니다.*"
+            print("  [검증] ✅ 인용 정확성 확인 완료")
+
+        return answer
+
+    except Exception as e:
+        print(f"  [검증] 검증 중 오류 (무시): {e}")
+        return answer  # 검증 실패해도 원본 답변 유지
+
 
 def chat(user_message: str, history: list[dict] = None) -> tuple[str, list[dict]]:
     """
@@ -255,6 +294,9 @@ def chat(user_message: str, history: list[dict] = None) -> tuple[str, list[dict]
         if not has_function_call:
             # 최종 텍스트 답변
             answer = candidate.content.parts[0].text if candidate.content.parts else ""
+
+            # ─── 환각 방지: verify_citations ───
+            answer = _verify_and_annotate(answer)
 
             # 대화 이력 업데이트
             history.append({"role": "user", "text": user_message})
