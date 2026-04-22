@@ -52,10 +52,19 @@ python -c "import sys; sys.path.insert(0,'app'); import law_api_client; import g
 
 4. `.agents/workflows/start.md`의 대화맥락 파일 경로를 **최신 날짜 파일**로 교체
 
-## 5단계: 보고
+## 5단계: Git Push
+
+// turbo
+5. 변경사항 Git 커밋 및 푸시:
+```
+cd "C:\Users\COMTREE\Desktop\메뉴얼 제작" && git add -A && git commit -m "세션 종료: YYYYMMDD 작업 내용 반영" && git push
+```
+
+## 6단계: 보고
 
 사용자에게 간략히 보고:
 - 오늘 한 일 요약 (3줄 이내)
 - 검증 결과 (통과/실패)
+- Git push 결과
 - 내일 해야 할 일 (우선순위 순)
 

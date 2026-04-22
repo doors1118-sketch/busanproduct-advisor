@@ -6,6 +6,7 @@ import os
 import json
 from typing import Optional
 from dotenv import load_dotenv
+import company_api
 
 load_dotenv()
 
@@ -14,6 +15,9 @@ from google.genai import types
 
 from system_prompt import SYSTEM_PROMPT
 import mcp_client as mcp  # Korean Law MCP 원격 클라이언트
+
+# 인용 조문 저장 (답변 후 다운로드용)
+_cited_laws = []
 
 # ─────────────────────────────────────────────
 # Gemini 클라이언트 초기화
@@ -144,6 +148,48 @@ law_tools = [
                     required=["query"],
                 ),
             ),
+            types.FunctionDeclaration(
+                name="search_local_company_by_product",
+                description="부산 지역업체를 대표품목으로 검색합니다. 반드시 짧고 핵심적인 키워드만 사용하세요. 'LED조명'→'LED', 'CCTV카메라'→'CCTV', '소방설비'→'소방'. 조달청 등록 업체 중 부산 소재 업체만 검색됩니다.",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "query": types.Schema(
+                            type="STRING",
+                            description="검색할 품목명 (예: 'LED', 'CCTV', '사무용가구')"
+                        ),
+                    },
+                    required=["query"],
+                ),
+            ),
+            types.FunctionDeclaration(
+                name="search_local_company_by_license",
+                description="부산 지역업체를 면허(업종)으로 검색합니다. 공사/용역 업체를 찾을 때 사용. 예: '전기공사', '소방', '건축설계'",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "query": types.Schema(
+                            type="STRING",
+                            description="검색할 면허/업종명 (예: '전기공사', '소방시설업')"
+                        ),
+                    },
+                    required=["query"],
+                ),
+            ),
+            types.FunctionDeclaration(
+                name="search_local_company_by_category",
+                description="부산 지역업체를 UNSPSC 분류코드 또는 분류명으로 검색합니다. 예: '43'(IT장비), '소방설비'",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "query": types.Schema(
+                            type="STRING",
+                            description="UNSPSC 분류코드 또는 분류명 (예: '43', '소방설비', '사무용품')"
+                        ),
+                    },
+                    required=["query"],
+                ),
+            ),
         ]
     )
 ]
@@ -153,12 +199,16 @@ def _execute_function_call(function_call) -> str:
     """Function call을 실행하고 결과를 반환. MCP 원격 엔드포인트 사용."""
     name = function_call.name
     args = dict(function_call.args) if function_call.args else {}
+    global _cited_laws
 
     try:
         if name == "search_law":
             return mcp.search_law(args.get("query", ""))
         elif name == "get_law_text":
-            return mcp.get_law_text(mst=args.get("mst"), jo=args.get("jo"))
+            result = mcp.get_law_text(mst=args.get("mst"), jo=args.get("jo"))
+            # 인용 조문 저장
+            _cited_laws.append({"type": "조문", "args": args, "text": result[:2000]})
+            return result
         elif name == "search_interpretations":
             return mcp.search_interpretations(args.get("query", ""))
         elif name == "search_decisions":
@@ -171,6 +221,25 @@ def _execute_function_call(function_call) -> str:
             return mcp.chain_action_basis(args.get("query", ""))
         elif name == "chain_law_system":
             return mcp.chain_law_system(args.get("query", ""))
+        # ── 부산 지역업체 검색 ──
+        elif name == "search_local_company_by_product":
+            q = args.get("query", "")
+            data = company_api.search_by_product(q)
+            company_api.last_search_results = data
+            company_api.last_search_query = f"품목: {q}"
+            return company_api.format_company_results(data, max_results=10)
+        elif name == "search_local_company_by_license":
+            q = args.get("query", "")
+            data = company_api.search_by_license(q)
+            company_api.last_search_results = data
+            company_api.last_search_query = f"면허: {q}"
+            return company_api.format_company_results(data, max_results=10)
+        elif name == "search_local_company_by_category":
+            q = args.get("query", "")
+            data = company_api.search_by_category(q)
+            company_api.last_search_results = data
+            company_api.last_search_query = f"분류: {q}"
+            return company_api.format_company_results(data, max_results=10)
         else:
             return json.dumps({"error": f"알 수 없는 함수: {name}"}, ensure_ascii=False)
     except Exception as e:
@@ -182,7 +251,7 @@ import re
 def _verify_and_annotate(answer: str) -> str:
     """
     AI 답변의 법령 인용을 verify_citations로 교차검증.
-    검증 오류 발견 시 답변 하단에 경고 추가.
+    검증 오류 발견 시 답변 하단에 간결한 경고 추가.
     """
     # 법령 인용 패턴이 없으면 스킵 (성능 최적화)
     if not re.search(r'제\d+조', answer):
@@ -195,17 +264,23 @@ def _verify_and_annotate(answer: str) -> str:
         if not verification or "error" in verification.lower():
             return answer  # 검증 실패 시 원본 유지
 
-        # 검증 결과에서 문제 발견 여부 확인
-        has_issues = any(kw in verification for kw in [
-            "NOT_FOUND", "불일치", "확인불가", "없는", "오류",
+        # 환각(HALLUCINATION) 감지 여부 확인
+        hallucination_detected = "HALLUCINATION_DETECTED" in verification
+
+        # 일반적인 검증 문제 여부 확인
+        has_issues = hallucination_detected or any(kw in verification for kw in [
+            "NOT_FOUND", "불일치", "확인불가", "없는",
             "mismatch", "invalid", "not found"
         ])
 
         if has_issues:
+            # 검증 결과를 간결하게 요약 (원시 데이터를 그대로 출력하지 않음)
             answer += "\n\n---\n"
-            answer += "🔍 **인용 검증 결과**\n"
-            answer += verification
-            print("  [검증] ⚠️ 인용 문제 발견 — 경고 추가")
+            if hallucination_detected:
+                answer += "⚠️ **인용 검증 주의**: 일부 법령 인용의 정확성을 확인하지 못했습니다. 법제 담당 부서와 교차 확인을 권장합니다.\n"
+            else:
+                answer += "🔍 **인용 검증**: 일부 조항의 법령명 매칭이 불명확합니다. 법제처 사이트에서 직접 확인을 권장합니다.\n"
+            print(f"  [검증] 인용 문제 발견 - 간결 경고 추가")
         else:
             answer += "\n\n✅ *법령 인용이 검증되었습니다.*"
             print("  [검증] ✅ 인용 정확성 확인 완료")
@@ -228,24 +303,93 @@ def _search_pps_qa(query: str, n_results: int = 3) -> str:
 
         lines = []
         for i, r in enumerate(results):
-            lines.append(f"━ 해석사례 {i+1}: {r['title']} ({r['date']})")
+            lines.append(f"= 해석사례 {i+1}: {r['title']} ({r['date']})")
             lines.append(f"  분류: {r['category']}")
             if r.get('answer'):
-                # 핵심만 추출 (너무 길면 잘라냄)
                 answer_summary = r['answer'][:800]
                 lines.append(f"  회신: {answer_summary}")
             lines.append("")
 
         context = "\n".join(lines)
-        print(f"  [RAG] 조달청 해석사례 {len(results)}건 검색 완료")
-        return context
+        return context[:3000]
 
     except Exception as e:
-        print(f"  [RAG] 검색 실패 (무시): {e}")
+        print(f"  [RAG-QA] 검색 실패: {e}")
         return ""
 
 
-def chat(user_message: str, history: list[dict] = None) -> tuple[str, list[dict]]:
+def _search_manuals(query: str, n_results: int = 3) -> str:
+    """계약 매뉴얼 RAG에서 관련 내용 검색."""
+    try:
+        import chromadb
+        from chromadb.utils import embedding_functions
+        import os
+        chroma_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".chroma")
+        client = chromadb.PersistentClient(path=chroma_dir)
+        ef = embedding_functions.DefaultEmbeddingFunction()
+        collection = client.get_collection(name="manuals", embedding_function=ef)
+
+        results = collection.query(query_texts=[query], n_results=n_results)
+
+        if not results["documents"] or not results["documents"][0]:
+            return ""
+
+        lines = []
+        for i, (doc, meta) in enumerate(zip(results["documents"][0], results["metadatas"][0])):
+            source = meta.get("source", "매뉴얼")
+            page = meta.get("page", "?")
+            lines.append(f"= 매뉴얼 {i+1}: [{source}] p.{page}")
+            lines.append(doc[:600])
+            lines.append("")
+
+        context = "\n".join(lines)
+        return context[:3000]
+
+    except Exception as e:
+        print(f"  [RAG-MANUAL] 검색 실패: {e}")
+        return ""
+
+
+def _search_law_rag(query: str, n_results: int = 5) -> str:
+    """핵심 법령 RAG에서 관련 조문 검색."""
+    try:
+        from ingest_laws import search_laws
+        results = search_laws(query, n_results=n_results)
+
+        if not results:
+            return ""
+
+        lines = []
+        for i, r in enumerate(results):
+            lines.append(f"= 법령 {i+1}: [{r['law']}] {r['article']} {r['title']}")
+            lines.append(r['text'][:600])
+            lines.append("")
+
+        context = "\n".join(lines)
+        return context[:4000]
+
+    except Exception as e:
+        print(f"  [RAG-LAW] search failed: {e}")
+        return ""
+
+
+# 사용자 친화적 도구 레이블 (보안: 내부 함수명/서버 주소 노출 방지)
+TOOL_LABELS = {
+    "search_law": "🔍 법령 검색 중",
+    "get_law_text": "📜 조문 원문 확인 중",
+    "search_interpretations": "🔍 해석례 검색 중",
+    "search_decisions": "🔍 판례 검색 중",
+    "get_annexes": "📊 별표/서식 조회 중",
+    "chain_full_research": "🔍 종합 법령 연구 중",
+    "chain_action_basis": "🔍 법체계 분석 중",
+    "chain_law_system": "🔍 법령 체계도 조회 중",
+    "search_local_company_by_product": "🏢 지역업체 품목 검색 중",
+    "search_local_company_by_license": "🏢 지역업체 면허 검색 중",
+    "search_local_company_by_category": "🏢 지역업체 분류 검색 중",
+}
+
+
+def chat(user_message: str, history: list[dict] = None, progress_callback=None) -> tuple[str, list[dict]]:
     """
     사용자 메시지를 받아 Gemini와 대화.
     법제처 API function calling을 자동 처리.
@@ -259,6 +403,9 @@ def chat(user_message: str, history: list[dict] = None) -> tuple[str, list[dict]
     """
     if history is None:
         history = []
+    
+    global _cited_laws
+    _cited_laws = []  # 매 답변마다 초기화
 
     # 대화 이력을 Gemini 형식으로 변환
     contents = []
@@ -270,17 +417,25 @@ def chat(user_message: str, history: list[dict] = None) -> tuple[str, list[dict]
             )
         )
 
-    # ─── RAG: 조달청 질의응답 유사 사례 검색 ───
-    rag_context = _search_pps_qa(user_message)
+    # === RAG: 법령 원문 + 조달청 QA 검색 ===
+    if progress_callback:
+        progress_callback("📚 관련 법령 데이터베이스 검색 중...")
+    law_rag = _search_law_rag(user_message)
+    pps_rag = _search_pps_qa(user_message)
+    manual_rag = _search_manuals(user_message)
 
     # 현재 사용자 메시지 추가 (RAG 컨텍스트 포함)
     user_text = user_message
-    if rag_context:
-        user_text = f"""[참고: 조달청 종합민원센터 관련 해석사례]
-{rag_context}
-
-[사용자 질문]
-{user_message}"""
+    rag_parts = []
+    if law_rag:
+        rag_parts.append(f"[참고용 보조자료: 법령 조문 — MCP 검색 결과와 다르면 MCP가 우선]\n{law_rag}")
+    if pps_rag:
+        rag_parts.append(f"[참고용 보조자료: 조달청 질의응답 — MCP 검색 결과와 다르면 MCP가 우선]\n{pps_rag}")
+    if manual_rag:
+        rag_parts.append(f"[참고용 보조자료: 계약 매뉴얼 — MCP 검색 결과와 다르면 MCP가 우선]\n{manual_rag}")
+    
+    if rag_parts:
+        user_text = "\n\n".join(rag_parts) + f"\n\n[사용자 질문]\n{user_message}"
 
     contents.append(
         types.Content(
@@ -296,23 +451,64 @@ def chat(user_message: str, history: list[dict] = None) -> tuple[str, list[dict]
         temperature=0.3,  # 법률 해석이므로 낮은 창의성
     )
 
-    # Function calling 루프 (최대 5회 반복)
-    for _ in range(5):
-        response = client.models.generate_content(
-            model=MODEL_ID,
-            contents=contents,
-            config=config,
-        )
+    # Function calling 루프 (최대 15회 반복 — 기관별 비교 답변 시 다수 법령 검색 필요)
+    for loop_i in range(15):
+        # 429 에러 자동 재시도 (무료 티어 분당 제한 대응)
+        response = None
+        last_err = None
+        for retry in range(3):
+            try:
+                response = client.models.generate_content(
+                    model=MODEL_ID,
+                    contents=contents,
+                    config=config,
+                )
+                break  # 성공
+            except Exception as api_err:
+                last_err = api_err
+                err_msg = str(api_err)
+                if any(kw in err_msg for kw in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE"]):
+                    import time
+                    wait_sec = 15 * (retry + 1)
+                    print(f"  [API] Retry {retry+1}/3 - waiting {wait_sec}s...")
+                    time.sleep(wait_sec)
+                else:
+                    raise  # 429 외 에러는 그대로 전달
+        
+        if response is None:
+            raise last_err or Exception("API call failed after 3 retries")
 
         # Function call 응답인지 확인
         candidate = response.candidates[0]
+        
+        # content가 None인 경우 (안전 필터 또는 빈 응답)
+        if candidate.content is None or not candidate.content.parts:
+            reason = getattr(candidate, 'finish_reason', None)
+            print(f"  [WARNING] Empty response. finish_reason={reason}")
+            if reason and "SAFETY" in str(reason):
+                return "⚠️ 해당 질문은 AI 안전 정책에 의해 답변이 제한됩니다. 계약·조달 관련 법률 질문으로 다시 시도해 주세요.", history
+            elif reason and "RECITATION" in str(reason):
+                return "⚠️ 법령 원문 인용 제한으로 답변이 생성되지 않았습니다. 질문을 좀 더 구체적으로 입력해 주세요.", history
+            else:
+                return "⚠️ 답변을 생성하지 못했습니다. 질문을 계약·조달 법령과 관련된 구체적인 내용으로 다시 작성해 주세요.\n\n예시: \"수의계약 기준 금액이 얼마야?\", \"지역제한 입찰 가능한 조건이 뭐야?\"", history
+        
         has_function_call = False
 
         for part in candidate.content.parts:
             if part.function_call:
                 has_function_call = True
                 fc = part.function_call
-                print(f"  [도구 호출] {fc.name}({dict(fc.args) if fc.args else {}})")
+                # 진행 로그 (서버 콘솔에 표시)
+                print(f"  [tool] {fc.name}({dict(fc.args) if fc.args else {}})")
+                
+                # UI 진행 상태 표시 (보안: 사용자 친화적 레이블만)
+                if progress_callback:
+                    label = TOOL_LABELS.get(fc.name, "🔍 검색 중")
+                    query = dict(fc.args).get("query", "") if fc.args else ""
+                    if query:
+                        progress_callback(f"{label}: {query}")
+                    else:
+                        progress_callback(label)
 
                 # 함수 실행
                 result_str = _execute_function_call(fc)
@@ -335,6 +531,8 @@ def chat(user_message: str, history: list[dict] = None) -> tuple[str, list[dict]
             answer = candidate.content.parts[0].text if candidate.content.parts else ""
 
             # ─── 환각 방지: verify_citations ───
+            if progress_callback:
+                progress_callback("✅ 법령 인용 검증 중...")
             answer = _verify_and_annotate(answer)
 
             # 대화 이력 업데이트
@@ -343,7 +541,8 @@ def chat(user_message: str, history: list[dict] = None) -> tuple[str, list[dict]
 
             return answer, history
 
-    return "죄송합니다. 답변을 생성하는 데 문제가 발생했습니다. 다시 시도해주세요.", history
+    print(f"  [WARNING] Function calling loop exhausted after {loop_i+1} iterations")
+    return "⚠️ 법령 검색 반복 한도를 초과했습니다. 질문을 더 구체적으로(예: 기관 유형 명시) 입력해 주세요.", history
 
 
 # ─────────────────────────────────────────────

@@ -1,0 +1,6 @@
+{
+  "local": "[INVALID_PARAMETER] query: Invalid input: expected string, received undefined\n도구: chain_law_system\n제안:\n  1. 파라미터 형식과 필수 값을 확인하세요.",
+  "national": "[INVALID_PARAMETER] query: Invalid input: expected string, received undefined\n도구: chain_law_system\n제안:\n  1. 파라미터 형식과 필수 값을 확인하세요.",
+  "procurement": "[INVALID_PARAMETER] query: Invalid input: expected string, received undefined\n도구: chain_law_system\n제안:\n  1. 파라미터 형식과 필수 값을 확인하세요.",
+  "public_corp": "[INVALID_PARAMETER] query: Invalid input: expected string, received undefined\n도구: chain_law_system\n제안:\n  1. 파라미터 형식과 필수 값을 확인하세요."
+}
