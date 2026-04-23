@@ -190,6 +190,20 @@ law_tools = [
                     required=["query"],
                 ),
             ),
+            types.FunctionDeclaration(
+                name="search_shopping_mall",
+                description="나라장터 종합쇼핑몰에 등록된 부산 지역업체의 MAS(다수공급자계약) 상품을 검색합니다. 쇼핑몰 등록 상품은 별도 계약 없이 바로 구매 가능합니다.",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "query": types.Schema(
+                            type="STRING",
+                            description="품목명 (예: 'LED', '소방', '사무용가구', '컴퓨터')"
+                        ),
+                    },
+                    required=["query"],
+                ),
+            ),
         ]
     )
 ]
@@ -240,6 +254,14 @@ def _execute_function_call(function_call) -> str:
             company_api.last_search_results = data
             company_api.last_search_query = f"분류: {q}"
             return company_api.format_company_results(data, max_results=10)
+        # ── 종합쇼핑몰 ──
+        elif name == "search_shopping_mall":
+            import shopping_mall
+            q = args.get("query", "")
+            data = shopping_mall.search_mall_products(q, busan_only=True)
+            shopping_mall.last_mall_results = data
+            shopping_mall.last_mall_query = q
+            return shopping_mall.format_mall_results(data, max_results=5)
         else:
             return json.dumps({"error": f"알 수 없는 함수: {name}"}, ensure_ascii=False)
     except Exception as e:
@@ -322,11 +344,11 @@ def _search_manuals(query: str, n_results: int = 3) -> str:
     """계약 매뉴얼 RAG에서 관련 내용 검색."""
     try:
         import chromadb
-        from chromadb.utils import embedding_functions
+        from embedding import get_query_embedding_fn
         import os
         chroma_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".chroma")
         client = chromadb.PersistentClient(path=chroma_dir)
-        ef = embedding_functions.DefaultEmbeddingFunction()
+        ef = get_query_embedding_fn()
         collection = client.get_collection(name="manuals", embedding_function=ef)
 
         results = collection.query(query_texts=[query], n_results=n_results)
@@ -350,11 +372,11 @@ def _search_manuals(query: str, n_results: int = 3) -> str:
         return ""
 
 
-def _search_law_rag(query: str, n_results: int = 5) -> str:
+def _search_law_rag(query: str, n_results: int = 5, agency_type: str = None) -> str:
     """핵심 법령 RAG에서 관련 조문 검색."""
     try:
         from ingest_laws import search_laws
-        results = search_laws(query, n_results=n_results)
+        results = search_laws(query, n_results=n_results, agency_type=agency_type)
 
         if not results:
             return ""
@@ -389,7 +411,7 @@ TOOL_LABELS = {
 }
 
 
-def chat(user_message: str, history: list[dict] = None, progress_callback=None) -> tuple[str, list[dict]]:
+def chat(user_message: str, history: list[dict] = None, progress_callback=None, agency_type: str = None) -> tuple[str, list[dict]]:
     """
     사용자 메시지를 받아 Gemini와 대화.
     법제처 API function calling을 자동 처리.
@@ -420,9 +442,25 @@ def chat(user_message: str, history: list[dict] = None, progress_callback=None) 
     # === RAG: 법령 원문 + 조달청 QA 검색 ===
     if progress_callback:
         progress_callback("📚 관련 법령 데이터베이스 검색 중...")
-    law_rag = _search_law_rag(user_message)
+    law_rag = _search_law_rag(user_message, agency_type=agency_type)
     pps_rag = _search_pps_qa(user_message)
     manual_rag = _search_manuals(user_message)
+
+    # 혁신제품 검색
+    innovation_rag = ""
+    try:
+        from ingest_innovation import search_innovation
+        innovation_rag = search_innovation(user_message, n_results=5)
+    except Exception:
+        pass
+
+    # 기술개발제품 인증 검색
+    tech_rag = ""
+    try:
+        from ingest_tech_products import search_tech_products
+        tech_rag = search_tech_products(user_message, max_results=5)
+    except Exception:
+        pass
 
     # 현재 사용자 메시지 추가 (RAG 컨텍스트 포함)
     user_text = user_message
@@ -433,6 +471,10 @@ def chat(user_message: str, history: list[dict] = None, progress_callback=None) 
         rag_parts.append(f"[참고용 보조자료: 조달청 질의응답 — MCP 검색 결과와 다르면 MCP가 우선]\n{pps_rag}")
     if manual_rag:
         rag_parts.append(f"[참고용 보조자료: 계약 매뉴얼 — MCP 검색 결과와 다르면 MCP가 우선]\n{manual_rag}")
+    if innovation_rag:
+        rag_parts.append(f"[부산 지역 혁신제품 — 시행령 제25조제1항제8호에 따라 금액 무제한 수의계약 가능]\n{innovation_rag}")
+    if tech_rag:
+        rag_parts.append(f"[부산 지역 기술개발제품 인증 — 시행령 제25조제1항제6호에 따라 수의계약 가능]\n{tech_rag}")
     
     if rag_parts:
         user_text = "\n\n".join(rag_parts) + f"\n\n[사용자 질문]\n{user_message}"
@@ -444,11 +486,58 @@ def chat(user_message: str, history: list[dict] = None, progress_callback=None) 
         )
     )
 
-    # Gemini 설정
+    # Gemini 설정 — 현재 날짜를 시스템 프롬프트에 동적 주입
+    from datetime import datetime
+    today = datetime.now().strftime("%Y년 %m월 %d일")
+
+    # 기관 유형별 적용 법체계 동적 주입
+    agency_guide = ""
+    if agency_type == "지방자치단체":
+        agency_guide = (
+            "\n\n[적용 법체계: 지방자치단체]\n"
+            "★ 이 사용자는 지방자치단체 소속입니다. 반드시 아래 법체계만 적용하세요:\n"
+            "  · 기본법: 지방자치단체를 당사자로 하는 계약에 관한 법률 (지방계약법)\n"
+            "  · 시행령: 지방계약법 시행령\n"
+            "  · 행정규칙: 지방자치단체 입찰 및 계약집행기준, 낙찰자 결정기준\n"
+            "⛔ 국가계약법 기준으로 답변하면 오답입니다! 절대 혼동 금지!\n"
+        )
+    elif agency_type == "국가기관":
+        agency_guide = (
+            "\n\n[적용 법체계: 국가기관]\n"
+            "★ 이 사용자는 국가기관 소속입니다. 반드시 아래 법체계만 적용하세요:\n"
+            "  · 기본법: 국가를 당사자로 하는 계약에 관한 법률 (국가계약법)\n"
+            "  · 시행령: 국가계약법 시행령\n"
+            "  · 행정규칙: 정부 입찰/계약 집행기준, 계약업무처리훈령\n"
+            "⛔ 지방계약법 기준으로 답변하면 오답입니다! 절대 혼동 금지!\n"
+        )
+    elif agency_type == "공기업/준정부기관":
+        agency_guide = (
+            "\n\n[적용 법체계: 공기업/준정부기관]\n"
+            "★ 이 사용자는 공기업·준정부기관 소속입니다:\n"
+            "  · 상위법: 공공기관의 운영에 관한 법률\n"
+            "  · 계약규칙: 공기업/준정부기관 계약사무규칙\n"
+            "  · 지방계약법·국가계약법과 기준이 다를 수 있으므로 주의!\n"
+        )
+    elif agency_type:
+        agency_guide = f"\n\n[적용 기관: {agency_type}]\n해당 기관의 법체계를 우선 적용하세요.\n"
+    else:
+        agency_guide = (
+            "\n\n[적용 법체계: 미지정 → 지방자치단체 기본]\n"
+            "사용자가 소속기관을 밝히지 않았으므로 지방계약법 기준으로 답변하되,\n"
+            "답변 하단에 '국가기관·공기업 등은 기관명을 입력하시면 맞춤 답변 가능' 안내 포함.\n"
+        )
+
+    date_instruction = (
+        f"\n\n[조회 시점: {today}]\n"
+        f"법령 조회 결과를 인용할 때 반드시 \"{today} 기준\"임을 답변에 명시하세요.\n"
+        f"예: \"지방계약법 시행령 제25조({today} 기준)에 따르면...\""
+        f"{agency_guide}"
+    )
+
     config = types.GenerateContentConfig(
-        system_instruction=SYSTEM_PROMPT,
+        system_instruction=SYSTEM_PROMPT + date_instruction,
         tools=law_tools,
-        temperature=0.3,  # 법률 해석이므로 낮은 창의성
+        temperature=0.1,  # 법률 도메인 — 강제 규칙 준수 + 사실 기반 답변 (0.0에 가까울수록 결정적)
     )
 
     # Function calling 루프 (최대 15회 반복 — 기관별 비교 답변 시 다수 법령 검색 필요)

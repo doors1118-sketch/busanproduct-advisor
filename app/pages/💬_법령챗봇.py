@@ -164,6 +164,7 @@ if user_input:
                 chat_input,
                 st.session_state.chat_history,
                 progress_callback=on_progress,
+                agency_type=selected_agency,
             )
             status_container.update(label="✅ 답변 완료", state="complete", expanded=False)
             st.session_state.chat_history = updated_history
@@ -206,6 +207,43 @@ if user_input:
                 # 결과 초기화 (중복 노출 방지)
                 company_api.last_search_results = {}
                 company_api.last_search_query = ""
+            
+            # ── 종합쇼핑몰 검색 결과 다운로드 ──
+            import shopping_mall
+            mall_results = shopping_mall.last_mall_results
+            mall_items = mall_results.get("items", []) if mall_results else []
+            
+            if mall_items:
+                mall_query = shopping_mall.last_mall_query or "쇼핑몰"
+                filtered = mall_results.get("filteredCount", len(mall_items))
+                
+                st.markdown(f"---\n🛒 **종합쇼핑몰 부산 업체 상품: {filtered}건**")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    excel_bytes = shopping_mall.results_to_excel(mall_results)
+                    if excel_bytes:
+                        st.download_button(
+                            label=f"📥 쇼핑몰 {filtered}건 Excel",
+                            data=excel_bytes,
+                            file_name=f"종합쇼핑몰_{mall_query}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            use_container_width=True,
+                        )
+                with col2:
+                    pass
+                
+                with st.expander(f"🛒 종합쇼핑몰 {filtered}건 펼쳐보기"):
+                    import pandas as pd
+                    fields = {"cntrctCorpNm": "업체명", "hdoffceLocplc": "소재지",
+                              "prdctSpecNm": "물품규격", "cntrctPrceAmt": "가격",
+                              "cntrctMthdNm": "계약방법", "qltyRltnCertInfo": "인증"}
+                    rows = [{kor: item.get(eng, "") for eng, kor in fields.items()} for item in mall_items]
+                    df = pd.DataFrame(rows)
+                    st.dataframe(df, use_container_width=True, height=300)
+                
+                shopping_mall.last_mall_results = {}
+                shopping_mall.last_mall_query = ""
             
             # ── 인용 규정 다운로드 ──
             import gemini_engine

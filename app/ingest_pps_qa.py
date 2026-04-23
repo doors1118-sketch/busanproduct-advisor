@@ -27,8 +27,11 @@ PER_PAGE = 100  # 한 번에 가져오는 건수
 CHROMA_DIR = os.path.join(os.path.dirname(__file__), ".chroma")
 COLLECTION_NAME = "pps_qa"
 
-# 임베딩 함수 (다국어 지원 — 한국어 최적)
-embedding_fn = embedding_functions.DefaultEmbeddingFunction()
+from embedding import get_passage_embedding_fn, get_query_embedding_fn
+
+# 임베딩 함수 (multilingual-e5-large — 한국어 최적)
+embedding_fn_passage = get_passage_embedding_fn()
+embedding_fn_query = get_query_embedding_fn()
 
 
 def fetch_all_data() -> list[dict]:
@@ -76,7 +79,7 @@ def ingest_to_chroma(data: list[dict], update_mode: bool = False):
 
     collection = client.get_or_create_collection(
         name=COLLECTION_NAME,
-        embedding_function=embedding_fn,
+        embedding_function=embedding_fn_passage,
         metadata={"description": "조달청 종합민원센터 질의응답 해석사례"},
     )
 
@@ -135,7 +138,7 @@ def ingest_to_chroma(data: list[dict], update_mode: bool = False):
         )
         print(f"  적재: {batch_end}/{len(ids)} 건")
 
-    print(f"\n✅ 총 {len(ids)}건 적재 완료 (스킵: {skipped}건)")
+    print(f"\n[OK] total {len(ids)} ingested (skipped: {skipped})")
     print(f"   컬렉션 총 문서: {collection.count()}건")
 
 
@@ -144,7 +147,7 @@ def search_qa(query: str, n_results: int = 3) -> list[dict]:
     client = chromadb.PersistentClient(path=CHROMA_DIR)
     collection = client.get_collection(
         name=COLLECTION_NAME,
-        embedding_function=embedding_fn,
+        embedding_function=embedding_fn_query,
     )
 
     results = collection.query(

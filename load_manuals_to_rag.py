@@ -15,7 +15,7 @@ from chromadb.utils import embedding_functions
 
 # ─── 설정 ───
 MANUAL_DIR = r"C:\Users\COMTREE\Desktop\메뉴얼 제작\계약메뉴얼"
-CHROMA_DIR = r"C:\Users\COMTREE\Desktop\메뉴얼 제작\.chroma"
+CHROMA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app", ".chroma")
 COLLECTION_NAME = "manuals"
 CHUNK_SIZE = 800      # 청크 크기 (글자 수)
 CHUNK_OVERLAP = 200   # 오버랩 (글자 수)
