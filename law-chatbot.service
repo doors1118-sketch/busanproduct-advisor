@@ -1,0 +1,15 @@
+[Unit]
+Description=법령챗봇 AI 어드바이저 (Streamlit 독립 서비스)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/advisor
+ExecStart=/usr/local/bin/streamlit run app/pages/💬_법령챗봇.py --server.port 8502 --server.address 0.0.0.0 --server.headless true
+Restart=always
+RestartSec=5
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=multi-user.target
