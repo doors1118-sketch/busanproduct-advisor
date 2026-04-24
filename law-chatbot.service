@@ -6,10 +6,9 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/root/advisor
-ExecStartPre=/usr/bin/pip3 install -r /root/advisor/requirements.txt --break-system-packages -q
 ExecStart=/usr/local/bin/streamlit run app/pages/💬_법령챗봇.py --server.port 8502 --server.address 0.0.0.0 --server.headless true
 Restart=always
-RestartSec=5
+RestartSec=10
 Environment=PATH=/usr/local/bin:/usr/bin:/bin
 
 [Install]
