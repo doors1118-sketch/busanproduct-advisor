@@ -215,26 +215,43 @@ def _execute_function_call(function_call) -> str:
     args = dict(function_call.args) if function_call.args else {}
     global _cited_laws
 
+    # MCP 호출 타임아웃 래퍼 (법제처 API 지연 대비)
+    MCP_TIMEOUT = 30  # 초
+    def _run_with_timeout(func, *a, **kw):
+        """MCP 함수를 타임아웃 내에 실행. 초과 시 Fallback 메시지 반환."""
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(func, *a, **kw)
+            try:
+                return future.result(timeout=MCP_TIMEOUT)
+            except FuturesTimeout:
+                print(f"  [MCP TIMEOUT] {name} 호출 {MCP_TIMEOUT}초 초과")
+                return json.dumps({
+                    "warning": f"법제처 API 응답 지연으로 '{name}' 결과를 가져오지 못했습니다. "
+                               "RAG 보조자료를 참고하여 답변하되, 반드시 '⚠️ 법제처 API 일시 장애' 문구를 포함하세요."
+                }, ensure_ascii=False)
+
     try:
         if name == "search_law":
-            return mcp.search_law(args.get("query", ""))
+            return _run_with_timeout(mcp.search_law, args.get("query", ""))
         elif name == "get_law_text":
-            result = mcp.get_law_text(mst=args.get("mst"), jo=args.get("jo"))
+            result = _run_with_timeout(mcp.get_law_text, mst=args.get("mst"), jo=args.get("jo"))
             # 인용 조문 저장
-            _cited_laws.append({"type": "조문", "args": args, "text": result[:2000]})
+            if isinstance(result, str) and "warning" not in result:
+                _cited_laws.append({"type": "조문", "args": args, "text": result[:2000]})
             return result
         elif name == "search_interpretations":
-            return mcp.search_interpretations(args.get("query", ""))
+            return _run_with_timeout(mcp.search_interpretations, args.get("query", ""))
         elif name == "search_decisions":
-            return mcp.search_decisions(args.get("query", ""))
+            return _run_with_timeout(mcp.search_decisions, args.get("query", ""))
         elif name == "get_annexes":
-            return mcp.get_annexes(args.get("law_name", ""))
+            return _run_with_timeout(mcp.get_annexes, args.get("law_name", ""))
         elif name == "chain_full_research":
-            return mcp.chain_full_research(args.get("query", ""))
+            return _run_with_timeout(mcp.chain_full_research, args.get("query", ""))
         elif name == "chain_action_basis":
-            return mcp.chain_action_basis(args.get("query", ""))
+            return _run_with_timeout(mcp.chain_action_basis, args.get("query", ""))
         elif name == "chain_law_system":
-            return mcp.chain_law_system(args.get("query", ""))
+            return _run_with_timeout(mcp.chain_law_system, args.get("query", ""))
         # ── 부산 지역업체 검색 ──
         elif name == "search_local_company_by_product":
             q = args.get("query", "")
@@ -340,18 +357,22 @@ def _search_pps_qa(query: str, n_results: int = 3) -> str:
         return ""
 
 
-def _search_manuals(query: str, n_results: int = 3) -> str:
-    """계약 매뉴얼 RAG에서 관련 내용 검색."""
+def _search_manuals(query: str, n_results: int = 3, query_vector: list = None) -> str:
+    """계약 매뉴얼 RAG에서 관련 내용 검색. query_vector가 있으면 임베딩 스킵."""
     try:
         import chromadb
-        from embedding import get_query_embedding_fn
         import os
         chroma_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".chroma")
         client = chromadb.PersistentClient(path=chroma_dir)
-        ef = get_query_embedding_fn()
-        collection = client.get_collection(name="manuals", embedding_function=ef)
 
-        results = collection.query(query_texts=[query], n_results=n_results)
+        if query_vector:
+            collection = client.get_collection(name="manuals")
+            results = collection.query(query_embeddings=[query_vector], n_results=n_results)
+        else:
+            from embedding import get_query_embedding_fn
+            ef = get_query_embedding_fn()
+            collection = client.get_collection(name="manuals", embedding_function=ef)
+            results = collection.query(query_texts=[query], n_results=n_results)
 
         if not results["documents"] or not results["documents"][0]:
             return ""
@@ -395,6 +416,179 @@ def _search_law_rag(query: str, n_results: int = 5, agency_type: str = None) -> 
         return ""
 
 
+# ─────────────────────────────────────────────
+# 병렬 RAG 검색 (임베딩 1회 + ThreadPool)
+# ─────────────────────────────────────────────
+def _parallel_rag_search(query: str, agency_type: str = None) -> dict:
+    """5개 RAG 소스를 병렬로 검색. 임베딩은 1회만 수행."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from embedding import encode_query
+    import time
+
+    start = time.time()
+
+    # 1. 임베딩 1회만 수행
+    query_vector = encode_query(query)
+    embed_time = time.time() - start
+    print(f"  [RAG] 임베딩 완료: {embed_time:.1f}초")
+
+    # 2. 5개 소스 병렬 검색 (벡터 전달)
+    results = {"law": "", "qa": "", "manual": "", "innovation": "", "tech": ""}
+
+    def search_law():
+        return _search_law_rag(query, agency_type=agency_type)
+
+    def search_qa():
+        return _search_pps_qa(query)
+
+    def search_manual():
+        return _search_manuals(query, query_vector=query_vector)
+
+    def search_innovation():
+        try:
+            from ingest_innovation import search_innovation as _si
+            return _si(query, n_results=5)
+        except Exception:
+            return ""
+
+    def search_tech():
+        try:
+            from ingest_tech_products import search_tech_products as _st
+            return _st(query, max_results=5)
+        except Exception:
+            return ""
+
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        futures = {
+            "law": pool.submit(search_law),
+            "qa": pool.submit(search_qa),
+            "manual": pool.submit(search_manual),
+            "innovation": pool.submit(search_innovation),
+            "tech": pool.submit(search_tech),
+        }
+        for key, future in futures.items():
+            try:
+                results[key] = future.result(timeout=15)
+            except Exception as e:
+                print(f"  [RAG] {key} 검색 실패: {e}")
+                results[key] = ""
+
+    total_time = time.time() - start
+    print(f"  [RAG] 전체 검색 완료: {total_time:.1f}초 (임베딩 {embed_time:.1f}초 + 검색 {total_time-embed_time:.1f}초)")
+    return results
+
+
+# ─────────────────────────────────────────────
+# 기관별 법체계 가이드 MAP (동적 주입)
+# ─────────────────────────────────────────────
+_COMMON_PROCUREMENT = (
+    "\n[공통 조달 원칙 — 모든 기관 공통 적용]\n"
+    "  · 우수조달물품(시행령 제25조 제1항 제6호 라목): 금액 무제한 수의계약\n"
+    "  · 혁신제품(시행령 제25조 제1항 제8호): 금액 무제한 수의계약\n"
+    "  · 직접생산확인증명서: 중소기업 제품 수의계약 시 필수\n"
+)
+
+_AGENCY_GUIDE_MAP = {
+    # 1. 지방자치단체 그룹 (부산시, 자치구·군, 교육청)
+    "local_gov": (
+        "\n\n[적용 법체계: 지방자치단체 (부산시, 구·군, 교육청)]\n"
+        "1. 법적 위계: 지방계약법 → 시행령 → 시행규칙 → 행정규칙(예규·고시) → 자치법규(조례)\n"
+        "2. 실무 검증 (MCP 필수 실행):\n"
+        "   · search_law(\"지방자치단체 입찰 및 계약 집행기준\") : 수의계약 한도 및 절차 확인\n"
+        "   · search_law(\"지방자치단체 입찰 시 낙찰자 결정기준\") : 적격심사 및 지역업체 가점 확인\n"
+        "3. 지역 특화 (RAG & MCP 교차):\n"
+        "   · search_law(\"부산광역시 지역상품 우선구매\") : 부산시 조례에 따른 지역업체 우대 확인\n"
+        "4. 교육청 특이사항: 교육부 소관 '지방교육행정기관 재무회계 규칙' 등 추가 확인 필요 시 검색.\n"
+        "⛔ 국가계약법 기준으로 답변하면 오답입니다! 절대 혼동 금지!\n"
+        + _COMMON_PROCUREMENT
+    ),
+
+    # 2. 부산시 출자·출연기관 그룹 (공사·공단, 진흥원 등)
+    "busan_entity": (
+        "\n\n[적용 법체계: 부산광역시 출자·출연기관]\n"
+        "1. 법적 위계: 지방출자출연법 → 해당 기관 자체 계약규정 → (준용) 지방계약법\n"
+        "2. 실무 검증:\n"
+        "   · 기본적으로 '지방계약법' 체계를 따르되, 기관 자체 규정이 우선함.\n"
+        "   · search_law(\"지방자치단체 입찰 및 계약 집행기준\") : 준용되는 세부 절차 확인\n"
+        "   · search_law(\"지방자치단체 출자 출연 기관\") : 출자출연법 관련 규정 확인\n"
+        "3. 지역 우대: 부산시 산하기관으로서 '부산광역시 지역상품 우선구매 조례' 이행 대상임을 강조.\n"
+        "⚠️ 자체 계약규정이 지방계약법과 다를 수 있으므로, 해당 기관 규정 우선 확인 필요!\n"
+        + _COMMON_PROCUREMENT
+    ),
+
+    # 3. 국가기관 그룹 (중앙부처 및 소속기관)
+    "national_gov": (
+        "\n\n[적용 법체계: 국가기관 (중앙행정기관)]\n"
+        "1. 법적 위계: 국가계약법 → 시행령 → 시행규칙 → 행정규칙(예규·고시)\n"
+        "2. 실무 검증 (MCP 필수 실행):\n"
+        "   · search_law(\"정부 입찰·계약 집행기준\") : 수의계약 및 계약 일반 원칙 확인\n"
+        "   · search_law(\"적격심사기준\") : 국가기관 발주 건의 낙찰자 결정 기준 확인\n"
+        "3. 특이사항: WTO 정부조달협정 한도 금액(고시) 및 특정조달 특례규정 확인 필수.\n"
+        "⛔ 지방계약법 기준으로 답변하면 오답입니다! 절대 혼동 금지!\n"
+        + _COMMON_PROCUREMENT
+    ),
+
+    # 4. 국가 공공기관 그룹 (공기업, 준정부기관)
+    "public_agency": (
+        "\n\n[적용 법체계: 국가 공공기관 (공기업, 준정부기관)]\n"
+        "1. 법적 위계: 공운법 → 공기업·준정부기관 계약사무규칙 → (준용) 국가계약법\n"
+        "2. 실무 검증 (MCP 필수 실행):\n"
+        "   · search_law(\"공기업·준정부기관 계약사무규칙\") : 기관 전용 계약 원칙 확인\n"
+        "   · search_law(\"기타공공기관 계약사무 운영규정\") : 해당 시 적용 여부 확인\n"
+        "3. 핵심 포인트: 경영평가와 연계된 '혁신제품 구매' 및 '중소기업 판로 지원' 규정 우선 검토.\n"
+        "⚠️ 지방계약법·국가계약법과 기준이 다를 수 있으므로 주의!\n"
+        + _COMMON_PROCUREMENT
+    ),
+
+    # 기본값 — 소속 미지정 시
+    "default": (
+        "\n\n[적용 법체계: 부산광역시 (지방자치단체) — 기본값]\n"
+        "★ 사용자가 소속기관을 밝히지 않았으므로 부산광역시(지방자치단체) 기준으로 답변합니다.\n"
+        "1. 법적 위계: 지방계약법 → 시행령 → 시행규칙 → 행정규칙(예규·고시) → 자치법규(조례)\n"
+        "2. 실무 검증 (MCP 필수 실행):\n"
+        "   · search_law(\"지방자치단체 입찰 및 계약 집행기준\") : 계약절차, 소액수의 한도 확인\n"
+        "   · search_law(\"지방자치단체 입찰 시 낙찰자 결정기준\") : 적격심사 배점·가점 확인\n"
+        "3. 지역 특화:\n"
+        "   · search_law(\"부산광역시 지역상품 우선구매\") : 부산시 조례 확인\n"
+        + _COMMON_PROCUREMENT
+        + "\n→ 답변 하단에 반드시 포함: '다른 기관(국가기관·공기업 등) 기준이 궁금하시면 말씀해 주세요.'\n"
+    ),
+}
+
+
+def _normalize_agency_type(agency_type: str) -> str:
+    """사이드바 드롭다운 값 → MAP 키 변환."""
+    if not agency_type:
+        return "default"
+    mapping = {
+        # 지방자치단체 그룹
+        "지방자치단체": "local_gov",
+        "부산광역시": "local_gov",
+        "부산시": "local_gov",
+        "자치구": "local_gov",
+        "구청": "local_gov",
+        "군청": "local_gov",
+        "교육청": "local_gov",
+        # 부산 출자·출연기관 그룹
+        "출자출연기관": "busan_entity",
+        "부산도시공사": "busan_entity",
+        "부산교통공사": "busan_entity",
+        "부산시설공단": "busan_entity",
+        "부산관광공사": "busan_entity",
+        "부산정보산업진흥원": "busan_entity",
+        "부산산업과학혁신원": "busan_entity",
+        "지방공기업": "busan_entity",
+        # 국가기관 그룹
+        "국가기관": "national_gov",
+        "중앙부처": "national_gov",
+        # 국가 공공기관 그룹
+        "공기업": "public_agency",
+        "준정부기관": "public_agency",
+        "공기업/준정부기관": "public_agency",
+        "공공기관": "public_agency",
+    }
+    return mapping.get(agency_type, "default")
+
 # 사용자 친화적 도구 레이블 (보안: 내부 함수명/서버 주소 노출 방지)
 TOOL_LABELS = {
     "search_law": "🔍 법령 검색 중",
@@ -429,6 +623,15 @@ def chat(user_message: str, history: list[dict] = None, progress_callback=None, 
     global _cited_laws
     _cited_laws = []  # 매 답변마다 초기화
 
+    # ── 대화 이력 윈도잉 (Rate Limit + 비용 방지) ──
+    # 최근 10턴(user+model 20메시지)만 유지, 오래된 이력은 자동 삭제
+    MAX_HISTORY_TURNS = 10  # 턴 수 (1턴 = user + model)
+    MAX_HISTORY_MESSAGES = MAX_HISTORY_TURNS * 2
+    if len(history) > MAX_HISTORY_MESSAGES:
+        trimmed_count = len(history) - MAX_HISTORY_MESSAGES
+        history = history[-MAX_HISTORY_MESSAGES:]
+        print(f"  [WINDOW] 대화 이력 윈도잉: {trimmed_count}개 메시지 삭제, {len(history)}개 유지")
+
     # 대화 이력을 Gemini 형식으로 변환
     contents = []
     for msg in history:
@@ -439,42 +642,24 @@ def chat(user_message: str, history: list[dict] = None, progress_callback=None, 
             )
         )
 
-    # === RAG: 법령 원문 + 조달청 QA 검색 ===
+    # === RAG: 5개 소스 병렬 검색 (임베딩 1회) ===
     if progress_callback:
-        progress_callback("📚 관련 법령 데이터베이스 검색 중...")
-    law_rag = _search_law_rag(user_message, agency_type=agency_type)
-    pps_rag = _search_pps_qa(user_message)
-    manual_rag = _search_manuals(user_message)
-
-    # 혁신제품 검색
-    innovation_rag = ""
-    try:
-        from ingest_innovation import search_innovation
-        innovation_rag = search_innovation(user_message, n_results=5)
-    except Exception:
-        pass
-
-    # 기술개발제품 인증 검색
-    tech_rag = ""
-    try:
-        from ingest_tech_products import search_tech_products
-        tech_rag = search_tech_products(user_message, max_results=5)
-    except Exception:
-        pass
+        progress_callback("📚 관련 데이터베이스 병렬 검색 중...")
+    rag = _parallel_rag_search(user_message, agency_type=agency_type)
 
     # 현재 사용자 메시지 추가 (RAG 컨텍스트 포함)
     user_text = user_message
     rag_parts = []
-    if law_rag:
-        rag_parts.append(f"[참고용 보조자료: 법령 조문 — MCP 검색 결과와 다르면 MCP가 우선]\n{law_rag}")
-    if pps_rag:
-        rag_parts.append(f"[참고용 보조자료: 조달청 질의응답 — MCP 검색 결과와 다르면 MCP가 우선]\n{pps_rag}")
-    if manual_rag:
-        rag_parts.append(f"[참고용 보조자료: 계약 매뉴얼 — MCP 검색 결과와 다르면 MCP가 우선]\n{manual_rag}")
-    if innovation_rag:
-        rag_parts.append(f"[부산 지역 혁신제품 — 시행령 제25조제1항제8호에 따라 금액 무제한 수의계약 가능]\n{innovation_rag}")
-    if tech_rag:
-        rag_parts.append(f"[부산 지역 기술개발제품 인증 — 시행령 제25조제1항제6호에 따라 수의계약 가능]\n{tech_rag}")
+    if rag["law"]:
+        rag_parts.append(f"[참고용 보조자료: 법령 조문 — MCP 검색 결과와 다르면 MCP가 우선]\n{rag['law']}")
+    if rag["qa"]:
+        rag_parts.append(f"[참고용 보조자료: 조달청 질의응답 — MCP 검색 결과와 다르면 MCP가 우선]\n{rag['qa']}")
+    if rag["manual"]:
+        rag_parts.append(f"[참고용 보조자료: 계약 매뉴얼 — MCP 검색 결과와 다르면 MCP가 우선]\n{rag['manual']}")
+    if rag["innovation"]:
+        rag_parts.append(f"[부산 지역 혁신제품 — 시행령 제25조제1항제8호에 따라 금액 무제한 수의계약 가능]\n{rag['innovation']}")
+    if rag["tech"]:
+        rag_parts.append(f"[부산 지역 기술개발제품 인증 — 시행령 제25조제1항제6호에 따라 수의계약 가능]\n{rag['tech']}")
     
     if rag_parts:
         user_text = "\n\n".join(rag_parts) + f"\n\n[사용자 질문]\n{user_message}"
@@ -490,42 +675,11 @@ def chat(user_message: str, history: list[dict] = None, progress_callback=None, 
     from datetime import datetime
     today = datetime.now().strftime("%Y년 %m월 %d일")
 
-    # 기관 유형별 적용 법체계 동적 주입
-    agency_guide = ""
-    if agency_type == "지방자치단체":
-        agency_guide = (
-            "\n\n[적용 법체계: 지방자치단체]\n"
-            "★ 이 사용자는 지방자치단체 소속입니다. 반드시 아래 법체계만 적용하세요:\n"
-            "  · 기본법: 지방자치단체를 당사자로 하는 계약에 관한 법률 (지방계약법)\n"
-            "  · 시행령: 지방계약법 시행령\n"
-            "  · 행정규칙: 지방자치단체 입찰 및 계약집행기준, 낙찰자 결정기준\n"
-            "⛔ 국가계약법 기준으로 답변하면 오답입니다! 절대 혼동 금지!\n"
-        )
-    elif agency_type == "국가기관":
-        agency_guide = (
-            "\n\n[적용 법체계: 국가기관]\n"
-            "★ 이 사용자는 국가기관 소속입니다. 반드시 아래 법체계만 적용하세요:\n"
-            "  · 기본법: 국가를 당사자로 하는 계약에 관한 법률 (국가계약법)\n"
-            "  · 시행령: 국가계약법 시행령\n"
-            "  · 행정규칙: 정부 입찰/계약 집행기준, 계약업무처리훈령\n"
-            "⛔ 지방계약법 기준으로 답변하면 오답입니다! 절대 혼동 금지!\n"
-        )
-    elif agency_type == "공기업/준정부기관":
-        agency_guide = (
-            "\n\n[적용 법체계: 공기업/준정부기관]\n"
-            "★ 이 사용자는 공기업·준정부기관 소속입니다:\n"
-            "  · 상위법: 공공기관의 운영에 관한 법률\n"
-            "  · 계약규칙: 공기업/준정부기관 계약사무규칙\n"
-            "  · 지방계약법·국가계약법과 기준이 다를 수 있으므로 주의!\n"
-        )
-    elif agency_type:
-        agency_guide = f"\n\n[적용 기관: {agency_type}]\n해당 기관의 법체계를 우선 적용하세요.\n"
-    else:
-        agency_guide = (
-            "\n\n[적용 법체계: 미지정 → 지방자치단체 기본]\n"
-            "사용자가 소속기관을 밝히지 않았으므로 지방계약법 기준으로 답변하되,\n"
-            "답변 하단에 '국가기관·공기업 등은 기관명을 입력하시면 맞춤 답변 가능' 안내 포함.\n"
-        )
+    # 기관 유형별 적용 법체계 동적 주입 (AGENCY_GUIDE_MAP)
+    agency_guide = _AGENCY_GUIDE_MAP.get(
+        _normalize_agency_type(agency_type),
+        _AGENCY_GUIDE_MAP["default"]
+    )
 
     date_instruction = (
         f"\n\n[조회 시점: {today}]\n"
@@ -540,8 +694,8 @@ def chat(user_message: str, history: list[dict] = None, progress_callback=None, 
         temperature=0.1,  # 법률 도메인 — 강제 규칙 준수 + 사실 기반 답변 (0.0에 가까울수록 결정적)
     )
 
-    # Function calling 루프 (최대 15회 반복 — 기관별 비교 답변 시 다수 법령 검색 필요)
-    for loop_i in range(15):
+    # Function calling 루프 (최대 8회 — 병렬 호출 + 6회차 마무리 강제)
+    for loop_i in range(6):  # 병렬 호출 도입으로 6회면 12~18개 도구 실행 가능
         # 429 에러 자동 재시도 (무료 티어 분당 제한 대응)
         response = None
         last_err = None
@@ -583,27 +737,54 @@ def chat(user_message: str, history: list[dict] = None, progress_callback=None, 
         
         has_function_call = False
 
+        # 모든 function_call을 수집
+        function_calls = []
         for part in candidate.content.parts:
             if part.function_call:
                 has_function_call = True
-                fc = part.function_call
-                # 진행 로그 (서버 콘솔에 표시)
+                function_calls.append(part.function_call)
+
+        if function_calls:
+            # 모델 응답을 대화에 추가 (1회만)
+            contents.append(candidate.content)
+
+            # 병렬 실행: 여러 도구를 동시에 호출
+            if len(function_calls) > 1:
+                print(f"  [PARALLEL] {len(function_calls)}개 도구 병렬 실행!")
+                from concurrent.futures import ThreadPoolExecutor
+                with ThreadPoolExecutor(max_workers=len(function_calls)) as pool:
+                    futures = {}
+                    for fc in function_calls:
+                        print(f"  [tool] {fc.name}({dict(fc.args) if fc.args else {}})")
+                        if progress_callback:
+                            label = TOOL_LABELS.get(fc.name, "🔍 검색 중")
+                            query = dict(fc.args).get("query", "") if fc.args else ""
+                            progress_callback(f"{label}: {query}" if query else label)
+                        futures[fc.name] = (fc, pool.submit(_execute_function_call, fc))
+
+                    # 결과 수집 → 한 번에 전송
+                    response_parts = []
+                    for name, (fc, future) in futures.items():
+                        try:
+                            result_str = future.result(timeout=35)
+                        except Exception as e:
+                            result_str = json.dumps({"error": str(e)}, ensure_ascii=False)
+                        response_parts.append(
+                            types.Part.from_function_response(
+                                name=fc.name,
+                                response={"result": result_str}
+                            )
+                        )
+                    contents.append(types.Content(role="user", parts=response_parts))
+            else:
+                # 단일 호출
+                fc = function_calls[0]
                 print(f"  [tool] {fc.name}({dict(fc.args) if fc.args else {}})")
-                
-                # UI 진행 상태 표시 (보안: 사용자 친화적 레이블만)
                 if progress_callback:
                     label = TOOL_LABELS.get(fc.name, "🔍 검색 중")
                     query = dict(fc.args).get("query", "") if fc.args else ""
-                    if query:
-                        progress_callback(f"{label}: {query}")
-                    else:
-                        progress_callback(label)
-
-                # 함수 실행
+                    progress_callback(f"{label}: {query}" if query else label)
                 result_str = _execute_function_call(fc)
-
-                # 모델 응답 + 함수 결과를 대화에 추가
-                contents.append(candidate.content)
                 contents.append(
                     types.Content(
                         role="user",
@@ -613,7 +794,6 @@ def chat(user_message: str, history: list[dict] = None, progress_callback=None, 
                         )]
                     )
                 )
-                break  # 다음 루프에서 모델이 결과 해석
 
         if not has_function_call:
             # 최종 텍스트 답변

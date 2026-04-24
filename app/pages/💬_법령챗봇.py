@@ -66,11 +66,19 @@ st.markdown("""
 
 # ── 사이드바 ──
 AGENCY_TYPES = {
-    "지방자치단체 (부산시·구·군·교육청)": "지방자치단체(부산광역시)",
+    "미지정 (소속기관 선택)": None,
+    "지방자치단체 (부산시·구·군·교육청)": "지방자치단체",
+    "부산시 출자출연기관 (도시공사·교통공사 등)": "출자출연기관",
     "국가기관 (중앙부처·소속기관)": "국가기관",
-    "국가 공기업 및 준정부기관": "공기업·준정부기관",
-    "부산시 공사공단 및 출자출연기관 (부산도시공사 등)": "지방출자출연기관",
-    "미지정 (일반 안내)": None,
+    "국가 공기업·준정부기관": "공기업/준정부기관",
+}
+
+# 번호 입력 → agency_type 매핑 (인터랙티브 가이드용)
+_AGENCY_NUMBER_MAP = {
+    "1": "지방자치단체",
+    "2": "출자출연기관",
+    "3": "국가기관",
+    "4": "공기업/준정부기관",
 }
 
 with st.sidebar:
@@ -108,13 +116,36 @@ if "chat_history" not in st.session_state:
 st.markdown('<div class="chat-header">💬 부산광역시 지역경제 상생협력 어드바이저</div>', unsafe_allow_html=True)
 st.markdown('<div class="chat-sub">계약 및 조달 법령에 대해 질문하면, 법제처 API에서 법령 및 행정규칙, 해석례, 소속기관의 계약지침을 검색하여 답변합니다.</div>', unsafe_allow_html=True)
 
-# ── 소속기관 유형 선택 (메인 영역) ──
-agency_key = st.selectbox(
-    "📋 소속기관 유형",
-    options=list(AGENCY_TYPES.keys()),
-    index=0,
-)
-selected_agency = AGENCY_TYPES[agency_key]
+# ── 소속기관 유형 선택 + 대화 초기화 (메인 영역) ──
+col_agency, col_reset = st.columns([4, 1])
+with col_agency:
+    # 번호 입력으로 설정된 override가 있으면 해당 index 사용
+    _override = st.session_state.get("_agency_override", None)
+    _default_idx = 0
+    if _override:
+        _keys = list(AGENCY_TYPES.keys())
+        for i, (label, val) in enumerate(AGENCY_TYPES.items()):
+            if val == _override:
+                _default_idx = i
+                break
+    agency_key = st.selectbox(
+        "📋 소속기관 유형",
+        options=list(AGENCY_TYPES.keys()),
+        index=_default_idx,
+    )
+    selected_agency = AGENCY_TYPES[agency_key]
+with col_reset:
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("🗑️ 대화 초기화", use_container_width=True, type="secondary"):
+        st.session_state.messages = []
+        st.session_state.chat_history = []
+        st.session_state.pop("_agency_override", None)
+        st.rerun()
+
+# ── 기관 설정 완료 안내 (번호 입력 후 rerun 시) ──
+if st.session_state.pop("_agency_just_set", False):
+    _set_name = st.session_state.get("_agency_override", "지방자치단체")
+    st.success(f"✅ **{_set_name}** 기준으로 설정되었습니다. 이제 질문을 입력해주세요!")
 
 # ── 대화가 없을 때 예시 질문 표시 ──
 if not st.session_state.messages:
@@ -141,16 +172,63 @@ if "pending_question" in st.session_state:
     del st.session_state.pending_question
 
 if user_input:
-    # 사용자 메시지 표시 (UI에는 원본 질문만)
+    # ── [Case B] 기관 미선택 시: 번호 입력 파싱 ──
+    if not selected_agency:
+        stripped = user_input.strip().replace("번", "").replace("호", "")
+        if stripped in _AGENCY_NUMBER_MAP:
+            selected_agency = _AGENCY_NUMBER_MAP[stripped]
+            st.session_state["_agency_override"] = selected_agency
+            # 확인 메시지를 채팅에 추가
+            confirm = f"✅ **{selected_agency}** 기준으로 설정되었습니다!"
+            st.session_state.messages.append({"role": "assistant", "content": confirm})
+            # 원래 질문이 저장되어 있으면 자동 실행
+            original_q = st.session_state.pop("_pending_original_question", None)
+            if original_q:
+                st.session_state.pending_question = original_q
+                confirm2 = f"💬 여쭤보신 질문에 대해 답변드리겠습니다..."
+                st.session_state.messages.append({"role": "assistant", "content": confirm2})
+            st.rerun()
+        elif "건너뛰기" in user_input or "기본" in user_input or "부산시" in user_input:
+            selected_agency = "지방자치단체"
+            st.session_state["_agency_override"] = selected_agency
+            confirm = "✅ **부산광역시(지방자치단체)** 기준으로 설정되었습니다!"
+            st.session_state.messages.append({"role": "assistant", "content": confirm})
+            original_q = st.session_state.pop("_pending_original_question", None)
+            if original_q:
+                st.session_state.pending_question = original_q
+                confirm2 = f"💬 여쭤보신 질문에 대해 답변드리겠습니다..."
+                st.session_state.messages.append({"role": "assistant", "content": confirm2})
+            st.rerun()
+
+    # ── 사용자 메시지 표시 ──
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user", avatar="🧑‍💼"):
         st.markdown(user_input)
-    
+
+    # ── [Case B] 여전히 기관 미선택 → 인터랙티브 가이드 출력 (API 호출 없음) ──
+    if not selected_agency:
+        # 원래 질문을 저장 (기관 선택 후 자동 실행용)
+        st.session_state["_pending_original_question"] = user_input
+        guide_msg = """안녕하세요! 🧚‍♀️ 정확한 법령 기준으로 답변드리기 위해 **소속기관 유형**을 먼저 알려주세요.
+
+| 번호 | 기관 유형 | 적용 법령 |
+|:---:|---------|----------|
+| **1️⃣** | **지방자치단체** | 지방계약법 (부산시, 구청, 교육청) |
+| **2️⃣** | **부산시 출자출연기관** | 자체규정 + 지방계약법 준용 (도시공사 등) |
+| **3️⃣** | **국가기관** | 국가계약법 (중앙부처, 소속기관) |
+| **4️⃣** | **공기업/준정부기관** | 공운법 + 계약사무규칙 |
+
+👆 **번호(1~4)**를 입력하시거나 왼쪽 사이드바에서 선택해 주세요!
+
+_(잘 모르시겠다면 **'1번'** 또는 **'건너뛰기'**를 입력하시면 부산시 기준으로 안내해 드려요.)_"""
+        with st.chat_message("assistant", avatar="⚖️"):
+            st.markdown(guide_msg)
+        st.session_state.messages.append({"role": "assistant", "content": guide_msg})
+        st.stop()  # API 호출 없이 여기서 중단
+
+    # ── [Case A] 기관 확정 → 실제 분석 실행 ──
     # 기관 유형 컨텍스트를 질문에 삽입 (Gemini에만 전달)
-    if selected_agency:
-        chat_input = f"[소속기관: {selected_agency}] {user_input}"
-    else:
-        chat_input = user_input
+    chat_input = f"[소속기관: {selected_agency}] {user_input}"
 
     # AI 답변 생성
     with st.chat_message("assistant", avatar="⚖️"):

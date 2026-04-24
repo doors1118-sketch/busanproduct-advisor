@@ -54,3 +54,11 @@ def get_passage_embedding_fn() -> E5EmbeddingFunction:
 def get_query_embedding_fn() -> E5EmbeddingFunction:
     """검색(query) 시 사용: 'query: ' 접두사 적용."""
     return E5EmbeddingFunction(mode="query")
+
+
+def encode_query(text: str) -> list[float]:
+    """쿼리 텍스트를 벡터로 1회 변환. 병렬 RAG 검색 시 임베딩 재사용용."""
+    model = _get_model()
+    embedding = model.encode(["query: " + text], normalize_embeddings=True)
+    return embedding[0].tolist()
+

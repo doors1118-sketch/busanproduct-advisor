@@ -100,10 +100,49 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
 # ─────────────────────────────────────────────
 # ChromaDB 적재
 # ─────────────────────────────────────────────
-def ingest_manuals():
-    """매뉴얼 PDF를 ChromaDB에 적재."""
+def _get_existing_sources(collection) -> set:
+    """컬렉션에 이미 적재된 PDF 파일명 목록 조회."""
+    try:
+        all_meta = collection.get(include=["metadatas"])
+        sources = set()
+        if all_meta and all_meta.get("metadatas"):
+            for meta in all_meta["metadatas"]:
+                if meta and "source" in meta:
+                    sources.add(meta["source"])
+        return sources
+    except Exception:
+        return set()
+
+
+def _delete_source_chunks(collection, source_name: str) -> int:
+    """특정 PDF의 청크를 컬렉션에서 삭제."""
+    try:
+        results = collection.get(
+            where={"source": source_name},
+            include=["metadatas"],
+        )
+        if results and results.get("ids"):
+            ids_to_delete = results["ids"]
+            collection.delete(ids=ids_to_delete)
+            return len(ids_to_delete)
+    except Exception:
+        pass
+    return 0
+
+
+def ingest_manuals(mode: str = "full", target_pdfs: list[str] = None):
+    """
+    매뉴얼 PDF를 ChromaDB에 적재.
+
+    Args:
+        mode:
+          - "full": 전체 삭제 후 재적재 (기존 방식)
+          - "add": 신규 PDF만 추가 (이미 적재된 PDF는 스킵)
+          - "replace": 특정 PDF 교체 (구판 삭제 → 신판 추가)
+        target_pdfs: replace 모드에서 교체할 PDF 파일 경로 리스트
+    """
     print("=" * 50)
-    print("  Manual RAG Ingest")
+    print(f"  Manual RAG Ingest (mode: {mode})")
     print("=" * 50)
 
     # 1. PDF 파일 목록 수집
@@ -122,9 +161,52 @@ def ingest_manuals():
         print("  [ERROR] No PDF files found!")
         return
 
-    print(f"  Found {len(pdf_files)} PDF files\n")
+    # 2. ChromaDB 준비
+    embedding_fn = get_passage_embedding_fn()
+    client = chromadb.PersistentClient(path=CHROMA_DIR)
 
-    # 2. 텍스트 추출 + 청크 분할
+    if mode == "full":
+        # 전체 재적재: 기존 삭제
+        try:
+            client.delete_collection(COLLECTION_NAME)
+            print(f"  Deleted existing '{COLLECTION_NAME}' collection")
+        except Exception:
+            pass
+
+    collection = client.get_or_create_collection(
+        name=COLLECTION_NAME,
+        embedding_function=embedding_fn,
+        metadata={"description": "contracts manuals & procurement guidelines"},
+    )
+
+    # 3. 모드별 처리
+    if mode == "add":
+        # 증분 적재: 이미 적재된 PDF 스킵
+        existing = _get_existing_sources(collection)
+        new_pdfs = [p for p in pdf_files if os.path.basename(p) not in existing]
+        skipped = len(pdf_files) - len(new_pdfs)
+        print(f"  Found {len(pdf_files)} PDFs total, {skipped} already loaded, {len(new_pdfs)} new\n")
+        pdf_files = new_pdfs
+        if not pdf_files:
+            print(f"  [DONE] No new PDFs to add. Collection: {collection.count()} docs")
+            return
+
+    elif mode == "replace":
+        # 교체 모드: 지정된 PDF만 처리
+        if target_pdfs:
+            pdf_files = [p for p in pdf_files if os.path.basename(p) in target_pdfs
+                         or p in target_pdfs]
+        for pdf_path in pdf_files:
+            fname = os.path.basename(pdf_path)
+            deleted = _delete_source_chunks(collection, fname)
+            if deleted:
+                print(f"  [REPLACE] {fname}: deleted {deleted} old chunks")
+        print(f"  Replacing {len(pdf_files)} PDFs\n")
+
+    else:
+        print(f"  Found {len(pdf_files)} PDF files\n")
+
+    # 4. 텍스트 추출 + 청크 분할
     all_chunks = []
     for pdf_path in pdf_files:
         fname = os.path.basename(pdf_path)
@@ -157,31 +239,14 @@ def ingest_manuals():
     print(f"\n  Total: {len(all_chunks)} chunks from {len(pdf_files)} PDFs\n")
 
     if not all_chunks:
-        print("  [ERROR] No chunks to ingest!")
+        print(f"  [DONE] No new chunks. Collection: {collection.count()} docs")
         return
 
-    # 3. ChromaDB 적재
-    embedding_fn = get_passage_embedding_fn()
-    client = chromadb.PersistentClient(path=CHROMA_DIR)
-
-    # 기존 컬렉션 삭제 후 재생성
-    try:
-        client.delete_collection(COLLECTION_NAME)
-        print(f"  Deleted existing '{COLLECTION_NAME}' collection")
-    except Exception:
-        pass
-
-    collection = client.get_or_create_collection(
-        name=COLLECTION_NAME,
-        embedding_function=embedding_fn,
-        metadata={"description": "contracts manuals & procurement guidelines"},
-    )
-
-    # 배치 적재 (50건씩)
+    # 5. 배치 적재 (50건씩)
     batch_size = 50
     for i in range(0, len(all_chunks), batch_size):
         batch = all_chunks[i:i + batch_size]
-        collection.add(
+        collection.upsert(
             ids=[c["id"] for c in batch],
             documents=[c["text"] for c in batch],
             metadatas=[c["metadata"] for c in batch],
@@ -225,4 +290,11 @@ def search_manuals(query: str, n_results: int = 3) -> list[dict]:
 
 
 if __name__ == "__main__":
-    ingest_manuals()
+    import argparse
+    parser = argparse.ArgumentParser(description="매뉴얼 RAG 적재")
+    parser.add_argument("--mode", choices=["full", "add", "replace"], default="add",
+                        help="적재 모드: full(전체 재적재), add(신규만 추가), replace(교체)")
+    parser.add_argument("--files", nargs="*", default=None,
+                        help="replace 모드에서 교체할 PDF 파일명(들)")
+    args = parser.parse_args()
+    ingest_manuals(mode=args.mode, target_pdfs=args.files)
