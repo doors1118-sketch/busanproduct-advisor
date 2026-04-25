@@ -149,6 +149,72 @@ def verify_citations(text: str) -> str:
 
 
 # ─────────────────────────────────────────────
+# 행정규칙 (훈령/예규/고시) — execute_tool 경유
+# ─────────────────────────────────────────────
+
+def search_admin_rule(query: str, knd: int = None) -> str:
+    """행정규칙(훈령/예규/고시) 검색. knd: 1=훈령, 2=예규, 3=고시."""
+    params = {"query": query}
+    if knd is not None:
+        params["knd"] = str(knd)
+    result = _mcp_call("execute_tool", {
+        "tool_name": "search_admin_rule",
+        "params": params,
+    }, timeout=30)
+    return result["text"]
+
+
+def get_admin_rule(rule_id: str) -> str:
+    """행정규칙 전문 조회. search_admin_rule로 얻은 ID를 사용."""
+    result = _mcp_call("execute_tool", {
+        "tool_name": "get_admin_rule",
+        "params": {"id": rule_id},
+    }, timeout=30)
+    return result["text"]
+
+
+# ─────────────────────────────────────────────
+# 추가 체인 도구 (기본 노출 15개에 포함)
+# ─────────────────────────────────────────────
+
+def chain_procedure_detail(query: str) -> str:
+    """절차·비용·서식 안내 (법체계→별표→시행규칙별표)."""
+    result = _mcp_call("chain_procedure_detail", {"query": query}, timeout=120)
+    return result["text"]
+
+
+def chain_ordinance_compare(query: str) -> str:
+    """조례 비교 연구 (상위법→전국 조례 검색)."""
+    result = _mcp_call("chain_ordinance_compare", {"query": query}, timeout=120)
+    return result["text"]
+
+
+def chain_amendment_track(query: str) -> str:
+    """개정 추적 (신구대조+조문이력)."""
+    result = _mcp_call("chain_amendment_track", {"query": query}, timeout=120)
+    return result["text"]
+
+
+def chain_document_review(query: str) -> str:
+    """계약서·약관 리스크 분석 (문서분석→관련법령→판례)."""
+    result = _mcp_call("chain_document_review", {"query": query}, timeout=120)
+    return result["text"]
+
+
+# ─────────────────────────────────────────────
+# 판례/해석례 전문 조회
+# ─────────────────────────────────────────────
+
+def get_decision_text(decision_id: str, domain: str = "precedent") -> str:
+    """판례·해석례 전문 조회. search_decisions 결과에서 얻은 ID 사용."""
+    result = _mcp_call("get_decision_text", {
+        "id": decision_id,
+        "domain": domain,
+    }, timeout=30)
+    return result["text"]
+
+
+# ─────────────────────────────────────────────
 # 테스트
 # ─────────────────────────────────────────────
 if __name__ == "__main__":

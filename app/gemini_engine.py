@@ -204,6 +204,111 @@ law_tools = [
                     required=["query"],
                 ),
             ),
+            # ── 행정규칙 (훈령/예규/고시) ──
+            types.FunctionDeclaration(
+                name="search_admin_rule",
+                description="행정규칙(훈령/예규/고시) 검색. 계약집행기준, 낙찰자결정기준, 업무처리규정 등 행정규칙 원문을 찾을 때 사용. search_law로 못 찾는 행정규칙은 이 도구로 검색.",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "query": types.Schema(
+                            type="STRING",
+                            description="검색 키워드 (예: '입찰 계약집행기준', '낙찰자 결정기준', '내자구매업무 처리규정')"
+                        ),
+                    },
+                    required=["query"],
+                ),
+            ),
+            types.FunctionDeclaration(
+                name="get_admin_rule",
+                description="행정규칙 전문 조회. search_admin_rule 결과에서 얻은 행정규칙일련번호(ID)를 사용하여 원문 전체를 조회합니다.",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "rule_id": types.Schema(
+                            type="STRING",
+                            description="행정규칙일련번호 (예: '2100000261486')"
+                        ),
+                    },
+                    required=["rule_id"],
+                ),
+            ),
+            # ── 추가 체인 도구 ──
+            types.FunctionDeclaration(
+                name="chain_procedure_detail",
+                description="계약 절차·필요서류·비용을 한번에 안내. '수의계약 절차가 어떻게 돼?', '입찰 참가 서류가 뭐야?' 같은 절차 질문에 사용.",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "query": types.Schema(
+                            type="STRING",
+                            description="절차 관련 질문 (예: '수의계약 절차', '입찰 참가자격')"
+                        ),
+                    },
+                    required=["query"],
+                ),
+            ),
+            types.FunctionDeclaration(
+                name="chain_ordinance_compare",
+                description="조례와 상위법 비교 분석. 부산시 조례의 지역업체 우대 조항, 조달 관련 조례 등을 상위법과 비교할 때 사용.",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "query": types.Schema(
+                            type="STRING",
+                            description="조례 관련 질문 (예: '부산시 지역상품 우선구매 조례', '지역업체 우대')"
+                        ),
+                    },
+                    required=["query"],
+                ),
+            ),
+            types.FunctionDeclaration(
+                name="chain_amendment_track",
+                description="법령 개정 추적. 신구대조표와 개정 연혁을 조회. '이 법 최근에 뭐 바뀌었어?', '개정 사항 알려줘' 같은 질문에 사용.",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "query": types.Schema(
+                            type="STRING",
+                            description="법령명 (예: '지방계약법', '조달사업법')"
+                        ),
+                    },
+                    required=["query"],
+                ),
+            ),
+            types.FunctionDeclaration(
+                name="chain_document_review",
+                description="계약서·약관의 법적 리스크 분석. 계약 조항의 적법성을 검토할 때 사용.",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "query": types.Schema(
+                            type="STRING",
+                            description="계약서 관련 질문 (예: '다수공급자계약 특수조건 검토', '계약 해지 조건')"
+                        ),
+                    },
+                    required=["query"],
+                ),
+            ),
+            # ── 판례/해석례 전문 조회 ──
+            types.FunctionDeclaration(
+                name="get_decision_text",
+                description="판례·해석례 전문 조회. search_decisions 결과에서 얻은 ID로 판결문 본문을 확인할 때 사용.",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "decision_id": types.Schema(
+                            type="STRING",
+                            description="판례/해석례 ID (search_decisions 결과에서 획득)"
+                        ),
+                        "domain": types.Schema(
+                            type="STRING",
+                            description="도메인: precedent(판례), interpretation(해석례), admin_appeal(행정심판). 기본값: precedent"
+                        ),
+                    },
+                    required=["decision_id"],
+                ),
+            ),
         ]
     )
 ]
@@ -216,16 +321,27 @@ def _execute_function_call(function_call) -> str:
     global _cited_laws
 
     # MCP 호출 타임아웃 래퍼 (법제처 API 지연 대비)
-    MCP_TIMEOUT = 30  # 초
+    MCP_TIMEOUT = 30  # 단순 도구 (search_law, get_law_text 등)
+    MCP_CHAIN_TIMEOUT = 90  # 체인 도구 (chain_*, execute_tool 경유 등 다단계 호출)
+
+    # 체인/다단계 호출 도구 목록
+    _chain_tools = {
+        "chain_full_research", "chain_action_basis", "chain_law_system",
+        "chain_procedure_detail", "chain_ordinance_compare",
+        "chain_amendment_track", "chain_document_review",
+        "search_admin_rule", "get_admin_rule",  # execute_tool 경유
+    }
+    timeout = MCP_CHAIN_TIMEOUT if name in _chain_tools else MCP_TIMEOUT
+
     def _run_with_timeout(func, *a, **kw):
         """MCP 함수를 타임아웃 내에 실행. 초과 시 Fallback 메시지 반환."""
         from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
         with ThreadPoolExecutor(max_workers=1) as pool:
             future = pool.submit(func, *a, **kw)
             try:
-                return future.result(timeout=MCP_TIMEOUT)
+                return future.result(timeout=timeout)
             except FuturesTimeout:
-                print(f"  [MCP TIMEOUT] {name} 호출 {MCP_TIMEOUT}초 초과")
+                print(f"  [MCP TIMEOUT] {name} 호출 {timeout}초 초과")
                 return json.dumps({
                     "warning": f"법제처 API 응답 지연으로 '{name}' 결과를 가져오지 못했습니다. "
                                "RAG 보조자료를 참고하여 답변하되, 반드시 '⚠️ 법제처 API 일시 장애' 문구를 포함하세요."
@@ -252,6 +368,27 @@ def _execute_function_call(function_call) -> str:
             return _run_with_timeout(mcp.chain_action_basis, args.get("query", ""))
         elif name == "chain_law_system":
             return _run_with_timeout(mcp.chain_law_system, args.get("query", ""))
+        # ── 행정규칙 (훈령/예규/고시) ──
+        elif name == "search_admin_rule":
+            return _run_with_timeout(mcp.search_admin_rule, args.get("query", ""))
+        elif name == "get_admin_rule":
+            return _run_with_timeout(mcp.get_admin_rule, args.get("rule_id", ""))
+        # ── 추가 체인 도구 ──
+        elif name == "chain_procedure_detail":
+            return _run_with_timeout(mcp.chain_procedure_detail, args.get("query", ""))
+        elif name == "chain_ordinance_compare":
+            return _run_with_timeout(mcp.chain_ordinance_compare, args.get("query", ""))
+        elif name == "chain_amendment_track":
+            return _run_with_timeout(mcp.chain_amendment_track, args.get("query", ""))
+        elif name == "chain_document_review":
+            return _run_with_timeout(mcp.chain_document_review, args.get("query", ""))
+        # ── 판례/해석례 전문 조회 ──
+        elif name == "get_decision_text":
+            return _run_with_timeout(
+                mcp.get_decision_text,
+                args.get("decision_id", ""),
+                args.get("domain", "precedent"),
+            )
         # ── 부산 지역업체 검색 ──
         elif name == "search_local_company_by_product":
             q = args.get("query", "")
@@ -732,6 +869,15 @@ def chat(user_message: str, history: list[dict] = None, progress_callback=None, 
                 return "⚠️ 해당 질문은 AI 안전 정책에 의해 답변이 제한됩니다. 계약·조달 관련 법률 질문으로 다시 시도해 주세요.", history
             elif reason and "RECITATION" in str(reason):
                 return "⚠️ 법령 원문 인용 제한으로 답변이 생성되지 않았습니다. 질문을 좀 더 구체적으로 입력해 주세요.", history
+            elif reason and "STOP" in str(reason) and loop_i < 5:
+                print("  [RETRY] Empty STOP -> Forcing final answer generation")
+                contents.append(
+                    types.Content(
+                        role="user",
+                        parts=[types.Part.from_text(text="시스템 오류로 인해 앞서 작성하신 답변 내용이 지워졌습니다. 검색된 법령/지침 조항과 업체 정보 등을 빠짐없이 포함하여, 처음부터 끝까지 완전하고 구체적인 최종 답변을 마크다운 형식으로 다시 한 번 작성해주세요.")]
+                    )
+                )
+                continue
             else:
                 return "⚠️ 답변을 생성하지 못했습니다. 질문을 계약·조달 법령과 관련된 구체적인 내용으로 다시 작성해 주세요.\n\n예시: \"수의계약 기준 금액이 얼마야?\", \"지역제한 입찰 가능한 조건이 뭐야?\"", history
         

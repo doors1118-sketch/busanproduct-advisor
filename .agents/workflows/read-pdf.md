@@ -33,7 +33,7 @@ all_text = []
 for i, page in enumerate(doc):
     # 페이지를 이미지로 변환 (해상도 300dpi)
     pix = page.get_pixmap(dpi=300)
-    img_path = os.path.join(r'C:\Users\COMTREE\Desktop', f'_ocr_temp_page_{i}.png')
+    img_path = os.path.join(r'c:\Users\doors\OneDrive\바탕 화면\사무실 메뉴얼 제작_추출\메뉴얼 제작', f'_ocr_temp_page_{i}.png')
     pix.save(img_path)
     
     # EasyOCR로 텍스트 인식
