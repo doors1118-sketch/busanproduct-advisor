@@ -1,0 +1,1048 @@
+{
+  "updated": "2026-04-23T17:19:29.279637",
+  "total_api": 16069,
+  "busan_valid": 104,
+  "busan_expired": 77,
+  "products": [
+    {
+      "biz_no": "6068185295",
+      "company": "신신이앤지(주)",
+      "representative": "고정자",
+      "cert_type": "NET",
+      "cert_no": "제2023-8호",
+      "product_name": "탈부착이 용이한 수중펌프로 비상시 응급조치가 가능한 방재용 펌프수문 및 일체형펌프",
+      "cert_date": "2023-04-07",
+      "expire_date": "2028-04-06"
+    },
+    {
+      "biz_no": "6028142993",
+      "company": "(주)에이치제이중공업",
+      "representative": "홍문기",
+      "cert_type": "NET",
+      "cert_no": "건설-953",
+      "product_name": "앵커콘과 주름형 폐합지수판을 사용한 조립식 프리캐스트 콘크리트 공동구 시공 기술(KC System)",
+      "cert_date": "2022-12-30",
+      "expire_date": "2030-12-29"
+    },
+    {
+      "biz_no": "6178173275",
+      "company": "(주)두승",
+      "representative": "김경자",
+      "cert_type": "NET",
+      "cert_no": "제614호",
+      "product_name": "다수의 교차 회전 날개가 장착된 8각 2축 박리크러셔를 건설폐기물 중간처리 공정에 적용하여 콘크리트용 골재의 품질향상 기술",
+      "cert_date": "2022-09-30",
+      "expire_date": "2030-09-29"
+    },
+    {
+      "biz_no": "6178173275",
+      "company": "(주)두승",
+      "representative": "김경자",
+      "cert_type": "NET",
+      "cert_no": "제276호",
+      "product_name": "다수의 교차 회전 날개가 장착된 8각 2축 박리크러셔를 적용한 콘크리트용 순환굵은골재 생산기술",
+      "cert_date": "2022-09-30",
+      "expire_date": "2030-09-29"
+    },
+    {
+      "biz_no": "6068185295",
+      "company": "신신이앤지(주)",
+      "representative": "고정자",
+      "cert_type": "NET",
+      "cert_no": "제2022-4호",
+      "product_name": "링형 회류방지 장치로 펌프성능을 개선한 방재용 수중펌프",
+      "cert_date": "2022-01-17",
+      "expire_date": "2027-01-16"
+    },
+    {
+      "biz_no": "6068117346",
+      "company": "(주)호생환경",
+      "representative": "황준",
+      "cert_type": "NET",
+      "cert_no": "제275호",
+      "product_name": "트롬멜 내의 세척과 풍력장치를 이용하여 건설폐기물을 가연성분과 불연성분으로 분리·선별하는 기술",
+      "cert_date": "2021-11-22",
+      "expire_date": "2029-11-21"
+    },
+    {
+      "biz_no": "6028142993",
+      "company": "(주)에이치제이중공업",
+      "representative": "홍문기",
+      "cert_type": "NET",
+      "cert_no": "건설-751",
+      "product_name": "보강리브와 헌치 및 파형 전단연결재를 이용한 교량용 프리캐스트 콘크리트 바닥판 공법(Rib-Deck공법)",
+      "cert_date": "2014-12-22",
+      "expire_date": "2029-12-21"
+    },
+    {
+      "biz_no": "6068656723",
+      "company": "주식회사 도화",
+      "representative": "None",
+      "cert_type": "우수조달물품",
+      "cert_no": "2024226",
+      "product_name": "세라믹장식타일",
+      "cert_date": "2025-03-21",
+      "expire_date": "2028-03-20"
+    },
+    {
+      "biz_no": "6078188354",
+      "company": "주식회사 비젼테크",
+      "representative": "None",
+      "cert_type": "우수조달물품",
+      "cert_no": "2024193",
+      "product_name": "LED등기구",
+      "cert_date": "2025-01-20",
+      "expire_date": "2028-01-19"
+    },
+    {
+      "biz_no": "6178150802",
+      "company": "아쿠아셀(주)",
+      "representative": "김경희",
+      "cert_type": "우수조달물품",
+      "cert_no": "2023234",
+      "product_name": "전기분해식 약액 세정 탈취기",
+      "cert_date": "2024-05-21",
+      "expire_date": "2027-05-20"
+    },
+    {
+      "biz_no": "6038114656",
+      "company": "(주)세기하이텍",
+      "representative": "배영기",
+      "cert_type": "우수조달물품",
+      "cert_no": "2023175",
+      "product_name": "무방향성 냉매유동기반의 열전달 기술이 응용된 방열패널(PHS형 방열구조)을 적용한 엘이디 투광등기구",
+      "cert_date": "2024-03-22",
+      "expire_date": "2027-03-21"
+    },
+    {
+      "biz_no": "6178182323",
+      "company": "(주)금경라이팅",
+      "representative": "김금연",
+      "cert_type": "우수조달물품",
+      "cert_no": "2023115",
+      "product_name": "격자구조를 갖는 히트싱크형 PCB가 적용된 바닥형 보행신호등",
+      "cert_date": "2023-11-27",
+      "expire_date": "2026-11-26"
+    },
+    {
+      "biz_no": "6038171695",
+      "company": "주식회사 새론테크",
+      "representative": "설태윤",
+      "cert_type": "우수조달물품",
+      "cert_no": "2023144",
+      "product_name": "고강도 접착기술 적용으로 부착강도가 우수한 폴리우레아 방수재",
+      "cert_date": "2023-11-27",
+      "expire_date": "2026-11-26"
+    },
+    {
+      "biz_no": "5128118851",
+      "company": "주식회사 제이텍워터",
+      "representative": "최윤이",
+      "cert_type": "우수조달물품",
+      "cert_no": "2023116",
+      "product_name": "차아염소산나트륨 농도 실시간 측정 감시반",
+      "cert_date": "2023-11-27",
+      "expire_date": "2026-11-26"
+    },
+    {
+      "biz_no": "6178182323",
+      "company": "(주)금경라이팅",
+      "representative": "김금연",
+      "cert_type": "우수조달물품",
+      "cert_no": "2023062",
+      "product_name": "격자구조를 갖는 히트싱크형 PCB가 적용된 LED 등기구",
+      "cert_date": "2023-07-21",
+      "expire_date": "2026-07-20"
+    },
+    {
+      "biz_no": "6178182323",
+      "company": "(주)금경라이팅",
+      "representative": "김금연",
+      "cert_type": "우수조달물품",
+      "cert_no": "2023062",
+      "product_name": "격자구조를 갖는 히트싱크형 PCB가 적용된 LED 등기구",
+      "cert_date": "2023-07-21",
+      "expire_date": "2026-07-20"
+    },
+    {
+      "biz_no": "1258196954",
+      "company": "주식회사 하이클로",
+      "representative": "장희정",
+      "cert_type": "우수조달물품",
+      "cert_no": "2020227",
+      "product_name": "전해조 직접냉각방식 차염발생장치",
+      "cert_date": "2021-03-22",
+      "expire_date": "2027-03-21"
+    },
+    {
+      "biz_no": "6068185295",
+      "company": "신신이앤지(주)",
+      "representative": "고정자",
+      "cert_type": "우수조달물품",
+      "cert_no": "2020119",
+      "product_name": "회류 및 난류 방지장치와 스페이서가 적용된 수중펌프",
+      "cert_date": "2020-11-10",
+      "expire_date": "2026-11-09"
+    },
+    {
+      "biz_no": "6078189727",
+      "company": "㈜알엠에이",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "25-0037",
+      "product_name": "수요예측 기반 지능형 시스템 v1.0 Intelligent Demand Forecasting System v1.0",
+      "cert_date": "2025-02-03",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "2768802054",
+      "company": "다인아이티 주식회사",
+      "representative": "손은정",
+      "cert_type": "GS",
+      "cert_no": "25-0006",
+      "product_name": "None",
+      "cert_date": "2025-01-13",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "2048145651",
+      "company": "㈜파노텍",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "24-0400",
+      "product_name": "BAS&에너지 적응형 스마트 빌딩제어장치 v1.0BrainEye v1.0",
+      "cert_date": "2024-08-12",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6078803276",
+      "company": "나무소프트 주식회사",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "24-0283",
+      "product_name": "나무소프트 All-in-One 불법주정차 단속 통합 대사 시스템 v1.0Parking Enforcement Integrated Comparison and Analysis System v1.0",
+      "cert_date": "2024-06-27",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6078803276",
+      "company": "나무소프트 주식회사",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "24-0284",
+      "product_name": "나무소프트 단속 정보 전송 에이전트 v1.0Enforcement Information Transmission Agent v1.0",
+      "cert_date": "2024-06-27",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6058616107",
+      "company": "(주)포앰",
+      "representative": "정광현",
+      "cert_type": "GS",
+      "cert_no": "24-0034",
+      "product_name": "ForMWatcher v3.0",
+      "cert_date": "2024-05-06",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "4188152144",
+      "company": "트라웍스(주)",
+      "representative": "김선미",
+      "cert_type": "GS",
+      "cert_no": "24-0025",
+      "product_name": "TraworksIVA v1.0",
+      "cert_date": "2024-04-12",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "5848100303",
+      "company": "주식회사 다온테크닉스",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "24-0019",
+      "product_name": "다온 솔라 모니터링 시스템 v1.1Daon Solar Monitoring System v1.1",
+      "cert_date": "2024-01-15",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6078189843",
+      "company": "주식회사 엘앤비기술",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "24-0011",
+      "product_name": "방송제어시스템 v2.0.0Digital Broadcasting System v2.0.0",
+      "cert_date": "2024-01-08",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6078188354",
+      "company": "주식회사 비젼테크",
+      "representative": "김채원 이호석",
+      "cert_type": "GS",
+      "cert_no": "23-0057",
+      "product_name": "삼상 펌프 모니터링 웹 서비스 V1.0",
+      "cert_date": "2023-12-22",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6078170363",
+      "company": "㈜리얼시큐",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "23-0517",
+      "product_name": "메일가드 v2MailGuard v2",
+      "cert_date": "2023-12-18",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6058143929",
+      "company": "주식회사 한국크레아",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "23-0142",
+      "product_name": "티치인피니티Ⅱ v5.3.53TeachInfinityⅡ v5.3.53",
+      "cert_date": "2023-04-10",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "5848100303",
+      "company": "주식회사 다온테크닉스",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "22-0169",
+      "product_name": "다온 솔라 모니터링 시스템 v1.0Daon Solar Monitoring System v1.0",
+      "cert_date": "2022-04-11",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6058158460",
+      "company": "(주)유환",
+      "representative": "이수영",
+      "cert_type": "GS",
+      "cert_no": "21-0003",
+      "product_name": "태양광 발전 모니터링 소프트웨어",
+      "cert_date": "2021-12-28",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6078189843",
+      "company": "주식회사 엘앤비기술",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "21-0307",
+      "product_name": "방송제어시스템 v1.0.0Digital Broadcasting System v1.0.0",
+      "cert_date": "2021-06-24",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "4188152144",
+      "company": "트라웍스(주)",
+      "representative": "김선미",
+      "cert_type": "GS",
+      "cert_no": "21-0014",
+      "product_name": "Traworks IDS V1.0",
+      "cert_date": "2021-05-28",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6038162764",
+      "company": "㈜오성엠엔이티",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "21-0250",
+      "product_name": "다목적 전광판 운영 프로그램 V1MultiPurpose LED MANAGER V1",
+      "cert_date": "2021-05-17",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "7488700438",
+      "company": "주식회사 서안에스앤씨",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "21-0182",
+      "product_name": "쏠라 v1.0SSOLA v1.0",
+      "cert_date": "2021-04-12",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6078170363",
+      "company": "㈜리얼시큐",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "21-0094",
+      "product_name": "리얼메일 v2.0REALMAIL v2.0",
+      "cert_date": "2021-02-22",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6158177921",
+      "company": "주식회사 유니시큐",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "21-0087",
+      "product_name": "통합교통시스템 v1.0UNI-ITS v1.0",
+      "cert_date": "2021-02-18",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "7240300897",
+      "company": "코드텍",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "20-0267",
+      "product_name": "코드원 v3.0CODE-ONE v3.0",
+      "cert_date": "2020-06-22",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "1388143282",
+      "company": "오리온시스템즈㈜",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "20-0172",
+      "product_name": "나이아가라-500 (SCADA BEMS) v1.0Niagara-500 (SCADA BEMS) v1.0",
+      "cert_date": "2020-04-13",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6178173479",
+      "company": "㈜리얼허브",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "20-0137",
+      "product_name": "Smart-NVS V2.0Smart-NVS V2.0",
+      "cert_date": "2020-03-23",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6078170363",
+      "company": "㈜리얼시큐",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "20-0048",
+      "product_name": "바운스™ v2.0BOUNCE™ v2.0",
+      "cert_date": "2020-02-03",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6158130983",
+      "company": "미래전기㈜",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "19-0336",
+      "product_name": "바스나비 V5.0BASNAVI V5.0",
+      "cert_date": "2019-08-01",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "2048145651",
+      "company": "㈜파노텍",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "19-0104",
+      "product_name": "다중회귀분석 기반의 액티브 제어 알고리즘을 적용한 빌딩자동제어 프로그램 v1.0 (ActiveBAS v1.0)",
+      "cert_date": "2019-02-28",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6178173479",
+      "company": "㈜리얼허브",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "18-0621",
+      "product_name": "XIDE-VIAS V1.0XIDE-VIAS V1.0",
+      "cert_date": "2018-12-20",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "2708600132",
+      "company": "㈜에스와이이노테크",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "18-0515",
+      "product_name": "비티케어 SY-BTCARE-A1 v1.0BT-CARE SY-BTCARE-A1 v1.0",
+      "cert_date": "2018-10-22",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6058166524",
+      "company": "㈜예스텍",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "18-0463",
+      "product_name": "아르고스 v1.0.0Argos v1.0.0",
+      "cert_date": "2018-09-10",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6058174698",
+      "company": "삼성g2b㈜",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "17-0424",
+      "product_name": "불법 주/정차 단속시스템 v1.0Parking Enforcement System v1.0",
+      "cert_date": "2017-10-23",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6178173479",
+      "company": "㈜리얼허브",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "17-0406",
+      "product_name": "XIDE-eLPR V1.0XIDE-eLPR V1.0",
+      "cert_date": "2017-08-03",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6058143235",
+      "company": "㈜알이시스",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "17-0167",
+      "product_name": "유니 보드 v1.6UNI BOARD v1.6",
+      "cert_date": "2017-05-10",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "2428100340",
+      "company": "오션알앤디㈜",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "17-0058",
+      "product_name": "윈드파인더 v2.0WindFinder v2.0",
+      "cert_date": "2017-02-13",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "2428100340",
+      "company": "오션알앤디㈜",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "17-0034",
+      "product_name": "웨이브파인더 v2.0WaveFinder v2.0",
+      "cert_date": "2017-01-23",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6178173479",
+      "company": "㈜리얼허브",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "16-0420",
+      "product_name": "XIDE-Smart Monitor V1.5XIDE-Smart Monitor V1.5",
+      "cert_date": "2016-11-21",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6031296439",
+      "company": "더웰",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "16-0185",
+      "product_name": "토리넷 v1.0TORYNET v1.0",
+      "cert_date": "2016-06-13",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "5058162854",
+      "company": "㈜한빛이노텍",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "16-0150",
+      "product_name": "휴먼씨 v1.0(HUMAN-C v1.0)",
+      "cert_date": "2016-05-02",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6178173479",
+      "company": "㈜리얼허브",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "15-0312",
+      "product_name": "XIDE-DMS V1.0(XIDE-DMS V1.0)",
+      "cert_date": "2015-09-09",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "5058162854",
+      "company": "㈜한빛이노텍",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "15-0302",
+      "product_name": "진동 감시형 태양광 발전 모니터링 v1.0(Vibration sensitive solar monitoring v1.0)",
+      "cert_date": "2015-09-02",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6178173479",
+      "company": "㈜리얼허브",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "15-0282",
+      "product_name": "XIDE-VA V1.0(XIDE-VA V1.0)",
+      "cert_date": "2015-08-24",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6178173479",
+      "company": "㈜리얼허브",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "15-0233",
+      "product_name": "XIDE-SD V2.0(XIDE-SD V2.0)",
+      "cert_date": "2015-07-27",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6178173479",
+      "company": "㈜리얼허브",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "15-0234",
+      "product_name": "XIDE-Agent V1.0(XIDE-Agent V1.0)",
+      "cert_date": "2015-07-27",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6178173479",
+      "company": "㈜리얼허브",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "14-0056",
+      "product_name": "프라이버시 프로텍터 v1.0(XIDE-PP v1.0)",
+      "cert_date": "2014-03-17",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "2048145651",
+      "company": "㈜파노텍",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "13-0239",
+      "product_name": "블루 v1.0(설비제어 전력제어 조명제어 SI(빌딩통합) FMS(시설관리) BEMS(에너지관리))(BLU v1.0)",
+      "cert_date": "2013-10-21",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "1388143282",
+      "company": "오리온시스템즈㈜",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "13-0055",
+      "product_name": "나이아가라 200 V4.0(SCADA TMS)(Niagara 200 V4.0(SCADA TMS))",
+      "cert_date": "2013-03-25",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6178173479",
+      "company": "㈜리얼허브",
+      "representative": "None",
+      "cert_type": "GS",
+      "cert_no": "12-0085",
+      "product_name": "온라인-VA v1.0(Online-VA v1.0)",
+      "cert_date": "2012-05-07",
+      "expire_date": "9999-12-31"
+    },
+    {
+      "biz_no": "6058143929",
+      "company": "(주)한국크레아",
+      "representative": "홍수지",
+      "cert_type": "성능인증",
+      "cert_no": "24-ANB0298",
+      "product_name": "인터랙티브화이트보드",
+      "cert_date": "2024-11-20",
+      "expire_date": "2028-11-19"
+    },
+    {
+      "biz_no": "6218161292",
+      "company": "(주)태현이엔지",
+      "representative": "박영철",
+      "cert_type": "성능인증",
+      "cert_no": "24-CAB0268",
+      "product_name": "적정연수공급 밸브 제어 및 염수희석 피드백 제어기술을 적용한 차아염소산나트륨 발생장치",
+      "cert_date": "2024-08-04",
+      "expire_date": "2027-08-03"
+    },
+    {
+      "biz_no": "6068184864",
+      "company": "한국이미지시스템(주)",
+      "representative": "한현정",
+      "cert_type": "성능인증",
+      "cert_no": "24-CBB0164",
+      "product_name": "미세전류에 의한 정전감지 기능이 적용된 무정전LED등기구",
+      "cert_date": "2024-07-16",
+      "expire_date": "2027-07-15"
+    },
+    {
+      "biz_no": "3063315995",
+      "company": "지케이이엔지",
+      "representative": "이수석임연희",
+      "cert_type": "성능인증",
+      "cert_no": "24-AGB0149",
+      "product_name": "난연방청복합단열재",
+      "cert_date": "2024-07-10",
+      "expire_date": "2027-07-09"
+    },
+    {
+      "biz_no": "6068656723",
+      "company": "(주)도화",
+      "representative": "박소윤",
+      "cert_type": "성능인증",
+      "cert_no": "24-CHN0095",
+      "product_name": "세라믹 장식타일",
+      "cert_date": "2024-03-04",
+      "expire_date": "2027-03-03"
+    },
+    {
+      "biz_no": "6058158460",
+      "company": "(주)유환",
+      "representative": "이수영",
+      "cert_type": "성능인증",
+      "cert_no": "24-ABB0010",
+      "product_name": "블링킹 현상을 방지하는 기술이 적용된 LED 조명기구",
+      "cert_date": "2024-02-26",
+      "expire_date": "2027-02-25"
+    },
+    {
+      "biz_no": "6068602057",
+      "company": "(주)은광이노텍",
+      "representative": "이정수",
+      "cert_type": "성능인증",
+      "cert_no": "24-AAB0010",
+      "product_name": "친환경을 고려한 버터플라이밸브",
+      "cert_date": "2024-02-06",
+      "expire_date": "2027-02-05"
+    },
+    {
+      "biz_no": "6218111322",
+      "company": "삼일전기공업(주)",
+      "representative": "박판득이현희",
+      "cert_type": "성능인증",
+      "cert_no": "23-ABB0456",
+      "product_name": "내진감쇄장치를 갖는 수배전반(고압배전반 저압배전반 전동기제어반)",
+      "cert_date": "2023-12-14",
+      "expire_date": "2026-12-13"
+    },
+    {
+      "biz_no": "1258196954",
+      "company": "주식회사 하이클로 (Hyclor)",
+      "representative": "김현택장희정",
+      "cert_type": "성능인증",
+      "cert_no": "23-CBI0463",
+      "product_name": "전해조 직접냉각방식 차아염소산나트륨 발생장치",
+      "cert_date": "2023-11-16",
+      "expire_date": "2026-11-15"
+    },
+    {
+      "biz_no": "1258196954",
+      "company": "주식회사 하이클로 (Hyclor)",
+      "representative": "김현택장희정",
+      "cert_type": "성능인증",
+      "cert_no": "25-GBI0054",
+      "product_name": "전해조 직접냉각방식 차아염소산나트륨 발생장치",
+      "cert_date": "2023-11-16",
+      "expire_date": "2026-11-15"
+    },
+    {
+      "biz_no": "6068172897",
+      "company": "삼원액트주식회사",
+      "representative": "배광호",
+      "cert_type": "성능인증",
+      "cert_no": "23-ADI0338",
+      "product_name": "브라켓과 표면재가 접착된 타일로 구성된 실내벽체 마감패널",
+      "cert_date": "2023-09-19",
+      "expire_date": "2026-09-18"
+    },
+    {
+      "biz_no": "6068190314",
+      "company": "동인워터솔루션(주)",
+      "representative": "강득남김현철",
+      "cert_type": "성능인증",
+      "cert_no": "23-CAB0424",
+      "product_name": "수위에 따라 부력으로 개폐되는 힌지구조의 무동력 게이트(점검구문)",
+      "cert_date": "2023-09-11",
+      "expire_date": "2026-09-10"
+    },
+    {
+      "biz_no": "3378601303",
+      "company": "주식회사 알지텍",
+      "representative": "윤은숙",
+      "cert_type": "성능인증",
+      "cert_no": "23-CCK0418",
+      "product_name": "강재탄성클립을 이용한 보행데크",
+      "cert_date": "2023-08-21",
+      "expire_date": "2026-08-20"
+    },
+    {
+      "biz_no": "6068189928",
+      "company": "(주)동진다이닝",
+      "representative": "김병수",
+      "cert_type": "구매조건부신기술개발",
+      "cert_no": "S3391089",
+      "product_name": "비건카 전략에 대응가능한 Leather-free 기반의 도전성 및 발열이 가능한 시트용 원단 개발",
+      "cert_date": "2025-02-19",
+      "expire_date": "2028-02-18"
+    },
+    {
+      "biz_no": "6068134990",
+      "company": "(주)일흥",
+      "representative": "이지현",
+      "cert_type": "구매조건부신기술개발",
+      "cert_no": "S3221432",
+      "product_name": "포설 및 권취작업 개선을 위한 기존대비 15% 경량화 용접용 싱글 케이블 개발",
+      "cert_date": "2024-10-29",
+      "expire_date": "2027-10-28"
+    },
+    {
+      "biz_no": "6088133100",
+      "company": "동아전기공업(주)",
+      "representative": "김광수",
+      "cert_type": "구매조건부신기술개발",
+      "cert_no": "S3216882",
+      "product_name": "분산전원용 양방향성 누전차단기(ELB)개발",
+      "cert_date": "2024-09-12",
+      "expire_date": "2027-09-11"
+    },
+    {
+      "biz_no": "6188601070",
+      "company": "(주)스타칸",
+      "representative": "최유영",
+      "cert_type": "구매조건부신기술개발",
+      "cert_no": "S3302096",
+      "product_name": "다목적 생활.안전 지원용 실내 GPS 개발",
+      "cert_date": "2024-09-10",
+      "expire_date": "2027-09-09"
+    },
+    {
+      "biz_no": "6068602571",
+      "company": "(주)리더스",
+      "representative": "손귀자",
+      "cert_type": "구매조건부신기술개발",
+      "cert_no": "S3173741",
+      "product_name": "친환경 에너지 절감형 순환식 수막재배 스마트팜 시스템 개발",
+      "cert_date": "2024-09-10",
+      "expire_date": "2027-09-09"
+    },
+    {
+      "biz_no": "3838700717",
+      "company": "주식회사 코아이",
+      "representative": "None",
+      "cert_type": "혁신시제품",
+      "cert_no": "2024-004",
+      "product_name": "물의 유동을 이용한 해상 미세플라스틱 및 쓰레기 회수 로봇",
+      "cert_date": "2024-04-02",
+      "expire_date": "2027-04-01"
+    },
+    {
+      "biz_no": "6030238804",
+      "company": "신용산업",
+      "representative": "문선자",
+      "cert_type": "녹색기술제품",
+      "cert_no": "GTP-24-04126",
+      "product_name": "쓰레기 종량제 봉투",
+      "cert_date": "2024-03-14",
+      "expire_date": "2027-03-13"
+    },
+    {
+      "biz_no": "6062552823",
+      "company": "하얀코끼리LED",
+      "representative": "유현자",
+      "cert_type": "녹색기술제품",
+      "cert_no": "GTP-24-04071",
+      "product_name": "에너지절감 스마트 LED전광판",
+      "cert_date": "2024-01-25",
+      "expire_date": "2026-09-13"
+    },
+    {
+      "biz_no": "6068123678",
+      "company": "세진밸브공업(주)",
+      "representative": "방영혁",
+      "cert_type": "물산업우수제품 등 지정",
+      "cert_no": "WIP-23-024",
+      "product_name": "밸브",
+      "cert_date": "2024-01-01",
+      "expire_date": "2026-12-31"
+    },
+    {
+      "biz_no": "6068123678",
+      "company": "세진밸브공업(주)",
+      "representative": "방영혁",
+      "cert_type": "물산업우수제품 등 지정",
+      "cert_no": "WIP-23-023",
+      "product_name": "밸브",
+      "cert_date": "2024-01-01",
+      "expire_date": "2026-12-31"
+    },
+    {
+      "biz_no": "6060251145",
+      "company": "경진산업",
+      "representative": "정경복",
+      "cert_type": "물산업우수제품 등 지정",
+      "cert_no": "WIP-20-001",
+      "product_name": "밸브",
+      "cert_date": "2023-12-30",
+      "expire_date": "2026-12-29"
+    },
+    {
+      "biz_no": "6688100519",
+      "company": "몬스타 주식회사",
+      "representative": "이승재",
+      "cert_type": "녹색기술제품",
+      "cert_no": "GTP-23-03964",
+      "product_name": "절전형 멀티미디어학습장치",
+      "cert_date": "2023-12-14",
+      "expire_date": "2026-12-13"
+    },
+    {
+      "biz_no": "6688100519",
+      "company": "몬스타 주식회사",
+      "representative": "이승재",
+      "cert_type": "녹색기술제품",
+      "cert_no": "GTP-23-03965",
+      "product_name": "절전형 인터랙티브화이트보드",
+      "cert_date": "2023-12-14",
+      "expire_date": "2026-12-13"
+    },
+    {
+      "biz_no": "2048145651",
+      "company": "(주)파노텍",
+      "representative": "정광우",
+      "cert_type": "녹색기술제품",
+      "cert_no": "GTP-23-03913",
+      "product_name": "동력 절감형 빌딩자동제어장치",
+      "cert_date": "2023-11-30",
+      "expire_date": "2026-11-29"
+    },
+    {
+      "biz_no": "6688100519",
+      "company": "몬스타 주식회사",
+      "representative": "이승재",
+      "cert_type": "녹색기술제품",
+      "cert_no": "GTP-23-03885",
+      "product_name": "절전형 모니터",
+      "cert_date": "2023-11-30",
+      "expire_date": "2026-11-29"
+    },
+    {
+      "biz_no": "6088133100",
+      "company": "동아전기공업(주)",
+      "representative": "김광수",
+      "cert_type": "구매조건부신기술개발",
+      "cert_no": "S3042021",
+      "product_name": "폭 600mm 자체 면진시스템을 갖춘 온도변화 ±4℃내 16000BTU 냉각용량을 갖는 항온항습 IoT 초소형 데이터 센터 개발",
+      "cert_date": "2023-10-24",
+      "expire_date": "2026-10-23"
+    },
+    {
+      "biz_no": "6078141683",
+      "company": "성보전기공업(주)",
+      "representative": "None",
+      "cert_type": "혁신시제품",
+      "cert_no": "2023-146",
+      "product_name": "고효율 하베스팅 시스템을 구비한 수배전반",
+      "cert_date": "2023-09-27",
+      "expire_date": "2026-09-26"
+    },
+    {
+      "biz_no": "6038128029",
+      "company": "(주)한라이비텍",
+      "representative": "정원석",
+      "cert_type": "구매조건부신기술개발",
+      "cert_no": "S3043353",
+      "product_name": "소형원자로 제작용 다이오드 레이저 클래딩 시스템 기술개발",
+      "cert_date": "2023-09-07",
+      "expire_date": "2026-09-06"
+    },
+    {
+      "biz_no": "6058172138",
+      "company": "이에이바이오스(주)",
+      "representative": "김종기",
+      "cert_type": "구매조건부신기술개발",
+      "cert_no": "S3043790",
+      "product_name": "야간 시인안전성 확보를 위한 친환경 고휘도 축광식 도색 도료의 개발",
+      "cert_date": "2023-09-06",
+      "expire_date": "2026-09-05"
+    },
+    {
+      "biz_no": "8338700871",
+      "company": "가온텍 주식회사",
+      "representative": "정태만",
+      "cert_type": "구매조건부신기술개발",
+      "cert_no": "S3038158",
+      "product_name": "PM2.5이하 초미세먼지 원인물질 제거 및 도시열섬현상 저감 기능을 가지는 초속경화형 폴리우레아 수지 도막 바닥재 포장 및 활용기술",
+      "cert_date": "2023-09-05",
+      "expire_date": "2026-09-04"
+    },
+    {
+      "biz_no": "5128118851",
+      "company": "(주)제이텍워터",
+      "representative": "최윤이",
+      "cert_type": "구매조건부신기술개발",
+      "cert_no": "S3323244",
+      "product_name": "원자력발전소 순수생산설비용 차아염소산나트륨 발생기 개발",
+      "cert_date": "2023-09-05",
+      "expire_date": "2026-09-04"
+    },
+    {
+      "biz_no": "4598800495",
+      "company": "주식회사 코어무브먼트",
+      "representative": "None",
+      "cert_type": "우수연구개발혁신제품",
+      "cert_no": "2023-045",
+      "product_name": "수중재활운동용 저주파근력강화기",
+      "cert_date": "2023-07-31",
+      "expire_date": "2026-07-30"
+    },
+    {
+      "biz_no": "3838700717",
+      "company": "주식회사 코아이",
+      "representative": "None",
+      "cert_type": "혁신시제품",
+      "cert_no": "2023-094",
+      "product_name": "무선 자항 유출유 회수 로봇",
+      "cert_date": "2023-07-31",
+      "expire_date": "2026-07-30"
+    },
+    {
+      "biz_no": "6078188354",
+      "company": "(주)비젼테크",
+      "representative": "김채원",
+      "cert_type": "재난안전제품인증",
+      "cert_no": "CDSP-2023-9-1",
+      "product_name": "누진전류 제한기능을 적용한 단자대",
+      "cert_date": "2023-06-07",
+      "expire_date": "2026-06-06"
+    },
+    {
+      "biz_no": "6078188354",
+      "company": "주식회사 비젼테크",
+      "representative": "김채원",
+      "cert_type": "재난안전제품인증",
+      "cert_no": "CDSP-2023-9",
+      "product_name": "누설전류 제한기능을 적용한 단자대",
+      "cert_date": "2023-06-07",
+      "expire_date": "2026-06-06"
+    },
+    {
+      "biz_no": "6088133100",
+      "company": "동아전기공업(주)",
+      "representative": "김광수",
+      "cert_type": "구매조건부신기술개발",
+      "cert_no": "S2852126",
+      "product_name": "정격전압 48V의 저전압에서 토크 130Nm 발휘 발전 효율 80%이상 가능한 (50cc이상~125cc급미만)전기오토바이크용 자가발전 BCLDC (Brush Core less DC) 인휠모터 개발의 건",
+      "cert_date": "2023-05-08",
+      "expire_date": "2026-05-07"
+    },
+    {
+      "biz_no": "1388143282",
+      "company": "오리온시스템즈(주)",
+      "representative": "조성진",
+      "cert_type": "녹색기술제품",
+      "cert_no": "GTP-21-02406",
+      "product_name": "IOT 기반 실내 공기질 관리 원격 자동제어 시스템",
+      "cert_date": "2021-05-20",
+      "expire_date": "2027-05-19"
+    }
+  ]
+}
