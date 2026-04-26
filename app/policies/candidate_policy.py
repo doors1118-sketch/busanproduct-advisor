@@ -55,8 +55,8 @@ CANDIDATE_TYPES = {
     },
     "innovation_product": {
         "source_label": "혁신제품·혁신시제품 수의계약 검토 후보",
-        "purchase_routes": ["혁신제품 수의계약 검토(금액 제한 여부 법령 확인 필요)", "혁신장터 구매", "시범구매"],
-        "display_enabled": False,  # 실제 search_innovation tool_result 연동 전 → 운영 노출 차단
+        "purchase_routes": ["혁신제품 수의계약 검토", "혁신장터 구매", "조달청 시범구매", "우선구매 검토"],
+        "display_enabled": False,  # 런타임 통합 검증 완료 전까지 staging_only
         "default_note": "후보, 지정 유효기간·혁신장터 등록 여부 확인 필요",
         "required_checks": [
             "지정 유효기간 확인",
@@ -64,24 +64,32 @@ CANDIDATE_TYPES = {
             "조달청 계약 여부 확인",
             "수요기관 적용 법령 확인",
             "수의계약 가능 근거 확인",
+            "제품·규격 일치 여부 확인",
         ],
         "caution_text": (
             "혁신제품 또는 혁신시제품 지정은 수의계약 검토 근거가 될 수 있으나, "
             "실제 계약 전 지정 유효기간, 혁신장터 등록 여부, 조달청 계약 여부, "
-            "수요기관 적용 법령 확인이 필요합니다."
+            "수요기관 적용 법령, 금액 및 계약방식 확인이 필요합니다."
         ),
     },
     "priority_purchase_product": {
-        "source_label": "우선구매 검토 후보",
-        "purchase_routes": ["우선구매 의무비율 충족", "수의계약(해당 법령 근거)"],
-        "display_enabled": False,  # 데이터 미연결 → 사용자 표에 표시하지 않음
-        "default_note": "후보, 우선구매 대상 확인 필요",
+        "source_label": "기술개발제품 13종 인증 보유 부산업체 우선구매 검토 후보",
+        "purchase_routes": ["기술개발제품 우선구매 검토", "해당 인증제품 구매 검토", "수의계약 가능성 검토", "입찰·수의계약 검토"],
+        "display_enabled": False,  # 실제 검색·조인·필터링 검증 후 true로 전환
+        "default_note": "후보, 인증 유효기간·제품 적합성 확인 필요",
         "required_checks": [
-            "우선구매 대상 품목 확인",
             "인증 유효기간 확인",
-            "의무구매비율 충족 여부 확인",
-            "해당 법령 근거 확인",
+            "인증제품명과 구매 품목 일치 여부 확인",
+            "부산 조달업체 매칭 여부 확인",
+            "조달등록 또는 종합쇼핑몰 등록 여부 확인",
+            "수요기관 적용 법령 확인",
+            "금액 및 계약방식 확인",
         ],
+        "caution_text": (
+            "기술개발제품 인증 보유는 우선구매 또는 수의계약 검토의 후보 정보입니다. "
+            "실제 계약 전에는 인증 유효기간, 제품 적합성, 조달등록 또는 종합쇼핑몰 등록 여부, "
+            "수요기관 적용 법령, 금액 및 계약방식 확인이 필요합니다."
+        ),
     },
 }
 
@@ -214,57 +222,68 @@ def classify_candidates(tool_results: list, user_message: str = "") -> dict:
                     }
                     classified["shopping_mall_supplier"].append(row)
 
-        # ── 혁신제품 ──
+        # ── 혁신제품 (구조화 결과 수용) ──
         elif "search_innovation" in t_name or "innovation" in t_name:
-            for line in res_str.split("\n"):
-                if line.startswith("- "):
-                    # 혁신제품 결과 파싱 (간이)
-                    prod_name = line.lstrip("- ").split("\n")[0].strip()
-                    if not prod_name or prod_name in seen["innovation_product"]:
-                        continue
-                    seen["innovation_product"].add(prod_name)
+            # 구조화 dict 결과인 경우 (innovation_search.py 반환값)
+            struct_rows = r.get("structured_rows") or r.get("product_sample_rows")
+            if isinstance(struct_rows, list) and struct_rows:
+                for row in struct_rows:
+                    pname = row.get("product_name", "")
+                    key = pname or row.get("company_name", "")
+                    if key and key not in seen["innovation_product"]:
+                        seen["innovation_product"].add(key)
+                        row.setdefault("contract_possible_auto_promoted", False)
+                        row.setdefault("legal_eligibility_status", "확인 필요")
+                        classified["innovation_product"].append(row)
+            else:
+                # 레거시 문자열 파싱 (기존 호환)
+                for line in res_str.split("\n"):
+                    if line.startswith("- "):
+                        prod_name = line.lstrip("- ").split("\n")[0].strip()
+                        if not prod_name or prod_name in seen["innovation_product"]:
+                            continue
+                        seen["innovation_product"].add(prod_name)
+                        company, location, innov_type, cert_no = "", "", "", ""
+                        m_company = re.search(r"업체:\s*([^|]+)", res_str)
+                        if m_company: company = m_company.group(1).strip()
+                        m_loc = re.search(r"소재지:\s*([^\n|]+)", res_str)
+                        if m_loc: location = m_loc.group(1).strip()
+                        m_type = re.search(r"구분:\s*([^|]+)", res_str)
+                        if m_type: innov_type = m_type.group(1).strip()
+                        m_cert = re.search(r"인증번호:\s*([^|]+)", res_str)
+                        if m_cert: cert_no = m_cert.group(1).strip()
+                        meta = CANDIDATE_TYPES["innovation_product"]
+                        row = {
+                            "product_name": prod_name, "company_name": company,
+                            "location": location, "main_products": [prod_name],
+                            "policy_tags": [], "candidate_types": ["innovation_product"],
+                            "primary_candidate_type": "innovation_product",
+                            "purchase_routes": meta["purchase_routes"],
+                            "source_label": meta["source_label"],
+                            "innovation_product_status": innov_type or "확인 필요",
+                            "innovation_cert_no": cert_no,
+                            "shopping_mall_registered": None,
+                            "certification_valid_until": "확인 필요",
+                            "business_status": "확인 필요",
+                            "legal_eligibility_status": "확인 필요",
+                            "display_status": "후보",
+                            "required_checks": meta["required_checks"],
+                            "contract_possible_auto_promoted": False,
+                            "note": meta["default_note"],
+                        }
+                        classified["innovation_product"].append(row)
 
-                    # 업체명, 소재지 등 추출
-                    company = ""
-                    location = ""
-                    innov_type = ""
-                    cert_no = ""
-                    m_company = re.search(r"업체:\s*([^|]+)", res_str)
-                    if m_company:
-                        company = m_company.group(1).strip()
-                    m_loc = re.search(r"소재지:\s*([^\n|]+)", res_str)
-                    if m_loc:
-                        location = m_loc.group(1).strip()
-                    m_type = re.search(r"구분:\s*([^|]+)", res_str)
-                    if m_type:
-                        innov_type = m_type.group(1).strip()
-                    m_cert = re.search(r"인증번호:\s*([^|]+)", res_str)
-                    if m_cert:
-                        cert_no = m_cert.group(1).strip()
-
-                    meta = CANDIDATE_TYPES["innovation_product"]
-                    row = {
-                        "product_name": prod_name,
-                        "company_name": company,
-                        "location": location,
-                        "main_products": [prod_name],
-                        "policy_tags": [],
-                        "candidate_types": ["innovation_product"],
-                        "primary_candidate_type": "innovation_product",
-                        "purchase_routes": meta["purchase_routes"],
-                        "source_label": meta["source_label"],
-                        "innovation_product_status": innov_type or "확인 필요",
-                        "innovation_cert_no": cert_no,
-                        "shopping_mall_registered": None,
-                        "certification_valid_until": "확인 필요",
-                        "business_status": "영업상태 확인 필요",
-                        "legal_eligibility_status": "확인 필요",
-                        "display_status": "후보",
-                        "required_checks": meta["required_checks"],
-                        "contract_possible_auto_promoted": False,
-                        "note": meta["default_note"],
-                    }
-                    classified["innovation_product"].append(row)
+        # ── 기술개발제품 13종 (구조화 결과 수용) ──
+        elif "search_tech_development" in t_name or "tech_product" in t_name:
+            struct_rows = r.get("structured_rows") or r.get("product_sample_rows")
+            if isinstance(struct_rows, list) and struct_rows:
+                for row in struct_rows:
+                    key = row.get("product_name", "") + row.get("certification_no", "")
+                    if key and key not in seen["priority_purchase_product"]:
+                        seen["priority_purchase_product"].add(key)
+                        row.setdefault("contract_possible_auto_promoted", False)
+                        row.setdefault("legal_eligibility_status", "확인 필요")
+                        classified["priority_purchase_product"].append(row)
 
     return classified
 
@@ -347,34 +366,55 @@ def get_data_source_status(candidate_type: str) -> dict:
         "shopping_mall_supplier": {
             "data_source_status": "connected",
             "data_source": "search_shopping_mall (나라장터 종합쇼핑몰 API)",
+            "runtime_tool_integration": "connected",
             "display_enabled": True,
+            "staging_display_only": False,
+            "production_display_enabled": True,
         },
         "local_procurement_company": {
             "data_source_status": "connected",
             "data_source": "search_local_company_by_product (busanproduct API)",
+            "runtime_tool_integration": "connected",
             "display_enabled": True,
+            "staging_display_only": False,
+            "production_display_enabled": True,
         },
         "policy_company": {
             "data_source_status": "connected",
             "data_source": "search_local_company 결과 + policy_companies.py 태깅",
+            "runtime_tool_integration": "connected",
             "display_enabled": True,
+            "staging_display_only": False,
+            "production_display_enabled": True,
         },
         "innovation_product": {
-            "data_source_status": "schema_ready_search_pending",
-            "data_source": "ingest_innovation.py (ChromaDB) — 스키마/포맷터 구현 완료, 실제 검색 연동 미완료",
+            "data_source_status": "connected_local_search",
+            "data_source": "innovation_search.search_innovation_products (ChromaDB + 키워드 인덱스)",
+            "runtime_tool_integration": "pending",
             "display_enabled": False,
+            "staging_display_only": True,
+            "production_display_enabled": False,
+            "pending_reason": "챗봇 런타임 tool_result 연동 전 — TC7-4 로컬 검색 통과, 런타임 통합 검증 대기",
         },
         "priority_purchase_product": {
-            "data_source_status": "not_connected",
-            "data_source": "데이터 소스 미확보",
+            "data_source_status": "connected_local_search",
+            "data_source": "innovation_search.search_tech_development_products (tech_products.json)",
+            "runtime_tool_integration": "pending",
             "display_enabled": False,
+            "staging_display_only": True,
+            "production_display_enabled": False,
+            "pending_reason": "챗봇 런타임 tool_result 연동 전 — TC7-5 로컬 검색 통과, 런타임 통합 검증 대기",
         },
     }
     return status_map.get(candidate_type, {
         "data_source_status": "unknown",
         "data_source": "",
+        "runtime_tool_integration": "unknown",
         "display_enabled": False,
+        "staging_display_only": False,
+        "production_display_enabled": False,
     })
+
 
 
 # classify_candidate_types: classify_candidates의 별칭

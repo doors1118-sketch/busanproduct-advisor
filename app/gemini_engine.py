@@ -330,6 +330,36 @@ law_tools = [
                     required=["decision_id"],
                 ),
             ),
+            # ── 혁신제품·혁신시제품 검색 ──
+            types.FunctionDeclaration(
+                name="search_innovation_products",
+                description="혁신제품·혁신시제품 검색. 제품명 키워드 1순위, 인증번호, 업체명 순으로 검색합니다. 부산 소재 혁신제품 지정 업체를 찾을 때 사용. 검색 결과는 수의계약 검토 후보이며 계약 가능 여부는 별도 확인이 필요합니다.",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "query": types.Schema(
+                            type="STRING",
+                            description="검색 키워드 (예: '공기청정기', '배전반', 'LED')"
+                        ),
+                    },
+                    required=["query"],
+                ),
+            ),
+            # ── 기술개발제품 13종 인증 검색 ──
+            types.FunctionDeclaration(
+                name="search_tech_development_products",
+                description="기술개발제품 13종(성능인증·NEP·NET·GS인증·우수조달물품 등) 인증 보유 부산업체 검색. 제품명 키워드로 검색합니다. 검색 결과는 우선구매 또는 수의계약 검토 후보이며 인증 유효기간과 적합성 확인이 필요합니다.",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "query": types.Schema(
+                            type="STRING",
+                            description="검색 키워드 (예: 'LED', '소방', '배전반')"
+                        ),
+                    },
+                    required=["query"],
+                ),
+            ),
         ]
     )
 ]
@@ -433,6 +463,48 @@ def _execute_function_call(function_call) -> str:
             shopping_mall.last_mall_results = data
             shopping_mall.last_mall_query = q
             return shopping_mall.format_mall_results(data, max_results=5)
+        # ── 혁신제품·혁신시제품 검색 ──
+        elif name == "search_innovation_products":
+            from policies.innovation_search import search_innovation_products
+            q = args.get("query", "")
+            result = search_innovation_products(q, n_results=10)
+            # 구조화 dict를 tool_result로 반환 (classify_candidates에서 structured_rows/product_sample_rows로 수용)
+            return json.dumps({
+                "tool_name": "search_innovation_products",
+                "status": "success",
+                "structured_rows": result.get("product_sample_rows", []),
+                "product_sample_rows": result.get("product_sample_rows", []),
+                "innovation_product_count": result.get("innovation_product_count", 0),
+                "product_name_matched_count": result.get("product_name_matched_count", 0),
+                "low_confidence_count": result.get("low_confidence_count", 0),
+                "unknown_cert_count": result.get("unknown_cert_count", 0),
+                "data_source_status": result.get("data_source_status", "connected_local_search"),
+                "runtime_tool_integration": "connected_staging",
+                "sensitive_fields_removed": True,
+                "contract_possible_auto_promoted": False,
+            }, ensure_ascii=False)
+        # ── 기술개발제품 13종 검색 ──
+        elif name == "search_tech_development_products":
+            from policies.innovation_search import search_tech_development_products
+            q = args.get("query", "")
+            result = search_tech_development_products(q, max_results=10)
+            return json.dumps({
+                "tool_name": "search_tech_development_products",
+                "status": "success",
+                "structured_rows": result.get("product_sample_rows", []),
+                "product_sample_rows": result.get("product_sample_rows", []),
+                "priority_purchase_count": result.get("priority_purchase_count", 0),
+                "matched_business_no_count": result.get("matched_business_no_count", 0),
+                "unmatched_tech_product_count": result.get("unmatched_tech_product_count", 0),
+                "unmatched_count_scope": "search_result_vs_busan_procurement_db",
+                "valid_cert_count": result.get("valid_cert_count", 0),
+                "expired_cert_count": result.get("expired_cert_count", 0),
+                "unknown_cert_count": result.get("unknown_cert_count", 0),
+                "data_source_status": result.get("data_source_status", "connected_local_search"),
+                "runtime_tool_integration": "connected_staging",
+                "sensitive_fields_removed": True,
+                "contract_possible_auto_promoted": False,
+            }, ensure_ascii=False)
         else:
             return json.dumps({"error": f"알 수 없는 함수: {name}"}, ensure_ascii=False)
     except Exception as e:
@@ -637,9 +709,10 @@ def _parallel_rag_search(query: str, agency_type: str = None) -> dict:
 # ─────────────────────────────────────────────
 _COMMON_PROCUREMENT = (
     "\n[공통 조달 원칙 — 모든 기관 공통 적용]\n"
-    "  · 우수조달물품(시행령 제25조 제1항 제6호 라목): 금액 무제한 수의계약\n"
-    "  · 혁신제품(시행령 제25조 제1항 제8호): 금액 무제한 수의계약\n"
+    "  · 우수조달물품(시행령 제25조 제1항 제6호 라목): 수의계약 검토 후보 — 적용 조건 및 유효기간 확인 필요\n"
+    "  · 혁신제품(시행령 제25조 제1항 제8호): 수의계약 검토 후보 — 지정 유효기간 및 혁신장터 등록 여부 확인 필요\n"
     "  · 직접생산확인증명서: 중소기업 제품 수의계약 시 필수\n"
+    "  · ⛔ 특정 제품(혁신제품, 우선구매 대상 등)에 대해 '금액 제한 없이 수의계약이 가능하다' 또는 '수의계약이 가능합니다'라고 절대 단정짓지 마세요. 반드시 '해당 요건(지정 유효기간, 등록 여부 등)을 확인한 후 수의계약 검토가 가능하다'고 유보적으로 답변하세요.\n"
 )
 
 _AGENCY_GUIDE_MAP = {
@@ -764,6 +837,8 @@ TOOL_LABELS = {
     "search_local_company_by_product": "🏢 지역업체 품목 검색 중",
     "search_local_company_by_license": "🏢 지역업체 면허 검색 중",
     "search_local_company_by_category": "🏢 지역업체 분류 검색 중",
+    "search_innovation_products": "🏷️ 혁신제품 검색 중",
+    "search_tech_development_products": "🏷️ 기술개발제품 인증 검색 중",
 }
 
 
@@ -816,9 +891,9 @@ def chat(user_message: str, history: list[dict] = None, progress_callback=None, 
     if rag["manual"]:
         rag_parts.append(f"[참고용 보조자료: 계약 매뉴얼 — MCP 검색 결과와 다르면 MCP가 우선]\n{rag['manual']}")
     if rag["innovation"]:
-        rag_parts.append(f"[부산 지역 혁신제품 — 시행령 제25조제1항제8호에 따라 금액 무제한 수의계약 가능]\n{rag['innovation']}")
+        rag_parts.append(f"[부산 지역 혁신제품 — 수의계약 검토 후보, 지정 유효기간·혁신장터 등록 여부 확인 필요]\n{rag['innovation']}")
     if rag["tech"]:
-        rag_parts.append(f"[부산 지역 기술개발제품 인증 — 시행령 제25조제1항제6호에 따라 수의계약 가능]\n{rag['tech']}")
+        rag_parts.append(f"[부산 지역 기술개발제품 인증 — 우선구매/수의계약 검토 후보, 인증 유효기간 확인 필요]\n{rag['tech']}")
     
     if rag_parts:
         user_text = "\n\n".join(rag_parts) + f"\n\n[사용자 질문]\n{user_message}"
@@ -1153,7 +1228,6 @@ def _chat_v144(
         core_prompt_hash=assembled.core_prompt_hash,
         prompt_prefix_hash=assembled.prompt_prefix_hash,
         elapsed_ms=routing_elapsed,
-        rag_elapsed_ms=rag_elapsed_ms,
     )
 
     # ─── 6. Gemini 설정 (Core = system_instruction, Dynamic = user content) ───
@@ -1199,6 +1273,72 @@ def _chat_v144(
     called_tools = set()  # 중복 호출 차단
     all_tool_results = []  # timeout/fail-closed 추적용
     mcp_was_called = False
+    product_prefetch_executed = False  # 혁신/기술개발 강제 prefetch 여부
+
+    # ── Deterministic Pre-router: 혁신제품/기술개발제품 키워드 감지 시 tool 강제 호출 ──
+    _innovation_keywords = ["혁신제품", "혁신시제품"]
+    _tech_keywords = ["기술개발제품", "우수조달물품", "NEP", "GS", "NET", "기술개발"]
+    msg_lower = user_message
+    
+    forced_tool_name = None
+    forced_tool_query = user_message  # 기본값
+    import re as _re_pf
+    if any(kw in msg_lower for kw in _innovation_keywords):
+        forced_tool_name = "search_innovation_products"
+        # 품목명 추출 시도
+        for kw in _innovation_keywords:
+            msg_lower = msg_lower.replace(kw, "")
+        # 남은 명사 중 검색어 추출
+        cleaned = _re_pf.sub(r"[^가-힣a-zA-Z0-9]", " ", msg_lower).strip()
+        forced_tool_query = cleaned if cleaned else user_message
+    elif any(kw in msg_lower for kw in _tech_keywords):
+        forced_tool_name = "search_tech_development_products"
+        for kw in _tech_keywords:
+            msg_lower = msg_lower.replace(kw, "")
+        cleaned = _re_pf.sub(r"[^가-힣a-zA-Z0-9]", " ", msg_lower).strip()
+        forced_tool_query = cleaned if cleaned else user_message
+
+    if forced_tool_name:
+        print(f"  [PRODUCT_PREFETCH] {forced_tool_name}(query='{forced_tool_query}')")
+        import time as _time_pf
+        _pf_start = _time_pf.time()
+        try:
+            class _MockFC:
+                def __init__(self, name, query):
+                    self.name = name
+                    self.args = {"query": query}
+            pf_result_str = _execute_function_call(_MockFC(forced_tool_name, forced_tool_query))
+            _pf_elapsed = int((_time_pf.time() - _pf_start) * 1000)
+            pf_status = "success"
+            if any(kw in pf_result_str for kw in ["[TIMEOUT]", "TIMEOUT", "응답 지연"]):
+                pf_status = "timeout"
+            elif any(kw in pf_result_str for kw in ["[FAILED]", "오류"]):
+                pf_status = "failed"
+            
+            pf_tool_result = {
+                "tool_name": forced_tool_name, "status": pf_status,
+                "result": pf_result_str, "elapsed_ms": _pf_elapsed,
+            }
+            # JSON 파싱하여 structured_rows를 상위 레벨로 병합
+            try:
+                parsed = json.loads(pf_result_str)
+                if isinstance(parsed, dict):
+                    for k in ["structured_rows", "product_sample_rows"]:
+                        if k in parsed:
+                            pf_tool_result[k] = parsed[k]
+            except (json.JSONDecodeError, TypeError):
+                pass
+            
+            all_tool_results.append(pf_tool_result)
+            product_prefetch_executed = True
+            called_tools.add(f"prefetch:{forced_tool_name}")
+            print(f"  [PRODUCT_PREFETCH] status={pf_status} elapsed={_pf_elapsed}ms")
+        except Exception as e:
+            print(f"  [PRODUCT_PREFETCH] Failed: {e}")
+            all_tool_results.append({
+                "tool_name": forced_tool_name, "status": "failed",
+                "result": str(e), "elapsed_ms": 0,
+            })
 
     # 광범위 질문인 경우 Gemini 1차 호출조차 생략하고 즉시 조기 종료 (초고속 Fail-closed)
     if intent_result.mcp_required and any(kw in user_message for kw in ["규정", "다 어떻게", "모두 알려"]):
@@ -1239,12 +1379,17 @@ def _chat_v144(
     fallback_used = False
     fallback_reason = ""
     total_retries = 0
+    malformed_function_call_detected = False
+    function_call_retry_count = 0
+    function_call_final_status = "not_detected"
 
     for round_i in range(MAX_TOOL_CALL_ROUNDS):
-        # API 호출 (429 재시도 및 Fallback)
+        # API 호출 (429 재시도, Malformed 재시도 및 Fallback)
         response = None
         last_err = None
-        for retry in range(3):
+        
+        # 내부 재시도 루프 (최대 4회: 네트워크 에러 3회 + Malformed 1회 추가 고려)
+        for retry in range(4):
             total_retries += 1
             try:
                 response = client.models.generate_content(
@@ -1252,7 +1397,27 @@ def _chat_v144(
                     contents=contents,
                     config=config,
                 )
-                break
+                
+                # Malformed 검사
+                candidate = response.candidates[0]
+                if candidate.content is None or not candidate.content.parts:
+                    reason = getattr(candidate, 'finish_reason', None)
+                    if reason and "MALFORMED_FUNCTION_CALL" in str(reason):
+                        if function_call_retry_count < 1:
+                            function_call_retry_count += 1
+                            print(f"  [WARNING] Empty response. finish_reason=MALFORMED_FUNCTION_CALL. Retrying ({function_call_retry_count}/1)...", flush=True)
+                            time.sleep(1)
+                            continue # 다시 API 호출
+                        else:
+                            print("  [WARNING] Empty response. finish_reason=MALFORMED_FUNCTION_CALL after retry.")
+                            malformed_function_call_detected = True
+                            function_call_final_status = "malformed_fail_closed"
+                            break # 에러 누적 후 for retry 루프 탈출
+                
+                # 정상 응답이고 재시도 이력이 있다면 상태 업데이트
+                if function_call_retry_count > 0 and not malformed_function_call_detected:
+                    function_call_final_status = "success_after_retry"
+                break # 정상 응답 또는 다른 finish_reason이면 for retry 루프 탈출
             except Exception as api_err:
                 last_err = api_err
                 err_msg = str(api_err)
@@ -1266,13 +1431,13 @@ def _chat_v144(
                 
                 if any(kw in err_msg for kw in ["429", "RESOURCE_EXHAUSTED", "503"]):
                     wait_sec = 15 * (retry + 1)
-                    print(f"  [API] Retry {retry+1}/3 - waiting {wait_sec}s...", flush=True)
+                    print(f"  [API] Retry {retry+1}/4 - waiting {wait_sec}s...", flush=True)
                     time.sleep(wait_sec)
                 else:
                     raise
 
         if response is None:
-            raise last_err or Exception("API call failed after 3 retries")
+            raise last_err or Exception("API call failed after retries")
 
         candidate = response.candidates[0]
 
@@ -1281,6 +1446,15 @@ def _chat_v144(
             reason = getattr(candidate, 'finish_reason', None)
             if reason and "SAFETY" in str(reason):
                 return "⚠️ AI 안전 정책에 의해 답변이 제한됩니다.", history
+            
+            if malformed_function_call_detected:
+                # Fail-closed 유도를 위해 가상의 실패 도구 호출을 넣고 전체 루프 탈출
+                all_tool_results.append({
+                    "tool_name": "malformed_function_call_fallback", "status": "failed",
+                    "result": "[FAILED] MALFORMED_FUNCTION_CALL 발생", "elapsed_ms": 0,
+                })
+                break
+
             return "⚠️ 답변을 생성하지 못했습니다. 질문을 다시 작성해 주세요.", history
 
         # Function call 수집
@@ -1359,7 +1533,20 @@ def _chat_v144(
             if any(r["status"] in ["timeout", "failed"] for r in all_tool_results):
                 print("  [EARLY EXIT] Timeout or failure detected, triggering fail-closed response.")
                 fallback_answer = "⚠️ API 연동 지연 또는 시스템 오류로 인해 검색이 중단되었습니다. 잠시 후 다시 시도해 주시거나 질문을 구체화해 주세요."
-                answer, history = _finalize_answer(fallback_answer, history, user_message, all_tool_results, api_status, progress_callback)
+                answer, history = _finalize_answer(fallback_answer, history, user_message, all_tool_results, api_status, progress_callback, generation_meta={
+                    "model_used": model_to_use,
+                    "fallback_used": fallback_used,
+                    "fallback_reason": fallback_reason,
+                    "retry_count": total_retries - 1 if total_retries > 0 else 0,
+                    "risk_level": risk_info.get("risk_level", "unknown"),
+                    "high_risk_triggers": risk_info.get("high_risk_triggers", []),
+                    "malformed_function_call_detected": malformed_function_call_detected,
+                    "function_call_retry_count": function_call_retry_count,
+                    "function_call_final_status": function_call_final_status,
+                    "prefetch_tool_called": product_prefetch_executed,
+                    "prefetch_tool_name": forced_tool_name if product_prefetch_executed else None,
+                    "model_function_call_malformed": malformed_function_call_detected
+                })
                 return answer, history
         else:
             # Function call 없음 → 최종 답변
@@ -1420,12 +1607,15 @@ def _chat_v144(
                 "risk_level": risk_info.get("risk_level", "unknown"),
                 "high_risk_triggers": risk_info.get("high_risk_triggers", []),
                 "model_decision_reason": risk_info.get("model_decision_reason", ""),
+                "malformed_function_call_detected": malformed_function_call_detected,
+                "function_call_retry_count": function_call_retry_count,
+                "function_call_final_status": function_call_final_status,
             })
             return answer, history
 
     # --- Loop exhausted (반복 한도 초과) ---
     print(f"  [WARNING] v1.4.4 loop exhausted after {MAX_TOOL_CALL_ROUNDS} rounds")
-    fallback_answer = "⚠️ 법령 검색 반복 한도를 초과하여 답변이 유보되었습니다. 질문을 더 구체적으로 입력해 주세요."
+    fallback_answer = "⚠️ 법령·도구 조회 제한으로 확인이 필요하여 답변이 유보되었습니다. 질문을 더 구체적으로 입력해 주시거나 관리자에게 문의해 주세요."
     # api_status에 timeout 또는 failed가 없더라도, 강제로 fail-closed 처리하기 위해 가상의 timeout 에러를 주입
     if not any(r["status"] in ["timeout", "failed"] for r in all_tool_results):
         all_tool_results.append({
@@ -1437,15 +1627,23 @@ def _chat_v144(
         "fallback_used": fallback_used,
         "fallback_reason": fallback_reason,
         "retry_count": total_retries - 1 if total_retries > 0 else 0,
+        "deterministic_template_used": True,
         "risk_level": risk_info.get("risk_level", "unknown"),
         "high_risk_triggers": risk_info.get("high_risk_triggers", []),
         "model_decision_reason": risk_info.get("model_decision_reason", ""),
+        "malformed_function_call_detected": malformed_function_call_detected,
+        "function_call_retry_count": function_call_retry_count,
+        "function_call_final_status": function_call_final_status,
     })
     return answer, history
 
 def _finalize_answer(answer: str, history: list, user_message: str, all_tool_results: list, api_status: ApiStatus, progress_callback=None, generation_meta: dict = None):
     if generation_meta is not None:
-        generation_meta["final_answer_source"] = "model_generation"
+        # deterministic_template_used가 이미 True이면 source를 deterministic으로 초기화
+        if generation_meta.get("deterministic_template_used", False):
+            generation_meta["final_answer_source"] = "deterministic_fail_closed_template"
+        else:
+            generation_meta["final_answer_source"] = "model_generation"
         # 라우팅 메타데이터 주입 (risk_info가 있으면)
         generation_meta.setdefault("model_routing_mode", os.getenv("MODEL_ROUTING_MODE", "risk_based"))
         generation_meta.setdefault("model_primary", os.getenv("GEMINI_MODEL", "gemini-2.5-pro"))
@@ -1454,8 +1652,16 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
         generation_meta.setdefault("direct_legal_basis_count", 0)
     
     # LegalConclusionScope 계산
-    legal_scope = evaluate_legal_scope(all_tool_results)
+    legal_scope = evaluate_legal_scope(all_tool_results, user_message)
     api_status.legal_scope = legal_scope
+    
+    if generation_meta is not None:
+        if generation_meta.get("malformed_function_call_detected", False):
+            if "malformed_function_call" not in legal_scope.blocked_scope:
+                legal_scope.blocked_scope.append("malformed_function_call")
+
+        generation_meta["blocked_scope"] = legal_scope.blocked_scope
+        generation_meta["legal_conclusion_allowed"] = legal_scope.legal_conclusion_allowed
     
     if not all_tool_results:
         api_status.mcp_status = "not_called"
@@ -1487,9 +1693,22 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
     # User requested: timeout or failed should force legal_conclusion_allowed to False
     if api_status.mcp_status in ["timeout", "failed"] or api_status.company_search_status in ["timeout", "failed"]:
         legal_scope.legal_conclusion_allowed = False
-        if "api_timeout" not in legal_scope.blocked_scope:
-            legal_scope.blocked_scope.append("api_timeout")
-            legal_scope.critical_missing.append("api_timeout")
+        # malformed이 이미 있으면 api_timeout 추가 안 함
+        has_malformed = "malformed_function_call" in legal_scope.blocked_scope
+        has_api_timeout = "api_timeout" in legal_scope.blocked_scope
+        if not has_malformed and not has_api_timeout:
+            # malformed mock에서 주입된 경우를 확인
+            is_malformed_origin = any(
+                "malformed" in str(r.get("result", "")).lower() or 
+                "malformed" in str(r.get("status", "")).lower()
+                for r in all_tool_results
+            )
+            if is_malformed_origin:
+                legal_scope.blocked_scope.append("malformed_function_call")
+                legal_scope.critical_missing.append("malformed_function_call")
+            else:
+                legal_scope.blocked_scope.append("api_timeout")
+                legal_scope.critical_missing.append("api_timeout")
 
     # 승인 조건 3: verify_and_annotate
     if progress_callback:
@@ -1525,7 +1744,7 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
             legal_scope.blocked_scope.append("forbidden_confirmation_detected")
 
     if generation_meta is not None:
-        generation_meta["forbidden_patterns_matched"] = matched_patterns
+        generation_meta["initial_forbidden_matched"] = matched_patterns
         generation_meta["has_forbidden_initial"] = has_forbidden
 
     LAW_ALIASES = {
@@ -1731,7 +1950,8 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
         "chain_full_research_timeout": "법령 통합 조회 지연",
         "forbidden_confirmation_detected": "금지어(단정적 표현) 감지",
         "no_direct_legal_basis": "직접적 법적 근거 부족",
-        "unsupported_legal_conclusion": "근거 없는 법적 판단 생성"
+        "unsupported_legal_conclusion": "근거 없는 법적 판단 생성",
+        "high_risk_query": "현재 응답에서는 수의계약 가능 여부와 금액 기준을 확정하지 않습니다. 실제 계약 전 혁신제품 지정 유효기간, 혁신장터 등록 여부, 조달청 계약 여부, 수요기관 적용 법령 확인이 필요합니다."
     }
 
     if generation_meta and generation_meta.get("fallback_used", False):
@@ -1767,6 +1987,7 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
                     if generation_meta is not None:
                         generation_meta["flash_answer_discarded"] = True
                         generation_meta["final_answer_source"] = "deterministic_no_results_template"
+                        generation_meta["deterministic_template_used"] = True
                         generation_meta["flash_answer_used_in_final"] = False
                         generation_meta["legal_basis"] = []
                         if generation_meta.get("claim_validation"):
@@ -1791,6 +2012,7 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
                     if generation_meta is not None:
                         generation_meta["flash_answer_discarded"] = True
                         generation_meta["final_answer_source"] = "company_table_plus_deterministic_caution"
+                        generation_meta["deterministic_template_used"] = True
                         generation_meta["flash_answer_used_in_final"] = False
                         has_any = any(v > 0 for v in counts.values())
                         if has_any:
@@ -1806,7 +2028,8 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
                     answer = safe_template + "- 질문하신 조건에 대한 수의계약 가능 여부를 단정할 수 없으니, 실제 계약 전 관련 법령을 직접 확인하시기 바랍니다."
                     if generation_meta is not None:
                         generation_meta["flash_answer_discarded"] = True
-                        generation_meta["final_answer_source"] = "deterministic_template"
+                        generation_meta["final_answer_source"] = "deterministic_fail_closed_template"
+                        generation_meta["deterministic_template_used"] = True
                         generation_meta["flash_answer_used_in_final"] = False
                         generation_meta["legal_basis"] = []
                         if generation_meta.get("claim_validation"):
@@ -1817,7 +2040,9 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
                 answer += f"\n\n---\n{safe_template}"
                 if generation_meta is not None:
                     generation_meta["flash_answer_discarded"] = False
-                    generation_meta["final_answer_source"] = "deterministic_template"
+                    # deterministic_template_used가 이미 True이면 final_answer_source를 보존
+                    if not generation_meta.get("deterministic_template_used", False):
+                        generation_meta["final_answer_source"] = "model_generation_with_caution"
                     generation_meta["flash_answer_used_in_final"] = False if not legal_scope.legal_conclusion_allowed else True
                     if not legal_scope.legal_conclusion_allowed:
                         generation_meta["legal_basis"] = []
@@ -1860,21 +2085,221 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
                 # Rewrite 실패 시 직접 추가
                 answer += "\n\n---\n⚠️ **확인 필요 사항**\n- API 지연으로 일부 판단이 제한되었습니다."
             
+            # Rewrite 후에도 남아있는 금지 표현 강제 치환 (Fail-safe)
+            original_answer_before_rewrite = answer
+            answer = re.sub(r"수의계약이?\s*가능(합니다|하며|할|해|하므로)", r"수의계약 검토가 가능\1", answer)
+            answer = re.sub(r"1인\s*견적(?:이)?\s*가능(합니다|하며|할|해|하므로)", r"1인 견적 수의계약 검토가 가능\1", answer)
+            answer = re.sub(r"금액\s*제한\s*없이", "관련 규정에 따라 금액 한도 예외 적용이 가능한지 확인 후", answer)
+            answer = re.sub(r"금액\s*무제한", "규정에 따른 한도 예외", answer)
+            answer = re.sub(r"계약\s*체결이?\s*가능합니다", "계약 검토가 가능합니다", answer)
+            
+            # 치환 후 카운트 비교
             if generation_meta is not None:
-                generation_meta["final_answer_source"] = "deterministic_template"
+                # post_scan_patterns 미리 정의
+                post_scan_patterns_list = [
+                    r"수의계약 추진", r"수의계약을 추진", r"수의계약 체결", r"1인 견적 수의계약 체결",
+                    r"1인 견적에 의한 수의계약", r"1인 견적 수의계약", r"금액과 상관없이", r"금액 제한 없이",
+                    r"금액 한도 없이", r"금액 제한이 없더라도", r"직접 수의계약", r"계약을 추진",
+                    r"계약 가능합니다", r"구매 가능합니다", r"해당 업체와 직접 계약", r"직접 계약",
+                    r"수의계약을 진행할 수 있습니다", r"수의계약 가능합니다", r"수의계약으로 구매할 수",
+                    r"수의계약 대상으로 명시", r"수의계약이 가능하다고", r"수의계약 가능하다고 알려져",
+                    r"계약 방식.*수의계약", r"금액 제한이 없지만", r"금액에 관계없이 수의계약",
+                    r"바로 계약", r"바로 구매", r"수의계약 진행을 검토", r"수의계약으로 진행",
+                    r"수의계약 진행 가능", r"수의계약을 검토해 볼 수"
+                ]
+                
+                # regex_rewrite_applied=True 이전에 어떤 패턴들이 탐지되었는지 기록
+                before_forbidden = []
+                for pat in post_scan_patterns_list:
+                    if re.search(pat, original_answer_before_rewrite):
+                        before_forbidden.append(pat)
+                generation_meta["forbidden_patterns_detected_before_rewrite"] = before_forbidden
+                
+                # 정규식으로 치환된 대략적인 건수 측정 (원본 텍스트 길이 변경 여부 확인)
+                if answer != original_answer_before_rewrite:
+                    generation_meta["rewritten_sentences_count"] = 1 # 단순화하여 1로 기록
+                else:
+                    generation_meta["rewritten_sentences_count"] = 0
+                
+                # 치환 후 남은 금지 표현 다시 스캔
+                remaining_forbidden = []
+                for pat in post_scan_patterns_list:
+                    if re.search(pat, answer):
+                        remaining_forbidden.append(pat)
+                generation_meta["forbidden_patterns_remaining_after_rewrite"] = remaining_forbidden
+
+                # deterministic_template_used가 이미 True이면 final_answer_source를 보존
+                if not generation_meta.get("deterministic_template_used", False):
+                    generation_meta["final_answer_source"] = "model_generation_with_caution"
                 generation_meta["flash_answer_used_in_final"] = False
         else:
             if generation_meta is not None:
-                generation_meta["final_answer_source"] = "model_generation"
+                # deterministic_template_used가 이미 True이면 final_answer_source를 보존
+                if not generation_meta.get("deterministic_template_used", False):
+                    generation_meta["final_answer_source"] = "model_generation"
                 generation_meta["flash_answer_used_in_final"] = True
+
+        # 3) 후보군 검색이 있었을 경우 표 생성
+        company_search_status = getattr(api_status, 'company_search_status', 'not_called')
+        server_table = ""
+        formatted = ""
+        classified_candidate_count = 0
+        formatter_input_count = 0
+        formatter_output_chars = 0
+        if "search_local_company" in str(all_tool_results) or "search_shopping_mall" in str(all_tool_results) or "search_innovation" in str(all_tool_results) or "search_tech" in str(all_tool_results) or company_search_status == "success":
+            from policies.candidate_policy import classify_candidates, get_candidate_counts
+            from policies.candidate_formatter import format_candidate_tables
+
+            # tool_results의 JSON result를 파싱하여 structured_rows를 상위 레벨로 병합
+            enriched_results = []
+            for tr in all_tool_results:
+                enriched = dict(tr)
+                result_str = tr.get("result", "")
+                if isinstance(result_str, str) and result_str.startswith("{"):
+                    try:
+                        parsed = json.loads(result_str)
+                        if isinstance(parsed, dict):
+                            for k in ["structured_rows", "product_sample_rows"]:
+                                if k in parsed and k not in enriched:
+                                    enriched[k] = parsed[k]
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                enriched_results.append(enriched)
+
+            classified = classify_candidates(enriched_results, user_message)
+            counts = get_candidate_counts(classified)
+            classified_candidate_count = sum(len(v) for v in classified.values())
+            formatter_input_count = classified_candidate_count
+            
+            # 스테이징 모드 환경변수가 1로 설정된 경우 is_staging=True로 전달
+            is_staging = os.getenv("STAGING_MODE") == "1"
+            formatted = format_candidate_tables(classified, user_message, "", is_staging=is_staging)
+            formatter_output_chars = len(formatted) if formatted else 0
+
+        if generation_meta is not None:
+            generation_meta["classified_candidate_count"] = classified_candidate_count
+            generation_meta["formatter_input_count"] = formatter_input_count
+            generation_meta["formatter_output_chars"] = formatter_output_chars
+
+    # LLM 생성 표 감지 및 폐기
+    llm_has_table = bool(re.search(r"\|.*\|.*\n\|.*(?:---|-|:).*\|", answer))
+    if llm_has_table:
+        # Markdown 표 형태 제거
+        answer = re.sub(r"(\n?\|.*\|.*)+", "", answer)
+        if generation_meta is not None:
+            generation_meta["llm_generated_table_detected"] = True
+            generation_meta["llm_generated_table_discarded"] = True
+
+            if formatted:
+                server_table = formatted
+                if "표" not in answer:
+                    answer += f"\n\n---\n{server_table}"
+                else:
+                    answer += f"\n\n---\n**[시스템 자동 생성 표]**\n{server_table}"
+    elif formatted:
+        # LLM이 표를 생성하지 않았지만 formatter 결과가 있으면 서버 표로 추가
+        server_table = formatted
+        answer += f"\n\n---\n{server_table}"
+        
+        if generation_meta is not None and generation_meta.get("deterministic_template_used", False):
+            generation_meta["final_answer_source"] = "deterministic_template_plus_server_table"
+
+    # ==========================================
+    # Post-Final Scanner (최종 안전 게이트)
+    # ==========================================
+    post_scan_forbidden = []
+    # 위에서 이미 정의된 FORBIDDEN_CONFIRM_PATTERNS 재사용 또는 확장
+    post_scan_patterns = [
+        r"수의계약 추진",
+        r"수의계약을 추진",
+        r"수의계약 체결",
+        r"1인 견적 수의계약 체결",
+        r"1인 견적에 의한 수의계약",
+        r"1인 견적 수의계약",
+        r"금액과 상관없이",
+        r"금액 제한 없이",
+        r"금액 한도 없이",
+        r"금액 제한이 없더라도",
+        r"직접 수의계약",
+        r"계약을 추진",
+        r"계약 가능합니다",
+        r"구매 가능합니다",
+        r"해당 업체와 직접 계약",
+        r"직접 계약",
+        r"수의계약을 진행할 수 있습니다",
+        r"수의계약 가능합니다",
+        r"수의계약으로 구매할 수",
+        r"수의계약 대상으로 명시",
+        r"수의계약이 가능하다고",
+        r"수의계약 가능하다고 알려져",
+        r"계약 방식.*수의계약",
+        r"금액 제한이 없지만",
+        r"금액에 관계없이 수의계약",
+        r"바로 계약",
+        r"바로 구매",
+        r"수의계약 진행을 검토",
+        r"수의계약으로 진행",
+        r"수의계약 진행 가능",
+        r"수의계약을 검토해 볼 수",
+    ]
+    for pat in post_scan_patterns:
+        if re.search(pat, answer):
+            post_scan_forbidden.append(pat)
+
+    # 내부 프롬프트/지침 누출 검사
+    prompt_leak_patterns = [
+        r"중요 지침", r"내부 처리", r"초안 답변", r"알겠습니다", 
+        r"수정하겠습니다", r"시스템 지침", r"프롬프트"
+    ]
+    prompt_leak_detected = False
+    for pat in prompt_leak_patterns:
+        if re.search(pat, answer):
+            prompt_leak_detected = True
+            break
+
+    if generation_meta is not None:
+        generation_meta["final_answer_scanned"] = True
+        existing_forbidden = generation_meta.get("forbidden_patterns_matched", [])
+        combined_forbidden = list(set(existing_forbidden + post_scan_forbidden))
+        generation_meta["forbidden_patterns_matched"] = combined_forbidden
+        generation_meta["candidate_table_source"] = "server_structured_formatter" if server_table else "none"
+        generation_meta["candidate_table_preserved"] = False
+        generation_meta["llm_generated_table_discarded"] = False
+        generation_meta["prompt_leak_detected"] = prompt_leak_detected
+        if "rewritten_sentences_count" not in generation_meta:
+            generation_meta["rewritten_sentences_count"] = 0
+
+    if post_scan_forbidden or prompt_leak_detected:
+        # LLM 법적 판단 문장 및 유출 문장 폐기 (Fail-closed 전환)
+        if server_table:
+            answer = "⚠️ 질문하신 조건에 대한 계약 가능 여부나 금액 한도는 시스템이 단정할 수 없습니다. 계약 전 관련 법령 및 지침을 직접 확인하시기 바랍니다.\n\n"
+            answer += f"**[시스템 자동 추출 후보 표]**\n{server_table}"
+            if generation_meta is not None:
+                generation_meta["candidate_table_preserved"] = True
+                generation_meta["final_answer_source"] = "deterministic_template_plus_server_table"
+        else:
+            answer = "⚠️ 질문하신 조건에 대한 계약 가능 여부나 금액 한도는 시스템이 단정할 수 없습니다. 계약 전 관련 법령 및 지침을 직접 확인하시기 바랍니다.\n\n"
+            if generation_meta is not None:
+                generation_meta["final_answer_source"] = "deterministic_fail_closed_template"
+                
+        if generation_meta is not None:
+            generation_meta["llm_generated_table_discarded"] = True
+            generation_meta["deterministic_template_used"] = True
+            generation_meta["answer_discarded"] = True
+            generation_meta["llm_legal_judgment_discarded"] = True
+            generation_meta["regex_rewrite_applied"] = True
+            generation_meta["forbidden_patterns_matched"] = []
+            generation_meta["rewritten_sentences_count"] += len(post_scan_forbidden)
 
     # API 상태 표시
     status_display = api_status.to_display()
     if status_display:
         answer += f"\n\n{status_display}"
 
-    if generation_meta is not None and "legal_basis" not in generation_meta:
-        generation_meta["legal_basis"] = legal_basis
+    if generation_meta is not None:
+        if "legal_basis" not in generation_meta:
+            generation_meta["legal_basis"] = legal_basis
+        generation_meta["legal_conclusion_allowed"] = legal_scope.legal_conclusion_allowed
 
     # 대화 이력 업데이트
     history.append({"role": "user", "text": user_message})

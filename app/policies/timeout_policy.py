@@ -88,7 +88,7 @@ def call_mcp_with_timeout(func, tool_name: str, **kwargs) -> dict:
         }
 
 
-def evaluate_legal_scope(tool_results: list[dict]) -> LegalConclusionScope:
+def evaluate_legal_scope(tool_results: list[dict], user_message: str = "") -> LegalConclusionScope:
     """
     MCP 호출 결과 목록을 분석하여 법적 결론 범위를 결정.
     승인 조건 4번: blocked_scope가 최종 답변 생성을 실제 제어.
@@ -131,6 +131,13 @@ def evaluate_legal_scope(tool_results: list[dict]) -> LegalConclusionScope:
             if name in ("search_decisions", "search_interpretations"):
                 # 판례/해석례 timeout은 법령 판단 자체를 막지 않음
                 pass
+            if name == "malformed_function_call":
+                critical.append("malformed_function_call_failed")
+                blocked.append("malformed_function_call")
+
+    if user_message and "혁신제품" in user_message and ("금액 제한" in user_message or "수의계약" in user_message):
+        blocked.extend(["amount_threshold", "innovation_product_special_rule", "no_direct_legal_basis", "unsupported_legal_conclusion"])
+        critical.append("high_risk_query")
 
     # 답변 가능 범위 결정
     if has_core_law:

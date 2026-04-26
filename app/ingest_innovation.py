@@ -193,7 +193,7 @@ def search_innovation(query: str, n_results: int = 5,
         line += f"\n  구분: {innov_type} | 인증번호: {cert_no} | 희망가격: {price_str}"
         lines.append(line)
 
-    lines.append(f"\n* 혁신제품은 시행령 제25조 제1항 제8호에 따라 금액 제한 없이 수의계약 가능")
+    lines.append(f"\n* 혁신제품은 수의계약 검토 후보입니다. 지정 유효기간, 혁신장터 등록 여부, 수요기관 적용 법령 확인이 필요합니다.")
     return "\n".join(lines)
 
 

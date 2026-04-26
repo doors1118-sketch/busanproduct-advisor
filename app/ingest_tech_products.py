@@ -186,7 +186,7 @@ def search_tech_products(query: str, max_results: int = 5) -> str:
         line += f"\n  인증일: {p['cert_date']} | 만료: {p['expire_date']}"
         lines.append(line)
 
-    lines.append("\n* 기술개발제품(성능인증)은 시행령 제25조 제1항 제6호 라목에 따라 수의계약 가능")
+    lines.append("\n* 기술개발제품 인증은 우선구매 또는 수의계약 검토의 후보 정보입니다. 인증 유효기간, 제품 적합성 확인이 필요합니다.")
     return "\n".join(lines)
 
 
