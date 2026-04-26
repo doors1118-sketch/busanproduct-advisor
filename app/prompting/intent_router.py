@@ -12,7 +12,7 @@ _PROMPTS_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
     "prompts",
 )
-ROUTER_MODEL = os.getenv("ROUTER_MODEL", "gemini-2.0-flash")
+ROUTER_MODEL = os.getenv("ROUTER_MODEL", "gemini-2.5-flash")
 
 _router_prompt: str = ""
 

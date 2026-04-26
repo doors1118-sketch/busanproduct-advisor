@@ -204,7 +204,7 @@ if __name__ == "__main__":
         md += json.dumps(r, ensure_ascii=False, indent=2)
         md += "\n```\n\n"
 
-    report_path = r"c:\Users\doors\.gemini\antigravity\brain\eaacb8aa-c5ce-4caf-9ea8-47f97d4c060c\artifacts\TC8_routing_result.md"
+    report_path = "TC8_routing_result.md"
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(md)
     print(f"Report saved to: {report_path}")

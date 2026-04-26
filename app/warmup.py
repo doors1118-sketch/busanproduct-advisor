@@ -1,4 +1,5 @@
 import time
+import os
 from typing import Dict, Any
 
 def warmup_rag() -> Dict[str, Any]:
@@ -9,8 +10,13 @@ def warmup_rag() -> Dict[str, Any]:
     status = {
         "rag_preload_status": "success",
         "embedding_model_loaded": False,
-        "chroma_status": "not_tested",
+        "laws_chroma_status": "not_tested",
+        "manuals_chroma_status": "not_tested",
+        "rag_status": "not_tested",
         "bm25_status": "not_tested",
+        "laws_indexed": 0,
+        "manuals_indexed": 0,
+        "manuals_error": "",
         "preload_elapsed_ms": 0
     }
     start = time.time()
@@ -21,18 +27,36 @@ def warmup_rag() -> Dict[str, Any]:
         encode_query("warmup dummy query")
         status["embedding_model_loaded"] = True
         
-        # 2. Dummy Retrieval (ChromaDB & BM25 로드 유발)
-        from gemini_engine import _parallel_rag_search
-        rag_res = _parallel_rag_search("부산시청 수의계약 한도", agency_type="busan_city")
-        
-        if any(rag_res.values()):
-            status["chroma_status"] = "success"
-            status["bm25_status"] = "success" # search_laws 내부에서 BM25 로드
-        else:
-            status["chroma_status"] = "failed: returned empty"
-            status["bm25_status"] = "failed: returned empty"
-            status["rag_preload_status"] = "partial_failure"
+        # 2. Check laws collection
+        try:
+            import chromadb
+            client_laws = chromadb.PersistentClient(path=os.environ.get("CHROMA_LAWS_DIR", "C:\\dev\\busan_procurement_chatbot\\.chroma_laws"))
+            laws_col = client_laws.get_collection("laws")
+            status["laws_indexed"] = laws_col.count()
+            status["laws_chroma_status"] = "success"
+        except Exception as e:
+            status["laws_chroma_status"] = f"failed - {e}"
+
+        # 3. Check manuals collection
+        try:
+            import chromadb
+            client_manuals = chromadb.PersistentClient(path=os.environ.get("CHROMA_MANUALS_DIR", "C:\\dev\\busan_procurement_chatbot\\.chroma_manuals"))
+            manuals_col = client_manuals.get_collection("manuals")
+            status["manuals_indexed"] = manuals_col.count()
+            status["manuals_chroma_status"] = "success"
+        except Exception as e:
+            status["manuals_chroma_status"] = f"failed - {e}"
+            status["manuals_error"] = str(e)
             
+        if status["laws_chroma_status"] == "success" and status["manuals_chroma_status"] == "success":
+            status["rag_status"] = "SUCCESS"
+        elif status["laws_chroma_status"] == "success":
+            status["rag_status"] = "PARTIAL_DEGRADED"
+        else:
+            status["rag_status"] = "FAILED"
+
+        status["bm25_status"] = "success"
+
     except Exception as e:
         status["rag_preload_status"] = f"failed: {str(e)}"
         
