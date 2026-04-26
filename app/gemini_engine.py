@@ -1365,7 +1365,10 @@ def _chat_v144(
             "model_used": MODEL_ID,
             "fallback_used": False,
             "fallback_reason": "",
-            "retry_count": 0
+            "retry_count": 0,
+            "core_prompt_hash": assembled.core_prompt_hash if 'assembled' in locals() else "",
+            "prompt_prefix_hash": assembled.prompt_prefix_hash if 'assembled' in locals() else "",
+            "company_table_allowed": "company_search" in guardrails if 'guardrails' in locals() else False
         })
         return answer, history
 
@@ -1578,7 +1581,10 @@ def _chat_v144(
                             "model_used": model_to_use,
                             "fallback_used": fallback_used,
                             "fallback_reason": fallback_reason,
-                            "retry_count": total_retries - 1 if total_retries > 0 else 0
+                            "retry_count": total_retries - 1 if total_retries > 0 else 0,
+                            "core_prompt_hash": assembled.core_prompt_hash if 'assembled' in locals() else "",
+                            "prompt_prefix_hash": assembled.prompt_prefix_hash if 'assembled' in locals() else "",
+                            "company_table_allowed": "company_search" in guardrails if 'guardrails' in locals() else False
                         })
                         return answer, history
                         
@@ -1610,6 +1616,9 @@ def _chat_v144(
                 "malformed_function_call_detected": malformed_function_call_detected,
                 "function_call_retry_count": function_call_retry_count,
                 "function_call_final_status": function_call_final_status,
+                "core_prompt_hash": assembled.core_prompt_hash if 'assembled' in locals() else "",
+                "prompt_prefix_hash": assembled.prompt_prefix_hash if 'assembled' in locals() else "",
+                "company_table_allowed": "company_search" in guardrails if 'guardrails' in locals() else False
             })
             return answer, history
 
@@ -1634,6 +1643,9 @@ def _chat_v144(
         "malformed_function_call_detected": malformed_function_call_detected,
         "function_call_retry_count": function_call_retry_count,
         "function_call_final_status": function_call_final_status,
+        "core_prompt_hash": assembled.core_prompt_hash if 'assembled' in locals() else "",
+        "prompt_prefix_hash": assembled.prompt_prefix_hash if 'assembled' in locals() else "",
+        "company_table_allowed": "company_search" in guardrails if 'guardrails' in locals() else False
     })
     return answer, history
 
@@ -2121,12 +2133,7 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
                 else:
                     generation_meta["rewritten_sentences_count"] = 0
                 
-                # 치환 후 남은 금지 표현 다시 스캔
-                remaining_forbidden = []
-                for pat in post_scan_patterns_list:
-                    if re.search(pat, answer):
-                        remaining_forbidden.append(pat)
-                generation_meta["forbidden_patterns_remaining_after_rewrite"] = remaining_forbidden
+                # 치환 후 남은 금지 표현 다시 스캔 코드는 제거됨 (요청사항 반영)
 
                 # deterministic_template_used가 이미 True이면 final_answer_source를 보존
                 if not generation_meta.get("deterministic_template_used", False):
@@ -2300,6 +2307,13 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
         if "legal_basis" not in generation_meta:
             generation_meta["legal_basis"] = legal_basis
         generation_meta["legal_conclusion_allowed"] = legal_scope.legal_conclusion_allowed
+        
+        # 1. forbidden_patterns_remaining_after_rewrite: 최종 답변 기준 남은 금지 표현
+        remaining_forbidden = []
+        for pat in post_scan_patterns:
+            if re.search(pat, answer):
+                remaining_forbidden.append(pat)
+        generation_meta["forbidden_patterns_remaining_after_rewrite"] = remaining_forbidden
 
     # 대화 이력 업데이트
     history.append({"role": "user", "text": user_message})

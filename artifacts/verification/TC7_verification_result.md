@@ -1,0 +1,873 @@
+# TC7 후보군 분류체계 5종 확장 검증 보고서
+
+## Path Validation Status
+- **TC7 Candidate Classification**: PASS (All TC7 cases passed.)
+- **Innovation actual search integration**: PASS
+- **Production deployment**: HOLD
+
+## Raw JSON Output
+
+### TC7-1_Shopping_Mall_Supplier
+```json
+{
+  "test_case": "TC7-1_Shopping_Mall_Supplier",
+  "description": "종합쇼핑몰 등록 부산업체 후보",
+  "candidate_types_tested": [
+    "shopping_mall_supplier"
+  ],
+  "primary_candidate_type": "shopping_mall_supplier",
+  "purchase_routes": [
+    "조달청 나라장터 종합쇼핑몰 구매",
+    "MAS",
+    "제3자단가계약",
+    "납품요구"
+  ],
+  "source_label": "나라장터 종합쇼핑몰 등록 부산업체 후보",
+  "company_sample_rows": [
+    {
+      "company_name": "(주)부산조명기업",
+      "location": "부산광역시 사상구",
+      "main_products": [
+        "LED등기구"
+      ],
+      "policy_tags": [],
+      "candidate_types": [
+        "shopping_mall_supplier"
+      ],
+      "primary_candidate_type": "shopping_mall_supplier",
+      "purchase_routes": [
+        "조달청 나라장터 종합쇼핑몰 구매",
+        "MAS",
+        "제3자단가계약",
+        "납품요구"
+      ],
+      "source_label": "나라장터 종합쇼핑몰 등록 부산업체 후보",
+      "innovation_product_status": null,
+      "shopping_mall_registered": true,
+      "certification_valid_until": null,
+      "business_status": "영업상태 확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "납품 가능 지역 확인",
+        "쇼핑몰 등록상태 확인",
+        "2단계 경쟁 대상 여부 확인",
+        "규격·가격 조건 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "note": "후보, 종합쇼핑몰 등록 여부 확인 필요"
+    },
+    {
+      "company_name": "(주)부산전자",
+      "location": "부산광역시 해운대구",
+      "main_products": [
+        "CCTV카메라"
+      ],
+      "policy_tags": [
+        "여성기업"
+      ],
+      "candidate_types": [
+        "shopping_mall_supplier",
+        "policy_company"
+      ],
+      "primary_candidate_type": "shopping_mall_supplier",
+      "purchase_routes": [
+        "조달청 나라장터 종합쇼핑몰 구매",
+        "MAS",
+        "제3자단가계약",
+        "납품요구"
+      ],
+      "source_label": "나라장터 종합쇼핑몰 등록 부산업체 후보",
+      "innovation_product_status": null,
+      "shopping_mall_registered": true,
+      "certification_valid_until": null,
+      "business_status": "영업상태 확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "납품 가능 지역 확인",
+        "쇼핑몰 등록상태 확인",
+        "2단계 경쟁 대상 여부 확인",
+        "규격·가격 조건 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "note": "후보, 종합쇼핑몰 등록 여부 확인 필요"
+    }
+  ],
+  "local_company_count": 0,
+  "mall_company_count": 2,
+  "primary_policy_company_count": 0,
+  "tagged_policy_company_count": 1,
+  "innovation_product_count": 0,
+  "priority_purchase_count": 0,
+  "contract_possible_auto_promoted": false,
+  "all_candidates_auto_promoted_false": true,
+  "legal_eligibility_status": "확인 필요",
+  "required_checks": [
+    "납품 가능 지역 확인",
+    "쇼핑몰 등록상태 확인",
+    "2단계 경쟁 대상 여부 확인",
+    "규격·가격 조건 확인"
+  ],
+  "data_source_status": "connected",
+  "data_source": "search_shopping_mall (나라장터 종합쇼핑몰 API)",
+  "display_enabled": true,
+  "final_answer_preview": "부산 지역업체 후보를 구매 경로별로 안내합니다.\n\n**[표 1] 나라장터 종합쇼핑몰 등록 부산업체 후보**\n| 업체명 | 소재지 | 대표품목 | 정책기업 태그 | 비고 |\n| :--- | :--- | :--- | :--- | :--- |\n| (주)부산조명기업 | 부산광역시 사상구 | LED등기구 |  | 후보, 종합쇼핑몰 등록 여부 확인 필요 |\n| (주)부산전자 | 부산광역시 해운대구 | CCTV카메라 | 여성기업 | 후보, 종합쇼핑몰 등록 여부 확인 필요 |\n\n",
+  "pass": true,
+  "failure_reason": ""
+}
+```
+
+### TC7-2_Local_Procurement_Company
+```json
+{
+  "test_case": "TC7-2_Local_Procurement_Company",
+  "description": "입찰·수의계약 검토용 조달등록 부산업체 후보",
+  "candidate_types_tested": [
+    "local_procurement_company"
+  ],
+  "primary_candidate_type": "local_procurement_company",
+  "purchase_routes": [
+    "수의계약",
+    "2인 이상 견적",
+    "제한경쟁",
+    "지역제한 입찰",
+    "공동수급"
+  ],
+  "source_label": "입찰·수의계약 검토용 조달등록 부산업체 후보",
+  "company_sample_rows": [
+    {
+      "company_name": "(주)선진텔레콤",
+      "location": "부산광역시 사상구",
+      "main_products": [
+        "CCTV카메라"
+      ],
+      "policy_tags": [],
+      "candidate_types": [
+        "local_procurement_company"
+      ],
+      "primary_candidate_type": "local_procurement_company",
+      "purchase_routes": [
+        "수의계약",
+        "2인 이상 견적",
+        "제한경쟁",
+        "지역제한 입찰",
+        "공동수급"
+      ],
+      "source_label": "입찰·수의계약 검토용 조달등록 부산업체 후보",
+      "innovation_product_status": null,
+      "shopping_mall_registered": null,
+      "certification_valid_until": null,
+      "business_status": "영업상태 확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "금액·계약유형 확인",
+        "직접생산 확인",
+        "인증 유효성 확인",
+        "지방계약법령 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "note": "후보, 법적 적격성 확인 필요"
+    },
+    {
+      "company_name": "(주)유니원",
+      "location": "부산광역시 해운대구",
+      "main_products": [
+        "CCTV카메라"
+      ],
+      "policy_tags": [],
+      "candidate_types": [
+        "local_procurement_company"
+      ],
+      "primary_candidate_type": "local_procurement_company",
+      "purchase_routes": [
+        "수의계약",
+        "2인 이상 견적",
+        "제한경쟁",
+        "지역제한 입찰",
+        "공동수급"
+      ],
+      "source_label": "입찰·수의계약 검토용 조달등록 부산업체 후보",
+      "innovation_product_status": null,
+      "shopping_mall_registered": null,
+      "certification_valid_until": null,
+      "business_status": "영업상태 확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "금액·계약유형 확인",
+        "직접생산 확인",
+        "인증 유효성 확인",
+        "지방계약법령 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "note": "후보, 법적 적격성 확인 필요"
+    },
+    {
+      "company_name": "주식회사 태인테크",
+      "location": "부산광역시 부산진구",
+      "main_products": [
+        "CCTV카메라"
+      ],
+      "policy_tags": [],
+      "candidate_types": [
+        "local_procurement_company"
+      ],
+      "primary_candidate_type": "local_procurement_company",
+      "purchase_routes": [
+        "수의계약",
+        "2인 이상 견적",
+        "제한경쟁",
+        "지역제한 입찰",
+        "공동수급"
+      ],
+      "source_label": "입찰·수의계약 검토용 조달등록 부산업체 후보",
+      "innovation_product_status": null,
+      "shopping_mall_registered": null,
+      "certification_valid_until": null,
+      "business_status": "영업상태 확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "금액·계약유형 확인",
+        "직접생산 확인",
+        "인증 유효성 확인",
+        "지방계약법령 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "note": "후보, 법적 적격성 확인 필요"
+    }
+  ],
+  "local_company_count": 3,
+  "mall_company_count": 0,
+  "primary_policy_company_count": 0,
+  "tagged_policy_company_count": 0,
+  "innovation_product_count": 0,
+  "priority_purchase_count": 0,
+  "contract_possible_auto_promoted": false,
+  "all_candidates_auto_promoted_false": true,
+  "legal_eligibility_status": "확인 필요",
+  "required_checks": [
+    "금액·계약유형 확인",
+    "직접생산 확인",
+    "인증 유효성 확인",
+    "지방계약법령 확인"
+  ],
+  "data_source_status": "connected",
+  "data_source": "search_local_company_by_product (busanproduct API)",
+  "display_enabled": true,
+  "final_answer_preview": "부산 지역업체 후보를 구매 경로별로 안내합니다.\n\n**[표 1] 입찰·수의계약 검토용 조달등록 부산업체 후보**\n| 업체명 | 소재지 | 대표품목 | 정책기업 태그 | 비고 |\n| :--- | :--- | :--- | :--- | :--- |\n| (주)선진텔레콤 | 부산광역시 사상구 | CCTV카메라 |  | 후보, 법적 적격성 확인 필요 |\n| (주)유니원 | 부산광역시 해운대구 | CCTV카메라 |  | 후보, 법적 적격성 확인 필요 |\n| 주식회사 태인테크 | 부산광역시 부산진구 | CCTV카메라 |  | 후보, 법적 적격성 확인 필요 |\n\n",
+  "pass": true,
+  "failure_reason": ""
+}
+```
+
+### TC7-3_Policy_Company
+```json
+{
+  "test_case": "TC7-3_Policy_Company",
+  "description": "정책기업 수의계약 검토 후보",
+  "candidate_types_tested": [
+    "policy_company",
+    "local_procurement_company"
+  ],
+  "primary_candidate_type": "policy_company",
+  "purchase_routes": [
+    "정책기업 수의계약 검토",
+    "1인 견적 가능성 검토(한도 내)",
+    "2인 이상 견적"
+  ],
+  "source_label": "정책기업 수의계약 검토 후보",
+  "company_sample_rows": [
+    {
+      "company_name": "(주)모의여성기업",
+      "location": "부산광역시 남구",
+      "main_products": [
+        "CCTV카메라"
+      ],
+      "policy_tags": [
+        "여성기업"
+      ],
+      "candidate_types": [
+        "local_procurement_company",
+        "policy_company"
+      ],
+      "primary_candidate_type": "policy_company",
+      "purchase_routes": [
+        "정책기업 수의계약 검토",
+        "1인 견적 가능성 검토(한도 내)",
+        "2인 이상 견적"
+      ],
+      "source_label": "정책기업 수의계약 검토 후보",
+      "innovation_product_status": null,
+      "shopping_mall_registered": null,
+      "certification_valid_until": null,
+      "business_status": "영업상태 확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "금액·계약유형 확인",
+        "인증 유효성 확인",
+        "견적 방식 확인",
+        "정책기업 인증서 유효기간 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "note": "후보, 인증 유효성·금액·계약유형 확인 필요"
+    },
+    {
+      "company_name": "(주)장애인기업A",
+      "location": "부산광역시 사상구",
+      "main_products": [
+        "CCTV카메라"
+      ],
+      "policy_tags": [
+        "장애인기업"
+      ],
+      "candidate_types": [
+        "local_procurement_company",
+        "policy_company"
+      ],
+      "primary_candidate_type": "policy_company",
+      "purchase_routes": [
+        "정책기업 수의계약 검토",
+        "1인 견적 가능성 검토(한도 내)",
+        "2인 이상 견적"
+      ],
+      "source_label": "정책기업 수의계약 검토 후보",
+      "innovation_product_status": null,
+      "shopping_mall_registered": null,
+      "certification_valid_until": null,
+      "business_status": "영업상태 확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "금액·계약유형 확인",
+        "인증 유효성 확인",
+        "견적 방식 확인",
+        "정책기업 인증서 유효기간 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "note": "후보, 인증 유효성·금액·계약유형 확인 필요"
+    },
+    {
+      "company_name": "(주)사회적기업C",
+      "location": "부산광역시 연제구",
+      "main_products": [
+        "CCTV카메라"
+      ],
+      "policy_tags": [
+        "사회적기업"
+      ],
+      "candidate_types": [
+        "local_procurement_company",
+        "policy_company"
+      ],
+      "primary_candidate_type": "policy_company",
+      "purchase_routes": [
+        "정책기업 수의계약 검토",
+        "1인 견적 가능성 검토(한도 내)",
+        "2인 이상 견적"
+      ],
+      "source_label": "정책기업 수의계약 검토 후보",
+      "innovation_product_status": null,
+      "shopping_mall_registered": null,
+      "certification_valid_until": null,
+      "business_status": "영업상태 확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "금액·계약유형 확인",
+        "인증 유효성 확인",
+        "견적 방식 확인",
+        "정책기업 인증서 유효기간 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "note": "후보, 인증 유효성·금액·계약유형 확인 필요"
+    }
+  ],
+  "local_company_count": 1,
+  "mall_company_count": 0,
+  "primary_policy_company_count": 3,
+  "tagged_policy_company_count": 3,
+  "innovation_product_count": 0,
+  "priority_purchase_count": 0,
+  "contract_possible_auto_promoted": false,
+  "all_candidates_auto_promoted_false": true,
+  "legal_eligibility_status": "확인 필요",
+  "required_checks": [
+    "금액·계약유형 확인",
+    "인증 유효성 확인",
+    "견적 방식 확인",
+    "정책기업 인증서 유효기간 확인"
+  ],
+  "data_source_status": "connected",
+  "data_source": "search_local_company 결과 + policy_companies.py 태깅",
+  "display_enabled": true,
+  "split_policy_test": "split_policy_companies: 입력 4건 → 정책기업 3건, 일반 1건",
+  "caution_text_present": true,
+  "final_answer_preview": "부산 지역업체 후보를 구매 경로별로 안내합니다.\n\n**[표 1] 정책기업 수의계약 검토 후보**\n| 업체명 | 소재지 | 대표품목 | 정책기업 태그 | 비고 |\n| :--- | :--- | :--- | :--- | :--- |\n| (주)모의여성기업 | 부산광역시 남구 | CCTV카메라 | 여성기업 | 후보, 인증 유효성·금액·계약유형 확인 필요 |\n| (주)장애인기업A | 부산광역시 사상구 | CCTV카메라 | 장애인기업 | 후보, 인증 유효성·금액·계약유형 확인 필요 |\n| (주)사회적기업C | 부산광역시 연제구 | CCTV카메라 | 사회적기업 | 후보, 인증 유효성·금액·계약유형 확인 필요 |\n\n> ℹ️ 여성기업·장애인기업·사회적기업 등 정책기업 태그는 수의계약 검토의 후보 자격 정보이며, 금액·계약유형·인증 유효성·견적 방식 확인 전에는 계약 가능 여부가 확정되지 않습니다.\n\n**[표 2] 입찰·수의계약 검토용 조달등록 부산업체 후보**\n| 업체명 | 소재지 | 대표품목 | 정책기업 태그 | 비고 |\n| :--- | :--- | :--- | :--- | :--- |\n| (주)일반기업B | 부산광역시 해운대구 | CCTV카메라 |  | 후보, 법적 적격성",
+  "pass": true,
+  "failure_reason": ""
+}
+```
+
+### TC7-4_Innovation_Product
+```json
+{
+  "test_case": "TC7-4_Innovation_Product",
+  "description": "혁신제품·혁신시제품 실제 로컬 검색 테스트 — 제품명 1순위 검색",
+  "test_queries": [
+    "공기청정기 혁신제품 부산업체 찾아줘",
+    "배전반 혁신시제품 찾아줘",
+    "LED 관련 혁신제품 있어?",
+    "폐쇄형배전반, 세풍전기, SP-LM-HV-EH-VCB-630A-12.5-N, 특고압반 혁신제품 찾아줘"
+  ],
+  "known_product_name_used": "폐쇄형배전반, 세풍전기, SP-LM-HV-EH-VCB-630A-12.5-N, 특고압반",
+  "innovation_product_actual_search_integration": "PASS",
+  "candidate_types_tested": [
+    "innovation_product"
+  ],
+  "primary_candidate_type": "innovation_product",
+  "data_source_status": "connected_local_search",
+  "runtime_tool_integration": "pending",
+  "display_enabled": false,
+  "staging_display_only": true,
+  "production_display_enabled": false,
+  "innovation_product_count": 20,
+  "product_name_matched_count": 19,
+  "company_name_matched_count": 0,
+  "low_confidence_count": 0,
+  "valid_cert_count": 0,
+  "expired_cert_count": 0,
+  "unknown_cert_count": 20,
+  "product_sample_rows": [
+    {
+      "candidate_types": [
+        "innovation_product"
+      ],
+      "primary_candidate_type": "innovation_product",
+      "purchase_routes": [
+        "혁신제품 수의계약 검토",
+        "혁신장터 구매",
+        "조달청 시범구매",
+        "우선구매 검토"
+      ],
+      "source_label": "혁신제품·혁신시제품 수의계약 검토 후보",
+      "company_name": "주식회사 성진하이텍",
+      "product_name": "융복합공기청정기, 성진하이텍, BIZ-33K-150NC, 공기청정승강조명제어",
+      "location": "부산광역시 해운대구 센텀중앙로97 (재송동)",
+      "innovation_type": "혁신제품(유형2)",
+      "innovation_product_status": "혁신제품(유형2)",
+      "certification_type": "유형2",
+      "certification_no": "2024-237",
+      "certification_date": "",
+      "certification_valid_until": "확인 필요",
+      "patent_info_available": false,
+      "innovation_market_registered": null,
+      "shopping_mall_registered": null,
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "지정 유효기간 확인",
+        "혁신장터 등록 여부 확인 (현재 미확인)",
+        "종합쇼핑몰 등록 여부 확인 (현재 미확인)",
+        "조달청 계약 여부 확인",
+        "수요기관 적용 법령 확인",
+        "수의계약 가능 근거 확인",
+        "제품·규격 일치 여부 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "match_basis": "product_name",
+      "product_name_match_score": 1.0,
+      "semantic_score": 0.708,
+      "exact_match": false
+    },
+    {
+      "candidate_types": [
+        "innovation_product"
+      ],
+      "primary_candidate_type": "innovation_product",
+      "purchase_routes": [
+        "혁신제품 수의계약 검토",
+        "혁신장터 구매",
+        "조달청 시범구매",
+        "우선구매 검토"
+      ],
+      "source_label": "혁신제품·혁신시제품 수의계약 검토 후보",
+      "company_name": "주식회사 성진하이텍",
+      "product_name": "융복합공기청정기, 성진하이텍, BIZ-33K-180NC, 공기청정승강조명제어",
+      "location": "부산광역시 해운대구 센텀중앙로97 (재송동)",
+      "innovation_type": "혁신제품(유형2)",
+      "innovation_product_status": "혁신제품(유형2)",
+      "certification_type": "유형2",
+      "certification_no": "2024-237",
+      "certification_date": "",
+      "certification_valid_until": "확인 필요",
+      "patent_info_available": false,
+      "innovation_market_registered": null,
+      "shopping_mall_registered": null,
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "지정 유효기간 확인",
+        "혁신장터 등록 여부 확인 (현재 미확인)",
+        "종합쇼핑몰 등록 여부 확인 (현재 미확인)",
+        "조달청 계약 여부 확인",
+        "수요기관 적용 법령 확인",
+        "수의계약 가능 근거 확인",
+        "제품·규격 일치 여부 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "match_basis": "product_name",
+      "product_name_match_score": 1.0,
+      "semantic_score": 0.706,
+      "exact_match": false
+    },
+    {
+      "candidate_types": [
+        "innovation_product"
+      ],
+      "primary_candidate_type": "innovation_product",
+      "purchase_routes": [
+        "혁신제품 수의계약 검토",
+        "혁신장터 구매",
+        "조달청 시범구매",
+        "우선구매 검토"
+      ],
+      "source_label": "혁신제품·혁신시제품 수의계약 검토 후보",
+      "company_name": "주식회사 성진하이텍",
+      "product_name": "융복합공기청정기, 성진하이텍, BIZ-33K-150NCS, 공기청정승강조명",
+      "location": "부산광역시 해운대구 센텀중앙로97 (재송동)",
+      "innovation_type": "혁신제품(유형2)",
+      "innovation_product_status": "혁신제품(유형2)",
+      "certification_type": "유형2",
+      "certification_no": "2024-237",
+      "certification_date": "",
+      "certification_valid_until": "확인 필요",
+      "patent_info_available": false,
+      "innovation_market_registered": null,
+      "shopping_mall_registered": null,
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "지정 유효기간 확인",
+        "혁신장터 등록 여부 확인 (현재 미확인)",
+        "종합쇼핑몰 등록 여부 확인 (현재 미확인)",
+        "조달청 계약 여부 확인",
+        "수요기관 적용 법령 확인",
+        "수의계약 가능 근거 확인",
+        "제품·규격 일치 여부 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "match_basis": "product_name",
+      "product_name_match_score": 1.0,
+      "semantic_score": 0.705,
+      "exact_match": false
+    },
+    {
+      "candidate_types": [
+        "innovation_product"
+      ],
+      "primary_candidate_type": "innovation_product",
+      "purchase_routes": [
+        "혁신제품 수의계약 검토",
+        "혁신장터 구매",
+        "조달청 시범구매",
+        "우선구매 검토"
+      ],
+      "source_label": "혁신제품·혁신시제품 수의계약 검토 후보",
+      "company_name": "주식회사 성진하이텍",
+      "product_name": "융복합공기청정기, 성진하이텍, BIZ-33K-180NCS, 공기청정승강조명",
+      "location": "부산광역시 해운대구 센텀중앙로97 (재송동)",
+      "innovation_type": "혁신제품(유형2)",
+      "innovation_product_status": "혁신제품(유형2)",
+      "certification_type": "유형2",
+      "certification_no": "2024-237",
+      "certification_date": "",
+      "certification_valid_until": "확인 필요",
+      "patent_info_available": false,
+      "innovation_market_registered": null,
+      "shopping_mall_registered": null,
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "지정 유효기간 확인",
+        "혁신장터 등록 여부 확인 (현재 미확인)",
+        "종합쇼핑몰 등록 여부 확인 (현재 미확인)",
+        "조달청 계약 여부 확인",
+        "수요기관 적용 법령 확인",
+        "수의계약 가능 근거 확인",
+        "제품·규격 일치 여부 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "match_basis": "product_name",
+      "product_name_match_score": 1.0,
+      "semantic_score": 0.701,
+      "exact_match": false
+    },
+    {
+      "candidate_types": [
+        "innovation_product"
+      ],
+      "primary_candidate_type": "innovation_product",
+      "purchase_routes": [
+        "혁신제품 수의계약 검토",
+        "혁신장터 구매",
+        "조달청 시범구매",
+        "우선구매 검토"
+      ],
+      "source_label": "혁신제품·혁신시제품 수의계약 검토 후보",
+      "company_name": "주식회사 알링크",
+      "product_name": "전기집진장치, 알링크, CFM_AHU_2500-3000, 2340㎥/h",
+      "location": "부산광역시 강서구 과학산단1로60번길30, 9동 104-1호(지사동, 부산테크노파크)",
+      "innovation_type": "혁신제품(유형1)",
+      "innovation_product_status": "혁신제품(유형1)",
+      "certification_type": "유형1",
+      "certification_no": "2024-106",
+      "certification_date": "",
+      "certification_valid_until": "확인 필요",
+      "patent_info_available": false,
+      "innovation_market_registered": null,
+      "shopping_mall_registered": null,
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "지정 유효기간 확인",
+        "혁신장터 등록 여부 확인 (현재 미확인)",
+        "종합쇼핑몰 등록 여부 확인 (현재 미확인)",
+        "조달청 계약 여부 확인",
+        "수요기관 적용 법령 확인",
+        "수의계약 가능 근거 확인",
+        "제품·규격 일치 여부 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "match_basis": "semantic_similarity",
+      "product_name_match_score": 0.0,
+      "semantic_score": 0.662,
+      "exact_match": false
+    }
+  ],
+  "per_query_results": [
+    {
+      "query": "공기청정기 혁신제품 부산업체 찾아줘",
+      "query_intent": "product",
+      "product_name_query": "공기청정기",
+      "innovation_product_count": 5,
+      "product_name_matched_count": 4,
+      "company_name_matched_count": 0,
+      "match_basis_summary": [
+        "product_name",
+        "product_name",
+        "product_name",
+        "product_name",
+        "semantic_similarity"
+      ]
+    },
+    {
+      "query": "배전반 혁신시제품 찾아줘",
+      "query_intent": "product",
+      "product_name_query": "배전반",
+      "innovation_product_count": 5,
+      "product_name_matched_count": 5,
+      "company_name_matched_count": 0,
+      "match_basis_summary": [
+        "product_name",
+        "product_name",
+        "product_name",
+        "product_name",
+        "product_name"
+      ]
+    },
+    {
+      "query": "LED 관련 혁신제품 있어?",
+      "query_intent": "product",
+      "product_name_query": "led",
+      "innovation_product_count": 5,
+      "product_name_matched_count": 5,
+      "company_name_matched_count": 0,
+      "match_basis_summary": [
+        "product_name",
+        "product_name",
+        "product_name",
+        "product_name",
+        "product_name"
+      ]
+    },
+    {
+      "query": "폐쇄형배전반, 세풍전기, SP-LM-HV-EH-VCB-630A-12.5-N, 특고압반 혁신제품 찾아줘",
+      "query_intent": "cert_no",
+      "product_name_query": "폐쇄형배전반 세풍전기 sp-lm-hv-eh-vcb-630a-12.5-n 특고압반",
+      "innovation_product_count": 5,
+      "product_name_matched_count": 5,
+      "company_name_matched_count": 0,
+      "match_basis_summary": [
+        "product_name",
+        "product_name",
+        "product_name",
+        "product_name",
+        "product_name"
+      ]
+    }
+  ],
+  "contract_possible_auto_promoted": false,
+  "legal_eligibility_status": "확인 필요",
+  "required_checks": [
+    "지정 유효기간 확인",
+    "혁신장터 등록 여부 확인",
+    "조달청 계약 여부 확인",
+    "수요기관 적용 법령 확인",
+    "수의계약 가능 근거 확인",
+    "제품·규격 일치 여부 확인"
+  ],
+  "caution_text_present": true,
+  "sensitive_fields_removed": true,
+  "sensitive_fields_detected": [],
+  "known_positive_pass": true,
+  "pass": true,
+  "failure_reason": ""
+}
+```
+
+### TC7-5_Priority_Purchase_Product
+```json
+{
+  "test_case": "TC7-5_Priority_Purchase_Product",
+  "description": "기술개발제품 13종 인증 보유 부산업체 실제 로컬 검색 테스트",
+  "query": "LED",
+  "candidate_types_tested": [
+    "priority_purchase_product"
+  ],
+  "primary_candidate_type": "priority_purchase_product",
+  "data_source_status": "connected_local_search",
+  "runtime_tool_integration": "pending",
+  "display_enabled": false,
+  "staging_display_only": true,
+  "production_display_enabled": false,
+  "priority_purchase_count": 5,
+  "matched_business_no_count": 5,
+  "unmatched_tech_product_count": 99,
+  "valid_cert_count": 5,
+  "expired_cert_count": 0,
+  "unknown_cert_count": 0,
+  "product_sample_rows": [
+    {
+      "candidate_types": [
+        "priority_purchase_product"
+      ],
+      "primary_candidate_type": "priority_purchase_product",
+      "purchase_routes": [
+        "기술개발제품 우선구매 검토",
+        "해당 인증제품 구매 검토",
+        "수의계약 가능성 검토",
+        "입찰·수의계약 검토"
+      ],
+      "source_label": "기술개발제품 13종 인증 보유 부산업체 우선구매 검토 후보",
+      "company_name": "하얀코끼리LED",
+      "product_name": "에너지절감 스마트 LED전광판",
+      "certification_type": "녹색기술제품",
+      "certification_no": "GTP-24-04071",
+      "certification_date": "2024-01-25",
+      "certification_valid_until": "유효",
+      "location": "부산",
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "인증 유효기간 확인",
+        "인증제품명과 구매 품목 일치 여부 확인",
+        "부산 조달업체 매칭 여부 확인",
+        "조달등록 또는 종합쇼핑몰 등록 여부 확인",
+        "수요기관 적용 법령 확인",
+        "금액 및 계약방식 확인"
+      ],
+      "contract_possible_auto_promoted": false
+    },
+    {
+      "candidate_types": [
+        "priority_purchase_product"
+      ],
+      "primary_candidate_type": "priority_purchase_product",
+      "purchase_routes": [
+        "기술개발제품 우선구매 검토",
+        "해당 인증제품 구매 검토",
+        "수의계약 가능성 검토",
+        "입찰·수의계약 검토"
+      ],
+      "source_label": "기술개발제품 13종 인증 보유 부산업체 우선구매 검토 후보",
+      "company_name": "주식회사 비젼테크",
+      "product_name": "LED등기구",
+      "certification_type": "우수조달물품지정",
+      "certification_no": "2024193",
+      "certification_date": "2025-01-20",
+      "certification_valid_until": "유효",
+      "location": "부산",
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "인증 유효기간 확인",
+        "인증제품명과 구매 품목 일치 여부 확인",
+        "부산 조달업체 매칭 여부 확인",
+        "조달등록 또는 종합쇼핑몰 등록 여부 확인",
+        "수요기관 적용 법령 확인",
+        "금액 및 계약방식 확인"
+      ],
+      "contract_possible_auto_promoted": false
+    },
+    {
+      "candidate_types": [
+        "priority_purchase_product"
+      ],
+      "primary_candidate_type": "priority_purchase_product",
+      "purchase_routes": [
+        "기술개발제품 우선구매 검토",
+        "해당 인증제품 구매 검토",
+        "수의계약 가능성 검토",
+        "입찰·수의계약 검토"
+      ],
+      "source_label": "기술개발제품 13종 인증 보유 부산업체 우선구매 검토 후보",
+      "company_name": "(주)금경라이팅",
+      "product_name": "격자구조를 갖는 히트싱크형 PCB가 적용된 LED 등기구",
+      "certification_type": "우수조달물품지정",
+      "certification_no": "2023062",
+      "certification_date": "2023-07-21",
+      "certification_valid_until": "유효",
+      "location": "부산",
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "인증 유효기간 확인",
+        "인증제품명과 구매 품목 일치 여부 확인",
+        "부산 조달업체 매칭 여부 확인",
+        "조달등록 또는 종합쇼핑몰 등록 여부 확인",
+        "수요기관 적용 법령 확인",
+        "금액 및 계약방식 확인"
+      ],
+      "contract_possible_auto_promoted": false
+    }
+  ],
+  "contract_possible_auto_promoted": false,
+  "legal_eligibility_status": "확인 필요",
+  "required_checks": [
+    "인증 유효기간 확인",
+    "인증제품명과 구매 품목 일치 여부 확인",
+    "부산 조달업체 매칭 여부 확인",
+    "조달등록 또는 종합쇼핑몰 등록 여부 확인",
+    "수요기관 적용 법령 확인",
+    "금액 및 계약방식 확인"
+  ],
+  "caution_text_present": true,
+  "sensitive_fields_removed": true,
+  "sensitive_fields_detected": [],
+  "pass": true,
+  "failure_reason": ""
+}
+```
+

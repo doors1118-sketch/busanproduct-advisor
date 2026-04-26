@@ -81,22 +81,38 @@ def run_test_case(test_case_name, query, mock_mcp_timeout=False, is_company_sear
         # 3. Read-only 보장을 위한 로깅 및 스코프 캡처 함수
         intercepts = {}
         
+        import gemini_engine
+        original_finalize = gemini_engine._finalize_answer
+        
+        def mock_finalize(answer, history, user_message, all_tool_results, api_status, progress_callback=None, generation_meta=None):
+            if generation_meta:
+                intercepts["generation_meta"] = generation_meta.copy()
+            return original_finalize(answer, history, user_message, all_tool_results, api_status, progress_callback, generation_meta)
+
         def mock_log_routing(**kwargs):
-            intercepts.update(kwargs)
+            if "selected_guardrails" in kwargs:
+                intercepts["selected_guardrails"] = kwargs["selected_guardrails"]
+            if "core_prompt_hash" in kwargs:
+                intercepts["core_prompt_hash"] = kwargs["core_prompt_hash"]
+            if "prompt_prefix_hash" in kwargs:
+                intercepts["prompt_prefix_hash"] = kwargs["prompt_prefix_hash"]
+            if "mcp_results" in kwargs: # Just in case
+                pass
             
         import policies.timeout_policy
         original_evaluate = policies.timeout_policy.evaluate_legal_scope
         
-        def mock_evaluate_legal_scope(results):
-            scope = original_evaluate(results)
+        def mock_evaluate_legal_scope(results, user_message=None):
+            scope = original_evaluate(results, user_message) if user_message else original_evaluate(results)
             intercepts["legal_scope"] = scope
             intercepts["mcp_results"] = results
             return scope
             
-        # gemini_engine 내부의 log_routing, evaluate_legal_scope 패치
+        # gemini_engine 내부의 log_routing, evaluate_legal_scope, _finalize_answer 패치
         rag_start = time.time()
         with patch('gemini_engine.log_routing', mock_log_routing), \
-             patch('gemini_engine.evaluate_legal_scope', mock_evaluate_legal_scope):
+             patch('gemini_engine.evaluate_legal_scope', mock_evaluate_legal_scope), \
+             patch('gemini_engine._finalize_answer', side_effect=mock_finalize):
             if mock_mcp_timeout:
                 result_data["test_note"] = "본 TC는 실제 MCP 서버 부하 방지를 위한 mock timeout 실측 검증입니다."
                 with patch('gemini_engine.mcp.chain_full_research', return_value="[TIMEOUT] API 지연으로 인한 타임아웃 발생"), \
@@ -205,12 +221,14 @@ def run_test_case(test_case_name, query, mock_mcp_timeout=False, is_company_sear
         
         # intercept 된 라우팅 로그에서 정보 추출
         result_data["selected_guardrails"] = intercepts.get("selected_guardrails", [])
+        if not result_data["selected_guardrails"] and "generation_meta" in intercepts:
+            result_data["selected_guardrails"] = intercepts["generation_meta"].get("selected_guardrails", [])
         
         gen_meta = intercepts.get("generation_meta", {})
         result_data["model_used"] = gen_meta.get("model_used", intercepts.get("model_selected", "unknown"))
-        result_data["model_selected"] = intercepts.get("model_selected", "unknown")
-        result_data["core_prompt_hash"] = intercepts.get("core_prompt_hash", "")
-        result_data["prompt_prefix_hash"] = intercepts.get("prompt_prefix_hash", "")
+        result_data["model_selected"] = gen_meta.get("model_selected", "unknown")
+        result_data["core_prompt_hash"] = intercepts.get("core_prompt_hash") or gen_meta.get("core_prompt_hash", "")
+        result_data["prompt_prefix_hash"] = intercepts.get("prompt_prefix_hash") or gen_meta.get("prompt_prefix_hash", "")
         result_data["indexed_doc_count"] = intercepts.get("indexed_doc_count", 0)
         result_data["retrieved_doc_count"] = sum(len(res) for list_res in intercepts.get("rag_results", {}).values() for res in (list_res if isinstance(list_res, list) else [])) if intercepts.get("rag_results") else 0
         result_data["retrieval_latency_ms"] = rag_elapsed
@@ -710,9 +728,15 @@ def run_company_search_chat_test(questions):
             "company_table_allowed": r.get("company_table_allowed", False),
             
             "has_forbidden": r.get("flash_answer_discarded", False),
-            "forbidden_patterns_matched": False, # Final check
+            "forbidden_patterns_matched": r.get("generation_meta", {}).get("forbidden_patterns_matched", []),
+            "forbidden_patterns_remaining_after_rewrite": r.get("generation_meta", {}).get("forbidden_patterns_remaining_after_rewrite", []),
             "flash_answer_discarded": r.get("flash_answer_discarded", False),
-            "deterministic_template_used": "⚠️ **확인 필요 사항**" in answer,
+            "deterministic_template_used": "⚠️ **확인 필요 사항**" in answer or r.get("generation_meta", {}).get("deterministic_template_used", False),
+            
+            "candidate_table_generated": r.get("generation_meta", {}).get("candidate_table_generated", ("**[시스템 자동 추출 후보 표]**" in answer or "시스템 자동 생성 표" in answer)),
+            "candidate_table_source": r.get("generation_meta", {}).get("candidate_table_source", "server_structured_formatter" if "시스템 자동" in answer else "none"),
+            "final_answer_scanned": r.get("generation_meta", {}).get("final_answer_scanned", True),
+            "final_answer_source": r.get("generation_meta", {}).get("final_answer_source", "deterministic_fail_closed_template" if "확인 필요 사항" in answer else "model_generation"),
             
             
             "pass": False,
@@ -860,6 +884,12 @@ def main():
         if res.get("company_search_status") == "success" and not res.get("company_table_allowed"):
             res["pass"] = False
             res["failure_reason"] = str(res.get("failure_reason", "")) + " | company_table_allowed is false despite success"
+
+        # 금지 표현 잔존 시 실패
+        remaining = res.get("forbidden_patterns_remaining_after_rewrite", [])
+        if remaining:
+            res["pass"] = False
+            res["failure_reason"] = str(res.get("failure_reason", "")) + f" | forbidden_patterns_remaining_after_rewrite is not empty: {remaining}"
         return res
     
     # TC 1: 실제 Gemini function-calling & MCP 정상 호출 (Read-only Query)

@@ -1,0 +1,694 @@
+# TC7 tool_result staging integration 검증 보고서
+
+## Status
+- **Tool result staging integration**: PASS
+- **Gemini runtime test**: NOT_RUN (다음 단계)
+- **Production deployment**: HOLD
+
+## Raw JSON Output
+
+### RT-1_Innovation_Product_Search
+```json
+{
+  "test_case": "RT-1_Innovation_Product_Search",
+  "test_type": "tool_result_staging_integration",
+  "query": "공기청정기 혁신제품 부산업체 찾아줘",
+  "tool_called": true,
+  "tool_name": "search_innovation_products",
+  "runtime_tool_integration": "connected_staging",
+  "data_source_status": "connected_local_search",
+  "model_selected": "N/A (tool_result staging — Gemini runtime bypass)",
+  "model_used": "N/A (local_search_direct)",
+  "candidate_types": [
+    "innovation_product"
+  ],
+  "primary_candidate_type": "innovation_product",
+  "purchase_routes": [
+    "혁신제품 수의계약 검토",
+    "혁신장터 구매",
+    "조달청 시범구매",
+    "우선구매 검토"
+  ],
+  "product_sample_rows": [
+    {
+      "candidate_types": [
+        "innovation_product"
+      ],
+      "primary_candidate_type": "innovation_product",
+      "purchase_routes": [
+        "혁신제품 수의계약 검토",
+        "혁신장터 구매",
+        "조달청 시범구매",
+        "우선구매 검토"
+      ],
+      "source_label": "혁신제품·혁신시제품 수의계약 검토 후보",
+      "company_name": "주식회사 성진하이텍",
+      "product_name": "융복합공기청정기, 성진하이텍, BIZ-33K-150NC, 공기청정승강조명제어",
+      "location": "부산광역시 해운대구 센텀중앙로97 (재송동)",
+      "innovation_type": "혁신제품(유형2)",
+      "innovation_product_status": "혁신제품(유형2)",
+      "certification_type": "유형2",
+      "certification_no": "2024-237",
+      "certification_date": "",
+      "certification_valid_until": "확인 필요",
+      "patent_info_available": false,
+      "innovation_market_registered": null,
+      "shopping_mall_registered": null,
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "지정 유효기간 확인",
+        "혁신장터 등록 여부 확인 (현재 미확인)",
+        "종합쇼핑몰 등록 여부 확인 (현재 미확인)",
+        "조달청 계약 여부 확인",
+        "수요기관 적용 법령 확인",
+        "수의계약 가능 근거 확인",
+        "제품·규격 일치 여부 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "match_basis": "product_name",
+      "product_name_match_score": 1.0,
+      "semantic_score": 0.712,
+      "exact_match": false
+    },
+    {
+      "candidate_types": [
+        "innovation_product"
+      ],
+      "primary_candidate_type": "innovation_product",
+      "purchase_routes": [
+        "혁신제품 수의계약 검토",
+        "혁신장터 구매",
+        "조달청 시범구매",
+        "우선구매 검토"
+      ],
+      "source_label": "혁신제품·혁신시제품 수의계약 검토 후보",
+      "company_name": "주식회사 성진하이텍",
+      "product_name": "융복합공기청정기, 성진하이텍, BIZ-33K-180NC, 공기청정승강조명제어",
+      "location": "부산광역시 해운대구 센텀중앙로97 (재송동)",
+      "innovation_type": "혁신제품(유형2)",
+      "innovation_product_status": "혁신제품(유형2)",
+      "certification_type": "유형2",
+      "certification_no": "2024-237",
+      "certification_date": "",
+      "certification_valid_until": "확인 필요",
+      "patent_info_available": false,
+      "innovation_market_registered": null,
+      "shopping_mall_registered": null,
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "지정 유효기간 확인",
+        "혁신장터 등록 여부 확인 (현재 미확인)",
+        "종합쇼핑몰 등록 여부 확인 (현재 미확인)",
+        "조달청 계약 여부 확인",
+        "수요기관 적용 법령 확인",
+        "수의계약 가능 근거 확인",
+        "제품·규격 일치 여부 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "match_basis": "product_name",
+      "product_name_match_score": 1.0,
+      "semantic_score": 0.709,
+      "exact_match": false
+    },
+    {
+      "candidate_types": [
+        "innovation_product"
+      ],
+      "primary_candidate_type": "innovation_product",
+      "purchase_routes": [
+        "혁신제품 수의계약 검토",
+        "혁신장터 구매",
+        "조달청 시범구매",
+        "우선구매 검토"
+      ],
+      "source_label": "혁신제품·혁신시제품 수의계약 검토 후보",
+      "company_name": "주식회사 성진하이텍",
+      "product_name": "융복합공기청정기, 성진하이텍, BIZ-33K-150NCS, 공기청정승강조명",
+      "location": "부산광역시 해운대구 센텀중앙로97 (재송동)",
+      "innovation_type": "혁신제품(유형2)",
+      "innovation_product_status": "혁신제품(유형2)",
+      "certification_type": "유형2",
+      "certification_no": "2024-237",
+      "certification_date": "",
+      "certification_valid_until": "확인 필요",
+      "patent_info_available": false,
+      "innovation_market_registered": null,
+      "shopping_mall_registered": null,
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "지정 유효기간 확인",
+        "혁신장터 등록 여부 확인 (현재 미확인)",
+        "종합쇼핑몰 등록 여부 확인 (현재 미확인)",
+        "조달청 계약 여부 확인",
+        "수요기관 적용 법령 확인",
+        "수의계약 가능 근거 확인",
+        "제품·규격 일치 여부 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "match_basis": "product_name",
+      "product_name_match_score": 1.0,
+      "semantic_score": 0.709,
+      "exact_match": false
+    }
+  ],
+  "returned_row_count": 10,
+  "priority_purchase_count": 0,
+  "innovation_product_count": 10,
+  "matched_business_no_count": 0,
+  "matched_business_no_count_in_returned_rows": 10,
+  "matched_count_scope": "",
+  "total_source_product_count": 0,
+  "unmatched_tech_product_count": 0,
+  "unmatched_count_scope": "",
+  "sensitive_fields_removed": true,
+  "sensitive_fields_detected": [],
+  "contract_possible_auto_promoted": false,
+  "forbidden_patterns_matched": [],
+  "staging_table_generated": false,
+  "production_table_generated": false,
+  "staging_display_only": true,
+  "production_display_enabled": false,
+  "legal_judgment_requested": false,
+  "legal_judgment_allowed": false,
+  "legal_conclusion_allowed": false,
+  "blocked_scope": [],
+  "company_table_allowed": true,
+  "final_answer_preview": "(표 미생성 — display_enabled=false)",
+  "pass": true,
+  "failure_reason": ""
+}
+```
+
+### RT-2_Innovation_Prototype_Search
+```json
+{
+  "test_case": "RT-2_Innovation_Prototype_Search",
+  "test_type": "tool_result_staging_integration",
+  "query": "배전반 혁신시제품 찾아줘",
+  "tool_called": true,
+  "tool_name": "search_innovation_products",
+  "runtime_tool_integration": "connected_staging",
+  "data_source_status": "connected_local_search",
+  "model_selected": "N/A (tool_result staging — Gemini runtime bypass)",
+  "model_used": "N/A (local_search_direct)",
+  "candidate_types": [
+    "innovation_product"
+  ],
+  "primary_candidate_type": "innovation_product",
+  "purchase_routes": [
+    "혁신제품 수의계약 검토",
+    "혁신장터 구매",
+    "조달청 시범구매",
+    "우선구매 검토"
+  ],
+  "product_sample_rows": [
+    {
+      "candidate_types": [
+        "innovation_product"
+      ],
+      "primary_candidate_type": "innovation_product",
+      "purchase_routes": [
+        "혁신제품 수의계약 검토",
+        "혁신장터 구매",
+        "조달청 시범구매",
+        "우선구매 검토"
+      ],
+      "source_label": "혁신제품·혁신시제품 수의계약 검토 후보",
+      "company_name": "주식회사 세풍전기",
+      "product_name": "폐쇄형배전반, 세풍전기, SP-LM-HV-EH-VCB-630A-12.5-N, 특고압반",
+      "location": "부산광역시 사상구 새벽로167번길 92()",
+      "innovation_type": "혁신제품(유형1)",
+      "innovation_product_status": "혁신제품(유형1)",
+      "certification_type": "유형1",
+      "certification_no": "2024-390",
+      "certification_date": "",
+      "certification_valid_until": "확인 필요",
+      "patent_info_available": false,
+      "innovation_market_registered": null,
+      "shopping_mall_registered": null,
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "지정 유효기간 확인",
+        "혁신장터 등록 여부 확인 (현재 미확인)",
+        "종합쇼핑몰 등록 여부 확인 (현재 미확인)",
+        "조달청 계약 여부 확인",
+        "수요기관 적용 법령 확인",
+        "수의계약 가능 근거 확인",
+        "제품·규격 일치 여부 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "match_basis": "product_name",
+      "product_name_match_score": 1.0,
+      "semantic_score": 0.66,
+      "exact_match": false
+    },
+    {
+      "candidate_types": [
+        "innovation_product"
+      ],
+      "primary_candidate_type": "innovation_product",
+      "purchase_routes": [
+        "혁신제품 수의계약 검토",
+        "혁신장터 구매",
+        "조달청 시범구매",
+        "우선구매 검토"
+      ],
+      "source_label": "혁신제품·혁신시제품 수의계약 검토 후보",
+      "company_name": "주식회사 세풍전기",
+      "product_name": "폐쇄형배전반, 세풍전기, SP-LM-HV-EH-VCB-630A-12.5-P, 특고압반",
+      "location": "부산광역시 사상구 새벽로167번길 92()",
+      "innovation_type": "혁신제품(유형1)",
+      "innovation_product_status": "혁신제품(유형1)",
+      "certification_type": "유형1",
+      "certification_no": "2024-390",
+      "certification_date": "",
+      "certification_valid_until": "확인 필요",
+      "patent_info_available": false,
+      "innovation_market_registered": null,
+      "shopping_mall_registered": null,
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "지정 유효기간 확인",
+        "혁신장터 등록 여부 확인 (현재 미확인)",
+        "종합쇼핑몰 등록 여부 확인 (현재 미확인)",
+        "조달청 계약 여부 확인",
+        "수요기관 적용 법령 확인",
+        "수의계약 가능 근거 확인",
+        "제품·규격 일치 여부 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "match_basis": "product_name",
+      "product_name_match_score": 1.0,
+      "semantic_score": 0.659,
+      "exact_match": false
+    },
+    {
+      "candidate_types": [
+        "innovation_product"
+      ],
+      "primary_candidate_type": "innovation_product",
+      "purchase_routes": [
+        "혁신제품 수의계약 검토",
+        "혁신장터 구매",
+        "조달청 시범구매",
+        "우선구매 검토"
+      ],
+      "source_label": "혁신제품·혁신시제품 수의계약 검토 후보",
+      "company_name": "주식회사 세풍전기",
+      "product_name": "폐쇄형배전반, 세풍전기, SP-LM-HV-EH-VCB-630A-12.5-S, 특고압반",
+      "location": "부산광역시 사상구 새벽로167번길 92()",
+      "innovation_type": "혁신제품(유형1)",
+      "innovation_product_status": "혁신제품(유형1)",
+      "certification_type": "유형1",
+      "certification_no": "2024-390",
+      "certification_date": "",
+      "certification_valid_until": "확인 필요",
+      "patent_info_available": false,
+      "innovation_market_registered": null,
+      "shopping_mall_registered": null,
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "지정 유효기간 확인",
+        "혁신장터 등록 여부 확인 (현재 미확인)",
+        "종합쇼핑몰 등록 여부 확인 (현재 미확인)",
+        "조달청 계약 여부 확인",
+        "수요기관 적용 법령 확인",
+        "수의계약 가능 근거 확인",
+        "제품·규격 일치 여부 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "match_basis": "product_name",
+      "product_name_match_score": 1.0,
+      "semantic_score": 0.659,
+      "exact_match": false
+    }
+  ],
+  "returned_row_count": 10,
+  "priority_purchase_count": 0,
+  "innovation_product_count": 10,
+  "matched_business_no_count": 0,
+  "matched_business_no_count_in_returned_rows": 10,
+  "matched_count_scope": "",
+  "total_source_product_count": 0,
+  "unmatched_tech_product_count": 0,
+  "unmatched_count_scope": "",
+  "sensitive_fields_removed": true,
+  "sensitive_fields_detected": [],
+  "contract_possible_auto_promoted": false,
+  "forbidden_patterns_matched": [],
+  "staging_table_generated": false,
+  "production_table_generated": false,
+  "staging_display_only": true,
+  "production_display_enabled": false,
+  "legal_judgment_requested": false,
+  "legal_judgment_allowed": false,
+  "legal_conclusion_allowed": false,
+  "blocked_scope": [],
+  "company_table_allowed": true,
+  "final_answer_preview": "(표 미생성 — display_enabled=false)",
+  "pass": true,
+  "failure_reason": ""
+}
+```
+
+### RT-3_Tech_Dev_Product_Search
+```json
+{
+  "test_case": "RT-3_Tech_Dev_Product_Search",
+  "test_type": "tool_result_staging_integration",
+  "query": "부산업체 중 기술개발제품 인증 보유 LED 업체 찾아줘",
+  "tool_called": true,
+  "tool_name": "search_tech_development_products",
+  "runtime_tool_integration": "connected_staging",
+  "data_source_status": "connected_local_search",
+  "model_selected": "N/A (tool_result staging — Gemini runtime bypass)",
+  "model_used": "N/A (local_search_direct)",
+  "candidate_types": [
+    "priority_purchase_product"
+  ],
+  "primary_candidate_type": "priority_purchase_product",
+  "purchase_routes": [
+    "기술개발제품 우선구매 검토",
+    "해당 인증제품 구매 검토",
+    "수의계약 가능성 검토",
+    "입찰·수의계약 검토"
+  ],
+  "product_sample_rows": [
+    {
+      "candidate_types": [
+        "priority_purchase_product"
+      ],
+      "primary_candidate_type": "priority_purchase_product",
+      "purchase_routes": [
+        "기술개발제품 우선구매 검토",
+        "해당 인증제품 구매 검토",
+        "수의계약 가능성 검토",
+        "입찰·수의계약 검토"
+      ],
+      "source_label": "기술개발제품 13종 인증 보유 부산업체 우선구매 검토 후보",
+      "company_name": "하얀코끼리LED",
+      "product_name": "에너지절감 스마트 LED전광판",
+      "certification_type": "녹색기술제품",
+      "certification_no": "GTP-24-04071",
+      "certification_date": "2024-01-25",
+      "certification_valid_until": "유효",
+      "location": "부산",
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "인증 유효기간 확인",
+        "인증제품명과 구매 품목 일치 여부 확인",
+        "부산 조달업체 매칭 여부 확인",
+        "조달등록 또는 종합쇼핑몰 등록 여부 확인",
+        "수요기관 적용 법령 확인",
+        "금액 및 계약방식 확인"
+      ],
+      "contract_possible_auto_promoted": false
+    },
+    {
+      "candidate_types": [
+        "priority_purchase_product"
+      ],
+      "primary_candidate_type": "priority_purchase_product",
+      "purchase_routes": [
+        "기술개발제품 우선구매 검토",
+        "해당 인증제품 구매 검토",
+        "수의계약 가능성 검토",
+        "입찰·수의계약 검토"
+      ],
+      "source_label": "기술개발제품 13종 인증 보유 부산업체 우선구매 검토 후보",
+      "company_name": "주식회사 비젼테크",
+      "product_name": "LED등기구",
+      "certification_type": "우수조달물품지정",
+      "certification_no": "2024193",
+      "certification_date": "2025-01-20",
+      "certification_valid_until": "유효",
+      "location": "부산",
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "인증 유효기간 확인",
+        "인증제품명과 구매 품목 일치 여부 확인",
+        "부산 조달업체 매칭 여부 확인",
+        "조달등록 또는 종합쇼핑몰 등록 여부 확인",
+        "수요기관 적용 법령 확인",
+        "금액 및 계약방식 확인"
+      ],
+      "contract_possible_auto_promoted": false
+    },
+    {
+      "candidate_types": [
+        "priority_purchase_product"
+      ],
+      "primary_candidate_type": "priority_purchase_product",
+      "purchase_routes": [
+        "기술개발제품 우선구매 검토",
+        "해당 인증제품 구매 검토",
+        "수의계약 가능성 검토",
+        "입찰·수의계약 검토"
+      ],
+      "source_label": "기술개발제품 13종 인증 보유 부산업체 우선구매 검토 후보",
+      "company_name": "(주)금경라이팅",
+      "product_name": "격자구조를 갖는 히트싱크형 PCB가 적용된 LED 등기구",
+      "certification_type": "우수조달물품지정",
+      "certification_no": "2023062",
+      "certification_date": "2023-07-21",
+      "certification_valid_until": "유효",
+      "location": "부산",
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "인증 유효기간 확인",
+        "인증제품명과 구매 품목 일치 여부 확인",
+        "부산 조달업체 매칭 여부 확인",
+        "조달등록 또는 종합쇼핑몰 등록 여부 확인",
+        "수요기관 적용 법령 확인",
+        "금액 및 계약방식 확인"
+      ],
+      "contract_possible_auto_promoted": false
+    }
+  ],
+  "returned_row_count": 6,
+  "priority_purchase_count": 6,
+  "innovation_product_count": 0,
+  "matched_business_no_count": 7,
+  "matched_business_no_count_in_returned_rows": 6,
+  "matched_count_scope": "tech_products.json 전체 중 부산 조달업체 DB 사업자번호 매칭",
+  "total_source_product_count": 104,
+  "unmatched_tech_product_count": 97,
+  "unmatched_count_scope": "search_result_vs_busan_procurement_db",
+  "sensitive_fields_removed": true,
+  "sensitive_fields_detected": [],
+  "contract_possible_auto_promoted": false,
+  "forbidden_patterns_matched": [],
+  "staging_table_generated": false,
+  "production_table_generated": false,
+  "staging_display_only": true,
+  "production_display_enabled": false,
+  "legal_judgment_requested": false,
+  "legal_judgment_allowed": false,
+  "legal_conclusion_allowed": false,
+  "blocked_scope": [],
+  "company_table_allowed": true,
+  "final_answer_preview": "(표 미생성 — display_enabled=false)",
+  "pass": true,
+  "failure_reason": ""
+}
+```
+
+### RT-4_Forbidden_Expression_Check
+```json
+{
+  "test_case": "RT-4_Forbidden_Expression_Check",
+  "test_type": "tool_result_staging_integration",
+  "query": "혁신제품이면 금액 제한 없이 수의계약 가능해?",
+  "tool_called": true,
+  "tool_name": "search_innovation_products",
+  "runtime_tool_integration": "connected_staging",
+  "data_source_status": "connected_local_search",
+  "model_selected": "N/A (tool_result staging — Gemini runtime bypass)",
+  "model_used": "N/A (local_search_direct)",
+  "candidate_types": [
+    "innovation_product"
+  ],
+  "primary_candidate_type": "innovation_product",
+  "purchase_routes": [
+    "혁신제품 수의계약 검토",
+    "혁신장터 구매",
+    "조달청 시범구매",
+    "우선구매 검토"
+  ],
+  "product_sample_rows": [
+    {
+      "candidate_types": [
+        "innovation_product"
+      ],
+      "primary_candidate_type": "innovation_product",
+      "purchase_routes": [
+        "혁신제품 수의계약 검토",
+        "혁신장터 구매",
+        "조달청 시범구매",
+        "우선구매 검토"
+      ],
+      "source_label": "혁신제품·혁신시제품 수의계약 검토 후보",
+      "company_name": "주식회사 세풍전기",
+      "product_name": "폐쇄형배전반, 세풍전기, SP-LM-LV-REC-50A, 저압/정류기반",
+      "location": "부산광역시 사상구 새벽로167번길 92()",
+      "innovation_type": "혁신제품(유형1)",
+      "innovation_product_status": "혁신제품(유형1)",
+      "certification_type": "유형1",
+      "certification_no": "2024-390",
+      "certification_date": "",
+      "certification_valid_until": "확인 필요",
+      "patent_info_available": false,
+      "innovation_market_registered": null,
+      "shopping_mall_registered": null,
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "지정 유효기간 확인",
+        "혁신장터 등록 여부 확인 (현재 미확인)",
+        "종합쇼핑몰 등록 여부 확인 (현재 미확인)",
+        "조달청 계약 여부 확인",
+        "수요기관 적용 법령 확인",
+        "수의계약 가능 근거 확인",
+        "제품·규격 일치 여부 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "match_basis": "semantic_similarity",
+      "product_name_match_score": 0.0,
+      "semantic_score": 0.707,
+      "exact_match": false
+    },
+    {
+      "candidate_types": [
+        "innovation_product"
+      ],
+      "primary_candidate_type": "innovation_product",
+      "purchase_routes": [
+        "혁신제품 수의계약 검토",
+        "혁신장터 구매",
+        "조달청 시범구매",
+        "우선구매 검토"
+      ],
+      "source_label": "혁신제품·혁신시제품 수의계약 검토 후보",
+      "company_name": "주식회사 세풍전기",
+      "product_name": "폐쇄형배전반, 세풍전기, SP-LM-HV-HL-MOF(O)-TR(O)800-32P, 일체형수배전반",
+      "location": "부산광역시 사상구 새벽로167번길 92()",
+      "innovation_type": "혁신제품(유형1)",
+      "innovation_product_status": "혁신제품(유형1)",
+      "certification_type": "유형1",
+      "certification_no": "2024-390",
+      "certification_date": "",
+      "certification_valid_until": "확인 필요",
+      "patent_info_available": false,
+      "innovation_market_registered": null,
+      "shopping_mall_registered": null,
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "지정 유효기간 확인",
+        "혁신장터 등록 여부 확인 (현재 미확인)",
+        "종합쇼핑몰 등록 여부 확인 (현재 미확인)",
+        "조달청 계약 여부 확인",
+        "수요기관 적용 법령 확인",
+        "수의계약 가능 근거 확인",
+        "제품·규격 일치 여부 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "match_basis": "semantic_similarity",
+      "product_name_match_score": 0.0,
+      "semantic_score": 0.704,
+      "exact_match": false
+    },
+    {
+      "candidate_types": [
+        "innovation_product"
+      ],
+      "primary_candidate_type": "innovation_product",
+      "purchase_routes": [
+        "혁신제품 수의계약 검토",
+        "혁신장터 구매",
+        "조달청 시범구매",
+        "우선구매 검토"
+      ],
+      "source_label": "혁신제품·혁신시제품 수의계약 검토 후보",
+      "company_name": "주식회사 세풍전기",
+      "product_name": "폐쇄형배전반, 세풍전기, SP-LM-HV-HL-MOF(M)-TR(O)800-32P, 일체형수배전반",
+      "location": "부산광역시 사상구 새벽로167번길 92()",
+      "innovation_type": "혁신제품(유형1)",
+      "innovation_product_status": "혁신제품(유형1)",
+      "certification_type": "유형1",
+      "certification_no": "2024-390",
+      "certification_date": "",
+      "certification_valid_until": "확인 필요",
+      "patent_info_available": false,
+      "innovation_market_registered": null,
+      "shopping_mall_registered": null,
+      "business_status": "확인 필요",
+      "legal_eligibility_status": "확인 필요",
+      "display_status": "후보",
+      "required_checks": [
+        "지정 유효기간 확인",
+        "혁신장터 등록 여부 확인 (현재 미확인)",
+        "종합쇼핑몰 등록 여부 확인 (현재 미확인)",
+        "조달청 계약 여부 확인",
+        "수요기관 적용 법령 확인",
+        "수의계약 가능 근거 확인",
+        "제품·규격 일치 여부 확인"
+      ],
+      "contract_possible_auto_promoted": false,
+      "match_basis": "semantic_similarity",
+      "product_name_match_score": 0.0,
+      "semantic_score": 0.704,
+      "exact_match": false
+    }
+  ],
+  "returned_row_count": 10,
+  "priority_purchase_count": 0,
+  "innovation_product_count": 10,
+  "matched_business_no_count": 0,
+  "matched_business_no_count_in_returned_rows": 10,
+  "matched_count_scope": "",
+  "total_source_product_count": 0,
+  "unmatched_tech_product_count": 0,
+  "unmatched_count_scope": "",
+  "sensitive_fields_removed": true,
+  "sensitive_fields_detected": [],
+  "contract_possible_auto_promoted": false,
+  "forbidden_patterns_matched": [],
+  "staging_table_generated": false,
+  "production_table_generated": false,
+  "staging_display_only": true,
+  "production_display_enabled": false,
+  "legal_judgment_requested": true,
+  "legal_judgment_allowed": false,
+  "legal_conclusion_allowed": false,
+  "blocked_scope": [
+    "amount_threshold",
+    "innovation_product_special_rule"
+  ],
+  "company_table_allowed": true,
+  "final_answer_preview": "(표 미생성 — display_enabled=false)",
+  "pass": true,
+  "failure_reason": ""
+}
+```
+
