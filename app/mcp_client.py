@@ -14,8 +14,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # NCP 자체 호스팅 MCP (fly.dev 대비 전 도구 동작)
-MCP_BASE_URL = os.getenv("MCP_BASE_URL", "http://49.50.133.160:3000/mcp")
-OC = os.getenv("LAW_API_OC", "busanproduct")
+# .env.example과의 호환: MCP_ENDPOINT / MCP_BASE_URL 모두 인식
+MCP_BASE_URL = os.getenv("MCP_ENDPOINT") or os.getenv("MCP_BASE_URL", "http://49.50.133.160:3000/mcp")
+# .env.example과의 호환: LAW_OC / LAW_API_OC 모두 인식
+OC = os.getenv("LAW_OC") or os.getenv("LAW_API_OC", "busanproduct")
 MCP_HEADERS = {
     "Content-Type": "application/json",
     "Accept": "application/json, text/event-stream",
@@ -24,10 +26,15 @@ MCP_HEADERS = {
 _request_id = 0
 
 
-def _mcp_call(tool_name: str, arguments: dict, timeout: int = 30) -> dict:
-    """MCP 도구 호출 공통 함수."""
+def _mcp_call(tool_name: str, arguments: dict, timeout: int = None) -> dict:
+    """MCP 도구 호출 공통 함수. timeout 미지정 시 환경변수 기반."""
     global _request_id
     _request_id += 1
+
+    # P0-6: timeout 환경변수 기반 (하드코딩 제거)
+    if timeout is None:
+        from policies.timeout_policy import get_timeout
+        timeout = get_timeout(tool_name)
 
     payload = {
         "jsonrpc": "2.0",
@@ -126,25 +133,25 @@ def get_annexes(law_name: str, annex_no: str = None) -> str:
 
 def chain_law_system(query: str) -> str:
     """법령 체계 종합 분석 (법률·시행령·시행규칙 3단 구조)."""
-    result = _mcp_call("chain_law_system", {"query": query}, timeout=120)
+    result = _mcp_call("chain_law_system", {"query": query})
     return result["text"]
 
 
 def chain_full_research(query: str) -> str:
     """종합 리서치. AI검색→법령→판례→해석례 자동 수행."""
-    result = _mcp_call("chain_full_research", {"query": query}, timeout=120)
+    result = _mcp_call("chain_full_research", {"query": query})
     return result["text"]
 
 
 def chain_action_basis(query: str) -> str:
     """처분/허가/인가의 법적 근거 종합 추적."""
-    result = _mcp_call("chain_action_basis", {"query": query}, timeout=120)
+    result = _mcp_call("chain_action_basis", {"query": query})
     return result["text"]
 
 
 def verify_citations(text: str) -> str:
     """LLM 환각 방지 — 법령 인용 교차검증."""
-    result = _mcp_call("verify_citations", {"text": text}, timeout=60)
+    result = _mcp_call("verify_citations", {"text": text})
     return result["text"]
 
 
@@ -160,7 +167,7 @@ def search_admin_rule(query: str, knd: int = None) -> str:
     result = _mcp_call("execute_tool", {
         "tool_name": "search_admin_rule",
         "params": params,
-    }, timeout=30)
+    })
     return result["text"]
 
 
@@ -169,7 +176,7 @@ def get_admin_rule(rule_id: str) -> str:
     result = _mcp_call("execute_tool", {
         "tool_name": "get_admin_rule",
         "params": {"id": rule_id},
-    }, timeout=30)
+    })
     return result["text"]
 
 
@@ -179,25 +186,25 @@ def get_admin_rule(rule_id: str) -> str:
 
 def chain_procedure_detail(query: str) -> str:
     """절차·비용·서식 안내 (법체계→별표→시행규칙별표)."""
-    result = _mcp_call("chain_procedure_detail", {"query": query}, timeout=120)
+    result = _mcp_call("chain_procedure_detail", {"query": query})
     return result["text"]
 
 
 def chain_ordinance_compare(query: str) -> str:
     """조례 비교 연구 (상위법→전국 조례 검색)."""
-    result = _mcp_call("chain_ordinance_compare", {"query": query}, timeout=120)
+    result = _mcp_call("chain_ordinance_compare", {"query": query})
     return result["text"]
 
 
 def chain_amendment_track(query: str) -> str:
     """개정 추적 (신구대조+조문이력)."""
-    result = _mcp_call("chain_amendment_track", {"query": query}, timeout=120)
+    result = _mcp_call("chain_amendment_track", {"query": query})
     return result["text"]
 
 
 def chain_document_review(query: str) -> str:
     """계약서·약관 리스크 분석 (문서분석→관련법령→판례)."""
-    result = _mcp_call("chain_document_review", {"query": query}, timeout=120)
+    result = _mcp_call("chain_document_review", {"query": query})
     return result["text"]
 
 
@@ -210,7 +217,7 @@ def get_decision_text(decision_id: str, domain: str = "precedent") -> str:
     result = _mcp_call("get_decision_text", {
         "id": decision_id,
         "domain": domain,
-    }, timeout=30)
+    })
     return result["text"]
 
 

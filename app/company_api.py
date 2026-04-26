@@ -5,6 +5,7 @@ https://busanproduct.co.kr/docs
 조달청 등록 부산 지역업체를 면허/품목/분류코드/제조업체로 검색.
 인증 불필요, CORS 제한 없음.
 """
+import os
 import requests
 from typing import Optional
 from urllib.parse import quote
@@ -16,7 +17,12 @@ TIMEOUT = 10
 
 # 국세청 사업자등록 상태조회 API
 NTS_STATUS_URL = "https://api.odcloud.kr/api/nts-businessman/v1/status"
-NTS_SERVICE_KEY = "c551b235466f84865b201c21869bc5b08cdf0633cdb4a3105dfb1e19c6427865"
+
+# .env에서 키 로드 (.env 미로드 상태에서 import 시 빈 키 방지)
+from dotenv import load_dotenv as _load_dotenv
+_load_dotenv()
+
+NTS_SERVICE_KEY = os.getenv("ODCLOUD_API_KEY", "")
 
 # 최근 검색 결과 저장 (챗봇 UI에서 전체 목록 다운로드용)
 last_search_results: dict = {}
@@ -115,12 +121,21 @@ def filter_active_companies(data: dict) -> dict:
     # 사업자번호 추출
     biz_numbers = [c.get("사업자번호", "") for c in companies if c.get("사업자번호")]
     if not biz_numbers:
+        for c in companies:
+            c["_사업자상태"] = "사업자번호 없음"
         return data  # 사업자번호 없으면 필터링 불가
 
     # 국세청 상태 조회
     statuses = verify_business_status(biz_numbers)
     if not statuses:
-        return data  # API 실패 시 원본 반환
+        # API 실패 시 원본 업체를 그대로 반환하되 상태 표시 추가 (P0-3)
+        for c in companies:
+            c["_사업자상태"] = "NTS 검증 실패"
+        return {
+            **data,
+            "_사업자상태검증": "failed",
+            "업체목록": companies
+        }
 
     # 계속사업자(01)만 필터링 + 상태 미확인 업체도 포함
     filtered = []
@@ -142,6 +157,7 @@ def filter_active_companies(data: dict) -> dict:
         "업체목록": filtered,
         "검색결과수": len(filtered),
         "_제외업체수": excluded_count,
+        "_사업자상태검증": "success",
     }
 
 

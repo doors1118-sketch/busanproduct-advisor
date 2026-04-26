@@ -1,0 +1,102 @@
+[
+  {
+    "test_case": "A. Pro Fail + legal_conclusion_allowed=false",
+    "legal_conclusion_allowed": false,
+    "blocked_scope": [
+      "amount_threshold",
+      "api_timeout",
+      "one_person_quote",
+      "no_direct_legal_basis"
+    ],
+    "has_forbidden": false,
+    "forbidden_patterns_matched": [],
+    "deterministic_template_used": true,
+    "flash_answer_discarded": true,
+    "final_answer_source": "deterministic_template",
+    "flash_answer_used_in_final": false,
+    "legal_basis": [],
+    "claim_validation": {},
+    "final_answer_preview": "⚠️ **확인 필요 사항**\n- API 조회 실패/지연으로 법적 판단이 제한되었습니다.\n- 금액 한도는 법령 조회 지연으로 확정되지 않았습니다. 법제처 법령정보센터에서 최신 기준을 확인하세요.\n- 1인 견적 가능 여부는 확인되지 않았습니다.\n- 질문하신 조건에 대한 수의계약 가능 여부를 단정할 수 없으니, 실제 계약 전 관련 법령을 직접 확인하시기 바랍니다.",
+    "pass": true,
+    "failure_reason": ""
+  },
+  {
+    "test_case": "B. Pro Fail + Flash generated forbidden words",
+    "legal_conclusion_allowed": false,
+    "blocked_scope": [
+      "forbidden_confirmation_detected",
+      "no_direct_legal_basis",
+      "unsupported_legal_conclusion"
+    ],
+    "has_forbidden": true,
+    "forbidden_patterns_matched": [
+      "여성기업이므로 수의계약 가능합니다"
+    ],
+    "deterministic_template_used": true,
+    "flash_answer_discarded": true,
+    "final_answer_source": "deterministic_template",
+    "flash_answer_used_in_final": false,
+    "legal_basis": [],
+    "claim_validation": {
+      "law_article_claim": "pass",
+      "amount_threshold_claim": "pass",
+      "sole_contract_claim": "fail",
+      "one_person_quote_claim": "pass"
+    },
+    "final_answer_preview": "⚠️ **확인 필요 사항**\n- API 조회 실패/지연으로 법적 판단이 제한되었습니다.\n- 질문하신 조건에 대한 수의계약 가능 여부를 단정할 수 없으니, 실제 계약 전 관련 법령을 직접 확인하시기 바랍니다.",
+    "pass": true,
+    "failure_reason": ""
+  },
+  {
+    "test_case": "C. Pro Fail + Company Table Generation",
+    "legal_conclusion_allowed": "not_applicable",
+    "blocked_scope": [],
+    "has_forbidden": false,
+    "forbidden_patterns_matched": [],
+    "deterministic_template_used": false,
+    "flash_answer_discarded": false,
+    "final_answer_source": "model_generation",
+    "flash_answer_used_in_final": true,
+    "legal_basis": [],
+    "claim_validation": {},
+    "final_answer_preview": "업체 목록입니다.\n| 업체명 | 소재지 | 대표품목 | 정책기업 태그 | 비고 |\n|---|---|---|---|---|\n| (주)모의 | 부산 | CCTV | 여성기업 | 후보 |",
+    "pass": true,
+    "failure_reason": ""
+  },
+  {
+    "test_case": "D. Pro Fail + Sufficient MCP Legal Basis",
+    "legal_conclusion_allowed": true,
+    "blocked_scope": [],
+    "has_forbidden": false,
+    "forbidden_patterns_matched": [],
+    "deterministic_template_used": false,
+    "flash_answer_discarded": false,
+    "final_answer_source": "model_generation",
+    "flash_answer_used_in_final": true,
+    "legal_basis": [
+      {
+        "law_name": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령",
+        "law_alias": "지방계약법 시행령",
+        "article": "제25조",
+        "paragraph": "",
+        "item": "",
+        "summary": "지방계약법 시행령 제25조",
+        "source_status": "confirmed",
+        "relevance": "direct",
+        "supports_claims": [
+          "금액 한도",
+          "수의계약 가능 여부"
+        ]
+      }
+    ],
+    "claim_validation": {
+      "law_article_claim": "pass",
+      "amount_threshold_claim": "pass",
+      "sole_contract_claim": "pass",
+      "one_person_quote_claim": "pass"
+    },
+    "final_answer_preview": "지방계약법 시행령 제25조에 따라 수의계약 한도는 2천만원입니다.",
+    "pass": true,
+    "failure_reason": ""
+  }
+]
