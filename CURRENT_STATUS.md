@@ -1,12 +1,7 @@
 # CURRENT STATUS
 
-- staging_verification_result: PASS
-- company_search guardrail: PASS
-- candidate table generation: PASS
-- policy_company classification: PASS
-- laws RAG: PASS
-- manuals RAG: PASSED_STAGING
-- latency: PASS
+- Local/Staging verification: PASS
+- NCP runtime verification: NOT_RUN
 - Production deployment: HOLD
 
 ## 운영 전 잔여 항목
