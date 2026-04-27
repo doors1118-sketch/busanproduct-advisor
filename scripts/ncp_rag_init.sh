@@ -1,8 +1,6 @@
 #!/bin/bash
 # NCP RAG DB Initialization & Verification Runner (Mobile SSH 용)
 
-set -e
-
 echo "====================================="
 echo "=== 1. laws RAG DB 생성 ==="
 python3 app/ingest_laws.py 

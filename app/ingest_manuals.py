@@ -165,7 +165,7 @@ def ingest_manuals(mode: str = "full", target_pdfs: list[str] = None):
             pdf_files.append(f)
 
     if not pdf_files:
-        print("  [ERROR] No PDF files found!")
+        print("  [SKIP] No PDF files found. Skipping manuals RAG ingestion.")
         return
 
     # 2. ChromaDB 준비

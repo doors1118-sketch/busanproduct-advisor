@@ -40,6 +40,9 @@ def ingest_innovation():
     print("=" * 50)
 
     # Excel 로드
+    if not os.path.exists(EXCEL_PATH):
+        print(f"  [SKIP] Excel file not found: {EXCEL_PATH}")
+        return 0
     df = pd.read_excel(EXCEL_PATH)
     print(f"  Loaded: {len(df)} rows, {df['업체명'].nunique()} companies")
 
