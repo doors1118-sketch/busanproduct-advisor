@@ -1182,17 +1182,26 @@ def _chat_v144(
 
     # ─── 4. RAG 검색 (기존 로직 재사용) ───
     # P0-3: _parallel_rag_search()는 dict를 반환 → values를 조립
-    if progress_callback:
-        progress_callback("📚 매뉴얼 검색 중...")
-    rag_start = time.time()
-    rag_dict = _parallel_rag_search(user_message)
-    rag_elapsed_ms = int((time.time() - rag_start) * 1000)
-    rag_parts = []
-    for key in ["law", "qa", "manual", "innovation", "tech"]:
-        val = rag_dict.get(key, "")
-        if val and isinstance(val, str) and val.strip():
-            rag_parts.append(val)
-    rag_context = "\n\n".join(rag_parts)
+    from policies.model_routing_policy import classify_risk
+    intent_labels = [c.label for c in intent_result.candidates] if intent_result and hasattr(intent_result, 'candidates') else []
+    risk_info = classify_risk(user_message, intent_labels)
+    skip_rag_completely = (risk_info.get("risk_level") == "low" and "company_search" in guardrails)
+
+    rag_context = ""
+    if not skip_rag_completely:
+        if progress_callback:
+            progress_callback("📚 매뉴얼 검색 중...")
+        rag_start = time.time()
+        rag_dict = _parallel_rag_search(user_message)
+        rag_elapsed_ms = int((time.time() - rag_start) * 1000)
+        rag_parts = []
+        for key in ["law", "qa", "manual", "innovation", "tech"]:
+            val = rag_dict.get(key, "")
+            if val and isinstance(val, str) and val.strip():
+                rag_parts.append(val)
+        rag_context = "\n\n".join(rag_parts)
+    else:
+        print("  [RAG] Skipped completely for low-risk company search.")
 
     # ─── 5. 프롬프트 동적 조립 ───
     api_status = ApiStatus()
@@ -1231,9 +1240,13 @@ def _chat_v144(
     )
 
     # ─── 6. Gemini 설정 (Core = system_instruction, Dynamic = user content) ───
-    # 1) 업체검색 도구 필터링 (User Rule 1)
+    # 1) 업체검색 도구 필터링 (User Rule 1) 및 초저지연 최적화    
     company_tools = ["search_local_company_by_product", "search_local_company_by_license", "search_local_company_by_category"]
     shopping_tools = ["search_shopping_mall"]
+    
+    # low-risk company_search일 경우 법령 도구 스킵하여 지연 최소화
+    skip_law_tools = risk_info.get("risk_level") == "low" and "company_search" in guardrails
+    law_tools_to_skip = ["chain_full_research", "chain_action_basis", "search_law", "get_law_text", "search_interpretations", "get_annexes", "chain_procedure_detail", "chain_ordinance_compare", "chain_document_review"]
     
     all_funcs = law_tools[0].function_declarations
     filtered_funcs = []
@@ -1245,6 +1258,8 @@ def _chat_v144(
             if "mas_shopping_mall" in guardrails or "company_search" in guardrails:
                 filtered_funcs.append(f)
         else:
+            if skip_law_tools and f.name in law_tools_to_skip:
+                continue
             filtered_funcs.append(f)
             
     dynamic_tools = [types.Tool(function_declarations=filtered_funcs)]
@@ -1433,7 +1448,7 @@ def _chat_v144(
                         continue # 즉시 Flash로 재시도
                 
                 if any(kw in err_msg for kw in ["429", "RESOURCE_EXHAUSTED", "503"]):
-                    wait_sec = 15 * (retry + 1)
+                    wait_sec = 5 * (retry + 1)
                     print(f"  [API] Retry {retry+1}/4 - waiting {wait_sec}s...", flush=True)
                     time.sleep(wait_sec)
                 else:
