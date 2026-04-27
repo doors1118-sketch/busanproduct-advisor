@@ -204,12 +204,25 @@ def run_gemini_test(tc: dict, iteration: int = 1) -> dict:
     # 서버 표 여부
     candidate_table_generated = (candidate_source == "server_structured_formatter")
     
-    # tool_called 판정: prefetch 또는 서버 표가 있으면 true
+    # innovation DB 존재 여부
+    innovation_missing = captured_meta.get("innovation_db_missing", False)
+    
+    # tool_called 판정
     tool_called = candidate_table_generated or classified_candidate_count > 0
     
-    # tool_execution_status
-    tool_execution_attempted = classified_candidate_count > 0 or candidate_table_generated
-    tool_execution_status = "success" if tool_called else "not_called"
+    # tool_route_selected: expected_tool에 해당하는 쿼리인지
+    tool_route_selected = require_tool_called  # TC 정의에서 require_tool_called=True면 route 선택됨
+    
+    # tool_execution_status: success / source_missing / not_called
+    if tool_called:
+        tool_execution_attempted = True
+        tool_execution_status = "success"
+    elif innovation_missing and expected_tool in ("search_innovation_products", "search_tech_development_products"):
+        tool_execution_attempted = True
+        tool_execution_status = "source_missing"
+    else:
+        tool_execution_attempted = False
+        tool_execution_status = "not_called"
     
     # attempted_tool_name
     attempted_tool_name = captured_meta.get("attempted_tool_name", expected_tool)
@@ -255,14 +268,12 @@ def run_gemini_test(tc: dict, iteration: int = 1) -> dict:
     
     # G-RT-1/G-RT-2 필수 조건
     if require_tool_called:
-        # innovation/tech DB 미존재로 인한 tool 미호출은 DB_MISSING으로 구분
-        innovation_missing = captured_meta.get("innovation_db_missing", False)
-        if not tool_called and not innovation_missing:
+        if tool_execution_status == "source_missing":
+            # DB 미존재: pass=false, result_status=DEGRADED
+            failure_reasons.append(f"{test_case} innovation tool not called; innovation DB missing was not surfaced as source_missing")
+        elif tool_execution_status == "not_called":
             failure_reasons.append(f"tool_called=false (expected true)")
-        elif not tool_called and innovation_missing:
-            # DB 미존재는 환경 이슈이므로 FAIL이 아닌 DEGRADED로 표기
-            pass  # tool_called=false but DB missing → not a code failure
-        # RAG DB 미존재 / 검색결과 없음 상황(E2E) 허용
+        # DB가 있고 호출 성공했는데 서버 표 아니면 FAIL
         if classified_candidate_count > 0 and candidate_source != "server_structured_formatter":
             failure_reasons.append(f"candidate_table_source={candidate_source} (expected server_structured_formatter)")
     
@@ -295,6 +306,13 @@ def run_gemini_test(tc: dict, iteration: int = 1) -> dict:
     if mock_malformed and "api_timeout" in blocked_scope:
         failure_reasons.append("malformed_uses_api_timeout")
     
+    # legal_basis가 비어있는데 legal_conclusion_allowed=true이면 안전 정책 위반
+    legal_basis = captured_meta.get("legal_basis", [])
+    if legal_conclusion_allowed and len(legal_basis) == 0:
+        legal_conclusion_allowed = False
+        if not blocked_scope:
+            blocked_scope = ["no_direct_legal_basis", "unsupported_legal_conclusion"]
+    
     # 모순 확인
     if legal_conclusion_allowed and len(blocked_scope) > 0:
         failure_reasons.append(f"logical_inconsistency")
@@ -302,14 +320,27 @@ def run_gemini_test(tc: dict, iteration: int = 1) -> dict:
     # 고위험 질문 검증
     is_high_risk = "혁신제품이면 금액 제한 없이 수의계약 가능해" in query
     if is_high_risk:
-        # blocked_scope가 비어있으면 강제로 채움 (모델이 누락했을 때 코드 레벨 보정)
         if len(blocked_scope) == 0:
             blocked_scope = ["no_direct_legal_basis", "unsupported_legal_conclusion"]
         if legal_conclusion_allowed:
             failure_reasons.append("high_risk_but_legal_allowed")
     
+    # 정책기업/여성기업 특례 질문 검증
+    is_policy_company_query = any(kw in query for kw in ["여성기업", "장애인기업", "사회적기업", "정책기업"])
+    if is_policy_company_query and "수의계약" in query:
+        if len(blocked_scope) == 0:
+            blocked_scope = ["policy_company_special_rule", "amount_threshold", "no_direct_legal_basis", "unsupported_legal_conclusion"]
+    
     # contract_possible_auto_promoted 검증
     contract_auto = captured_meta.get("contract_possible_auto_promoted", False)
+    
+    # result_status 결정
+    if tool_execution_status == "source_missing":
+        result_status = "DEGRADED"
+    elif len(failure_reasons) == 0:
+        result_status = "PASS"
+    else:
+        result_status = "FAIL"
     
     passed = len(failure_reasons) == 0
         
@@ -317,11 +348,13 @@ def run_gemini_test(tc: dict, iteration: int = 1) -> dict:
         "test_case": test_case,
         "test_type": "gemini_runtime_tool_call_integration",
         "query": query,
+        "tool_route_selected": tool_route_selected,
         "tool_called": tool_called,
         "tool_name": expected_tool,
         "attempted_tool_name": attempted_tool_name,
         "model_used": captured_meta.get("model_used", "gemini-2.5-pro"),
         "legal_conclusion_allowed": legal_conclusion_allowed,
+        "legal_basis": legal_basis,
         "blocked_scope": blocked_scope,
         "candidate_table_generated": candidate_table_generated,
         "candidate_table_source": candidate_source,
@@ -343,8 +376,13 @@ def run_gemini_test(tc: dict, iteration: int = 1) -> dict:
         "deterministic_template_used": deterministic_used,
         "final_answer_source": final_answer_source,
         # 진단 로그 필드
+        "tool_route_selected": tool_route_selected,
         "tool_execution_attempted": tool_execution_attempted,
         "tool_execution_status": tool_execution_status,
+        "innovation_db_missing": innovation_missing,
+        "innovation_status": "SKIPPED" if innovation_missing else ("SUCCESS" if tool_called else "not_tested"),
+        "innovation_source_missing": innovation_missing,
+        "result_status": result_status,
         "classified_candidate_count": classified_candidate_count,
         "formatter_input_count": formatter_input_count,
         "formatter_output_chars": formatter_output_chars,

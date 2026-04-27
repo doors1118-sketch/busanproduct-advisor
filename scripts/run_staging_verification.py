@@ -925,7 +925,9 @@ def main():
                 sys.path.insert(0, os.path.abspath('app'))
                 from embedding import encode_query
                 st_rag = time.time()
-                client_manuals = chromadb.PersistentClient(path=os.environ.get("CHROMA_MANUALS_DIR", "C:\\dev\\busan_procurement_chatbot\\.chroma_manuals"))
+                _manuals_chroma_dir = os.environ.get("CHROMA_MANUALS_DIR", os.path.join(os.path.abspath('app'), '.chroma_manuals'))
+                res["manuals_chroma_dir"] = _manuals_chroma_dir
+                client_manuals = chromadb.PersistentClient(path=_manuals_chroma_dir)
                 manuals_col = client_manuals.get_collection("manuals")
                 query_emb = encode_query(test_query)
                 rag_res = manuals_col.query(query_embeddings=[query_emb], n_results=3)

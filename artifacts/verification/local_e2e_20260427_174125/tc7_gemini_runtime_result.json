@@ -1,28 +1,3 @@
-# TC7 Gemini Runtime Tool Call Integration 검증 보고서
-
-[1] 변경한 파일 목록
-- app/gemini_engine.py
-- run_tc7_gemini_runtime.py
-
-[2] 테스트 통과/실패
-- 통과: 7/8
-- 실패: 1
-
-[3] 개별 상태
-- G-RT-1: FAILED
-- G-RT-2: PASS
-- G-RT-3_Forbidden_Expression_Check_Iter1: PASS
-- G-RT-3_Forbidden_Expression_Check_Iter2: PASS
-- G-RT-3_Forbidden_Expression_Check_Iter3: PASS
-- G-RT-3_Forbidden_Expression_Check_Iter4: PASS
-- G-RT-3_Forbidden_Expression_Check_Iter5: PASS
-- Malformed_Mock: PASS
-
-[4] 실패 원인
-- G-RT-1_Innovation_Product: G-RT-1_Innovation_Product innovation tool not called; innovation DB missing was not surfaced as source_missing
-
-[5] Raw JSON Output
-```json
 [
   {
     "test_case": "G-RT-1_Innovation_Product",
@@ -1202,7 +1177,3 @@
     "failure_reason": ""
   }
 ]
-```
-
-[6] Gemini runtime tool call integration: FAILED
-[7] Production deployment: HOLD

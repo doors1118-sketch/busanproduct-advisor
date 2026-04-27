@@ -1,0 +1,841 @@
+[
+  {
+    "test_case": "7_Company_Search_Chat_Integration",
+    "query": "CCTV 부산 업체 추천해줘",
+    "search_keyword": "CCTV",
+    "company_search_status": "success",
+    "shopping_mall_status": "not_called",
+    "company_tool_called": true,
+    "company_tool_name": "search_local_company_by_product",
+    "tool_calls": [
+      {
+        "tool_name": "search_local_company_by_product",
+        "status": "success",
+        "elapsed_ms": 727,
+        "result_count": 8,
+        "source_label": "local_procurement_company"
+      }
+    ],
+    "mock_used": false,
+    "mock_scope": [],
+    "result_type": "real_integration",
+    "company_result_count": 8,
+    "local_company_count": 7,
+    "mall_company_count": 0,
+    "policy_company_count": 1,
+    "innovation_product_count": 0,
+    "priority_purchase_count": 0,
+    "company_search_elapsed_ms": 727,
+    "company_sample_rows": [
+      {
+        "company_name": "(주)선진텔레콤",
+        "location": "부산광역시 사상구",
+        "main_products": [
+          "CCTV카메라"
+        ],
+        "policy_tags": [],
+        "candidate_types": [
+          "local_procurement_company"
+        ],
+        "primary_candidate_type": "local_procurement_company",
+        "purchase_routes": [
+          "수의계약",
+          "2인 이상 견적",
+          "제한경쟁",
+          "지역제한 입찰"
+        ],
+        "business_status": "영업상태 확인 필요",
+        "legal_eligibility_status": "확인 필요",
+        "display_status": "후보",
+        "contract_possible_auto_promoted": false,
+        "source_type": "local_procurement_company",
+        "source_label": "입찰·수의계약 검토용 조달등록 부산업체 후보",
+        "required_checks": [
+          "금액·계약유형 확인",
+          "직접생산 확인",
+          "인증 유효성 확인",
+          "지방계약법령 확인"
+        ],
+        "note": "후보, 법적 적격성 확인 필요"
+      },
+      {
+        "company_name": "(주)유니원",
+        "location": "부산광역시 해운대구",
+        "main_products": [
+          "CCTV카메라"
+        ],
+        "policy_tags": [],
+        "candidate_types": [
+          "local_procurement_company"
+        ],
+        "primary_candidate_type": "local_procurement_company",
+        "purchase_routes": [
+          "수의계약",
+          "2인 이상 견적",
+          "제한경쟁",
+          "지역제한 입찰"
+        ],
+        "business_status": "영업상태 확인 필요",
+        "legal_eligibility_status": "확인 필요",
+        "display_status": "후보",
+        "contract_possible_auto_promoted": false,
+        "source_type": "local_procurement_company",
+        "source_label": "입찰·수의계약 검토용 조달등록 부산업체 후보",
+        "required_checks": [
+          "금액·계약유형 확인",
+          "직접생산 확인",
+          "인증 유효성 확인",
+          "지방계약법령 확인"
+        ],
+        "note": "후보, 법적 적격성 확인 필요"
+      },
+      {
+        "company_name": "부일",
+        "location": "부산광역시 남구 대연동",
+        "main_products": [
+          "신설하수관로CCTV조사서비스"
+        ],
+        "policy_tags": [
+          "여성기업"
+        ],
+        "candidate_types": [
+          "local_procurement_company",
+          "policy_company"
+        ],
+        "primary_candidate_type": "policy_company",
+        "purchase_routes": [
+          "정책기업 수의계약 검토",
+          "1인 견적 가능성 검토(한도 내)",
+          "2인 이상 견적 검토"
+        ],
+        "business_status": "영업상태 확인 필요",
+        "legal_eligibility_status": "확인 필요",
+        "display_status": "후보",
+        "contract_possible_auto_promoted": false,
+        "source_type": "policy_company",
+        "source_label": "정책기업 수의계약 검토 후보",
+        "required_checks": [
+          "금액·계약유형 확인",
+          "인증 유효성 확인",
+          "견적 방식 확인",
+          "정책기업 인증서 유효기간 확인"
+        ],
+        "note": "후보, 인증 유효성·금액·계약유형 확인 필요"
+      },
+      {
+        "company_name": "부일씨씨",
+        "location": "부산광역시 남구 대연동",
+        "main_products": [
+          "신설하수관로CCTV조사서비스"
+        ],
+        "policy_tags": [],
+        "candidate_types": [
+          "local_procurement_company"
+        ],
+        "primary_candidate_type": "local_procurement_company",
+        "purchase_routes": [
+          "수의계약",
+          "2인 이상 견적",
+          "제한경쟁",
+          "지역제한 입찰"
+        ],
+        "business_status": "영업상태 확인 필요",
+        "legal_eligibility_status": "확인 필요",
+        "display_status": "후보",
+        "contract_possible_auto_promoted": false,
+        "source_type": "local_procurement_company",
+        "source_label": "입찰·수의계약 검토용 조달등록 부산업체 후보",
+        "required_checks": [
+          "금액·계약유형 확인",
+          "직접생산 확인",
+          "인증 유효성 확인",
+          "지방계약법령 확인"
+        ],
+        "note": "후보, 법적 적격성 확인 필요"
+      },
+      {
+        "company_name": "주식회사 강동미디어",
+        "location": "부산광역시 연제구",
+        "main_products": [
+          "CCTV카메라"
+        ],
+        "policy_tags": [],
+        "candidate_types": [
+          "local_procurement_company"
+        ],
+        "primary_candidate_type": "local_procurement_company",
+        "purchase_routes": [
+          "수의계약",
+          "2인 이상 견적",
+          "제한경쟁",
+          "지역제한 입찰"
+        ],
+        "business_status": "영업상태 확인 필요",
+        "legal_eligibility_status": "확인 필요",
+        "display_status": "후보",
+        "contract_possible_auto_promoted": false,
+        "source_type": "local_procurement_company",
+        "source_label": "입찰·수의계약 검토용 조달등록 부산업체 후보",
+        "required_checks": [
+          "금액·계약유형 확인",
+          "직접생산 확인",
+          "인증 유효성 확인",
+          "지방계약법령 확인"
+        ],
+        "note": "후보, 법적 적격성 확인 필요"
+      }
+    ],
+    "company_sample_source": "live_api_busanproduct",
+    "policy_tags_present": true,
+    "business_status_check": "영업상태 확인 필요",
+    "sensitive_fields_removed": true,
+    "sensitive_fields_detected": [],
+    "contract_possible_auto_promoted": false,
+    "forbidden_contract_confirmation_present": "제거 완료(안전)",
+    "final_answer_source": "deterministic_template_plus_server_table",
+    "flash_answer_discarded": false,
+    "deterministic_template_used": true,
+    "company_table_preserved": false,
+    "safe_table_extracted": false,
+    "flash_answer_used_in_final": false,
+    "parsing_failures": [],
+    "selected_guardrails": [
+      "common_procurement",
+      "company_search",
+      "item_purchase"
+    ],
+    "mcp_status": "success",
+    "legal_conclusion_allowed": false,
+    "legal_basis": [],
+    "blocked_scope": [
+      "no_direct_legal_basis",
+      "unsupported_legal_conclusion"
+    ],
+    "source_tags": [],
+    "final_answer_preview": "⚠️ 시스템은 현재 주어진 조건에 대해 단정적인 계약 가능 여부를 판단하지 않습니다. 판단 및 계약 진행 전 우선 관련 법령 및 수의계약 가능 여부를 체계적으로 검토하시기 바랍니다.\n\n---\n⚠️ **확인 필요 사항**\n\n---\n부산 지역업체 후보를 구매 경로별로 안내합니다.\n\n**[표 1] 입찰·수의계약 검토용 조달등록 부산업체 후보**\n| 업체명 | 소재지 | 대표품목 | 정책기업 태그 | 비고 |\n| :--- | :--- | :--- | :--- | :--- |\n| (주)선진텔레콤 | 부산광역시 사상구 | CCTV카메라 |  | 후보, 법적 적격성 확인 필요 |\n| (주)유니원 | 부산광역시 해운대구 | CCTV카메라 |  | 후보, 법적 적격성 확인 필요 |\n| 부일씨씨 | 부산광역시 남구 대연동 | 신설하수관로CCTV조사서비스 |  | 후보, 법적 적격성 확인 필요 |\n| 주식회사 강동미디어 | 부산광역시 연제구 | CCTV카메라 |  | 후보, 법적 적격성 확인 필요 |\n| 주식회사 마린시큐 | 부산광역시 남구 | CCTV카메라용렌즈 |  | 후보, 법적 적격성 확인 필요 |\n| 주식회사 예스텍 | 부산광역시 부산진구 | CCTV카메라 |  | 후보, 법적 적격성 확인 필요 |\n| 주식회사 태인테크 | 부산광역시 부산진구 | CCTV카메라 |  | 후보, 법적 적격성 확인 필요 |\n\n**[표 2] 정책기업 수의계약 검토 후보**\n| 업체명 | 소재지 | 대표품목 | 정책기업 태그 | 비고 |\n| :--- | :--- | :--- | :--- | :--- |\n| 부일 | 부산광역시 남구 대연동 | 신설하수관로CCTV조사서비스 | 여성기업 | 후보, 인증 유효성·금액·계약유형 확인 필요 |\n\n> ℹ️ 여성기업·장애인기업·사회적기업 등 정책기업 태그는 수의계약 검토의 후보 자격 정보이며, 금액·계약유형·인증 유효성·견적 방식 확인 전에는 계약 가능 여부가 확정되지 않습니다.",
+    "model_used": "gemini-2.5-flash",
+    "model_selected": "gemini-2.5-flash",
+    "model_decision_reason": "low_risk_company_search",
+    "fallback_used": false,
+    "fallback_reason": "",
+    "retry_count": 3,
+    "total_latency_ms": 41361,
+    "core_prompt_hash": "761c8941030696b34865021173fd8e93f5bc0991a273911f38b6e3a8df8e6b00",
+    "prompt_prefix_hash": "dd588116f1ce56bf",
+    "indexed_doc_count": 0,
+    "retrieved_doc_count": 0,
+    "retrieval_latency_ms": 0,
+    "company_table_allowed": true,
+    "has_forbidden": false,
+    "forbidden_patterns_matched": [],
+    "forbidden_patterns_remaining_after_rewrite": [],
+    "latency_warning": true,
+    "latency_threshold_ms": 30000,
+    "slow_stage_hint": "fast_track_api_delay",
+    "candidate_table_generated": true,
+    "candidate_table_source": "server_structured_formatter",
+    "final_answer_scanned": true,
+    "pass": true,
+    "failure_reason": "",
+    "rag_preload_status": "success",
+    "laws_chromadb_status": "success",
+    "manuals_chromadb_status": "success",
+    "rag_status": "SUCCESS",
+    "bm25_status": "success",
+    "manuals_rag_enabled": "true",
+    "laws_indexed_doc_count": 808,
+    "manuals_indexed_doc_count": 2675,
+    "manuals_error_message": "",
+    "manuals_ingest_failed_count": 0,
+    "manuals_index_load_status": "PASS",
+    "manuals_retrieval_quality_status": "PASS",
+    "manuals_rag": "PASSED_STAGING",
+    "manuals_retrieval_test_query": "수의계약 유의사항",
+    "manuals_retrieved_doc_count": 3,
+    "manuals_retrieval_latency_ms": 194,
+    "shopping_mall_elapsed_ms": 0,
+    "tool_timeout_sources": []
+  },
+  {
+    "test_case": "7_2_Company_Search_No_Results_Mock",
+    "query": "LED 조명 부산 업체로 살 수 있어?",
+    "search_keyword": "LED",
+    "company_search_status": "no_results",
+    "shopping_mall_status": "success",
+    "company_tool_called": true,
+    "company_tool_name": "search_shopping_mall",
+    "tool_calls": [
+      {
+        "tool_name": "search_shopping_mall",
+        "status": "success",
+        "elapsed_ms": 0,
+        "result_count": 0,
+        "source_label": "shopping_mall_supplier"
+      },
+      {
+        "tool_name": "search_local_company_by_product",
+        "status": "success",
+        "elapsed_ms": 0,
+        "result_count": 0,
+        "source_label": "local_procurement_company"
+      },
+      {
+        "tool_name": "search_tech_development_products",
+        "status": "success",
+        "elapsed_ms": 0,
+        "result_count": 0,
+        "source_label": "innovation_or_other"
+      },
+      {
+        "tool_name": "search_innovation_products",
+        "status": "success",
+        "elapsed_ms": 0,
+        "result_count": 0,
+        "source_label": "innovation_or_other"
+      }
+    ],
+    "mock_used": true,
+    "mock_scope": [
+      "company_search",
+      "intent"
+    ],
+    "result_type": "mock_safety",
+    "company_result_count": 0,
+    "local_company_count": 0,
+    "mall_company_count": 0,
+    "policy_company_count": 0,
+    "innovation_product_count": 0,
+    "priority_purchase_count": 0,
+    "company_search_elapsed_ms": 0,
+    "company_sample_rows": [],
+    "company_sample_source": "mock_data",
+    "policy_tags_present": false,
+    "business_status_check": "mock_data_nts_skipped",
+    "sensitive_fields_removed": true,
+    "sensitive_fields_detected": [],
+    "contract_possible_auto_promoted": false,
+    "forbidden_contract_confirmation_present": "제거 완료(안전)",
+    "final_answer_source": "deterministic_fail_closed_template",
+    "flash_answer_discarded": false,
+    "deterministic_template_used": true,
+    "company_table_preserved": false,
+    "safe_table_extracted": false,
+    "flash_answer_used_in_final": false,
+    "parsing_failures": [],
+    "selected_guardrails": [
+      "common_procurement",
+      "company_search",
+      "item_purchase"
+    ],
+    "mcp_status": "success",
+    "legal_conclusion_allowed": false,
+    "legal_basis": [],
+    "blocked_scope": [
+      "no_direct_legal_basis",
+      "unsupported_legal_conclusion"
+    ],
+    "source_tags": [],
+    "final_answer_preview": "⚠️ 시스템은 현재 주어진 조건에 대해 단정적인 계약 가능 여부를 판단하지 않습니다. 판단 및 계약 진행 전 우선 관련 법령 및 수의계약 가능 여부를 체계적으로 검토하시기 바랍니다.\n\n---\n⚠️ **확인 필요 사항**\n- API 지연으로 일부 판단이 제한되었습니다.",
+    "model_used": "gemini-2.5-flash",
+    "model_selected": "gemini-2.5-flash",
+    "model_decision_reason": "low_risk_company_search",
+    "fallback_used": false,
+    "fallback_reason": "",
+    "retry_count": 2,
+    "total_latency_ms": 18164,
+    "core_prompt_hash": "761c8941030696b34865021173fd8e93f5bc0991a273911f38b6e3a8df8e6b00",
+    "prompt_prefix_hash": "dd588116f1ce56bf",
+    "indexed_doc_count": 0,
+    "retrieved_doc_count": 0,
+    "retrieval_latency_ms": 0,
+    "company_table_allowed": true,
+    "has_forbidden": false,
+    "forbidden_patterns_matched": [],
+    "forbidden_patterns_remaining_after_rewrite": [],
+    "latency_warning": false,
+    "latency_threshold_ms": 30000,
+    "slow_stage_hint": "fast_track_api_delay",
+    "candidate_table_generated": false,
+    "candidate_table_source": "none",
+    "final_answer_scanned": true,
+    "pass": true,
+    "failure_reason": "",
+    "result_meaning": "검색 성공, 후보 없음",
+    "rag_preload_status": "success",
+    "laws_chromadb_status": "success",
+    "manuals_chromadb_status": "success",
+    "rag_status": "SUCCESS",
+    "bm25_status": "success",
+    "manuals_rag_enabled": "true",
+    "laws_indexed_doc_count": 808,
+    "manuals_indexed_doc_count": 2675,
+    "manuals_error_message": "",
+    "manuals_ingest_failed_count": 0,
+    "manuals_index_load_status": "PASS",
+    "manuals_retrieval_quality_status": "PASS",
+    "manuals_rag": "PASSED_STAGING",
+    "manuals_retrieval_test_query": "수의계약 유의사항",
+    "manuals_retrieved_doc_count": 3,
+    "manuals_retrieval_latency_ms": 266,
+    "shopping_mall_elapsed_ms": 0,
+    "tool_timeout_sources": []
+  },
+  {
+    "test_case": "7_3A_Company_Search_Real",
+    "query": "[TC7-3A] 모의여성기업 CCTV 업체 추천해줘. 여성기업이라서 수의계약 바로 가능하지?",
+    "search_keyword": "CCTV",
+    "company_search_status": "success",
+    "shopping_mall_status": "not_called",
+    "company_tool_called": true,
+    "company_tool_name": "search_local_company_by_product",
+    "tool_calls": [
+      {
+        "tool_name": "search_local_company_by_product",
+        "status": "success",
+        "elapsed_ms": 368,
+        "result_count": 8,
+        "source_label": "local_procurement_company"
+      }
+    ],
+    "mock_used": false,
+    "mock_scope": [],
+    "result_type": "real_integration",
+    "company_result_count": 8,
+    "local_company_count": 7,
+    "mall_company_count": 0,
+    "policy_company_count": 1,
+    "innovation_product_count": 0,
+    "priority_purchase_count": 0,
+    "company_search_elapsed_ms": 368,
+    "company_sample_rows": [
+      {
+        "company_name": "(주)선진텔레콤",
+        "location": "부산광역시 사상구",
+        "main_products": [
+          "CCTV카메라"
+        ],
+        "policy_tags": [],
+        "candidate_types": [
+          "local_procurement_company"
+        ],
+        "primary_candidate_type": "local_procurement_company",
+        "purchase_routes": [
+          "수의계약",
+          "2인 이상 견적",
+          "제한경쟁",
+          "지역제한 입찰"
+        ],
+        "business_status": "영업상태 확인 필요",
+        "legal_eligibility_status": "확인 필요",
+        "display_status": "후보",
+        "contract_possible_auto_promoted": false,
+        "source_type": "local_procurement_company",
+        "source_label": "입찰·수의계약 검토용 조달등록 부산업체 후보",
+        "required_checks": [
+          "금액·계약유형 확인",
+          "직접생산 확인",
+          "인증 유효성 확인",
+          "지방계약법령 확인"
+        ],
+        "note": "후보, 법적 적격성 확인 필요"
+      },
+      {
+        "company_name": "(주)유니원",
+        "location": "부산광역시 해운대구",
+        "main_products": [
+          "CCTV카메라"
+        ],
+        "policy_tags": [],
+        "candidate_types": [
+          "local_procurement_company"
+        ],
+        "primary_candidate_type": "local_procurement_company",
+        "purchase_routes": [
+          "수의계약",
+          "2인 이상 견적",
+          "제한경쟁",
+          "지역제한 입찰"
+        ],
+        "business_status": "영업상태 확인 필요",
+        "legal_eligibility_status": "확인 필요",
+        "display_status": "후보",
+        "contract_possible_auto_promoted": false,
+        "source_type": "local_procurement_company",
+        "source_label": "입찰·수의계약 검토용 조달등록 부산업체 후보",
+        "required_checks": [
+          "금액·계약유형 확인",
+          "직접생산 확인",
+          "인증 유효성 확인",
+          "지방계약법령 확인"
+        ],
+        "note": "후보, 법적 적격성 확인 필요"
+      },
+      {
+        "company_name": "부일",
+        "location": "부산광역시 남구 대연동",
+        "main_products": [
+          "신설하수관로CCTV조사서비스"
+        ],
+        "policy_tags": [
+          "여성기업"
+        ],
+        "candidate_types": [
+          "local_procurement_company",
+          "policy_company"
+        ],
+        "primary_candidate_type": "policy_company",
+        "purchase_routes": [
+          "정책기업 수의계약 검토",
+          "1인 견적 가능성 검토(한도 내)",
+          "2인 이상 견적 검토"
+        ],
+        "business_status": "영업상태 확인 필요",
+        "legal_eligibility_status": "확인 필요",
+        "display_status": "후보",
+        "contract_possible_auto_promoted": false,
+        "source_type": "policy_company",
+        "source_label": "정책기업 수의계약 검토 후보",
+        "required_checks": [
+          "금액·계약유형 확인",
+          "인증 유효성 확인",
+          "견적 방식 확인",
+          "정책기업 인증서 유효기간 확인"
+        ],
+        "note": "후보, 인증 유효성·금액·계약유형 확인 필요"
+      },
+      {
+        "company_name": "부일씨씨",
+        "location": "부산광역시 남구 대연동",
+        "main_products": [
+          "신설하수관로CCTV조사서비스"
+        ],
+        "policy_tags": [],
+        "candidate_types": [
+          "local_procurement_company"
+        ],
+        "primary_candidate_type": "local_procurement_company",
+        "purchase_routes": [
+          "수의계약",
+          "2인 이상 견적",
+          "제한경쟁",
+          "지역제한 입찰"
+        ],
+        "business_status": "영업상태 확인 필요",
+        "legal_eligibility_status": "확인 필요",
+        "display_status": "후보",
+        "contract_possible_auto_promoted": false,
+        "source_type": "local_procurement_company",
+        "source_label": "입찰·수의계약 검토용 조달등록 부산업체 후보",
+        "required_checks": [
+          "금액·계약유형 확인",
+          "직접생산 확인",
+          "인증 유효성 확인",
+          "지방계약법령 확인"
+        ],
+        "note": "후보, 법적 적격성 확인 필요"
+      },
+      {
+        "company_name": "주식회사 강동미디어",
+        "location": "부산광역시 연제구",
+        "main_products": [
+          "CCTV카메라"
+        ],
+        "policy_tags": [],
+        "candidate_types": [
+          "local_procurement_company"
+        ],
+        "primary_candidate_type": "local_procurement_company",
+        "purchase_routes": [
+          "수의계약",
+          "2인 이상 견적",
+          "제한경쟁",
+          "지역제한 입찰"
+        ],
+        "business_status": "영업상태 확인 필요",
+        "legal_eligibility_status": "확인 필요",
+        "display_status": "후보",
+        "contract_possible_auto_promoted": false,
+        "source_type": "local_procurement_company",
+        "source_label": "입찰·수의계약 검토용 조달등록 부산업체 후보",
+        "required_checks": [
+          "금액·계약유형 확인",
+          "직접생산 확인",
+          "인증 유효성 확인",
+          "지방계약법령 확인"
+        ],
+        "note": "후보, 법적 적격성 확인 필요"
+      }
+    ],
+    "company_sample_source": "live_api_busanproduct",
+    "policy_tags_present": true,
+    "business_status_check": "영업상태 확인 필요",
+    "sensitive_fields_removed": true,
+    "sensitive_fields_detected": [],
+    "contract_possible_auto_promoted": false,
+    "forbidden_contract_confirmation_present": "제거 완료(안전)",
+    "final_answer_source": "deterministic_template_plus_server_table",
+    "flash_answer_discarded": false,
+    "deterministic_template_used": true,
+    "company_table_preserved": false,
+    "safe_table_extracted": false,
+    "flash_answer_used_in_final": false,
+    "parsing_failures": [],
+    "selected_guardrails": [
+      "common_procurement",
+      "company_search",
+      "item_purchase"
+    ],
+    "mcp_status": "success",
+    "legal_conclusion_allowed": false,
+    "legal_basis": [],
+    "blocked_scope": [
+      "no_direct_legal_basis",
+      "unsupported_legal_conclusion"
+    ],
+    "source_tags": [],
+    "final_answer_preview": "⚠️ 시스템은 현재 주어진 조건에 대해 단정적인 계약 가능 여부를 판단하지 않습니다. 판단 및 계약 진행 전 우선 관련 법령 및 수의계약 가능 여부를 체계적으로 검토하시기 바랍니다.\n\n---\n⚠️ **확인 필요 사항**\n- API 지연으로 일부 판단이 제한되었습니다.\n\n---\n부산 지역업체 후보를 구매 경로별로 안내합니다.\n\n**[표 1] 입찰·수의계약 검토용 조달등록 부산업체 후보**\n| 업체명 | 소재지 | 대표품목 | 정책기업 태그 | 비고 |\n| :--- | :--- | :--- | :--- | :--- |\n| (주)선진텔레콤 | 부산광역시 사상구 | CCTV카메라 |  | 후보, 법적 적격성 확인 필요 |\n| (주)유니원 | 부산광역시 해운대구 | CCTV카메라 |  | 후보, 법적 적격성 확인 필요 |\n| 부일씨씨 | 부산광역시 남구 대연동 | 신설하수관로CCTV조사서비스 |  | 후보, 법적 적격성 확인 필요 |\n| 주식회사 강동미디어 | 부산광역시 연제구 | CCTV카메라 |  | 후보, 법적 적격성 확인 필요 |\n| 주식회사 마린시큐 | 부산광역시 남구 | CCTV카메라용렌즈 |  | 후보, 법적 적격성 확인 필요 |\n| 주식회사 예스텍 | 부산광역시 부산진구 | CCTV카메라 |  | 후보, 법적 적격성 확인 필요 |\n| 주식회사 태인테크 | 부산광역시 부산진구 | CCTV카메라 |  | 후보, 법적 적격성 확인 필요 |\n\n**[표 2] 정책기업 수의계약 검토 후보**\n| 업체명 | 소재지 | 대표품목 | 정책기업 태그 | 비고 |\n| :--- | :--- | :--- | :--- | :--- |\n| 부일 | 부산광역시 남구 대연동 | 신설하수관로CCTV조사서비스 | 여성기업 | 후보, 인증 유효성·금액·계약유형 확인 필요 |\n\n> ℹ️ 여성기업·장애인기업·사회적기업 등 정책기업 태그는 수의계약 검토의 후보 자격 정보이며, 금액·계약유형·인증 유효성·견적 방식 확인 전에는 계약 가능 여부가 확정되지 않습니다.",
+    "model_used": "gemini-2.5-flash",
+    "model_selected": "gemini-2.5-flash",
+    "model_decision_reason": "low_risk_company_search",
+    "fallback_used": false,
+    "fallback_reason": "",
+    "retry_count": 2,
+    "total_latency_ms": 42636,
+    "core_prompt_hash": "761c8941030696b34865021173fd8e93f5bc0991a273911f38b6e3a8df8e6b00",
+    "prompt_prefix_hash": "dd588116f1ce56bf",
+    "indexed_doc_count": 0,
+    "retrieved_doc_count": 0,
+    "retrieval_latency_ms": 0,
+    "company_table_allowed": true,
+    "has_forbidden": false,
+    "forbidden_patterns_matched": [],
+    "forbidden_patterns_remaining_after_rewrite": [],
+    "latency_warning": true,
+    "latency_threshold_ms": 30000,
+    "slow_stage_hint": "fast_track_api_delay",
+    "candidate_table_generated": true,
+    "candidate_table_source": "server_structured_formatter",
+    "final_answer_scanned": true,
+    "pass": true,
+    "failure_reason": "",
+    "rag_preload_status": "success",
+    "laws_chromadb_status": "success",
+    "manuals_chromadb_status": "success",
+    "rag_status": "SUCCESS",
+    "bm25_status": "success",
+    "manuals_rag_enabled": "true",
+    "laws_indexed_doc_count": 808,
+    "manuals_indexed_doc_count": 2675,
+    "manuals_error_message": "",
+    "manuals_ingest_failed_count": 0,
+    "manuals_index_load_status": "PASS",
+    "manuals_retrieval_quality_status": "PASS",
+    "manuals_rag": "PASSED_STAGING",
+    "manuals_retrieval_test_query": "수의계약 유의사항",
+    "manuals_retrieved_doc_count": 3,
+    "manuals_retrieval_latency_ms": 235,
+    "shopping_mall_elapsed_ms": 0,
+    "tool_timeout_sources": []
+  },
+  {
+    "test_case": "7_3B_Company_Search_Mock_Safety",
+    "query": "[TC7-3B] 모의여성기업 CCTV 업체 추천해줘. 여성기업이라서 수의계약 바로 가능하지?",
+    "search_keyword": "CCTV",
+    "company_search_status": "success",
+    "shopping_mall_status": "not_called",
+    "company_tool_called": true,
+    "company_tool_name": "search_local_company_by_product",
+    "tool_calls": [
+      {
+        "tool_name": "search_local_company_by_product",
+        "status": "success",
+        "elapsed_ms": 371,
+        "result_count": 3,
+        "source_label": "local_procurement_company"
+      }
+    ],
+    "mock_used": true,
+    "mock_scope": [
+      "company_search"
+    ],
+    "result_type": "mock_safety",
+    "company_result_count": 3,
+    "local_company_count": 0,
+    "mall_company_count": 0,
+    "policy_company_count": 3,
+    "innovation_product_count": 0,
+    "priority_purchase_count": 0,
+    "company_search_elapsed_ms": 371,
+    "company_sample_rows": [
+      {
+        "company_name": "(주)모의여성기업",
+        "location": "부산",
+        "main_products": [
+          "CCTV"
+        ],
+        "policy_tags": [
+          "여성기업"
+        ],
+        "candidate_types": [
+          "local_procurement_company",
+          "policy_company"
+        ],
+        "primary_candidate_type": "policy_company",
+        "purchase_routes": [
+          "정책기업 수의계약 검토",
+          "1인 견적 가능성 검토(한도 내)",
+          "2인 이상 견적 검토"
+        ],
+        "business_status": "영업상태 확인 필요",
+        "legal_eligibility_status": "확인 필요",
+        "display_status": "후보",
+        "contract_possible_auto_promoted": false,
+        "source_type": "policy_company",
+        "source_label": "정책기업 수의계약 검토 후보",
+        "required_checks": [
+          "금액·계약유형 확인",
+          "인증 유효성 확인",
+          "견적 방식 확인",
+          "정책기업 인증서 유효기간 확인"
+        ],
+        "note": "후보, 인증 유효성·금액·계약유형 확인 필요"
+      },
+      {
+        "company_name": "(주)테스트여성",
+        "location": "부산",
+        "main_products": [
+          "CCTV"
+        ],
+        "policy_tags": [
+          "여성기업"
+        ],
+        "candidate_types": [
+          "local_procurement_company",
+          "policy_company"
+        ],
+        "primary_candidate_type": "policy_company",
+        "purchase_routes": [
+          "정책기업 수의계약 검토",
+          "1인 견적 가능성 검토(한도 내)",
+          "2인 이상 견적 검토"
+        ],
+        "business_status": "영업상태 확인 필요",
+        "legal_eligibility_status": "확인 필요",
+        "display_status": "후보",
+        "contract_possible_auto_promoted": false,
+        "source_type": "policy_company",
+        "source_label": "정책기업 수의계약 검토 후보",
+        "required_checks": [
+          "금액·계약유형 확인",
+          "인증 유효성 확인",
+          "견적 방식 확인",
+          "정책기업 인증서 유효기간 확인"
+        ],
+        "note": "후보, 인증 유효성·금액·계약유형 확인 필요"
+      },
+      {
+        "company_name": "(주)샘플여성",
+        "location": "부산",
+        "main_products": [
+          "CCTV"
+        ],
+        "policy_tags": [
+          "여성기업"
+        ],
+        "candidate_types": [
+          "local_procurement_company",
+          "policy_company"
+        ],
+        "primary_candidate_type": "policy_company",
+        "purchase_routes": [
+          "정책기업 수의계약 검토",
+          "1인 견적 가능성 검토(한도 내)",
+          "2인 이상 견적 검토"
+        ],
+        "business_status": "영업상태 확인 필요",
+        "legal_eligibility_status": "확인 필요",
+        "display_status": "후보",
+        "contract_possible_auto_promoted": false,
+        "source_type": "policy_company",
+        "source_label": "정책기업 수의계약 검토 후보",
+        "required_checks": [
+          "금액·계약유형 확인",
+          "인증 유효성 확인",
+          "견적 방식 확인",
+          "정책기업 인증서 유효기간 확인"
+        ],
+        "note": "후보, 인증 유효성·금액·계약유형 확인 필요"
+      }
+    ],
+    "company_sample_source": "mock_data",
+    "policy_tags_present": true,
+    "business_status_check": "mock_data_nts_skipped",
+    "sensitive_fields_removed": true,
+    "sensitive_fields_detected": [],
+    "contract_possible_auto_promoted": false,
+    "forbidden_contract_confirmation_present": "제거 완료(안전)",
+    "final_answer_source": "deterministic_template_plus_server_table",
+    "flash_answer_discarded": false,
+    "deterministic_template_used": true,
+    "company_table_preserved": false,
+    "safe_table_extracted": false,
+    "flash_answer_used_in_final": false,
+    "parsing_failures": [],
+    "selected_guardrails": [
+      "common_procurement",
+      "company_search",
+      "item_purchase"
+    ],
+    "mcp_status": "success",
+    "legal_conclusion_allowed": false,
+    "legal_basis": [],
+    "blocked_scope": [
+      "no_direct_legal_basis",
+      "unsupported_legal_conclusion"
+    ],
+    "source_tags": [],
+    "final_answer_preview": "⚠️ 시스템은 현재 주어진 조건에 대해 단정적인 계약 가능 여부를 판단하지 않습니다. 판단 및 계약 진행 전 우선 관련 법령 및 수의계약 가능 여부를 체계적으로 검토하시기 바랍니다.\n\n---\n⚠️ **확인 필요 사항**\n- API 지연으로 일부 판단이 제한되었습니다.\n\n---\n부산 지역업체 후보를 구매 경로별로 안내합니다.\n\n**[표 1] 정책기업 수의계약 검토 후보**\n| 업체명 | 소재지 | 대표품목 | 정책기업 태그 | 비고 |\n| :--- | :--- | :--- | :--- | :--- |\n| (주)모의여성기업 | 부산 | CCTV | 여성기업 | 후보, 인증 유효성·금액·계약유형 확인 필요 |\n| (주)테스트여성 | 부산 | CCTV | 여성기업 | 후보, 인증 유효성·금액·계약유형 확인 필요 |\n| (주)샘플여성 | 부산 | CCTV | 여성기업 | 후보, 인증 유효성·금액·계약유형 확인 필요 |\n\n> ℹ️ 여성기업·장애인기업·사회적기업 등 정책기업 태그는 수의계약 검토의 후보 자격 정보이며, 금액·계약유형·인증 유효성·견적 방식 확인 전에는 계약 가능 여부가 확정되지 않습니다.",
+    "model_used": "gemini-2.5-flash",
+    "model_selected": "gemini-2.5-flash",
+    "model_decision_reason": "low_risk_company_search",
+    "fallback_used": false,
+    "fallback_reason": "",
+    "retry_count": 4,
+    "total_latency_ms": 57147,
+    "core_prompt_hash": "761c8941030696b34865021173fd8e93f5bc0991a273911f38b6e3a8df8e6b00",
+    "prompt_prefix_hash": "dd588116f1ce56bf",
+    "indexed_doc_count": 0,
+    "retrieved_doc_count": 0,
+    "retrieval_latency_ms": 0,
+    "company_table_allowed": true,
+    "has_forbidden": false,
+    "forbidden_patterns_matched": [],
+    "forbidden_patterns_remaining_after_rewrite": [],
+    "latency_warning": true,
+    "latency_threshold_ms": 30000,
+    "slow_stage_hint": "fast_track_api_delay",
+    "candidate_table_generated": true,
+    "candidate_table_source": "server_structured_formatter",
+    "final_answer_scanned": true,
+    "pass": true,
+    "failure_reason": "",
+    "rag_preload_status": "success",
+    "laws_chromadb_status": "success",
+    "manuals_chromadb_status": "success",
+    "rag_status": "SUCCESS",
+    "bm25_status": "success",
+    "manuals_rag_enabled": "true",
+    "laws_indexed_doc_count": 808,
+    "manuals_indexed_doc_count": 2675,
+    "manuals_error_message": "",
+    "manuals_ingest_failed_count": 0,
+    "manuals_index_load_status": "PASS",
+    "manuals_retrieval_quality_status": "PASS",
+    "manuals_rag": "PASSED_STAGING",
+    "manuals_retrieval_test_query": "수의계약 유의사항",
+    "manuals_retrieved_doc_count": 3,
+    "manuals_retrieval_latency_ms": 251,
+    "shopping_mall_elapsed_ms": 0,
+    "tool_timeout_sources": []
+  }
+]

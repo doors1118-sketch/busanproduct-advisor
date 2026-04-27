@@ -2346,6 +2346,12 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
     if generation_meta is not None:
         if "legal_basis" not in generation_meta:
             generation_meta["legal_basis"] = legal_basis
+        # 안전 정책: legal_basis가 비어있으면 legal_conclusion_allowed 강제 False
+        if not legal_basis and legal_scope.legal_conclusion_allowed:
+            legal_scope.legal_conclusion_allowed = False
+            if not legal_scope.blocked_scope:
+                legal_scope.blocked_scope = ["no_direct_legal_basis", "unsupported_legal_conclusion"]
+            generation_meta["blocked_scope"] = legal_scope.blocked_scope
         generation_meta["legal_conclusion_allowed"] = legal_scope.legal_conclusion_allowed
         
         # 1. forbidden_patterns_remaining_after_rewrite: 최종 답변 기준 남은 금지 표현

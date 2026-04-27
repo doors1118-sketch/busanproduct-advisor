@@ -26,7 +26,7 @@ CANDIDATE_TYPES = {
     },
     "local_procurement_company": {
         "source_label": "입찰·수의계약 검토용 조달등록 부산업체 후보",
-        "purchase_routes": ["수의계약", "2인 이상 견적", "제한경쟁", "지역제한 입찰", "공동수급"],
+        "purchase_routes": ["수의계약 검토", "2인 이상 견적 검토", "제한경쟁 검토", "지역제한 입찰 검토", "공동수급 검토"],
         "display_enabled": True,
         "default_note": "후보, 법적 적격성 확인 필요",
         "required_checks": [
