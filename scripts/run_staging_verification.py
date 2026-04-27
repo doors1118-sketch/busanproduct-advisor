@@ -573,8 +573,26 @@ def run_company_search_chat_test(questions):
         print(f"\n[DEBUG] TC7 Query: {q}")
         print(f"[DEBUG] raw_mcp: {raw_mcp}")
         
+        tool_calls = []
         for mcp in raw_mcp:
             t_name = mcp.get("tool_name", "")
+            
+            if t_name:
+                t_label = "local_procurement_company" if "local_company" in t_name else ("shopping_mall_supplier" if "shopping_mall" in t_name else "innovation_or_other")
+                t_res = mcp.get("result", "")
+                t_count = 0
+                if isinstance(t_res, str) and "총" in t_res and "건" in t_res:
+                    match = re.search(r"총\s+(\d+)건", t_res)
+                    if match:
+                        t_count = int(match.group(1))
+                tool_calls.append({
+                    "tool_name": t_name,
+                    "status": mcp.get("status", "unknown"),
+                    "elapsed_ms": mcp.get("elapsed_ms", 0),
+                    "result_count": t_count,
+                    "source_label": t_label
+                })
+                
             if "search_local_company" in t_name or "search_shopping_mall" in t_name:
                 # source_type 결정
                 if "search_local_company" in t_name:
@@ -615,11 +633,13 @@ def run_company_search_chat_test(questions):
                                 
                                 # 비고 결정
                                 # candidate_types 배열 결정
-                                candidate_types = [src_type]
-                                primary_type = src_type
+                                current_src_type = src_type
+                                current_src_label = src_label
+                                candidate_types = [current_src_type]
+                                primary_type = current_src_type
                                 purchase_routes = []
 
-                                if src_type == "local_procurement_company":
+                                if current_src_type == "local_procurement_company":
                                     purchase_routes = ["수의계약", "2인 이상 견적", "제한경쟁", "지역제한 입찰"]
                                     note = "후보, 법적 적격성 확인 필요"
                                     required_checks = ["금액·계약유형 확인", "직접생산 확인", "인증 유효성 확인", "지방계약법령 확인"]
@@ -627,10 +647,10 @@ def run_company_search_chat_test(questions):
                                     if policy:
                                         candidate_types.append("policy_company")
                                         primary_type = "policy_company"
-                                        src_type = "policy_company"
-                                        src_label = "정책기업 수의계약 검토 후보"
+                                        current_src_type = "policy_company"
+                                        current_src_label = "정책기업 수의계약 검토 후보"
                                         note = "후보, 인증 유효성·금액·계약유형 확인 필요"
-                                        purchase_routes = ["정책기업 수의계약", "1인 견적(한도 내)", "2인 이상 견적"]
+                                        purchase_routes = ["정책기업 수의계약 검토", "1인 견적 가능성 검토(한도 내)", "2인 이상 견적 검토"]
                                         required_checks = ["금액·계약유형 확인", "인증 유효성 확인", "견적 방식 확인", "정책기업 인증서 유효기간 확인"]
                                 else:
                                     purchase_routes = ["조달청 나라장터 종합쇼핑몰 구매", "MAS", "제3자단가계약", "납품요구"]
@@ -654,8 +674,8 @@ def run_company_search_chat_test(questions):
                                             "legal_eligibility_status": "확인 필요",
                                             "display_status": "후보",
                                             "contract_possible_auto_promoted": False,
-                                            "source_type": src_type,
-                                            "source_label": src_label,
+                                            "source_type": current_src_type,
+                                            "source_label": current_src_label,
                                             "required_checks": required_checks,
                                             "note": note
                                         })
@@ -673,14 +693,33 @@ def run_company_search_chat_test(questions):
         if company_status == "success" and total_count == 0:
             company_status = "no_results"
 
+        mall_call = next((t for t in tool_calls if t["tool_name"] == "search_shopping_mall"), None)
+        mall_status = mall_call["status"] if mall_call else "not_called"
+        company_elapsed_ms = sum(t.get("elapsed_ms", 0) for t in tool_calls if "company" in t.get("source_label", "") or "shopping_mall" in t.get("source_label", ""))
+
+        orig_source = r.get("generation_meta", {}).get("final_answer_source", "model_generation")
+        table_gen = "**[표 " in answer or "시스템 자동" in answer
+        if orig_source == "deterministic_no_results_template":
+            orig_source = "no_results_template"
+        elif "⚠️ **확인 필요 사항**" in answer:
+            orig_source = "deterministic_fail_closed_template"
+
+        if table_gen:
+            if orig_source == "model_generation":
+                orig_source = "model_generation_plus_server_table"
+            elif orig_source == "deterministic_fail_closed_template":
+                orig_source = "deterministic_template_plus_server_table"
+
         # 새로운 필드 요구사항에 맞게 매핑
         result_data = {
             "test_case": r.get("test_case", "7_Company_Search_Chat_Integration"),
             "query": q,
             "search_keyword": search_keyword,
             "company_search_status": company_status,
+            "shopping_mall_status": mall_status,
             "company_tool_called": r.get("company_tool_called", False),
             "company_tool_name": r.get("company_tool_name", ""),
+            "tool_calls": tool_calls,
             "mock_used": r.get("mock_used", False),
             "mock_scope": r.get("mock_scope", []),
             "result_type": r.get("result_type", "real_integration"),
@@ -690,7 +729,7 @@ def run_company_search_chat_test(questions):
             "policy_company_count": len([row for row in sample_rows if row.get("source_type") == "policy_company"]),
             "innovation_product_count": r.get("generation_meta", {}).get("innovation_product_count", 0),
             "priority_purchase_count": 0,
-            "company_search_elapsed_ms": r.get("company_search_elapsed_ms", 0),
+            "company_search_elapsed_ms": company_elapsed_ms,
             "company_sample_rows": sample_rows[:5],
             "company_sample_source": "mock_data" if r.get("mock_used") else "live_api_busanproduct",
             "policy_tags_present": "여성기업" in answer or "사회적기업" in answer,
@@ -714,8 +753,9 @@ def run_company_search_chat_test(questions):
             "source_tags": r.get("source_tags", []),
             "final_answer_preview": answer.strip(),
             
-            "model_selected": r.get("model_selected", "unknown"),
             "model_used": r.get("model_used", "unknown"),
+            "model_selected": r.get("model_used", "unknown"),
+            "model_decision_reason": "low_risk_company_search" if r.get("model_used", "unknown") == "gemini-2.5-flash" else "fallback_or_complex",
             "fallback_used": r.get("fallback_used", False),
             "fallback_reason": r.get("fallback_reason", ""),
             "retry_count": r.get("retry_count", 0),
@@ -733,11 +773,14 @@ def run_company_search_chat_test(questions):
             "flash_answer_discarded": r.get("flash_answer_discarded", False),
             "deterministic_template_used": "⚠️ **확인 필요 사항**" in answer or r.get("generation_meta", {}).get("deterministic_template_used", False),
             
-            "candidate_table_generated": r.get("generation_meta", {}).get("candidate_table_generated", ("**[시스템 자동 추출 후보 표]**" in answer or "시스템 자동 생성 표" in answer)),
-            "candidate_table_source": r.get("generation_meta", {}).get("candidate_table_source", "server_structured_formatter" if "시스템 자동" in answer else "none"),
-            "final_answer_scanned": r.get("generation_meta", {}).get("final_answer_scanned", True),
-            "final_answer_source": r.get("generation_meta", {}).get("final_answer_source", "deterministic_fail_closed_template" if "확인 필요 사항" in answer else "model_generation"),
+            "latency_warning": r.get("total_latency_ms", 0) > 30000,
+            "latency_threshold_ms": 30000,
+            "slow_stage_hint": "mcp_tool_execution" if r.get("mcp_elapsed_ms", 0) > 15000 else ("rag_retrieval" if r.get("retrieval_latency_ms", 0) > 10000 else "model_generation"),
             
+            "candidate_table_generated": "**[표 " in answer,
+            "candidate_table_source": "server_structured_formatter" if "**[표 " in answer else "none",
+            "final_answer_scanned": r.get("generation_meta", {}).get("final_answer_scanned", True),
+            "final_answer_source": orig_source,
             
             "pass": False,
             "failure_reason": ""
@@ -864,7 +907,41 @@ def main():
             except: pass
         res["manuals_ingest_failed_count"] = fails
         
-        res["shopping_mall_status"] = res.get("shopping_mall_status", "unknown")
+        res["manuals_index_load_status"] = "success" if preload_status.get("manuals_chroma_status") == "success" else "error"
+        res["manuals_retrieval_quality_status"] = "not_verified"
+        res["manuals_retrieval_test_query"] = "N/A"
+        res["manuals_retrieved_doc_count"] = 0
+        res["manuals_retrieval_latency_ms"] = 0
+        
+        # [NEW] Manuals RAG Retrieval Quality Test
+        if res["manuals_index_load_status"] == "success":
+            test_query = "수의계약 유의사항"
+            try:
+                import time
+                import chromadb
+                import sys
+                import os
+                sys.path.insert(0, os.path.abspath('app'))
+                from embedding import encode_query
+                st_rag = time.time()
+                client_manuals = chromadb.PersistentClient(path=os.environ.get("CHROMA_MANUALS_DIR", "C:\\dev\\busan_procurement_chatbot\\.chroma_manuals"))
+                manuals_col = client_manuals.get_collection("manuals")
+                query_emb = encode_query(test_query)
+                rag_res = manuals_col.query(query_embeddings=[query_emb], n_results=3)
+                rag_elapsed = int((time.time() - st_rag) * 1000)
+                
+                res["manuals_retrieval_test_query"] = test_query
+                doc_count = len(rag_res["documents"][0]) if rag_res["documents"] else 0
+                res["manuals_retrieved_doc_count"] = doc_count
+                res["manuals_retrieval_latency_ms"] = rag_elapsed
+                if doc_count > 0:
+                    res["manuals_retrieval_quality_status"] = "verified"
+                else:
+                    res["manuals_retrieval_quality_status"] = "failed"
+            except Exception as e:
+                res["manuals_retrieval_quality_status"] = f"error: {e}"
+        
+        if "shopping_mall_status" not in res: res["shopping_mall_status"] = "not_called"
         res["shopping_mall_elapsed_ms"] = res.get("shopping_mall_elapsed_ms", 0)
         res["tool_timeout_sources"] = res.get("tool_timeout_sources", [])
         

@@ -9,20 +9,20 @@ description: 지역상생 조달 어드바이저 개발 시작 — 프로젝트 
 ## 1단계: 이전 세션 대화 맥락 로딩
 
 // turbo
-1. `c:\Users\doors\OneDrive\바탕 화면\사무실 메뉴얼 제작_추출\메뉴얼 제작\대화맥락_20260426.md` 읽기 — 직전 세션에서 결정한 사항, 내일 해야 할 일
+1. `c:\Users\COMTREE\Desktop\메뉴얼 제작\대화맥락_20260427.md` 읽기 — 직전 세션에서 결정한 사항, 내일 해야 할 일
 
 ## 2단계: 프로젝트 핵심 문서 로딩
 
 // turbo
-2. `c:\Users\doors\OneDrive\바탕 화면\사무실 메뉴얼 제작_추출\메뉴얼 제작\사용목적_개발방향.md` 읽기 — 사용 목적, 3대 핵심 기능, 기술 방향, 하네스 엔지니어링 설계
+2. `c:\Users\COMTREE\Desktop\메뉴얼 제작\사용목적_개발방향.md` 읽기 — 사용 목적, 3대 핵심 기능, 기술 방향, 하네스 엔지니어링 설계
 
 // turbo
-3. `c:\Users\doors\OneDrive\바탕 화면\사무실 메뉴얼 제작_추출\메뉴얼 제작\공공계약_법령챗봇_개발계획서.md` 읽기 — 데이터 계층(L1~L6), 기술 스택, 시스템 아키텍처, 개발 로드맵
+3. `c:\Users\COMTREE\Desktop\메뉴얼 제작\공공계약_법령챗봇_개발계획서.md` 읽기 — 데이터 계층(L1~L6), 기술 스택, 시스템 아키텍처, 개발 로드맵
 
 ## 3단계: API 키 로딩
 
 // turbo
-4. `c:\Users\doors\OneDrive\바탕 화면\사무실 메뉴얼 제작_추출\메뉴얼 제작\.env` 읽기 — Gemini API 키 등 환경변수 확인
+4. `c:\Users\COMTREE\Desktop\메뉴얼 제작\.env` 읽기 — Gemini API 키 등 환경변수 확인
 
 읽은 후 다음 키 정보를 기억합니다:
 - **GEMINI_API_KEY**: .env 파일에서 읽은 값
@@ -31,7 +31,7 @@ description: 지역상생 조달 어드바이저 개발 시작 — 프로젝트 
 ## 4단계: 진행 상황 확인
 
 // turbo
-5. `C:\Users\doors\.gemini\antigravity\brain\f27f250b-f96f-49cb-be7d-3c1338a3c5cb\task.md` 읽기 — 현재 체크리스트 상태 확인
+5. `C:\Users\COMTREE\.gemini\antigravity\brain\94d256b4-9f3f-4438-a6c0-daddd74679d3\task.md` 읽기 — 현재 체크리스트 상태 확인
 
 ## 5단계: 핵심 원칙 확인
 

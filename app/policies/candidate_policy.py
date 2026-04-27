@@ -38,7 +38,7 @@ CANDIDATE_TYPES = {
     },
     "policy_company": {
         "source_label": "정책기업 수의계약 검토 후보",
-        "purchase_routes": ["정책기업 수의계약 검토", "1인 견적 가능성 검토(한도 내)", "2인 이상 견적"],
+        "purchase_routes": ["정책기업 수의계약 검토", "1인 견적 가능성 검토(한도 내)", "2인 이상 견적 검토"],
         "display_enabled": True,
         "default_note": "후보, 인증 유효성·금액·계약유형 확인 필요",
         "required_checks": [

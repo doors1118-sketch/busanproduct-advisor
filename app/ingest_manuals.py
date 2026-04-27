@@ -12,8 +12,13 @@ from embedding import get_passage_embedding_fn, get_query_embedding_fn
 # ─────────────────────────────────────────────
 # 설정
 # ─────────────────────────────────────────────
+import json
+from dotenv import load_dotenv
+
+load_dotenv()
+
 _root = os.path.dirname(os.path.abspath(__file__))
-CHROMA_DIR = os.path.join(_root, ".chroma")
+CHROMA_DIR = os.getenv("CHROMA_MANUALS_DIR", os.path.join(_root, ".chroma_manuals"))
 COLLECTION_NAME = "manuals"
 
 # 적재 대상 디렉터리 (PDF 파일)
@@ -50,7 +55,7 @@ CHUNK_OVERLAP = 100   # 오버랩
 # ─────────────────────────────────────────────
 # PDF 텍스트 추출
 # ─────────────────────────────────────────────
-def extract_text_from_pdf(pdf_path: str) -> list[dict]:
+def extract_text_from_pdf(pdf_path: str, error_log: dict = None) -> list[dict]:
     """PDF에서 페이지별 텍스트 추출."""
     pages = []
     try:
@@ -66,6 +71,8 @@ def extract_text_from_pdf(pdf_path: str) -> list[dict]:
         doc.close()
     except Exception as e:
         print(f"  [WARN] PDF read failed: {pdf_path} - {e}")
+        if error_log is not None:
+            error_log[pdf_path] = str(e)
     return pages
 
 
@@ -208,9 +215,10 @@ def ingest_manuals(mode: str = "full", target_pdfs: list[str] = None):
 
     # 4. 텍스트 추출 + 청크 분할
     all_chunks = []
+    error_log = {}
     for pdf_path in pdf_files:
         fname = os.path.basename(pdf_path)
-        pages = extract_text_from_pdf(pdf_path)
+        pages = extract_text_from_pdf(pdf_path, error_log)
         if not pages:
             print(f"  [SKIP] {fname} (no text)")
             continue
@@ -237,6 +245,12 @@ def ingest_manuals(mode: str = "full", target_pdfs: list[str] = None):
         print(f"  [OK] {fname}: {len(pages)} pages -> {chunk_count} chunks")
 
     print(f"\n  Total: {len(all_chunks)} chunks from {len(pdf_files)} PDFs\n")
+
+    if error_log:
+        error_file = os.path.join(_root, "pymupdf_error_log.json")
+        with open(error_file, "w", encoding="utf-8") as f:
+            json.dump(error_log, f, ensure_ascii=False, indent=2)
+        print(f"  [WARN] Logged {len(error_log)} PyMuPDF errors to {error_file}")
 
     if not all_chunks:
         print(f"  [DONE] No new chunks. Collection: {collection.count()} docs")

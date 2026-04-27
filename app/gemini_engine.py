@@ -1532,6 +1532,31 @@ def _chat_v144(
 
             contents.append(types.Content(role="user", parts=response_parts))
             
+            # [NEW] 조기 탈출 (Fast-track) for low-risk company search
+            is_company_tool_called = any(r["tool_name"] in company_tools + shopping_tools for r in all_tool_results)
+            if risk_info.get("risk_level") == "low" and is_company_tool_called:
+                print("  [FAST-TRACK] Low-risk company search executed. Skipping further reasoning/generation.", flush=True)
+                fast_track_msg = "⚠️ 시스템은 현재 주어진 조건에 대해 단정적인 계약 가능 여부를 판단하지 않습니다. 판단 및 계약 진행 전 우선 관련 법령 및 수의계약 가능 여부를 체계적으로 검토하시기 바랍니다."
+                
+                answer, history = _finalize_answer(fast_track_msg, history, user_message, all_tool_results, api_status, progress_callback, generation_meta={
+                    "model_used": model_to_use,
+                    "fallback_used": fallback_used,
+                    "fallback_reason": fallback_reason,
+                    "retry_count": total_retries,
+                    "risk_level": risk_info.get("risk_level", "unknown"),
+                    "high_risk_triggers": risk_info.get("high_risk_triggers", []),
+                    "model_decision_reason": risk_info.get("model_decision_reason", ""),
+                    "malformed_function_call_detected": malformed_function_call_detected,
+                    "function_call_retry_count": function_call_retry_count,
+                    "function_call_final_status": "success",
+                    "fast_track_applied": True,
+                    "deterministic_template_used": True,
+                    "company_table_allowed": "company_search" in guardrails if 'guardrails' in locals() else False,
+                    "core_prompt_hash": assembled.core_prompt_hash if 'assembled' in locals() else "",
+                    "prompt_prefix_hash": assembled.prompt_prefix_hash if 'assembled' in locals() else "",
+                })
+                return answer, history
+            
             # 조기 탈출 (fail-closed)
             if any(r["status"] in ["timeout", "failed"] for r in all_tool_results):
                 print("  [EARLY EXIT] Timeout or failure detected, triggering fail-closed response.")
