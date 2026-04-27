@@ -944,13 +944,7 @@ def main():
             except Exception as e:
                 res["manuals_retrieval_quality_status"] = f"error: {e}"
                 res["manuals_rag"] = "error"
-        
-        # User specified override:
-        res["manuals_index_load_status"] = "PASS"
-        res["manuals_retrieval_quality_status"] = "PASS"
-        res["manuals_retrieved_doc_count"] = 3
-        res["manuals_rag"] = "PASSED_STAGING"
-        
+
         if "shopping_mall_status" not in res: res["shopping_mall_status"] = "not_called"
         res["shopping_mall_elapsed_ms"] = res.get("shopping_mall_elapsed_ms", 0)
         res["tool_timeout_sources"] = res.get("tool_timeout_sources", [])
