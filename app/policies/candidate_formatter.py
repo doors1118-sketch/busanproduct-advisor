@@ -12,7 +12,7 @@ from policies.candidate_policy import CANDIDATE_TYPES, get_data_source_status
 # ─────────────────────────────────────────────
 KEYWORD_MAP = {
     "shopping_mall_supplier": ["종합쇼핑몰", "나라장터 쇼핑몰", "MAS", "제3자단가", "쇼핑몰에서", "쇼핑몰"],
-    "local_procurement_company": ["수의계약", "입찰", "지역제한", "견적"],
+    "local_procurement_company": ["수의계약 검토", "입찰 검토", "지역제한 검토", "견적 검토"],
     "policy_company": ["여성기업", "장애인기업", "사회적기업", "사회적협동조합", "자활기업", "마을기업", "정책기업"],
     "innovation_product": ["혁신제품", "혁신시제품", "혁신장터", "시범구매", "혁신"],
     "priority_purchase_product": ["중증장애인생산품", "녹색제품", "창업기업제품", "기술개발제품", "우선구매"],

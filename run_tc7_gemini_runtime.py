@@ -214,12 +214,13 @@ def run_gemini_test(tc: dict, iteration: int = 1) -> dict:
     tool_route_selected = require_tool_called  # TC 정의에서 require_tool_called=True면 route 선택됨
     
     # tool_execution_status: success / source_missing / not_called
-    if tool_called:
-        tool_execution_attempted = True
-        tool_execution_status = "success"
-    elif innovation_missing and expected_tool in ("search_innovation_products", "search_tech_development_products"):
+    # STRICT: innovation_missing이면 fallback 후보가 있어도 source_missing
+    if innovation_missing and expected_tool in ("search_innovation_products", "search_tech_development_products"):
         tool_execution_attempted = True
         tool_execution_status = "source_missing"
+    elif tool_called:
+        tool_execution_attempted = True
+        tool_execution_status = "success"
     else:
         tool_execution_attempted = False
         tool_execution_status = "not_called"
@@ -270,7 +271,7 @@ def run_gemini_test(tc: dict, iteration: int = 1) -> dict:
     if require_tool_called:
         if tool_execution_status == "source_missing":
             # DB 미존재: pass=false, result_status=DEGRADED
-            failure_reasons.append(f"{test_case} innovation tool not called; innovation DB missing was not surfaced as source_missing")
+            failure_reasons.append(f"{test_case} innovation source missing; full PASS blocked until innovation DB is loaded")
         elif tool_execution_status == "not_called":
             failure_reasons.append(f"tool_called=false (expected true)")
         # DB가 있고 호출 성공했는데 서버 표 아니면 FAIL
@@ -280,6 +281,13 @@ def run_gemini_test(tc: dict, iteration: int = 1) -> dict:
     # candidate_table_source 허용값
     if candidate_source not in ["server_structured_formatter", "none"]:
         failure_reasons.append(f"invalid candidate_table_source={candidate_source}")
+        
+    final_answer_scanned = captured_meta.get("final_answer_scanned", False)
+    if not final_answer_scanned:
+        failure_reasons.append("final_answer_scanned=false")
+        
+    if "Error: 503" in answer or "UNAVAILABLE" in answer:
+        failure_reasons.append("raw_api_error_exposed_in_preview")
     
     # legal_conclusion_allowed=false인데 금지 표현 남으면 FAIL
     if not legal_conclusion_allowed and len(answer_forbidden_matched) > 0:
@@ -382,6 +390,7 @@ def run_gemini_test(tc: dict, iteration: int = 1) -> dict:
         "innovation_db_missing": innovation_missing,
         "innovation_status": "SKIPPED" if innovation_missing else ("SUCCESS" if tool_called else "not_tested"),
         "innovation_source_missing": innovation_missing,
+        "fallback_candidate_table_generated": (innovation_missing and candidate_table_generated),
         "result_status": result_status,
         "classified_candidate_count": classified_candidate_count,
         "formatter_input_count": formatter_input_count,

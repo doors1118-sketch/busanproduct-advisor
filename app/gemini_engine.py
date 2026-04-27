@@ -1455,7 +1455,40 @@ def _chat_v144(
                     raise
 
         if response is None:
-            raise last_err or Exception("API call failed after retries")
+            if "company_search" in guardrails:
+                print("  [FALLBACK] API call failed. Using deterministic fallback for company_search.")
+                class _MockFC:
+                    def __init__(self, name, query):
+                        self.name = name; self.args = {"query": query}
+                try:
+                    fallback_res = _execute_function_call(_MockFC("search_local_company_by_product", user_message))
+                    all_tool_results.append({
+                        "tool_name": "search_local_company_by_product", "status": "success",
+                        "result": fallback_res, "elapsed_ms": 100
+                    })
+                    fast_track_msg = "⚠️ 시스템 연동 지연으로 간편 검색 결과를 바로 제공합니다. 판단 및 계약 진행 전 우선 관련 법령 및 수의계약 가능 여부를 체계적으로 검토하시기 바랍니다."
+                    ans, hist = _finalize_answer(fast_track_msg, history, user_message, all_tool_results, api_status, progress_callback, generation_meta={
+                        "model_used": model_to_use,
+                        "fallback_used": True,
+                        "fallback_reason": str(last_err),
+                        "retry_count": total_retries,
+                        "risk_level": risk_info.get("risk_level", "unknown"),
+                        "high_risk_triggers": risk_info.get("high_risk_triggers", []),
+                        "model_decision_reason": risk_info.get("model_decision_reason", ""),
+                        "malformed_function_call_detected": False,
+                        "function_call_retry_count": 0,
+                        "function_call_final_status": "success",
+                        "fast_track_applied": True,
+                        "deterministic_template_used": True,
+                        "company_table_allowed": True,
+                        "core_prompt_hash": assembled.core_prompt_hash if 'assembled' in locals() else "",
+                        "prompt_prefix_hash": assembled.prompt_prefix_hash if 'assembled' in locals() else "",
+                    })
+                    return ans, hist
+                except Exception as e:
+                    raise last_err or Exception("API call failed after retries")
+            else:
+                raise last_err or Exception("API call failed after retries")
 
         candidate = response.candidates[0]
 

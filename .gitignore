@@ -49,3 +49,16 @@ secrets*
 .vscode/
 .idea/
 .gemini/
+
+# 검증 아티팩트 (로컬 전용)
+staging_verification_result.json
+tc7_gemini_runtime_result.json
+FINAL_E2E_REPORT.json
+raw_staging.json
+raw_tc7.json
+raw_tc_staging.json
+routes_unique.txt
+generate_final_report.py
+filtered_staging.txt
+smoke_test.py
+patch_all.py
