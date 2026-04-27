@@ -8,11 +8,11 @@ echo "Commit: $COMMIT_HASH"
 echo ""
 
 echo "=== 2. Python 버전 확인 ==="
-python --version
+python3 --version
 echo ""
 
 echo "=== 3. py_compile 실행 ==="
-python -m py_compile app/gemini_engine.py app/policies/candidate_policy.py app/policies/candidate_formatter.py app/policies/innovation_search.py scripts/run_staging_verification.py run_tc7_gemini_runtime.py
+python3 -m py_compile app/gemini_engine.py app/policies/candidate_policy.py app/policies/candidate_formatter.py app/policies/innovation_search.py scripts/run_staging_verification.py run_tc7_gemini_runtime.py
 if [ $? -ne 0 ]; then
     echo "❌ py_compile 실패!"
 else
@@ -21,11 +21,11 @@ fi
 echo ""
 
 echo "=== 4. staging 검증 실행 ==="
-python scripts/run_staging_verification.py
+python3 scripts/run_staging_verification.py
 echo ""
 
 echo "=== 5. TC7/Gemini runtime 검증 실행 ==="
-python run_tc7_gemini_runtime.py
+python3 run_tc7_gemini_runtime.py
 echo ""
 
 echo "=== 6. 결과 파일 복사 ==="
