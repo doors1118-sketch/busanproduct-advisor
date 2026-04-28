@@ -18,8 +18,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 _root = os.path.dirname(os.path.abspath(__file__))
-CHROMA_DIR = os.getenv("CHROMA_MANUALS_DIR", os.path.join(_root, ".chroma_manuals"))
-COLLECTION_NAME = "manuals"
+CHROMA_DIR = os.getenv("CHROMA_MANUALS_DIR", os.path.join(_root, ".chroma"))
+COLLECTION_PREFIX = "manuals_"
+MAX_PER_COLLECTION = 750
 
 # 적재 대상 디렉터리 (PDF 파일)
 MANUAL_DIRS = [
@@ -173,45 +174,27 @@ def ingest_manuals(mode: str = "full", target_pdfs: list[str] = None):
     client = chromadb.PersistentClient(path=CHROMA_DIR)
 
     if mode == "full":
-        # 전체 재적재: 기존 삭제
+        # 전체 재적재: 기존 서브컬렉션 모두 삭제
+        for col in client.list_collections():
+            if col.name.startswith(COLLECTION_PREFIX):
+                try:
+                    client.delete_collection(col.name)
+                    print(f"  Deleted existing '{col.name}' collection")
+                except Exception:
+                    pass
+        # 레거시 단일 컬렉션도 삭제
         try:
-            client.delete_collection(COLLECTION_NAME)
-            print(f"  Deleted existing '{COLLECTION_NAME}' collection")
+            client.delete_collection("manuals")
+            print(f"  Deleted legacy 'manuals' collection")
         except Exception:
             pass
 
-    collection = client.get_or_create_collection(
-        name=COLLECTION_NAME,
-        embedding_function=embedding_fn,
-        metadata={"description": "contracts manuals & procurement guidelines"},
-    )
+    # 3. 모드별 처리 (full 모드만 멀티컬렉션 지원 — add/replace는 미구현)
+    if mode != "full":
+        print(f"  [WARN] 멀티컬렉션 모드에서는 'full' 모드만 지원됩니다. 'full'로 전환합니다.")
+        mode = "full"
 
-    # 3. 모드별 처리
-    if mode == "add":
-        # 증분 적재: 이미 적재된 PDF 스킵
-        existing = _get_existing_sources(collection)
-        new_pdfs = [p for p in pdf_files if os.path.basename(p) not in existing]
-        skipped = len(pdf_files) - len(new_pdfs)
-        print(f"  Found {len(pdf_files)} PDFs total, {skipped} already loaded, {len(new_pdfs)} new\n")
-        pdf_files = new_pdfs
-        if not pdf_files:
-            print(f"  [DONE] No new PDFs to add. Collection: {collection.count()} docs")
-            return
-
-    elif mode == "replace":
-        # 교체 모드: 지정된 PDF만 처리
-        if target_pdfs:
-            pdf_files = [p for p in pdf_files if os.path.basename(p) in target_pdfs
-                         or p in target_pdfs]
-        for pdf_path in pdf_files:
-            fname = os.path.basename(pdf_path)
-            deleted = _delete_source_chunks(collection, fname)
-            if deleted:
-                print(f"  [REPLACE] {fname}: deleted {deleted} old chunks")
-        print(f"  Replacing {len(pdf_files)} PDFs\n")
-
-    else:
-        print(f"  Found {len(pdf_files)} PDF files\n")
+    print(f"  Found {len(pdf_files)} PDF files\n")
 
     # 4. 텍스트 추출 + 청크 분할
     all_chunks = []
@@ -253,52 +236,83 @@ def ingest_manuals(mode: str = "full", target_pdfs: list[str] = None):
         print(f"  [WARN] Logged {len(error_log)} PyMuPDF errors to {error_file}")
 
     if not all_chunks:
-        print(f"  [DONE] No new chunks. Collection: {collection.count()} docs")
+        print(f"  [DONE] No chunks to ingest.")
         return
 
-    # 5. 배치 적재 (50건씩)
-    batch_size = 50
-    for i in range(0, len(all_chunks), batch_size):
-        batch = all_chunks[i:i + batch_size]
-        collection.upsert(
-            ids=[c["id"] for c in batch],
-            documents=[c["text"] for c in batch],
-            metadatas=[c["metadata"] for c in batch],
-        )
-        print(f"  Ingested: {min(i + batch_size, len(all_chunks))}/{len(all_chunks)}")
+    # 5. 멀티컬렉션 분할 적재
+    import math
+    n_collections = math.ceil(len(all_chunks) / MAX_PER_COLLECTION)
+    total_ingested = 0
 
-    print(f"\n  [DONE] manuals collection: {collection.count()} docs")
+    for col_idx in range(n_collections):
+        col_name = f"{COLLECTION_PREFIX}{col_idx + 1}"
+        start = col_idx * MAX_PER_COLLECTION
+        end = min(start + MAX_PER_COLLECTION, len(all_chunks))
+        col_chunks = all_chunks[start:end]
+
+        collection = client.create_collection(
+            name=col_name,
+            embedding_function=embedding_fn,
+            metadata={"description": f"manuals sub-collection {col_idx + 1}/{n_collections}"},
+        )
+
+        batch_size = 50
+        for i in range(0, len(col_chunks), batch_size):
+            batch = col_chunks[i:i + batch_size]
+            collection.upsert(
+                ids=[c["id"] for c in batch],
+                documents=[c["text"] for c in batch],
+                metadatas=[c["metadata"] for c in batch],
+            )
+
+        total_ingested += len(col_chunks)
+        print(f"  [{col_name}] {len(col_chunks)} docs ingested")
+
+    print(f"\n  [DONE] {n_collections} sub-collections, total {total_ingested} docs")
+
 
 
 # ─────────────────────────────────────────────
 # 검색 함수 (gemini_engine에서 호출)
 # ─────────────────────────────────────────────
 def search_manuals(query: str, n_results: int = 3) -> list[dict]:
-    """매뉴얼 RAG 검색."""
+    """매뉴얼 RAG 검색 (멀티컬렉션)."""
     try:
         embedding_fn = get_query_embedding_fn()
         client = chromadb.PersistentClient(path=CHROMA_DIR)
-        collection = client.get_collection(
-            name=COLLECTION_NAME,
-            embedding_function=embedding_fn,
-        )
 
-        results = collection.query(
-            query_texts=[query],
-            n_results=n_results,
-        )
+        # 모든 manuals 서브컬렉션에서 검색
+        all_docs = []
+        for col_info in client.list_collections():
+            if not col_info.name.startswith(COLLECTION_PREFIX):
+                continue
+            try:
+                collection = client.get_collection(
+                    name=col_info.name,
+                    embedding_function=embedding_fn,
+                )
+                results = collection.query(
+                    query_texts=[query],
+                    n_results=n_results,
+                )
+                if results["documents"] and results["documents"][0]:
+                    for doc, meta, dist in zip(
+                        results["documents"][0],
+                        results["metadatas"][0],
+                        results["distances"][0],
+                    ):
+                        all_docs.append({
+                            "text": doc,
+                            "source": meta.get("source", ""),
+                            "page": meta.get("page", "?"),
+                            "distance": dist,
+                        })
+            except Exception:
+                continue
 
-        if not results["documents"] or not results["documents"][0]:
-            return []
-
-        return [
-            {
-                "text": doc,
-                "source": meta.get("source", ""),
-                "page": meta.get("page", "?"),
-            }
-            for doc, meta in zip(results["documents"][0], results["metadatas"][0])
-        ]
+        # 거리순 정렬 후 상위 n_results 반환
+        all_docs.sort(key=lambda x: x["distance"])
+        return [{"text": d["text"], "source": d["source"], "page": d["page"]} for d in all_docs[:n_results]]
     except Exception:
         return []
 

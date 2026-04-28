@@ -16,7 +16,7 @@ from embedding import get_query_embedding_fn
 CHROMA_APP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "app", ".chroma")
 CHROMA_MANUALS_DIR = os.environ.get(
     "CHROMA_MANUALS_DIR",
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "app", ".chroma_manuals"),
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "app", ".chroma"),
 )
 
 SMOKE_QUERIES = {
@@ -92,12 +92,46 @@ def run_smoke_test() -> dict:
     laws_result["note"] = "MCP가 법령 판단의 source of truth. laws RAG는 보조 컨텍스트 전용."
     results["laws"] = laws_result
 
-    # 2. manuals
-    # manuals는 app/.chroma 또는 별도 .chroma_manuals 경로 모두 시도
-    manuals_result = check_collection(CHROMA_MANUALS_DIR, "manuals", SMOKE_QUERIES["manuals"])
-    if manuals_result["status"] in ("chroma_dir_missing", "collection_not_found"):
-        # fallback: app/.chroma 내 manuals 컬렉션 확인
-        manuals_result = check_collection(CHROMA_APP_DIR, "manuals", SMOKE_QUERIES["manuals"])
+    # 2. manuals (멀티컬렉션: manuals_1, manuals_2, ...)
+    manuals_result = {
+        "chroma_dir": os.path.abspath(CHROMA_MANUALS_DIR),
+        "status": "collection_not_found",
+        "doc_count": 0,
+        "retrieved_count": 0,
+        "retrieval_latency_ms": 0,
+    }
+    try:
+        import chromadb
+        from embedding import get_query_embedding_fn
+        embedding_fn = get_query_embedding_fn()
+        client = chromadb.PersistentClient(path=CHROMA_MANUALS_DIR)
+        sub_cols = [c for c in client.list_collections() if c.name.startswith("manuals_")]
+        if not sub_cols:
+            manuals_result["status"] = "collection_not_found"
+            manuals_result["error"] = "No manuals_ sub-collections found"
+        else:
+            total_docs = 0
+            all_docs = []
+            for col_info in sub_cols:
+                col = client.get_collection(col_info.name, embedding_function=embedding_fn)
+                cnt = col.count()
+                total_docs += cnt
+                res = col.query(query_texts=[SMOKE_QUERIES["manuals"]], n_results=3)
+                if res["documents"] and res["documents"][0]:
+                    for doc, dist in zip(res["documents"][0], res["distances"][0]):
+                        all_docs.append({"doc": doc, "distance": dist})
+            manuals_result["doc_count"] = total_docs
+            all_docs.sort(key=lambda x: x["distance"])
+            manuals_result["retrieved_count"] = min(len(all_docs), 3)
+            if all_docs:
+                manuals_result["sample_text"] = all_docs[0]["doc"][:200]
+                manuals_result["status"] = "success"
+            else:
+                manuals_result["status"] = "no_results"
+            manuals_result["sub_collection_count"] = len(sub_cols)
+    except Exception as e:
+        manuals_result["status"] = "error"
+        manuals_result["error"] = str(e)
     results["manuals"] = manuals_result
 
     # 3. innovation

@@ -584,31 +584,51 @@ def _search_pps_qa(query: str, n_results: int = 3) -> str:
 
 
 def _search_manuals(query: str, n_results: int = 3, query_vector: list = None) -> str:
-    """계약 매뉴얼 RAG에서 관련 내용 검색. E5-large 임베딩 사용."""
+    """계약 매뉴얼 RAG에서 관련 내용 검색. 멀티컬렉션 지원 (manuals_1, manuals_2, ...)."""
     try:
         import chromadb
         import os
         from embedding import get_query_embedding_fn
-        chroma_dir = os.getenv("CHROMA_MANUALS_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), ".chroma_manuals"))
+        chroma_dir = os.getenv("CHROMA_MANUALS_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), ".chroma"))
         client = chromadb.PersistentClient(path=chroma_dir)
-
         ef = get_query_embedding_fn()
-        collection = client.get_collection(name="manuals", embedding_function=ef)
 
-        if query_vector:
-            results = collection.query(query_embeddings=[query_vector], n_results=n_results)
-        else:
-            results = collection.query(query_texts=[query], n_results=n_results)
+        COLLECTION_PREFIX = "manuals_"
+        all_docs = []
 
-        if not results["documents"] or not results["documents"][0]:
+        for col_info in client.list_collections():
+            if not col_info.name.startswith(COLLECTION_PREFIX):
+                continue
+            try:
+                collection = client.get_collection(name=col_info.name, embedding_function=ef)
+                if query_vector:
+                    results = collection.query(query_embeddings=[query_vector], n_results=n_results)
+                else:
+                    results = collection.query(query_texts=[query], n_results=n_results)
+
+                if results["documents"] and results["documents"][0]:
+                    for doc, meta, dist in zip(
+                        results["documents"][0],
+                        results["metadatas"][0],
+                        results["distances"][0],
+                    ):
+                        all_docs.append({"doc": doc, "meta": meta, "distance": dist})
+            except Exception:
+                continue
+
+        if not all_docs:
             return ""
 
+        # 거리순 정렬 후 상위 n_results
+        all_docs.sort(key=lambda x: x["distance"])
+        top_docs = all_docs[:n_results]
+
         lines = []
-        for i, (doc, meta) in enumerate(zip(results["documents"][0], results["metadatas"][0])):
-            source = meta.get("source", "매뉴얼")
-            page = meta.get("page", "?")
+        for i, item in enumerate(top_docs):
+            source = item["meta"].get("source", "매뉴얼")
+            page = item["meta"].get("page", "?")
             lines.append(f"= 매뉴얼 {i+1}: [{source}] p.{page}")
-            lines.append(doc[:600])
+            lines.append(item["doc"][:600])
             lines.append("")
 
         context = "\n".join(lines)

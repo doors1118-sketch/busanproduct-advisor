@@ -37,13 +37,17 @@ def warmup_rag() -> Dict[str, Any]:
         except Exception as e:
             status["laws_chroma_status"] = f"failed - {e}"
 
-        # 3. Check manuals collection
+        # 3. Check manuals collections (multi-collection: manuals_1, manuals_2, ...)
         try:
             import chromadb
-            client_manuals = chromadb.PersistentClient(path=os.environ.get("CHROMA_MANUALS_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), ".chroma_manuals")))
-            manuals_col = client_manuals.get_collection("manuals")
-            status["manuals_indexed"] = manuals_col.count()
-            status["manuals_chroma_status"] = "success"
+            client_manuals = chromadb.PersistentClient(path=os.environ.get("CHROMA_MANUALS_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), ".chroma")))
+            sub_cols = [c for c in client_manuals.list_collections() if c.name.startswith("manuals_")]
+            if sub_cols:
+                total = sum(client_manuals.get_collection(c.name).count() for c in sub_cols)
+                status["manuals_indexed"] = total
+                status["manuals_chroma_status"] = "success"
+            else:
+                status["manuals_chroma_status"] = "failed - no manuals_ sub-collections found"
         except Exception as e:
             status["manuals_chroma_status"] = f"failed - {e}"
             status["manuals_error"] = str(e)
