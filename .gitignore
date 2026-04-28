@@ -53,7 +53,8 @@ secrets*
 # 검증 아티팩트 (로컬 전용)
 staging_verification_result.json
 tc7_gemini_runtime_result.json
-FINAL_E2E_REPORT.json
+TC7_gemini_runtime_result.md
+FINAL_E2E_REPORT*.json
 raw_staging.json
 raw_tc7.json
 raw_tc_staging.json
@@ -62,3 +63,12 @@ generate_final_report.py
 filtered_staging.txt
 smoke_test.py
 patch_all.py
+scripts/local_rag_smoke_result.json
+artifacts/
+
+# ChromaDB 백업/테스트
+app/.chroma_backup_*/
+app/.chroma_manuals_rebuild_test/
+
+# 외부 도구
+Antigravity-Auto-Permit/

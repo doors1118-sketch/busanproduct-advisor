@@ -60,16 +60,23 @@ def step_rag_status() -> dict:
     from local_rag_smoke_test import run_smoke_test, print_summary
     results = run_smoke_test()
     print_summary(results)
+    manuals = results["manuals"]
+    manuals_status = manuals["status"]
+    manuals_quality = "PASS" if manuals_status == "success" else ("SKIPPED" if manuals_status in ("chroma_dir_missing", "collection_not_found") else "FAILED")
     return {
         "laws_chromadb_status": results["laws"]["status"],
         "laws_indexed_doc_count": results["laws"]["doc_count"],
         "laws_retrieved_doc_count": results["laws"]["retrieved_count"],
         "laws_role": "advisory_context_only",
-        "manuals_chromadb_status": results["manuals"]["status"],
-        "manuals_indexed_doc_count": results["manuals"]["doc_count"],
-        "manuals_retrieved_doc_count": results["manuals"]["retrieved_count"],
+        "manuals_chromadb_status": manuals_status,
+        "manuals_chroma_dir": os.path.abspath(manuals["chroma_dir"]),
+        "manuals_indexed_doc_count": manuals["doc_count"],
+        "manuals_retrieved_doc_count": manuals["retrieved_count"],
+        "manuals_retrieval_quality_status": manuals_quality,
+        "manuals_source_missing": manuals_status in ("chroma_dir_missing", "collection_not_found"),
         "innovation_status": results["innovation"]["status"],
         "innovation_product_count": results["innovation"]["doc_count"],
+        "innovation_source_missing": results["innovation"]["status"] in ("chroma_dir_missing", "collection_not_found"),
         "rag_smoke_raw": results,
     }
 
@@ -84,7 +91,7 @@ def step_run_staging() -> dict:
         cwd=PROJECT_ROOT,
         capture_output=True,
         text=True,
-        timeout=300,
+        timeout=int(os.environ.get("LOCAL_E2E_STAGING_TIMEOUT_SEC", "600")),
         encoding='utf-8',
         errors='replace',
         env={**os.environ, "STAGING_MODE": "1", "PYTHONIOENCODING": "utf-8"},
@@ -128,7 +135,7 @@ def step_run_tc7() -> dict:
         cwd=PROJECT_ROOT,
         capture_output=True,
         text=True,
-        timeout=600,
+        timeout=int(os.environ.get("LOCAL_E2E_TC7_TIMEOUT_SEC", "1500")),
         encoding='utf-8',
         errors='replace',
         env={**os.environ, "STAGING_MODE": "1", "PYTHONIOENCODING": "utf-8"},
@@ -255,11 +262,33 @@ def main():
     tc7_data = all_results["tc7"].get("tc7_data", [])
     all_results["tc7_key_fields"] = extract_key_fields(tc7_data)
 
-    # 5. artifacts 저장
+    # 5. local_strict_status 판정
+    compile_ok = all_results["compile"].get("py_compile") == "PASS"
+    staging_ok = all_results["staging"].get("staging_verification_result") == "PASS" and all_results["staging"].get("staging_exit_code", 1) == 0
+    tc7_ok = all_results["tc7"].get("tc7_grt_result") == "PASS" and all_results["tc7"].get("tc7_exit_code", 1) == 0
+    rag = all_results.get("rag_status", {})
+    innovation_missing = rag.get("innovation_source_missing", True)
+    manuals_missing = rag.get("manuals_source_missing", True)
+
+    if compile_ok and staging_ok and tc7_ok and not innovation_missing and not manuals_missing:
+        local_strict = "PASS"
+    elif compile_ok and staging_ok and (innovation_missing or manuals_missing):
+        local_strict = "DEGRADED"
+    else:
+        local_strict = "FAIL"
+
+    all_results["local_strict_status"] = local_strict
+    all_results["ncp_readiness"] = "READY" if local_strict == "PASS" else "NOT_READY"
+    all_results["production_deployment"] = "HOLD"
+
+    # 6. artifacts 저장
     artifact_path = save_artifacts(all_results)
 
-    # 6. 최종 요약
+    # 7. 최종 요약
     print_final_summary(all_results, artifact_path)
+    print(f"  local_strict_status:                 {local_strict}")
+    print(f"  ncp_readiness:                       {all_results['ncp_readiness']}")
+    print(f"  production_deployment:               HOLD")
 
 
 if __name__ == "__main__":

@@ -584,20 +584,20 @@ def _search_pps_qa(query: str, n_results: int = 3) -> str:
 
 
 def _search_manuals(query: str, n_results: int = 3, query_vector: list = None) -> str:
-    """계약 매뉴얼 RAG에서 관련 내용 검색. query_vector가 있으면 임베딩 스킵."""
+    """계약 매뉴얼 RAG에서 관련 내용 검색. E5-large 임베딩 사용."""
     try:
         import chromadb
         import os
-        chroma_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".chroma")
+        from embedding import get_query_embedding_fn
+        chroma_dir = os.getenv("CHROMA_MANUALS_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), ".chroma_manuals"))
         client = chromadb.PersistentClient(path=chroma_dir)
 
+        ef = get_query_embedding_fn()
+        collection = client.get_collection(name="manuals", embedding_function=ef)
+
         if query_vector:
-            collection = client.get_collection(name="manuals")
             results = collection.query(query_embeddings=[query_vector], n_results=n_results)
         else:
-            from embedding import get_query_embedding_fn
-            ef = get_query_embedding_fn()
-            collection = client.get_collection(name="manuals", embedding_function=ef)
             results = collection.query(query_texts=[query], n_results=n_results)
 
         if not results["documents"] or not results["documents"][0]:
