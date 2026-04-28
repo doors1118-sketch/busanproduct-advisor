@@ -938,16 +938,27 @@ def main():
                 sys.path.insert(0, os.path.abspath('app'))
                 from embedding import encode_query
                 st_rag = time.time()
-                _manuals_chroma_dir = os.environ.get("CHROMA_MANUALS_DIR", os.path.join(os.path.abspath('app'), '.chroma_manuals'))
+                _manuals_chroma_dir = os.environ.get("CHROMA_MANUALS_DIR", os.path.join(os.path.abspath('app'), '.chroma'))
                 res["manuals_chroma_dir"] = _manuals_chroma_dir
                 client_manuals = chromadb.PersistentClient(path=_manuals_chroma_dir)
-                manuals_col = client_manuals.get_collection("manuals")
-                query_emb = encode_query(test_query)
-                rag_res = manuals_col.query(query_embeddings=[query_emb], n_results=3)
+                # Multi-collection scan: manuals_1, manuals_2, ...
+                sub_cols = [c for c in client_manuals.list_collections() if c.name.startswith("manuals_")]
+                if not sub_cols:
+                    raise Exception("No manuals_ sub-collections found")
+                from embedding import get_query_embedding_fn
+                qef = get_query_embedding_fn()
+                all_docs = []
+                for col_info in sub_cols:
+                    col = client_manuals.get_collection(col_info.name, embedding_function=qef)
+                    qr = col.query(query_texts=[test_query], n_results=3)
+                    if qr["documents"] and qr["documents"][0]:
+                        for doc, dist in zip(qr["documents"][0], qr["distances"][0]):
+                            all_docs.append({"doc": doc, "distance": dist})
+                all_docs.sort(key=lambda x: x["distance"])
                 rag_elapsed = int((time.time() - st_rag) * 1000)
                 
                 res["manuals_retrieval_test_query"] = test_query
-                doc_count = len(rag_res["documents"][0]) if rag_res["documents"] else 0
+                doc_count = min(len(all_docs), 3)
                 res["manuals_retrieved_doc_count"] = doc_count
                 res["manuals_retrieval_latency_ms"] = rag_elapsed
                 if doc_count > 0:
