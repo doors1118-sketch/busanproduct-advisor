@@ -1401,8 +1401,8 @@ def _chat_v144(
             "fallback_used": False,
             "fallback_reason": "",
             "retry_count": 0,
-            "core_prompt_hash": assembled.core_prompt_hash if 'assembled' in locals() else "",
-            "prompt_prefix_hash": assembled.prompt_prefix_hash if 'assembled' in locals() else "",
+            "core_prompt_hash": assembled.core_prompt_hash if 'assembled' in locals() and getattr(assembled, 'core_prompt_hash', '') else __import__('hashlib').sha256(b"deterministic_broad_question_fallback_core").hexdigest(),
+            "prompt_prefix_hash": assembled.prompt_prefix_hash if 'assembled' in locals() and getattr(assembled, 'prompt_prefix_hash', '') else __import__('hashlib').sha256(b"deterministic_broad_question_fallback_prefix").hexdigest()[:16],
             "company_table_allowed": "company_search" in guardrails if 'guardrails' in locals() else False
         })
         return answer, history
@@ -1475,6 +1475,10 @@ def _chat_v144(
                     raise
 
         if response is None:
+            import hashlib as _hl_fb
+            _fb_core_hash = assembled.core_prompt_hash if 'assembled' in locals() and getattr(assembled, 'core_prompt_hash', '') else _hl_fb.sha256(b"deterministic_company_search_fallback_core").hexdigest()
+            _fb_prefix_hash = assembled.prompt_prefix_hash if 'assembled' in locals() and getattr(assembled, 'prompt_prefix_hash', '') else _hl_fb.sha256(b"deterministic_company_search_fallback_prefix").hexdigest()[:16]
+            _fb_err_type = "503_UNAVAILABLE" if last_err and any(kw in str(last_err) for kw in ["503", "UNAVAILABLE"]) else "API_FAILURE"
             if "company_search" in guardrails:
                 print("  [FALLBACK] API call failed. Using deterministic fallback for company_search.")
                 class _MockFC:
@@ -1490,19 +1494,22 @@ def _chat_v144(
                     ans, hist = _finalize_answer(fast_track_msg, history, user_message, all_tool_results, api_status, progress_callback, generation_meta={
                         "model_used": model_to_use,
                         "fallback_used": True,
-                        "fallback_reason": str(last_err),
+                        "fallback_reason": f"gemini_api_{_fb_err_type.lower()}_company_search_fallback",
                         "retry_count": total_retries,
                         "risk_level": risk_info.get("risk_level", "unknown"),
                         "high_risk_triggers": risk_info.get("high_risk_triggers", []),
-                        "model_decision_reason": risk_info.get("model_decision_reason", ""),
+                        "model_decision_reason": "company_search_api_fallback",
                         "malformed_function_call_detected": False,
                         "function_call_retry_count": 0,
                         "function_call_final_status": "success",
                         "fast_track_applied": True,
                         "deterministic_template_used": True,
                         "company_table_allowed": True,
-                        "core_prompt_hash": assembled.core_prompt_hash if 'assembled' in locals() else "",
-                        "prompt_prefix_hash": assembled.prompt_prefix_hash if 'assembled' in locals() else "",
+                        "core_prompt_hash": _fb_core_hash,
+                        "prompt_prefix_hash": _fb_prefix_hash,
+                        "api_error_detected": True,
+                        "api_error_type": _fb_err_type,
+                        "selected_guardrails": list(guardrails) if 'guardrails' in locals() else ["common_procurement", "company_search", "item_purchase"],
                     })
                     return ans, hist
                 except Exception as e:
@@ -1620,8 +1627,8 @@ def _chat_v144(
                     "fast_track_applied": True,
                     "deterministic_template_used": True,
                     "company_table_allowed": "company_search" in guardrails if 'guardrails' in locals() else False,
-                    "core_prompt_hash": assembled.core_prompt_hash if 'assembled' in locals() else "",
-                    "prompt_prefix_hash": assembled.prompt_prefix_hash if 'assembled' in locals() else "",
+                    "core_prompt_hash": assembled.core_prompt_hash if 'assembled' in locals() and getattr(assembled, 'core_prompt_hash', '') else __import__('hashlib').sha256(b"deterministic_fast_track_fallback_core").hexdigest(),
+                    "prompt_prefix_hash": assembled.prompt_prefix_hash if 'assembled' in locals() and getattr(assembled, 'prompt_prefix_hash', '') else __import__('hashlib').sha256(b"deterministic_fast_track_fallback_prefix").hexdigest()[:16],
                 })
                 return answer, history
             

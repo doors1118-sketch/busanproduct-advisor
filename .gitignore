@@ -64,6 +64,14 @@ filtered_staging.txt
 smoke_test.py
 patch_all.py
 scripts/local_rag_smoke_result.json
+staging_verification_result_run*.json
+STAGING_SUBMISSION.json
+manuals_rag_result.json
+scripts/check_manuals_rag.py
+scripts/tc7_summary.py
+local_e2e_log*.txt
+staging_run*_log.txt
+tc7_grt_log.txt
 artifacts/
 
 # ChromaDB 백업/테스트
