@@ -81,3 +81,11 @@ app/.chroma_manuals_rebuild_test/
 
 # 외부 도구
 Antigravity-Auto-Permit/
+execute_remote.py
+ncp_api_smoke.py
+*_remote*.py
+*_smoke*.py
+qa_report.json
+artifacts/
+logs/
+*.jsonl
