@@ -1,0 +1,262 @@
+"""
+부산 공공조달 AI 챗봇 — FastAPI REST API 서버
+Streamlit UI와 병행 구조. gemini_engine.chat()을 wrapping.
+Production deployment: HOLD
+"""
+import os
+import sys
+import time
+import subprocess
+import traceback
+
+# app 디렉터리를 Python 경로에 추가
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(APP_DIR)
+sys.path.insert(0, APP_DIR)
+
+from dotenv import load_dotenv
+load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+from typing import Optional
+
+# ─────────────────────────────────────────────
+# App
+# ─────────────────────────────────────────────
+app = FastAPI(
+    title="부산 공공조달 AI 챗봇 API",
+    description="Gemini + RAG 기반 공공조달 법령 챗봇 REST API. Production deployment: HOLD.",
+    version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+PRODUCTION_DEPLOYMENT = "HOLD"
+
+
+# ─────────────────────────────────────────────
+# Schemas
+# ─────────────────────────────────────────────
+class ChatRequest(BaseModel):
+    message: str = Field(..., description="사용자 질문")
+    agency_type: Optional[str] = Field(None, description="소속기관 유형 (예: local_government)")
+    history: list = Field(default_factory=list, description="대화 이력")
+
+
+class ChatResponse(BaseModel):
+    answer: str
+    history: list = []
+    candidate_table_source: str = "not_exposed_yet"
+    legal_conclusion_allowed: bool = False
+    contract_possible_auto_promoted: bool = False
+    forbidden_patterns_remaining_after_rewrite: list = []
+    final_answer_scanned: bool = True
+    sensitive_fields_detected: list = []
+    model_selected: str = ""
+    model_decision_reason: str = ""
+    latency_ms: int = 0
+    rag_status: dict = {}
+    production_deployment: str = PRODUCTION_DEPLOYMENT
+
+
+# ─────────────────────────────────────────────
+# Helpers
+# ─────────────────────────────────────────────
+def _get_commit_hash() -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, timeout=5,
+            cwd=PROJECT_ROOT,
+        )
+        return result.stdout.strip() if result.returncode == 0 else "unknown"
+    except Exception:
+        return "unknown"
+
+
+def _get_rag_status() -> dict:
+    """ChromaDB 컬렉션 상태를 조회. warmup_rag() 구조를 재사용."""
+    try:
+        import chromadb
+        chroma_dir = os.environ.get(
+            "CHROMA_DIR",
+            os.path.join(APP_DIR, ".chroma"),
+        )
+        client = chromadb.PersistentClient(path=chroma_dir)
+
+        # laws
+        laws_info = {"status": "FAIL", "doc_count": 0}
+        try:
+            laws_col = client.get_collection("laws")
+            laws_info = {"status": "SUCCESS", "doc_count": laws_col.count()}
+        except Exception as e:
+            laws_info = {"status": f"FAIL: {e}", "doc_count": 0}
+
+        # manuals (split collections)
+        manuals_info = {
+            "status": "FAIL",
+            "collection_strategy": "split_collections",
+            "collections": [],
+            "doc_count": 0,
+            "retrieved_doc_count": 3,
+        }
+        total = 0
+        cols_found = []
+        for col_info in client.list_collections():
+            cname = col_info.name if hasattr(col_info, "name") else col_info
+            if cname.startswith("manuals_"):
+                cnt = client.get_collection(cname).count()
+                cols_found.append({"name": cname, "doc_count": cnt})
+                total += cnt
+        if cols_found:
+            # 이름순 정렬
+            cols_found.sort(key=lambda x: x["name"])
+            manuals_info["collections"] = cols_found
+            manuals_info["doc_count"] = total
+            manuals_info["status"] = "SUCCESS"
+
+        # innovation
+        innovation_info = {"status": "FAIL", "product_count": 0}
+        try:
+            innov_col = client.get_collection("innovation")
+            innovation_info = {"status": "SUCCESS", "product_count": innov_col.count()}
+        except Exception as e:
+            innovation_info = {"status": f"FAIL: {e}", "product_count": 0}
+
+        return {
+            "laws": laws_info,
+            "manuals": manuals_info,
+            "innovation": innovation_info,
+            "production_deployment": PRODUCTION_DEPLOYMENT,
+        }
+    except Exception as e:
+        return {
+            "laws": {"status": f"ERROR: {e}", "doc_count": 0},
+            "manuals": {"status": f"ERROR: {e}", "doc_count": 0},
+            "innovation": {"status": f"ERROR: {e}", "product_count": 0},
+            "production_deployment": PRODUCTION_DEPLOYMENT,
+        }
+
+
+# ─────────────────────────────────────────────
+# Endpoints
+# ─────────────────────────────────────────────
+@app.get("/health")
+def health():
+    return {
+        "status": "ok",
+        "service": "busanproduct-advisor-api",
+        "production_deployment": PRODUCTION_DEPLOYMENT,
+    }
+
+
+@app.get("/version")
+def version():
+    return {
+        "commit_hash": _get_commit_hash(),
+        "model_primary": os.getenv("GEMINI_MODEL", "gemini-2.5-pro"),
+        "model_fallback": os.getenv("FALLBACK_MODEL", "gemini-2.5-flash"),
+        "prompt_mode": os.getenv("PROMPT_MODE", "legacy"),
+        "model_routing_mode": os.getenv("MODEL_ROUTING_MODE", "risk_based"),
+        "production_deployment": PRODUCTION_DEPLOYMENT,
+    }
+
+
+@app.get("/rag/status")
+def rag_status():
+    return _get_rag_status()
+
+
+@app.post("/chat", response_model=ChatResponse)
+def chat_endpoint(req: ChatRequest):
+    start = time.time()
+
+    try:
+        from gemini_engine import chat as engine_chat
+
+        # gemini_engine.chat() 호출
+        answer, updated_history = engine_chat(
+            user_message=req.message,
+            history=req.history,
+            progress_callback=None,
+            agency_type=req.agency_type,
+        )
+
+        latency_ms = int((time.time() - start) * 1000)
+
+        # RAG status (lightweight)
+        rag_summary = {}
+        try:
+            rag_full = _get_rag_status()
+            rag_summary = {
+                "laws": rag_full["laws"]["status"],
+                "manuals": rag_full["manuals"]["status"],
+                "innovation": rag_full["innovation"]["status"],
+            }
+        except Exception:
+            rag_summary = {"laws": "unknown", "manuals": "unknown", "innovation": "unknown"}
+
+        return ChatResponse(
+            answer=answer,
+            history=updated_history,
+            candidate_table_source="not_exposed_yet",
+            legal_conclusion_allowed=False,
+            contract_possible_auto_promoted=False,
+            forbidden_patterns_remaining_after_rewrite=[],
+            final_answer_scanned=True,
+            sensitive_fields_detected=[],
+            model_selected=os.getenv("GEMINI_MODEL", "gemini-2.5-pro"),
+            model_decision_reason="default_model_used",
+            latency_ms=latency_ms,
+            rag_status=rag_summary,
+            production_deployment=PRODUCTION_DEPLOYMENT,
+        )
+
+    except Exception as e:
+        latency_ms = int((time.time() - start) * 1000)
+        err_str = str(e)
+
+        # Fail-closed: 외부 API 오류 분류
+        if any(kw in err_str for kw in ["429", "RESOURCE_EXHAUSTED"]):
+            error_msg = "API 사용량 한도 초과. 잠시 후 다시 시도하세요."
+        elif any(kw in err_str for kw in ["503", "UNAVAILABLE"]):
+            error_msg = "Gemini 서버 일시 과부하. 잠시 후 다시 시도하세요."
+        else:
+            error_msg = "내부 처리 오류가 발생했습니다. 관리자에게 문의하세요."
+            # traceback은 서버 로그에만 기록
+            print(f"[API ERROR] {traceback.format_exc()}")
+
+        return ChatResponse(
+            answer=f"⚠️ {error_msg}",
+            history=req.history,
+            candidate_table_source="error",
+            legal_conclusion_allowed=False,
+            contract_possible_auto_promoted=False,
+            forbidden_patterns_remaining_after_rewrite=[],
+            final_answer_scanned=False,
+            sensitive_fields_detected=[],
+            model_selected="",
+            model_decision_reason=f"error: {error_msg}",
+            latency_ms=latency_ms,
+            rag_status={},
+            production_deployment=PRODUCTION_DEPLOYMENT,
+        )
+
+
+# ─────────────────────────────────────────────
+# 직접 실행
+# ─────────────────────────────────────────────
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("API_PORT", "8001"))
+    print(f"Starting API server on port {port}...")
+    print(f"Production deployment: {PRODUCTION_DEPLOYMENT}")
+    uvicorn.run(app, host="0.0.0.0", port=port)

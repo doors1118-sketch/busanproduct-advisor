@@ -5,3 +5,5 @@ requests
 rank_bm25
 kiwipiepy
 sentence-transformers
+fastapi>=0.110
+uvicorn>=0.27
