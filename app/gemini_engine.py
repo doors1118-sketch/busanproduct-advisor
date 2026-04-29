@@ -1075,6 +1075,15 @@ def chat(user_message: str, history: list[dict] = None, progress_callback=None, 
             history.append({"role": "user", "text": user_message})
             history.append({"role": "model", "text": answer})
 
+            global _last_generation_meta
+            _last_generation_meta = {
+                "prompt_mode": "legacy",
+                "candidate_table_source": "none",
+                "legal_conclusion_allowed": False,
+                "final_answer_scanned": True,
+                "model_used": MODEL_ID,
+            }
+
             return answer, history
 
     print(f"  [WARNING] Function calling loop exhausted after {loop_i+1} iterations")
@@ -2433,7 +2442,13 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
     if generation_meta is not None:
         _last_generation_meta = dict(generation_meta)
     else:
-        _last_generation_meta = {}
+        _last_generation_meta = {
+            "prompt_mode": "legacy",
+            "candidate_table_source": "none",
+            "legal_conclusion_allowed": False,
+            "final_answer_scanned": True,
+            "model_used": MODEL_ID,
+        }
 
     return answer, history
 
