@@ -23,6 +23,20 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 # ─────────────────────────────────────────────
+# Set Default Chroma Paths
+# ─────────────────────────────────────────────
+if "CHROMA_DIR" not in os.environ:
+    os.environ["CHROMA_DIR"] = os.path.join(PROJECT_ROOT, "app", ".chroma")
+if "CHROMA_LAWS_DIR" not in os.environ:
+    os.environ["CHROMA_LAWS_DIR"] = os.path.join(PROJECT_ROOT, "app", ".chroma")
+if "CHROMA_MANUALS_DIR" not in os.environ:
+    os.environ["CHROMA_MANUALS_DIR"] = os.path.join(PROJECT_ROOT, "app", ".chroma")
+if "CHROMA_INNOVATION_DIR" not in os.environ:
+    os.environ["CHROMA_INNOVATION_DIR"] = os.path.join(PROJECT_ROOT, "app", ".chroma")
+
+print("CHROMA_DIR default set to:", os.environ["CHROMA_DIR"])
+
+# ─────────────────────────────────────────────
 # App
 # ─────────────────────────────────────────────
 app = FastAPI(
@@ -237,30 +251,26 @@ def chat_endpoint(req: ChatRequest):
         err_str = str(e)
 
         # Fail-closed: 외부 API 오류 분류
-        if any(kw in err_str for kw in ["429", "RESOURCE_EXHAUSTED"]):
-            error_msg = "API 사용량 한도 초과. 잠시 후 다시 시도하세요."
-        elif any(kw in err_str for kw in ["503", "UNAVAILABLE"]):
-            error_msg = "Gemini 서버 일시 과부하. 잠시 후 다시 시도하세요."
+        if any(kw in err_str for kw in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE"]):
+            error_msg = "API 사용량 한도 초과 또는 서버 지연. 잠시 후 다시 시도하세요."
+            return ChatResponse(
+                answer=f"⚠️ {error_msg}",
+                history=req.history,
+                candidate_table_source="error",
+                legal_conclusion_allowed=False,
+                contract_possible_auto_promoted=False,
+                forbidden_patterns_remaining_after_rewrite=[],
+                final_answer_scanned=False,
+                sensitive_fields_detected=[],
+                model_selected="",
+                model_decision_reason=f"error: {error_msg}",
+                latency_ms=latency_ms,
+                rag_status={},
+                production_deployment=PRODUCTION_DEPLOYMENT,
+            )
         else:
-            error_msg = "내부 처리 오류가 발생했습니다. 관리자에게 문의하세요."
-            # traceback은 서버 로그에만 기록
             print(f"[API ERROR] {traceback.format_exc()}")
-
-        return ChatResponse(
-            answer=f"⚠️ {error_msg}",
-            history=req.history,
-            candidate_table_source="error",
-            legal_conclusion_allowed=False,
-            contract_possible_auto_promoted=False,
-            forbidden_patterns_remaining_after_rewrite=[],
-            final_answer_scanned=False,
-            sensitive_fields_detected=[],
-            model_selected="",
-            model_decision_reason=f"error: {error_msg}",
-            latency_ms=latency_ms,
-            rag_status={},
-            production_deployment=PRODUCTION_DEPLOYMENT,
-        )
+            raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # ─────────────────────────────────────────────
