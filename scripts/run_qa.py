@@ -5,9 +5,12 @@ import os
 import re
 
 # Credentials from environment or default to key-based if not provided
-HOSTNAME = os.environ.get('NCP_HOST', '49.50.133.160')
-USERNAME = os.environ.get('NCP_USER', 'root')
-PASSWORD = os.environ.get('NCP_PASSWORD', None)
+HOSTNAME = os.environ.get("NCP_HOST")
+USERNAME = os.environ.get("NCP_USER")
+PASSWORD = os.environ.get("NCP_PASSWORD")
+
+if not HOSTNAME or not USERNAME:
+    raise RuntimeError("NCP_HOST and NCP_USER must be set")
 
 WORKSPACE = '/root/e2e_workspace'
 
