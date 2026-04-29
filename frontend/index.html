@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>부산 공공조달 AI 챗봇 (MVP)</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <header class="app-header">
+        <h1>부산 공공조달 AI 챗봇</h1>
+        <p class="disclaimer">
+            본 시스템은 지역업체 계약 검토를 지원하는 참고용 도구이며, 계약 가능 여부를 자동 확정하지 않습니다.
+        </p>
+    </header>
+
+    <main class="app-container">
+        <!-- System Status Bar -->
+        <section class="system-status">
+            <div class="status-item">Health: <span id="status-health" class="badge unknown">Checking...</span></div>
+            <div class="status-item">Version: <span id="status-version" class="badge unknown">Checking...</span></div>
+            <div class="status-item">RAG Status: <span id="status-rag" class="badge unknown">Checking...</span></div>
+            <div class="status-item">Deployment: <span id="status-deployment" class="badge hold">HOLD</span></div>
+        </section>
+
+        <!-- Input Area -->
+        <section class="input-section">
+            <div class="form-group">
+                <label for="agency-type">기관 유형 선택</label>
+                <select id="agency-type">
+                    <option value="default">미지정 (소속기관 선택)</option>
+                    <option value="local_government">부산시/구·군/교육청</option>
+                    <option value="local_public_corporation">지방공사·공단</option>
+                    <option value="invested_institution">출자출연기관</option>
+                    <option value="national_agency">국가기관</option>
+                    <option value="public_institution">공공기관</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="user-input">질문 입력</label>
+                <textarea id="user-input" rows="4" placeholder="예: CCTV 부산 업체 추천해줘"></textarea>
+            </div>
+
+            <div class="button-group">
+                <button id="btn-submit" class="btn primary">전송</button>
+                <button id="btn-clear" class="btn secondary">초기화</button>
+            </div>
+        </section>
+
+        <!-- Progress Indicator -->
+        <section id="progress-indicator" class="progress-indicator hidden">
+            <div class="spinner"></div>
+            <p id="progress-text">질문 분석 중...</p>
+        </section>
+
+        <!-- Error/Degraded Indicator -->
+        <section id="error-indicator" class="error-indicator hidden">
+            <!-- Populated by JS -->
+        </section>
+
+        <!-- Output Area -->
+        <section id="output-section" class="output-section hidden">
+            <h2>검토 결과</h2>
+            
+            <!-- Safety Badges -->
+            <div id="safety-badges" class="safety-badges">
+                <!-- Populated by JS -->
+            </div>
+
+            <!-- Answer Display -->
+            <div id="answer-content" class="answer-content markdown-body">
+                <!-- Populated by JS -->
+            </div>
+            
+            <!-- Candidate Table Display (If separated from answer) -->
+            <div id="candidate-table-content" class="candidate-table-content markdown-body hidden">
+            </div>
+
+            <!-- Metadata Display -->
+            <details class="metadata-details">
+                <summary>API 응답 메타데이터 (디버깅용)</summary>
+                <pre id="metadata-content"></pre>
+            </details>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
