@@ -30,6 +30,7 @@ try:
     base = 'c:\\Users\\doors\\OneDrive\\바탕 화면\\사무실 메뉴얼 제작_추출\\메뉴얼 제작'
     
     put_file(os.path.join(base, 'app', 'api_server.py'), '/root/e2e_workspace/app/api_server.py')
+    put_file(os.path.join(base, 'app', 'gemini_engine.py'), '/root/e2e_workspace/app/gemini_engine.py')
     
     # Copy frontend dir
     frontend_dir = os.path.join(base, 'frontend')

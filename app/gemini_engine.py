@@ -2388,27 +2388,127 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
         if "rewritten_sentences_count" not in generation_meta:
             generation_meta["rewritten_sentences_count"] = 0
 
-    if post_scan_forbidden or prompt_leak_detected:
-        # LLM 법적 판단 문장 및 유출 문장 폐기 (Fail-closed 전환)
-        if server_table:
-            answer = "⚠️ 질문하신 조건에 대한 계약 가능 여부나 금액 한도는 시스템이 단정할 수 없습니다. 계약 전 관련 법령 및 지침을 직접 확인하시기 바랍니다.\n\n"
-            answer += f"**[시스템 자동 추출 후보 표]**\n{server_table}"
-            if generation_meta is not None:
-                generation_meta["candidate_table_preserved"] = True
-                generation_meta["final_answer_source"] = "deterministic_template_plus_server_table"
+    # 금액 파싱 및 검토 경로 제공 로직
+    amount_detected = None
+    amount_band = None
+    general_small_value_sole_quote = None
+    policy_company_sole_quote = None
+    route_guidance_provided = False
+    
+    def parse_amount(text):
+        t = text.replace(" ", "").replace(",", "")
+        m = re.search(r'(\d+)(억|천만|백만|만)원', t)
+        if m:
+            n = int(m.group(1))
+            u = m.group(2)
+            if u == '억': return n * 100000000
+            if u == '천만': return n * 10000000
+            if u == '백만': return n * 1000000
+            if u == '만': return n * 10000
+        m2 = re.search(r'(\d+)원', t)
+        if m2: return int(m2.group(1))
+        return None
+
+    amount_detected = parse_amount(user_message)
+    if amount_detected is not None:
+        if amount_detected <= 20000000:
+            amount_band = "under_20m"
+            general_small_value_sole_quote = "within_threshold"
+            policy_company_sole_quote = "within_threshold"
+        elif amount_detected <= 50000000:
+            amount_band = "over_20m_under_50m"
+            general_small_value_sole_quote = "exceeds_threshold"
+            policy_company_sole_quote = "within_threshold"
+        elif amount_detected <= 100000000:
+            amount_band = "over_50m_under_100m"
+            general_small_value_sole_quote = "exceeds_threshold"
+            policy_company_sole_quote = "exceeds_50m_threshold"
         else:
-            answer = "⚠️ 질문하신 조건에 대한 계약 가능 여부나 금액 한도는 시스템이 단정할 수 없습니다. 계약 전 관련 법령 및 지침을 직접 확인하시기 바랍니다.\n\n"
+            amount_band = "over_100m"
+            general_small_value_sole_quote = "exceeds_threshold"
+            policy_company_sole_quote = "exceeds_50m_threshold"
+
+    amount_template = ""
+    if amount_detected is not None:
+        # 단정적 표현 없이 검토 경로 제공
+        amount_template = "물품 구매는 일반적인 소액 수의계약 기준만으로는 바로 처리하기 어렵습니다.\n\n" if amount_detected > 20000000 else "물품 구매는 일반적인 소액 수의계약 검토가 가능할 수 있습니다.\n\n"
+        amount_template = f"{amount_detected:,}원 " + amount_template
+        amount_template += "지방계약법령상 1인 견적 제출 가능 수의계약은 일반적으로 추정가격 2천만원 이하가 기준이고, 여성기업·장애인기업·사회적기업 등 일부 정책기업의 경우 5천만원 이하까지 검토할 수 있습니다.\n\n"
+        
+        if amount_detected > 50000000:
+            amount_template += f"따라서 {amount_detected:,}원 물품은 이 일반 소액 수의계약·1인 견적 기준을 초과합니다. 다만 바로 불가로 볼 것은 아니며, 다음 구매 경로를 검토할 수 있습니다.\n\n"
+        elif amount_detected > 20000000:
+            amount_template += f"따라서 {amount_detected:,}원 물품은 일반 소액 수의계약 기준은 초과합니다. 다만 정책기업 특례 요건을 충족하거나, 다음 구매 경로를 검토할 수 있습니다.\n\n"
+        else:
+            amount_template += "추가적으로 다음 구매 경로도 함께 검토할 수 있습니다.\n\n"
+            
+        amount_template += """1. 나라장터 종합쇼핑몰 등록 제품 여부
+   - 등록 제품이면 납품요구 또는 2단계 경쟁 여부를 검토합니다.
+   - 일반 제품은 5천만원 이상일 때 2단계 경쟁 대상 여부를 확인해야 합니다.
+
+2. 혁신제품 여부
+   - 혁신제품으로 지정되어 있고 지정기간이 유효하면 혁신제품 구매 경로를 검토할 수 있습니다.
+
+3. 우수조달물품·기술개발제품 등 인증제품 여부
+   - 인증 유효기간, 조달 등록 여부, 수요기관 적용 법령을 확인합니다.
+
+4. 위 경로가 없으면 일반 입찰, 제한경쟁, 지명입찰 등 다른 계약 방식을 검토합니다.
+
+결론:
+"""
+        if amount_detected > 50000000:
+            amount_template += f"- {amount_detected:,}원은 일반 소액 수의계약 기준은 초과합니다.\n"
+        elif amount_detected > 20000000:
+            amount_template += f"- {amount_detected:,}원은 일반 소액 수의계약 기준은 초과하나 정책기업(5천만원 이하) 검토 대상이 될 수 있습니다.\n"
+        else:
+            amount_template += f"- {amount_detected:,}원은 일반 소액 수의계약 한도 내에 있습니다.\n"
+            
+        amount_template += """- 종합쇼핑몰, 혁신제품, 우수조달물품, 기술개발제품 등 별도 조달 경로가 있으면 검토 가능성이 있습니다.
+- 실제 계약 전에는 품목, 추정가격, 조달등록 여부, 인증 유효기간, 적용 법령을 확인해야 합니다."""
+
+    if post_scan_forbidden or prompt_leak_detected or amount_detected is not None:
+        if amount_detected is not None:
+            answer = amount_template + "\n\n"
+            if server_table:
+                answer += f"**[시스템 자동 추출 후보 표]**\n{server_table}"
             if generation_meta is not None:
-                generation_meta["final_answer_source"] = "deterministic_fail_closed_template"
-                
-        if generation_meta is not None:
-            generation_meta["llm_generated_table_discarded"] = True
-            generation_meta["deterministic_template_used"] = True
-            generation_meta["answer_discarded"] = True
-            generation_meta["llm_legal_judgment_discarded"] = True
-            generation_meta["regex_rewrite_applied"] = True
-            generation_meta["forbidden_patterns_matched"] = []
-            generation_meta["rewritten_sentences_count"] += len(post_scan_forbidden)
+                generation_meta["final_answer_source"] = "amount_based_route_template"
+                generation_meta["route_guidance_provided"] = True
+                generation_meta["amount_detected"] = amount_detected
+                generation_meta["amount_band"] = amount_band
+                generation_meta["general_small_value_sole_quote"] = general_small_value_sole_quote
+                generation_meta["policy_company_sole_quote"] = policy_company_sole_quote
+                generation_meta["shopping_mall_route_check_required"] = True
+                generation_meta["innovation_product_route_check_required"] = True
+                if server_table:
+                    generation_meta["candidate_table_preserved"] = True
+                generation_meta["llm_generated_table_discarded"] = True
+                generation_meta["answer_discarded"] = True
+                generation_meta["deterministic_template_used"] = True
+                generation_meta["forbidden_patterns_matched"] = []
+                # Remove post scan forbidden since we replaced the answer entirely
+                post_scan_forbidden.clear()
+        else:
+            # LLM 법적 판단 문장 및 유출 문장 폐기 (Fail-closed 전환)
+            if server_table:
+                answer = "⚠️ 질문하신 조건에 대한 계약 가능 여부나 금액 한도는 시스템이 단정할 수 없습니다. 계약 전 관련 법령 및 지침을 직접 확인하시기 바랍니다.\n\n"
+                answer += f"**[시스템 자동 추출 후보 표]**\n{server_table}"
+                if generation_meta is not None:
+                    generation_meta["candidate_table_preserved"] = True
+                    generation_meta["final_answer_source"] = "deterministic_template_plus_server_table"
+            else:
+                answer = "⚠️ 질문하신 조건에 대한 계약 가능 여부나 금액 한도는 시스템이 단정할 수 없습니다. 계약 전 관련 법령 및 지침을 직접 확인하시기 바랍니다.\n\n"
+                if generation_meta is not None:
+                    generation_meta["final_answer_source"] = "deterministic_fail_closed_template"
+                    
+            if generation_meta is not None:
+                generation_meta["llm_generated_table_discarded"] = True
+                generation_meta["deterministic_template_used"] = True
+                generation_meta["answer_discarded"] = True
+                generation_meta["llm_legal_judgment_discarded"] = True
+                generation_meta["regex_rewrite_applied"] = True
+                generation_meta["forbidden_patterns_matched"] = []
+                generation_meta["rewritten_sentences_count"] += len(post_scan_forbidden)
 
     # API 상태 표시
     status_display = api_status.to_display()

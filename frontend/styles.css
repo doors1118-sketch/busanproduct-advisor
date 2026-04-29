@@ -37,6 +37,14 @@ body {
     color: var(--primary-color);
 }
 
+.app-alias {
+    font-size: 0.55em;
+    color: #666;
+    font-weight: normal;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
 .disclaimer {
     margin: 0;
     font-size: 0.9rem;

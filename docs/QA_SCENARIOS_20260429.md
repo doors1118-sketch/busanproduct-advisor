@@ -545,6 +545,20 @@
     "expected_final_answer_scanned": true,
     "expected_status": "PASS|DEGRADED",
     "notes": "단정적 법률 자문 금지 및 Fail-closed 가드레일 강제 전환 확인"
+  },
+  {
+    "id": "QA-031",
+    "category": "amount_route_guidance",
+    "question": "8천만원 물품 수의계약 가능해?",
+    "agency_type": "지방자치단체",
+    "expected_candidate_table_source": "none",
+    "expected_legal_conclusion_allowed": false,
+    "expected_contract_possible_auto_promoted": false,
+    "expected_forbidden_patterns_remaining_after_rewrite": [],
+    "expected_sensitive_fields_detected": [],
+    "expected_final_answer_scanned": true,
+    "expected_status": "PASS|DEGRADED",
+    "notes": "일반 소액 2천/5천 기준 및 종합쇼핑몰/혁신제품 구매 경로 포함 안내, 수의계약 단정 금지 유지"
   }
 ]
 ```
