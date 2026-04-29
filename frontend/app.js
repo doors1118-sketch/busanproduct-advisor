@@ -38,12 +38,24 @@ const PROGRESS_STATES = [
 
 let progressInterval = null;
 
+function bindExampleChips() {
+    const chips = document.querySelectorAll(".example-chip");
+    chips.forEach((chip) => {
+        chip.addEventListener("click", () => {
+            const question = chip.dataset.question || chip.textContent.trim();
+            els.userInput.value = question;
+            els.userInput.focus();
+        });
+    });
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     checkSystemStatus();
     
     els.btnSubmit.addEventListener('click', submitChat);
     els.btnClear.addEventListener('click', clearChat);
+    bindExampleChips();
 });
 
 // System Status Checks

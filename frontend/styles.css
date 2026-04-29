@@ -247,3 +247,51 @@ textarea {
     padding: 0.2rem;
     border-radius: 4px;
 }
+
+/* Example Questions Section */
+.example-section {
+  margin: 1rem 0 1.25rem 0;
+  padding: 1rem;
+  border: 1px solid #bee3f8;
+  border-radius: 8px;
+  background: #f7fbff;
+}
+
+.example-title {
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 0.25rem;
+}
+
+.example-helper {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.example-chips {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.example-chip {
+  border: 1px solid #90cdf4;
+  background: #fff;
+  color: var(--primary-color);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.example-chip:hover {
+  background: #ebf8ff;
+  border-color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+  .example-chips {
+    grid-template-columns: 1fr;
+  }
+}
