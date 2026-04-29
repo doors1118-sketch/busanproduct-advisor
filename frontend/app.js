@@ -25,7 +25,9 @@ const els = {
     safetyBadges: document.getElementById('safety-badges'),
     answerContent: document.getElementById('answer-content'),
     candidateTableContent: document.getElementById('candidate-table-content'),
-    metadataContent: document.getElementById('metadata-content')
+    metadataContent: document.getElementById('metadata-content'),
+    btnDownloadMd: document.getElementById('btn-download-md'),
+    btnDownloadCsv: document.getElementById('btn-download-csv')
 };
 
 const PROGRESS_STATES = [
@@ -37,6 +39,7 @@ const PROGRESS_STATES = [
 ];
 
 let progressInterval = null;
+let currentRawAnswer = "";
 
 function bindExampleChips() {
     const chips = document.querySelectorAll(".example-chip");
@@ -55,6 +58,14 @@ document.addEventListener('DOMContentLoaded', () => {
     
     els.btnSubmit.addEventListener('click', submitChat);
     els.btnClear.addEventListener('click', clearChat);
+    
+    if (els.btnDownloadMd) {
+        els.btnDownloadMd.addEventListener('click', downloadMarkdown);
+    }
+    if (els.btnDownloadCsv) {
+        els.btnDownloadCsv.addEventListener('click', downloadCsv);
+    }
+    
     bindExampleChips();
 });
 
@@ -220,9 +231,21 @@ function renderOutput(data) {
     
     // Frontend Security Redaction
     rawAnswer = redactSensitiveInfo(rawAnswer);
+    currentRawAnswer = rawAnswer;
     
     // Render Markdown
     els.answerContent.innerHTML = DOMPurify.sanitize(marked.parse(rawAnswer));
+    
+    // Check if table exists for CSV download
+    if (els.btnDownloadCsv) {
+        if (rawAnswer.includes("|") && rawAnswer.includes("---")) {
+            els.btnDownloadCsv.disabled = false;
+            els.btnDownloadCsv.title = "";
+        } else {
+            els.btnDownloadCsv.disabled = true;
+            els.btnDownloadCsv.title = "다운로드할 후보표가 없습니다";
+        }
+    }
     
     // 3. Metadata Whitelist
     const safeMetadata = {
@@ -254,4 +277,54 @@ function clearChat() {
     els.userInput.value = '';
     els.outputSection.classList.add('hidden');
     els.errorIndicator.classList.add('hidden');
+}
+
+function downloadMarkdown() {
+    if (!currentRawAnswer) return;
+    const blob = new Blob([currentRawAnswer], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '검토결과.md';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function downloadCsv() {
+    if (!currentRawAnswer) return;
+    
+    // Extract markdown table
+    const lines = currentRawAnswer.split('\n');
+    let csvContent = "";
+    let inTable = false;
+    
+    for (const line of lines) {
+        if (line.trim().startsWith('|')) {
+            inTable = true;
+            // Skip the separator line
+            if (line.includes('---')) continue;
+            
+            // Basic markdown table parsing
+            const row = line.split('|').slice(1, -1).map(cell => {
+                let text = cell.trim();
+                text = text.replace(/"/g, '""'); // escape quotes
+                return `"${text}"`;
+            });
+            csvContent += row.join(',') + '\n';
+        } else {
+            if (inTable) break; // First table only
+        }
+    }
+    
+    if (!csvContent) return;
+    
+    // Add BOM for Excel UTF-8
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+    const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '후보표.csv';
+    a.click();
+    URL.revokeObjectURL(url);
 }

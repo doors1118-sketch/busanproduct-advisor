@@ -48,12 +48,12 @@
                 <div class="example-title">💡 질문 예시</div>
                 <p class="example-helper">예시를 클릭하면 질문창에 자동 입력됩니다.</p>
                 <div class="example-chips">
-                    <button type="button" class="example-chip">CCTV 부산 업체 추천해줘</button>
-                    <button type="button" class="example-chip">부산 지역 전기공사업체 알려줘</button>
-                    <button type="button" class="example-chip">혁신제품 여부를 확인해줘</button>
-                    <button type="button" class="example-chip">수의계약 검토 시 유의사항은?</button>
-                    <button type="button" class="example-chip">지역업체 검색 결과를 표로 보여줘</button>
-                    <button type="button" class="example-chip">기관 유형별로 주의할 점은?</button>
+                    <button type="button" class="example-chip" data-question="CCTV 부산 업체 추천해줘">CCTV 부산 업체 추천해줘</button>
+                    <button type="button" class="example-chip" data-question="부산 지역 전기공사업체 알려줘">부산 지역 전기공사업체 알려줘</button>
+                    <button type="button" class="example-chip" data-question="혁신제품 여부를 확인해줘">혁신제품 여부를 확인해줘</button>
+                    <button type="button" class="example-chip" data-question="수의계약 검토 시 유의사항은?">수의계약 검토 시 유의사항은?</button>
+                    <button type="button" class="example-chip" data-question="지역업체 검색 결과를 표로 보여줘">지역업체 검색 결과를 표로 보여줘</button>
+                    <button type="button" class="example-chip" data-question="기관 유형별로 주의할 점은?">기관 유형별로 주의할 점은?</button>
                 </div>
             </section>
 
@@ -90,6 +90,12 @@
             
             <!-- Candidate Table Display (If separated from answer) -->
             <div id="candidate-table-content" class="candidate-table-content markdown-body hidden">
+            </div>
+
+            <!-- Download Actions -->
+            <div class="download-actions" style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button id="btn-download-md" class="btn secondary btn-small">답변 Markdown 다운로드</button>
+                <button id="btn-download-csv" class="btn secondary btn-small" disabled title="다운로드할 후보표가 없습니다">후보표 CSV 다운로드</button>
             </div>
 
             <!-- Metadata Display -->
