@@ -1,0 +1,134 @@
+{
+  "commit_info": {
+    "commit_hash": "a628b36eb2b26dabe4bc81b2a6fe942bcb030f2c",
+    "git_pushed": true,
+    "git_status_clean": true
+  },
+  "ncp_env_path_defaults": {
+    "chroma_dir": "$PROJECT_ROOT/app/.chroma",
+    "chroma_laws_dir": "$PROJECT_ROOT/app/.chroma",
+    "chroma_manuals_dir": "$PROJECT_ROOT/app/.chroma",
+    "chroma_innovation_dir": "$PROJECT_ROOT/app/.chroma",
+    "source": "script_default"
+  },
+  "unused_dirs": {
+    "app/.chroma_laws": "exists_1_files"
+  },
+  "rag_init_summary": {
+    "laws_rag_status": "SUCCESS",
+    "laws_indexed_doc_count": 808,
+    "manuals_rag_status": "SUCCESS",
+    "manuals_collection_strategy": "split_collections",
+    "manuals_collections": [
+      {
+        "name": "manuals_4",
+        "count": 750
+      },
+      {
+        "name": "manuals_3",
+        "count": 750
+      },
+      {
+        "name": "manuals_1",
+        "count": 750
+      },
+      {
+        "name": "manuals_2",
+        "count": 750
+      },
+      {
+        "name": "manuals_5",
+        "count": 361
+      }
+    ],
+    "manuals_total_doc_count": 3361,
+    "manuals_retrieved_doc_count": 3,
+    "innovation_status": "SUCCESS",
+    "innovation_product_count": 771,
+    "source_pdf_count": 0,
+    "doc_count_note": "NCP 3361 vs local 2675: NCP has more PDFs in data/manuals/ (25 PDFs vs local subset)"
+  },
+  "e2e_summary": {
+    "staging_verification_result": "PASS",
+    "staging_details": [
+      {
+        "test_case": "7_Company_Search_Chat_Integration",
+        "pass": true,
+        "failure_reason": ""
+      },
+      {
+        "test_case": "7_2_Company_Search_No_Results_Mock",
+        "pass": true,
+        "failure_reason": ""
+      },
+      {
+        "test_case": "7_3A_Company_Search_Real",
+        "pass": true,
+        "failure_reason": ""
+      },
+      {
+        "test_case": "7_3B_Company_Search_Mock_Safety",
+        "pass": true,
+        "failure_reason": ""
+      }
+    ],
+    "tc7_grt_result": "PASS",
+    "tc7_details": [
+      {
+        "test_case": "G-RT-1_Innovation_Product",
+        "pass": true,
+        "failure_reason": ""
+      },
+      {
+        "test_case": "G-RT-2_Tech_Dev_Product",
+        "pass": true,
+        "failure_reason": ""
+      },
+      {
+        "test_case": "G-RT-3_Forbidden_Expression_Check_Iter1",
+        "pass": true,
+        "failure_reason": ""
+      },
+      {
+        "test_case": "G-RT-3_Forbidden_Expression_Check_Iter2",
+        "pass": true,
+        "failure_reason": ""
+      },
+      {
+        "test_case": "G-RT-3_Forbidden_Expression_Check_Iter3",
+        "pass": true,
+        "failure_reason": ""
+      },
+      {
+        "test_case": "G-RT-3_Forbidden_Expression_Check_Iter4",
+        "pass": true,
+        "failure_reason": ""
+      },
+      {
+        "test_case": "G-RT-3_Forbidden_Expression_Check_Iter5",
+        "pass": true,
+        "failure_reason": ""
+      },
+      {
+        "test_case": "G-RT-3_Malformed_Mock",
+        "pass": true,
+        "failure_reason": ""
+      }
+    ],
+    "false_pass_detected": false,
+    "laws_rag_status": "success",
+    "manuals_rag_status": "PASSED_STAGING",
+    "innovation_status": "UNKNOWN",
+    "forbidden_patterns_remaining_after_rewrite": [],
+    "legal_conclusion_allowed_values": [],
+    "contract_possible_auto_promoted_values": [],
+    "production_deployment": "HOLD"
+  },
+  "ncp_e2e_status": "PASS",
+  "production_deployment": "HOLD",
+  "direct_function_smoke": {
+    "raw_chromadb_query_status": "INVALID_TEST_METHOD",
+    "reason": "default embedding dimension 384 != e5-large dimension 1024",
+    "app_level_query_status": "PASS"
+  }
+}
