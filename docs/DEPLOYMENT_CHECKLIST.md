@@ -38,7 +38,7 @@
 | 환경변수 | PROMPT_MODE 확인 | `dynamic_v1_4_4` 또는 `legacy` 적용 여부 | TODO | |
 | 환경변수 | CHROMA_DIR 계열 경로 확인 | `CHROMA_DIR`, `CHROMA_LAWS_DIR` 등 경로 설정 정상 | TODO | |
 | 제약 | `.env` / API key 출력 금지 | 운영/테스트 스크립트 상에 값 노출 절대 금지 | PASS | |
-| 보안 권고 | NCP SSH Password Rotation | 테스트 스크립트에 임시 노출된 root 패스워드 변경 | TODO | ⚠️ 권고사항 |
+| 보안 권고 | NCP SSH Password Rotation | 테스트 스크립트에 임시 노출된 root 패스워드 즉시 변경 | REQUIRED | ⚠️ 배포 전 필수 수행 |
 
 ### C. RAG / 데이터 상태
 | 구분 | 체크 항목 | 기준 | 상태 | 비고 |
@@ -135,6 +135,7 @@
 - `contract_possible_auto_promoted` `true` 발생 사례 0건
 - 민감정보 (사업자등록번호 등) 노출 0건
 - `.env` 및 API key 노출 0건
+- NCP root password rotation 수행 완료 (필수)
 - 롤백(Rollback) 절차 문서화 완료
 - 최종 운영 승인자(담당자) 확인 완료
 
