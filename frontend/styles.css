@@ -256,6 +256,32 @@ textarea {
     border-radius: 4px;
 }
 
+/* Data Source Summary Box */
+.data-source-summary {
+    background-color: #f0f9ff;
+    border: 1px solid #90cdf4;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.data-source-summary strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--primary-color);
+}
+
+.data-source-summary ul {
+    margin: 0;
+    padding-left: 1.2rem;
+    list-style: disc;
+}
+
+.data-source-summary li {
+    margin-bottom: 0.15rem;
+}
+
 /* Example Questions Section */
 .example-section {
   margin: 1rem 0 1.25rem 0;

@@ -136,6 +136,15 @@ class ChatResponse(BaseModel):
     latency_ms: int = 0
     rag_status: dict = {}
     production_deployment: str = PRODUCTION_DEPLOYMENT
+    # 지역업체 경로 안내 확장 필드
+    route_guidance_provided: bool = False
+    regional_route_guidance_provided: bool = False
+    amount_detected: Optional[int] = None
+    amount_band: Optional[str] = None
+    candidate_counts_by_type: dict = {}
+    source_call_statuses: dict = {}
+    sensitive_fields_removed: bool = True
+    enrichment_join_key_redacted: bool = True
 
 
 # ─────────────────────────────────────────────
@@ -301,6 +310,14 @@ def chat_endpoint(req: ChatRequest):
             latency_ms=latency_ms,
             rag_status=rag_summary,
             production_deployment=PRODUCTION_DEPLOYMENT,
+            route_guidance_provided=meta.get("route_guidance_provided", False),
+            regional_route_guidance_provided=meta.get("regional_route_guidance_provided", False),
+            amount_detected=meta.get("amount_detected"),
+            amount_band=meta.get("amount_band"),
+            candidate_counts_by_type=meta.get("candidate_counts_by_type", {}),
+            source_call_statuses=meta.get("source_call_statuses", {}),
+            sensitive_fields_removed=meta.get("sensitive_fields_removed", True),
+            enrichment_join_key_redacted=meta.get("enrichment_join_key_redacted", True),
         )
 
     except Exception as e:

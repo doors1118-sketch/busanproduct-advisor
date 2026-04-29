@@ -49,18 +49,65 @@ def _determine_display_order(user_message: str) -> list:
 
 
 def _build_company_table(rows: list) -> str:
-    """업체 후보 행들을 Markdown 표로 변환"""
+    """업체 후보 행들을 Markdown 표로 변환 (11컬럼 확장)"""
     if not rows:
         return ""
-    header = "| 업체명 | 소재지 | 대표품목 | 정책기업 태그 | 비고 |\n| :--- | :--- | :--- | :--- | :--- |\n"
+    header = (
+        "| 후보유형 | 업체명 | 소재지 | 대표품목/등록상품명 | 조달등록 | 쇼핑몰/MAS | "
+        "정책기업 태그 | 인증유형 | 유효기간 | 검토 가능 경로 | 비고 |\n"
+        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n"
+    )
     lines = []
     for r in rows:
+        # 후보유형
+        ptype = r.get("primary_candidate_type", "")
+        type_label_map = {
+            "shopping_mall_supplier": "쇼핑몰",
+            "local_procurement_company": "조달등록",
+            "policy_company": "정책기업",
+        }
+        type_label = type_label_map.get(ptype, ptype or "확인 필요")
+
         name = r.get("company_name", r.get("product_name", ""))
         loc = r.get("location", "부산")
-        prods = ", ".join(r.get("main_products", ["설명 확인 필요"]))
+        prods = ", ".join(r.get("main_products", [])) or "확인 필요"
+
+        # 조달등록 여부
+        procurement_reg = "확인" if ptype in ("local_procurement_company", "policy_company") else "확인 필요"
+
+        # 쇼핑몰/MAS 등록
+        mall_reg = r.get("shopping_mall_registered")
+        if mall_reg is True:
+            mall_str = "확인"
+        elif mall_reg is False:
+            mall_str = "해당 없음"
+        else:
+            mall_str = "확인 필요"
+
+        # 정책기업 태그
         tags = ", ".join(r.get("policy_tags", []))
+        if not tags:
+            tags = "해당 없음" if ptype != "policy_company" else "확인 필요"
+
+        # 인증유형
+        cert_type = r.get("innovation_product_status") or r.get("certification_type", "")
+        if not cert_type or cert_type in ("None", "nan"):
+            cert_type = "확인 필요"
+
+        # 유효기간
+        validity = r.get("certification_valid_until", "확인 필요")
+        if not validity or validity in ("None", "nan", ""):
+            validity = "확인 필요"
+
+        # 검토 가능 경로 (축약)
+        routes = r.get("purchase_routes", [])
+        route_str = ", ".join(routes[:2]) if routes else "확인 필요"
+
         note = r.get("note", "후보, 확인 필요")
-        lines.append(f"| {name} | {loc} | {prods} | {tags} | {note} |")
+        lines.append(
+            f"| {type_label} | {name} | {loc} | {prods} | {procurement_reg} | {mall_str} | "
+            f"{tags} | {cert_type} | {validity} | {route_str} | {note} |"
+        )
     return header + "\n".join(lines)
 
 

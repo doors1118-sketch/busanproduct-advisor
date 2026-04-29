@@ -311,6 +311,9 @@ def get_candidate_counts(classified: dict) -> dict:
         "tagged_policy_company_count": tagged_policy,
         "innovation_product_count": len(classified.get("innovation_product", [])),
         "priority_purchase_count": len(classified.get("priority_purchase_product", [])),
+        # API 메타데이터 노출용 필드
+        "policy_tag_populated_count": tagged_policy,
+        "shopping_mall_supplier_count": len(classified.get("shopping_mall_supplier", [])),
     }
 
 

@@ -220,6 +220,12 @@ function renderOutput(data) {
     if (data.candidate_table_source === "server_structured_formatter") {
         badges.push(`<span class="safety-badge ok">📊 서버 생성 후보표</span>`);
     }
+    // Regional route guidance badges
+    if (data.regional_route_guidance_provided === true) {
+        badges.push(`<span class="safety-badge ok">🏢 지역업체 경로 안내</span>`);
+    } else if (data.route_guidance_provided === true) {
+        badges.push(`<span class="safety-badge ok">📋 검토 경로 안내</span>`);
+    }
     if (data.production_deployment === "HOLD") {
         badges.push(`<span class="safety-badge warn">🛑 운영 배포 HOLD</span>`);
     }
@@ -247,6 +253,26 @@ function renderOutput(data) {
         }
     }
     
+    // 2.5 Data Source Summary Box
+    const counts = data.candidate_counts_by_type || {};
+    const hasAnyCounts = Object.values(counts).some(v => v > 0);
+    if (hasAnyCounts) {
+        let summaryHtml = '<div class="data-source-summary"><strong>📊 데이터 소스 확인</strong><ul>';
+        const labels = {
+            local_procurement_company: '조달등록 부산업체',
+            shopping_mall_supplier: '종합쇼핑몰 등록 후보',
+            policy_company: '정책기업 태그 확인',
+            innovation_product: '혁신제품',
+            priority_purchase_product: '기술개발제품',
+        };
+        for (const [key, label] of Object.entries(labels)) {
+            const cnt = counts[key] ?? 0;
+            summaryHtml += `<li>${label}: <strong>${cnt}건</strong></li>`;
+        }
+        summaryHtml += '</ul></div>';
+        els.answerContent.insertAdjacentHTML('afterbegin', summaryHtml);
+    }
+    
     // 3. Metadata Whitelist
     const safeMetadata = {
         candidate_table_source: data.candidate_table_source,
@@ -258,7 +284,15 @@ function renderOutput(data) {
         model_selected: data.model_selected,
         model_decision_reason: data.model_decision_reason,
         latency_ms: data.latency_ms,
-        production_deployment: data.production_deployment
+        production_deployment: data.production_deployment,
+        route_guidance_provided: data.route_guidance_provided,
+        regional_route_guidance_provided: data.regional_route_guidance_provided,
+        amount_detected: data.amount_detected,
+        amount_band: data.amount_band,
+        candidate_counts_by_type: data.candidate_counts_by_type,
+        source_call_statuses: data.source_call_statuses,
+        sensitive_fields_removed: data.sensitive_fields_removed,
+        enrichment_join_key_redacted: data.enrichment_join_key_redacted,
     };
     els.metadataContent.textContent = JSON.stringify(safeMetadata, null, 2);
     

@@ -2394,6 +2394,7 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
     general_small_value_sole_quote = None
     policy_company_sole_quote = None
     route_guidance_provided = False
+    regional_route_guidance_provided = False
     
     def parse_amount(text):
         t = text.replace(" ", "").replace(",", "")
@@ -2409,7 +2410,19 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
         if m2: return int(m2.group(1))
         return None
 
+    def detect_regional_preference(text):
+        """지역업체 활용 의도 감지"""
+        REGIONAL_KEYWORDS = [
+            "지역업체", "지역상품", "부산업체", "부산 업체", "부산 소재",
+            "지역업체와 계약", "지역업체 활용", "지역업체랑",
+            "부산업체 추천", "지역 제한", "지역제한",
+            "부산업체랑", "지역업체한테", "부산업체한테",
+        ]
+        return any(kw in text for kw in REGIONAL_KEYWORDS)
+
     amount_detected = parse_amount(user_message)
+    regional_pref = detect_regional_preference(user_message)
+
     if amount_detected is not None:
         if amount_detected <= 20000000:
             amount_band = "under_20m"
@@ -2428,58 +2441,112 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
             general_small_value_sole_quote = "exceeds_threshold"
             policy_company_sole_quote = "exceeds_50m_threshold"
 
-    amount_template = ""
+    # ── source_call_statuses 수집 ──
+    source_call_statuses = {}
+    for r in all_tool_results:
+        tn = r.get("tool_name", "unknown")
+        source_call_statuses[tn] = r.get("status", "unknown")
+
+    # ── candidate_counts_by_type 수집 ──
+    candidate_counts_by_type = {}
+    if generation_meta is not None:
+        candidate_counts_by_type = {
+            "local_procurement_company": generation_meta.get("local_company_count", 0),
+            "shopping_mall_supplier": generation_meta.get("mall_company_count", 0),
+            "policy_company": generation_meta.get("tagged_policy_company_count", 0),
+            "innovation_product": generation_meta.get("innovation_product_count", 0),
+            "priority_purchase_product": generation_meta.get("priority_purchase_count", 0),
+        }
+
+    route_template = ""
     if amount_detected is not None:
-        # 단정적 표현 없이 검토 경로 제공
-        amount_template = "물품 구매는 일반적인 소액 수의계약 기준만으로는 바로 처리하기 어렵습니다.\n\n" if amount_detected > 20000000 else "물품 구매는 일반적인 소액 수의계약 검토가 가능할 수 있습니다.\n\n"
-        amount_template = f"{amount_detected:,}원 " + amount_template
-        amount_template += "지방계약법령상 1인 견적 제출 가능 수의계약은 일반적으로 추정가격 2천만원 이하가 기준이고, 여성기업·장애인기업·사회적기업 등 일부 정책기업의 경우 5천만원 이하까지 검토할 수 있습니다.\n\n"
-        
-        if amount_detected > 50000000:
-            amount_template += f"따라서 {amount_detected:,}원 물품은 이 일반 소액 수의계약·1인 견적 기준을 초과합니다. 다만 바로 불가로 볼 것은 아니며, 다음 구매 경로를 검토할 수 있습니다.\n\n"
-        elif amount_detected > 20000000:
-            amount_template += f"따라서 {amount_detected:,}원 물품은 일반 소액 수의계약 기준은 초과합니다. 다만 정책기업 특례 요건을 충족하거나, 다음 구매 경로를 검토할 수 있습니다.\n\n"
+        amt_str = f"{amount_detected:,}원"
+
+        # ── A. 금액대 판단 ──
+        route_template = f"## 📌 A. 금액대 판단\n\n"
+        if amount_detected <= 20000000:
+            route_template += f"- {amt_str}은 일반 소액 수의계약 기준(추정가격 2천만원 이하) 이내입니다.\n"
+            route_template += f"- 정책기업(여성기업·장애인기업·사회적기업 등) 소액 수의계약 기준(5천만원 이하)에도 해당합니다.\n"
+        elif amount_detected <= 50000000:
+            route_template += f"- {amt_str}은 일반 소액 수의계약 기준(2천만원 이하)을 초과합니다.\n"
+            route_template += f"- 정책기업(여성기업·장애인기업·사회적기업 등)의 경우 5천만원 이하까지 수의계약을 검토할 수 있습니다.\n"
         else:
-            amount_template += "추가적으로 다음 구매 경로도 함께 검토할 수 있습니다.\n\n"
-            
-        amount_template += """1. 나라장터 종합쇼핑몰 등록 제품 여부
-   - 등록 제품이면 납품요구 또는 2단계 경쟁 여부를 검토합니다.
-   - 일반 제품은 5천만원 이상일 때 2단계 경쟁 대상 여부를 확인해야 합니다.
+            route_template += f"- {amt_str}은 일반 소액 수의계약 기준(2천만원 이하)과 정책기업 수의계약 기준(5천만원 이하) 모두 초과합니다.\n"
+            route_template += f"- 단, 이것만으로 \"불가\"라고 단정할 수는 없으며, 아래 다양한 계약 경로를 검토할 수 있습니다.\n"
 
-2. 혁신제품 여부
-   - 혁신제품으로 지정되어 있고 지정기간이 유효하면 혁신제품 구매 경로를 검토할 수 있습니다.
+        route_template += "\n"
 
-3. 우수조달물품·기술개발제품 등 인증제품 여부
-   - 인증 유효기간, 조달 등록 여부, 수요기관 적용 법령을 확인합니다.
+        # ── B. 지역업체 활용 가능 경로 ──
+        if regional_pref:
+            regional_route_guidance_provided = True
+            route_template += "## 🏢 B. 지역업체 활용 가능 경로\n\n"
+            route_template += "**1. 지역제한 제한경쟁입찰**\n"
+            route_template += "   - 지방계약법 시행령 제20조 및 시행규칙 제24조에 따라 추정가격이 행안부령 기준 미만이면 지역을 제한한 제한경쟁입찰 검토가 가능합니다.\n"
+            route_template += "   - 적용 가능 금액 기준과 기관유형별 세부 요건 확인이 필요합니다.\n\n"
 
-4. 위 경로가 없으면 일반 입찰, 제한경쟁, 지명입찰 등 다른 계약 방식을 검토합니다.
+            route_template += "**2. 지역업체 가점 또는 우대 평가**\n"
+            route_template += "   - 「지방자치단체 입찰시 낙찰자 결정기준」에 따른 적격심사 시 지역업체 가점 부여 경로를 검토할 수 있습니다.\n"
+            route_template += "   - 물품 적격심사 세부기준의 지역업체 가점 항목 확인이 필요합니다.\n\n"
 
-결론:
-"""
-        if amount_detected > 50000000:
-            amount_template += f"- {amount_detected:,}원은 일반 소액 수의계약 기준은 초과합니다.\n"
-        elif amount_detected > 20000000:
-            amount_template += f"- {amount_detected:,}원은 일반 소액 수의계약 기준은 초과하나 정책기업(5천만원 이하) 검토 대상이 될 수 있습니다.\n"
+            route_template += "**3. MAS(다수공급자계약)/종합쇼핑몰 및 2단계 경쟁**\n"
+            route_template += "   - 나라장터 종합쇼핑몰에 해당 품목이 등록되어 있으면 납품요구 또는 2단계 경쟁을 검토할 수 있습니다.\n"
+            route_template += "   - 2단계 경쟁 시 지역제한 적용 가능 여부를 확인합니다.\n"
+            route_template += "   - 「지방자치단체 입찰 및 계약집행기준」의 다수공급자계약 2단계 경쟁 지역제한 규정을 확인합니다.\n\n"
+
+            route_template += "**4. 혁신제품·우수조달물품·기술개발제품 검토**\n"
+            route_template += "   - 혁신제품(조달사업법 시행령 제33조), 우수조달물품(조달사업법 시행령 제30조), 기술개발제품(판로지원법 제13조·제14조)이 해당 품목에 존재하는지 확인합니다.\n"
+            route_template += "   - 지정·인증 유효기간, 혁신장터/종합쇼핑몰 등록 여부, 수요기관 적용 법령 확인이 필요합니다.\n\n"
+
+            route_template += "**5. 일반경쟁·제한경쟁 시 지역업체 참여 유도**\n"
+            route_template += "   - 공동수급체 구성 시 지역업체 최소 참여비율 설정(시행령 제88조 제6항)을 검토합니다.\n"
+            route_template += "   - 입찰공고 시 부산 지역업체 참여를 유도하는 공고 방법을 활용합니다.\n\n"
+
+            route_template += "> ℹ️ 지역의무공동도급은 공사·일부 용역 중심의 제도이며, 물품 구매에는 일반적으로 자동 적용되지 않습니다.\n\n"
         else:
-            amount_template += f"- {amount_detected:,}원은 일반 소액 수의계약 한도 내에 있습니다.\n"
-            
-        amount_template += """- 종합쇼핑몰, 혁신제품, 우수조달물품, 기술개발제품 등 별도 조달 경로가 있으면 검토 가능성이 있습니다.
-- 실제 계약 전에는 품목, 추정가격, 조달등록 여부, 인증 유효기간, 적용 법령을 확인해야 합니다."""
+            route_template += "## 📋 B. 검토 가능한 구매 경로\n\n"
+            route_template += "1. **나라장터 종합쇼핑몰** 등록 제품이면 납품요구 또는 2단계 경쟁을 검토합니다.\n"
+            route_template += "2. **혁신제품**으로 지정되어 있고 지정기간이 유효하면 혁신제품 구매 경로를 검토할 수 있습니다.\n"
+            route_template += "3. **우수조달물품·기술개발제품** 등 인증제품이면 인증 유효기간과 적용 법령을 확인합니다.\n"
+            route_template += "4. 위 경로가 없으면 일반 입찰, 제한경쟁, 지명입찰 등 다른 계약 방식을 검토합니다.\n\n"
+
+        # ── C. 필수 확인사항 ──
+        route_template += "## ⚠️ C. 필수 확인사항\n\n"
+        route_template += "| 확인 항목 | 상태 |\n| :--- | :--- |\n"
+        route_template += "| 기관유형 (지자체/출자출연/국가기관) | 확인 필요 |\n"
+        route_template += "| 추정가격 (VAT 제외 여부) | 확인 필요 |\n"
+        route_template += "| 품목 세부 규격 | 확인 필요 |\n"
+        route_template += "| 조달청 등록 여부 | 확인 필요 |\n"
+        route_template += "| 종합쇼핑몰/MAS 등록 여부 | 확인 필요 |\n"
+        route_template += "| 지역제한 가능 금액 기준 | 확인 필요 |\n"
+        route_template += "| 정책기업 인증 유효성 | 확인 필요 |\n"
+        route_template += "| 혁신제품·우수조달·기술개발 지정 유효기간 | 확인 필요 |\n"
+        route_template += "| 기관 내부 계약규정 | 확인 필요 |\n\n"
+
+        route_template += "⚖️ 본 안내는 검토 경로 제시이며, 법적 효력이 없습니다. 실제 계약 전 적용 법령과 기관 내부 기준을 반드시 확인하세요."
 
     if post_scan_forbidden or prompt_leak_detected or amount_detected is not None:
         if amount_detected is not None:
-            answer = amount_template + "\n\n"
+            answer = route_template + "\n\n"
             if server_table:
                 answer += f"**[시스템 자동 추출 후보 표]**\n{server_table}"
             if generation_meta is not None:
-                generation_meta["final_answer_source"] = "amount_based_route_template"
+                generation_meta["final_answer_source"] = "regional_purchase_route_template" if regional_pref else "amount_based_route_template"
                 generation_meta["route_guidance_provided"] = True
+                generation_meta["regional_route_guidance_provided"] = regional_pref
                 generation_meta["amount_detected"] = amount_detected
                 generation_meta["amount_band"] = amount_band
                 generation_meta["general_small_value_sole_quote"] = general_small_value_sole_quote
                 generation_meta["policy_company_sole_quote"] = policy_company_sole_quote
+                generation_meta["local_restricted_bid_route_check_required"] = regional_pref
+                generation_meta["local_preference_score_route_check_required"] = regional_pref
+                generation_meta["mas_second_stage_route_check_required"] = True
                 generation_meta["shopping_mall_route_check_required"] = True
                 generation_meta["innovation_product_route_check_required"] = True
+                generation_meta["tech_product_route_check_required"] = True
+                generation_meta["candidate_counts_by_type"] = candidate_counts_by_type
+                generation_meta["source_call_statuses"] = source_call_statuses
+                generation_meta["sensitive_fields_removed"] = True
+                generation_meta["enrichment_join_key_redacted"] = True
                 if server_table:
                     generation_meta["candidate_table_preserved"] = True
                 generation_meta["llm_generated_table_discarded"] = True
@@ -2509,6 +2576,10 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
                 generation_meta["regex_rewrite_applied"] = True
                 generation_meta["forbidden_patterns_matched"] = []
                 generation_meta["rewritten_sentences_count"] += len(post_scan_forbidden)
+                generation_meta["source_call_statuses"] = source_call_statuses
+                generation_meta["candidate_counts_by_type"] = candidate_counts_by_type
+                generation_meta["sensitive_fields_removed"] = True
+                generation_meta["enrichment_join_key_redacted"] = True
 
     # API 상태 표시
     status_display = api_status.to_display()
