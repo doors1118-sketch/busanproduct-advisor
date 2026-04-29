@@ -12,22 +12,24 @@
 
 ## 2. 실행 방법
 
-**A. 정적 파일 서버 실행 (프런트엔드)**
-```bash
-python -m http.server 8503 --directory frontend
-```
-
-**B. API 서버 실행 (백엔드)**
+**A. FastAPI StaticFiles 서빙 (운영 MVP 권장 경로)**
 ```bash
 python -m uvicorn app.api_server:app --host 127.0.0.1 --port 8001
 ```
+접속: `http://127.0.0.1:8001/ui/`
 
+**B. 로컬 정적 테스트 서버 실행 (개발용)**
+```bash
+python -m http.server 8503 --directory frontend
+```
 접속: `http://127.0.0.1:8503`
 
 ## 3. API Base URL 변경 방법
 `frontend/app.js` 최상단에 상수로 정의되어 있습니다. 운영 배포 또는 다른 NCP 인스턴스 연동 시 아래 값을 수정하세요.
+기본적으로 same-origin 호출을 수행하며 로컬 테스트 서버(8503) 시에는 8001로 우회합니다.
 ```javascript
-const API_BASE_URL = "http://127.0.0.1:8001";
+const params = new URLSearchParams(window.location.search);
+const API_BASE_URL = params.get("api") || (window.location.port === "8503" ? "http://127.0.0.1:8001" : "");
 ```
 
 ## 4. 화면 구성 및 Endpoint 연동

@@ -1,5 +1,8 @@
 // Configuration
-const API_BASE_URL = "http://127.0.0.1:8001";
+const params = new URLSearchParams(window.location.search);
+const API_BASE_URL =
+  params.get("api") ||
+  (window.location.port === "8503" ? "http://127.0.0.1:8001" : "");
 
 // DOM Elements
 const els = {
@@ -75,12 +78,10 @@ async function checkSystemStatus() {
         const res = await fetch(`${API_BASE_URL}/rag/status`);
         const data = await res.json();
         let allSuccess = true;
-        for (let key in data) {
-            if (data[key] !== "SUCCESS" && key !== "innovation_index" && key !== "production_deployment") {
-                // Ignore innovation_index if it's an exception, but generally check all
-                if (data[key] !== "SUCCESS") allSuccess = false;
-            }
-        }
+        if (data.laws?.status !== "SUCCESS" && data.laws !== "SUCCESS") allSuccess = false;
+        if (data.manuals?.status !== "SUCCESS" && data.manuals !== "SUCCESS") allSuccess = false;
+        if (data.innovation?.status !== "SUCCESS" && data.innovation !== "SUCCESS") allSuccess = false;
+
         els.statusRag.textContent = allSuccess ? "Ready" : "Degraded";
         els.statusRag.className = allSuccess ? "badge success" : "badge warning";
     } catch (e) {
@@ -119,7 +120,7 @@ function redactSensitiveInfo(text) {
 // Submit Chat
 async function submitChat() {
     const message = els.userInput.value.trim();
-    const agencyType = els.agencyType.value === "default" ? null : els.agencyType.options[els.agencyType.selectedIndex].text;
+    const agencyType = els.agencyType.value || "default";
     
     if (!message) return;
 
@@ -209,10 +210,22 @@ function renderOutput(data) {
     rawAnswer = redactSensitiveInfo(rawAnswer);
     
     // Render Markdown
-    els.answerContent.innerHTML = marked.parse(rawAnswer);
+    els.answerContent.innerHTML = DOMPurify.sanitize(marked.parse(rawAnswer));
     
-    // 3. Metadata
-    els.metadataContent.textContent = JSON.stringify(data, null, 2);
+    // 3. Metadata Whitelist
+    const safeMetadata = {
+        candidate_table_source: data.candidate_table_source,
+        legal_conclusion_allowed: data.legal_conclusion_allowed,
+        contract_possible_auto_promoted: data.contract_possible_auto_promoted,
+        forbidden_patterns_remaining_after_rewrite: data.forbidden_patterns_remaining_after_rewrite,
+        final_answer_scanned: data.final_answer_scanned,
+        sensitive_fields_detected: data.sensitive_fields_detected,
+        model_selected: data.model_selected,
+        model_decision_reason: data.model_decision_reason,
+        latency_ms: data.latency_ms,
+        production_deployment: data.production_deployment
+    };
+    els.metadataContent.textContent = JSON.stringify(safeMetadata, null, 2);
     
     // Degraded check
     if (data.result_status === "DEGRADED") {

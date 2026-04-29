@@ -19,8 +19,11 @@ load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 from typing import Optional
+from pathlib import Path
 
 # ─────────────────────────────────────────────
 # Set Default Chroma Paths
@@ -54,6 +57,22 @@ app.add_middleware(
 )
 
 PRODUCTION_DEPLOYMENT = "HOLD"
+
+# ─────────────────────────────────────────────
+# Frontend StaticFiles Mount
+# ─────────────────────────────────────────────
+FRONTEND_DIR = Path(PROJECT_ROOT) / "frontend"
+if FRONTEND_DIR.exists():
+    app.mount("/ui", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
+
+@app.get("/")
+def root():
+    return {
+        "service": "busanproduct-advisor-api",
+        "ui": "/ui",
+        "health": "/health",
+        "production_deployment": PRODUCTION_DEPLOYMENT
+    }
 
 
 # ─────────────────────────────────────────────
