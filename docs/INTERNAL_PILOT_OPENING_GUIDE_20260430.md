@@ -30,9 +30,21 @@
 - `/opt/busan` 운영 DB 및 Chroma DB 임의 삭제 금지
 - 화면, 로그, 문서 내에 `.env` 값이나 API Key 노출 금지
 
-## 4. FastAPI 실행 방식 (택 1)
-- **방식 1 (임시 테스트용):** `uvicorn` 또는 `python3 -m uvicorn app.api_server:app --host 0.0.0.0 --port 8001`을 tmux, nohup 등으로 단기 실행.
-- **방식 2 (제한 공개용):** `busan-advisor-api.service`라는 신규 systemd 서비스를 등록. (사전 승인 필수)
+## 4. FastAPI 1일 파일럿 테스트용 실행 방식
+금번 파일럿 테스트는 Basic Auth가 적용된 하루짜리 테스트 환경으로 운영됩니다. 정식 운영 배포가 아닙니다.
+- `PILOT_AUTH_ENABLED=true` 설정 시 `/ui`, `/chat`, `/rag/status`, `/version` 엔드포인트가 Basic Auth로 보호됩니다.
+- 파일럿용 ID와 임시 비밀번호는 테스트 직원에게만 공유하며, 외부 공유를 엄격히 금지합니다.
+- Gemini API 비용이 발생할 수 있으므로 과도한 요청은 피하도록 안내해야 합니다.
+- **테스트 종료 후:** 8001 포트 차단 또는 `uvicorn` 프로세스를 반드시 중지해야 합니다.
+- **Production deployment:** `HOLD` (정식 운영 배포가 아님)
+
+```bash
+# 하루 테스트용 실행 예시 (명령어는 사용자 승인 후 별도 실행)
+export PILOT_AUTH_ENABLED=true
+export PILOT_AUTH_USER=<set_in_shell>
+export PILOT_AUTH_PASSWORD=<set_in_shell>
+python3 -m uvicorn app.api_server:app --host 0.0.0.0 --port 8001
+```
 
 ## 5. 오픈 전 점검 사항 (Smoke Test)
 내부 오픈 직전 아래의 체크리스트를 확인하십시오.

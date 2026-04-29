@@ -17,13 +17,15 @@ sys.path.insert(0, APP_DIR)
 from dotenv import load_dotenv
 load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 from typing import Optional
 from pathlib import Path
+import secrets
+import base64
 
 # ─────────────────────────────────────────────
 # Set Default Chroma Paths
@@ -57,6 +59,42 @@ app.add_middleware(
 )
 
 PRODUCTION_DEPLOYMENT = "HOLD"
+
+# ─────────────────────────────────────────────
+# Pilot Basic Auth Middleware
+# ─────────────────────────────────────────────
+@app.middleware("http")
+async def pilot_auth_middleware(request: Request, call_next):
+    if os.getenv("PILOT_AUTH_ENABLED", "").lower() != "true":
+        return await call_next(request)
+
+    path = request.url.path
+    protected_paths = ["/ui", "/chat", "/rag/status", "/version"]
+    is_protected = any(path.startswith(p) for p in protected_paths)
+
+    if not is_protected:
+        return await call_next(request)
+
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Basic "):
+        try:
+            decoded = base64.b64decode(auth_header[6:]).decode("utf-8")
+            username, _, password = decoded.partition(":")
+
+            expected_user = os.getenv("PILOT_AUTH_USER", "")
+            expected_pass = os.getenv("PILOT_AUTH_PASSWORD", "")
+
+            if expected_user and expected_pass:
+                if secrets.compare_digest(username, expected_user) and secrets.compare_digest(password, expected_pass):
+                    return await call_next(request)
+        except Exception:
+            pass
+
+    return Response(
+        content="Unauthorized",
+        status_code=401,
+        headers={"WWW-Authenticate": 'Basic realm="Pilot Access"'}
+    )
 
 # ─────────────────────────────────────────────
 # Frontend StaticFiles Mount
