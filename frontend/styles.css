@@ -301,3 +301,46 @@ textarea {
     font-size: 0.85rem;
     font-weight: normal;
 }
+
+/* Service Overview */
+.card-panel {
+    background-color: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+}
+
+.overview-title {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+    color: var(--primary-color);
+}
+
+.overview-text {
+    margin: 0 0 0.75rem 0;
+}
+
+.overview-list {
+    margin: 0 0 1rem 0;
+    padding-left: 1.5rem;
+}
+
+.overview-list li {
+    margin-bottom: 0.25rem;
+}
+
+.overview-warning-box {
+    background-color: #fff5f5;
+    border: 1px solid #feb2b2;
+    padding: 0.75rem;
+    border-radius: 6px;
+}
+
+.overview-warning-text {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #c53030;
+    line-height: 1.4;
+}
