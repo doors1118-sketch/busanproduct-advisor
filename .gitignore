@@ -33,6 +33,7 @@ logs/
 # 참고 자료 및 자산
 *.pdf
 *.xlsx
+!혁신제품*.xlsx
 *.hwpx
 *.odt
 *.crdownload
