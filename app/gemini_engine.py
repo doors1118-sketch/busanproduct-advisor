@@ -39,6 +39,9 @@ from policies.monitoring_policy import log_routing, log_classification_failure
 # 인용 조문 저장 (답변 후 다운로드용)
 _cited_laws = []
 
+# API 레이어용 generation_meta 저장 (매 chat 호출 후 업데이트)
+_last_generation_meta = {}
+
 # ─────────────────────────────────────────────
 # Gemini 클라이언트 초기화
 # ─────────────────────────────────────────────
@@ -2425,7 +2428,19 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
     history.append({"role": "user", "text": user_message})
     history.append({"role": "model", "text": answer})
 
+    # API 레이어용 generation_meta 저장
+    global _last_generation_meta
+    if generation_meta is not None:
+        _last_generation_meta = dict(generation_meta)
+    else:
+        _last_generation_meta = {}
+
     return answer, history
+
+
+def get_last_generation_meta() -> dict:
+    """마지막 chat() 호출의 generation_meta를 반환. API 레이어용."""
+    return dict(_last_generation_meta)
 
 
 # ─────────────────────────────────────────────

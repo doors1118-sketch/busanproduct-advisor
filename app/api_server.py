@@ -180,7 +180,7 @@ def chat_endpoint(req: ChatRequest):
     start = time.time()
 
     try:
-        from gemini_engine import chat as engine_chat
+        from gemini_engine import chat as engine_chat, get_last_generation_meta
 
         # gemini_engine.chat() 호출
         answer, updated_history = engine_chat(
@@ -191,6 +191,9 @@ def chat_endpoint(req: ChatRequest):
         )
 
         latency_ms = int((time.time() - start) * 1000)
+
+        # 실제 generation_meta 읽기
+        meta = get_last_generation_meta()
 
         # RAG status (lightweight)
         rag_summary = {}
@@ -204,17 +207,26 @@ def chat_endpoint(req: ChatRequest):
         except Exception:
             rag_summary = {"laws": "unknown", "manuals": "unknown", "innovation": "unknown"}
 
+        # safety metadata: 실제 값 우선, 없으면 기본값
+        candidate_table_source = meta.get("candidate_table_source", "not_available")
+        legal_conclusion_allowed = meta.get("legal_conclusion_allowed", False)
+        forbidden_remaining = meta.get("forbidden_patterns_remaining_after_rewrite", [])
+        final_answer_scanned = meta.get("final_answer_scanned", False)
+        model_used = meta.get("model_used", os.getenv("GEMINI_MODEL", "gemini-2.5-pro"))
+        model_decision_reason = meta.get("model_decision_reason", "")
+        safety_metadata_status = "ACTUAL" if meta else "NOT_EXPOSED"
+
         return ChatResponse(
             answer=answer,
             history=updated_history,
-            candidate_table_source="not_exposed_yet",
-            legal_conclusion_allowed=False,
+            candidate_table_source=candidate_table_source,
+            legal_conclusion_allowed=legal_conclusion_allowed,
             contract_possible_auto_promoted=False,
-            forbidden_patterns_remaining_after_rewrite=[],
-            final_answer_scanned=True,
+            forbidden_patterns_remaining_after_rewrite=forbidden_remaining,
+            final_answer_scanned=final_answer_scanned,
             sensitive_fields_detected=[],
-            model_selected=os.getenv("GEMINI_MODEL", "gemini-2.5-pro"),
-            model_decision_reason="default_model_used",
+            model_selected=model_used,
+            model_decision_reason=model_decision_reason,
             latency_ms=latency_ms,
             rag_status=rag_summary,
             production_deployment=PRODUCTION_DEPLOYMENT,
