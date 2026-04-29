@@ -8,7 +8,7 @@
 | 지표 (Metrics) | 상태 (Status) | 비고 |
 |---|---|---|
 | `technical_ready` | **true** | E2E, FastAPI, QA, Frontend, Security 모두 통과됨 |
-| `password_rotation_pending` | **true** | 운영자가 직접 NCP root 패스워드 변경을 수행해야 함 |
+| `password_rotation_pending` | **false** | 사용자가 NCP root 패스워드 변경을 완료함 |
 | `deployment_approved` | **false** | 운영자 최종 배포 승인 미완료 |
 | `production_deployment` | **HOLD** | 운영 서비스 진입 전까지 상태 유지 중 |
 
@@ -43,7 +43,7 @@
 이를 위해 배포 실행 전 다음이 이루어져야 합니다.
 
 - `password_rotation_owner`: 사용자(User) 직접 수행.
-- `password_rotation_completed`: `false` (수행 확인 대기 중).
+- `password_rotation_completed`: `true` (수행 완료).
 
 *(※ 보안 원칙에 따라 본 문서나 로그에 절대로 비밀번호를 묻거나 평문 출력하지 않습니다.)*
 
@@ -53,7 +53,7 @@
 
 실제 운영 환경에 배포가 가동되기 전, 다음의 항목이 최종 확인되어야 합니다.
 
-- [ ] **Password Rotation 완료**: NCP `root` 계정의 패스워드 변경이 완료되었는가?
+- [x] **Password Rotation 완료**: NCP `root` 계정의 패스워드 변경이 완료되었는가?
 - [ ] **Frontend Static Files 구현 승인**: `/ui`를 FastAPI로 서빙하는 코드 반영을 승인할 것인가?
 - [ ] **배포 대상 Commit Hash 확정**: `febecef`를 기반으로 운영 서비스에 배포를 시작할 것인가?
 - [ ] **Rollback 절차 인지**: 장애 시 이전 Commit으로 되돌리고 `systemctl`을 롤백할 준비가 되어 있는가?
