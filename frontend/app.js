@@ -290,6 +290,22 @@ function downloadMarkdown() {
     URL.revokeObjectURL(url);
 }
 
+function sanitizeCsvCell(value) {
+    const text = String(value ?? "");
+    const redacted = redactSensitiveInfo(text).replace(/<[^>]*>/g, "");
+    const trimmed = redacted.trim();
+
+    if (/^[=+\-@]/.test(trimmed)) {
+        return "'" + redacted;
+    }
+    return redacted;
+}
+
+function csvEscape(value) {
+    const safe = sanitizeCsvCell(value);
+    return `"${safe.replace(/"/g, '""')}"`;
+}
+
 function downloadCsv() {
     if (!currentRawAnswer) return;
     
@@ -304,11 +320,9 @@ function downloadCsv() {
             // Skip the separator line
             if (line.includes('---')) continue;
             
-            // Basic markdown table parsing
+            // Basic markdown table parsing with CSV Injection guard
             const row = line.split('|').slice(1, -1).map(cell => {
-                let text = cell.trim();
-                text = text.replace(/"/g, '""'); // escape quotes
-                return `"${text}"`;
+                return csvEscape(cell);
             });
             csvContent += row.join(',') + '\n';
         } else {
