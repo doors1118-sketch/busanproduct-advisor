@@ -91,3 +91,5 @@ logs/
 *.jsonl
 payload.json
 *ncp*.py
+*paramiko*.py
+payload*.json
