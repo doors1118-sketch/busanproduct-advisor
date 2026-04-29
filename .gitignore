@@ -89,3 +89,5 @@ qa_report.json
 artifacts/
 logs/
 *.jsonl
+payload.json
+*ncp*.py
