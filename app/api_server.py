@@ -256,7 +256,7 @@ def chat_endpoint(req: ChatRequest):
             return ChatResponse(
                 answer=f"⚠️ {error_msg}",
                 history=req.history,
-                candidate_table_source="error",
+                candidate_table_source="none",
                 legal_conclusion_allowed=False,
                 contract_possible_auto_promoted=False,
                 forbidden_patterns_remaining_after_rewrite=[],
