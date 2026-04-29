@@ -12,7 +12,19 @@ else
     exit 1
 fi
 
-echo "====================================="
+# ─── CHROMA 경로 기본값 (env 미설정 시 프로젝트 app/.chroma 사용) ───
+PROJECT_ROOT="$(pwd)"
+
+export CHROMA_DIR="${CHROMA_DIR:-$PROJECT_ROOT/app/.chroma}"
+export CHROMA_LAWS_DIR="${CHROMA_LAWS_DIR:-$PROJECT_ROOT/app/.chroma}"
+export CHROMA_MANUALS_DIR="${CHROMA_MANUALS_DIR:-$PROJECT_ROOT/app/.chroma}"
+export CHROMA_INNOVATION_DIR="${CHROMA_INNOVATION_DIR:-$PROJECT_ROOT/app/.chroma}"
+
+echo "[INFO] CHROMA_DIR=$CHROMA_DIR"
+echo "[INFO] CHROMA_LAWS_DIR=$CHROMA_LAWS_DIR"
+echo "[INFO] CHROMA_MANUALS_DIR=$CHROMA_MANUALS_DIR"
+echo "[INFO] CHROMA_INNOVATION_DIR=$CHROMA_INNOVATION_DIR"
+
 echo "=== 1. laws RAG DB ==="
 $PY app/ingest_laws.py || echo "[WARN] ingest_laws.py failed or skipped"
 echo ""

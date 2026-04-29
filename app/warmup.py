@@ -30,7 +30,7 @@ def warmup_rag() -> Dict[str, Any]:
         # 2. Check laws collection
         try:
             import chromadb
-            client_laws = chromadb.PersistentClient(path=os.environ.get("CHROMA_LAWS_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), ".chroma_laws")))
+            client_laws = chromadb.PersistentClient(path=os.environ.get("CHROMA_LAWS_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), ".chroma")))
             laws_col = client_laws.get_collection("laws")
             status["laws_indexed"] = laws_col.count()
             status["laws_chroma_status"] = "success"
