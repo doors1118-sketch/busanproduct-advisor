@@ -1,0 +1,95 @@
+{
+  "commit_info": {
+    "latest_remote_commit_hash": "600725630c5e9d6d4a25bc2f6752bf498e800bd7",
+    "commit_message": "fix: company_search deterministic fallback (API 503), prompt hash enforcement, TC7 mock edge case, gitignore cleanup",
+    "files_changed": 5,
+    "insertions": 890,
+    "deletions": 400
+  },
+  "git_status": {
+    "git_status_clean": true,
+    "git_pushed": true,
+    "latest_remote_commit_hash": "600725630c5e9d6d4a25bc2f6752bf498e800bd7",
+    "env_committed": false
+  },
+  "manuals_rag_status": {
+    "manuals_collection_strategy": "split_collections",
+    "manuals_chroma_dir": "app/.chroma",
+    "manuals_collections": [
+      {"name": "manuals_1", "doc_count": 750, "count_status": "PASS", "query_status": "PASS"},
+      {"name": "manuals_2", "doc_count": 750, "count_status": "PASS", "query_status": "PASS"},
+      {"name": "manuals_3", "doc_count": 750, "count_status": "PASS", "query_status": "PASS"},
+      {"name": "manuals_4", "doc_count": 425, "count_status": "PASS", "query_status": "PASS"}
+    ],
+    "manuals_total_doc_count": 2675,
+    "manuals_test_query": "수의계약 유의사항",
+    "manuals_retrieved_doc_count": 3,
+    "manuals_retrieval_quality_status": "PASS",
+    "failed_collections": []
+  },
+  "staging_summary": {
+    "staging_verification_result": "PASS",
+    "staging_run_count": 2,
+    "staging_all_pass": true,
+    "selected_guardrails_empty_cases": [],
+    "prompt_hash_empty_cases": [],
+    "raw_api_error_exposed": false,
+    "final_answer_scanned_all": true,
+    "false_pass_detected": false
+  },
+  "tc7_summary": {
+    "tc7_grt_result": "PASS",
+    "tc7_test_count": 8,
+    "tc7_pass_count": 8,
+    "tc7_fail_count": 0,
+    "G-RT-1": {
+      "innovation_status": "SUCCESS",
+      "innovation_product_count": 771,
+      "tool_execution_status": "success",
+      "candidate_table_source": "server_structured_formatter",
+      "pass": true
+    },
+    "G-RT-2": {
+      "tool_name": "search_tech_development_products",
+      "tool_execution_status": "success",
+      "candidate_table_source": "server_structured_formatter",
+      "pass": true
+    },
+    "G-RT-3_iterations": 5,
+    "G-RT-3_all_pass": true,
+    "G-RT-3_Malformed_Mock": "PASS",
+    "forbidden_patterns_remaining_all": [],
+    "legal_conclusion_allowed_all": false,
+    "contract_possible_auto_promoted_all": false
+  },
+  "local_e2e_summary": {
+    "local_strict_status": "PASS",
+    "py_compile": "PASS",
+    "laws_chromadb_status": "success",
+    "laws_indexed_doc_count": 808,
+    "manuals_chromadb_status": "success",
+    "manuals_indexed_doc_count": 2675,
+    "manuals_retrieved_doc_count": 3,
+    "manuals_retrieval_quality_status": "PASS",
+    "innovation_status": "success",
+    "innovation_product_count": 771,
+    "staging_verification_result": "PASS",
+    "tc7_grt_result": "PASS",
+    "false_pass_detected": false,
+    "ncp_readiness": "READY",
+    "production_deployment": "HOLD"
+  },
+  "strict_criteria_checked": {
+    "false_pass_detected": false,
+    "forbidden_expression_remaining": false,
+    "raw_api_error_exposed": false,
+    "legal_conclusion_allowed_any": false,
+    "contract_possible_auto_promoted_any": false,
+    "prompt_hash_empty_any": false,
+    "selected_guardrails_empty_any": false,
+    "model_used_unknown_any": false,
+    "sensitive_fields_detected_any": false
+  },
+  "ncp_readiness": "READY",
+  "production_deployment": "HOLD"
+}
