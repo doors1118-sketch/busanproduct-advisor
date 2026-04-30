@@ -1238,7 +1238,10 @@ def _execute_tier_0_fast_track(user_message: str, history: list, api_status, pro
         "mcp_chain_executed": False,
         "candidate_table_source": candidate_table_source,
         "answer_schema_version": "simplified_company_search_v1",
-        "source_status": "no_mcp_required"
+        "source_status": "no_mcp_required",
+        "rag_elapsed_ms": 0,
+        "model_elapsed_ms": 0,
+        "mcp_preflight_elapsed_ms": 0,
     }
     
     from policies.answer_builder_policy import build_simple_company_search_answer

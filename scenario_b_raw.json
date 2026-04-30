@@ -18,7 +18,7 @@
   "sensitive_fields_detected": [],
   "model_selected": "bypass_tier_1_2",
   "model_decision_reason": "",
-  "latency_ms": 263,
+  "latency_ms": 254,
   "rag_status": {
     "laws": "SUCCESS",
     "manuals": "SUCCESS",
@@ -39,10 +39,10 @@
   "source_call_statuses": {},
   "sensitive_fields_removed": true,
   "enrichment_join_key_redacted": true,
-  "total_latency_ms": 263,
+  "total_latency_ms": 254,
   "rag_elapsed_ms": 0,
   "model_elapsed_ms": 0,
-  "rewrite_elapsed_ms": 67,
+  "rewrite_elapsed_ms": 64,
   "tool_elapsed_ms_by_name": {},
   "tool_call_count": 0,
   "fast_track_applied": false,
@@ -64,8 +64,8 @@
     }
   ],
   "mandatory_mcp_executed": [
-    "search_admin_rule:지방자치단체 입찰 및 계약집행기준 수의계약 요령 (177ms)",
-    "search_law:지방계약법 시행령 제25조 수의계약 (185ms)"
+    "search_admin_rule:지방자치단체 입찰 및 계약집행기준 수의계약 요령 (178ms)",
+    "search_law:지방계약법 시행령 제25조 수의계약 (187ms)"
   ],
   "mandatory_mcp_missing": [],
   "mcp_chain_statuses": {},
