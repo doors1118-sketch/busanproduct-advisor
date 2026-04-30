@@ -9,7 +9,7 @@ description: 지역상생 조달 어드바이저 개발 시작 — 프로젝트 
 ## 1단계: 이전 세션 대화 맥락 로딩
 
 // turbo
-1. `c:\Users\COMTREE\Desktop\메뉴얼 제작\대화맥락_20260429.md` 읽기 — 직전 세션에서 결정한 사항, 내일 해야 할 일
+1. `c:\Users\COMTREE\Desktop\메뉴얼 제작\대화맥락_20260430.md` 읽기 — 직전 세션에서 결정한 사항, 내일 해야 할 일
 
 ## 2단계: 프로젝트 핵심 문서 로딩
 
@@ -31,7 +31,7 @@ description: 지역상생 조달 어드바이저 개발 시작 — 프로젝트 
 ## 4단계: 진행 상황 확인
 
 // turbo
-5. `C:\Users\COMTREE\.gemini\antigravity\brain\94d256b4-9f3f-4438-a6c0-daddd74679d3\task.md` 읽기 — 현재 체크리스트 상태 확인
+5. `C:\Users\COMTREE\.gemini\antigravity\brain\5be58cf5-1114-4161-809c-54849841b27f\task.md` 읽기 — 현재 체크리스트 상태 확인
 
 ## 5단계: 핵심 원칙 확인
 
