@@ -292,7 +292,7 @@ function renderOutput(data) {
         candidate_counts_by_type: data.candidate_counts_by_type,
         source_call_statuses: data.source_call_statuses,
         sensitive_fields_removed: data.sensitive_fields_removed,
-        enrichment_join_key_redacted: data.enrichment_join_key_redacted,
+        enrichment_join_key_redacted: data.enrichment_join_key_redacted
     };
     els.metadataContent.textContent = JSON.stringify(safeMetadata, null, 2);
     

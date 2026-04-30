@@ -2388,51 +2388,25 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
         if "rewritten_sentences_count" not in generation_meta:
             generation_meta["rewritten_sentences_count"] = 0
 
+    # ──────────────────────────────────────────────────────────
     # 금액 파싱 및 검토 경로 제공 로직
-    amount_detected = None
+    # ──────────────────────────────────────────────────────────
+    amount_detected = _parse_amount(user_message)
+    regional_pref = _detect_regional_preference(user_message)
     amount_band = None
     general_small_value_sole_quote = None
     policy_company_sole_quote = None
-    route_guidance_provided = False
-    regional_route_guidance_provided = False
-    
-    def parse_amount(text):
-        t = text.replace(" ", "").replace(",", "")
-        m = re.search(r'(\d+)(억|천만|백만|만)원', t)
-        if m:
-            n = int(m.group(1))
-            u = m.group(2)
-            if u == '억': return n * 100000000
-            if u == '천만': return n * 10000000
-            if u == '백만': return n * 1000000
-            if u == '만': return n * 10000
-        m2 = re.search(r'(\d+)원', t)
-        if m2: return int(m2.group(1))
-        return None
-
-    def detect_regional_preference(text):
-        """지역업체 활용 의도 감지"""
-        REGIONAL_KEYWORDS = [
-            "지역업체", "지역상품", "부산업체", "부산 업체", "부산 소재",
-            "지역업체와 계약", "지역업체 활용", "지역업체랑",
-            "부산업체 추천", "지역 제한", "지역제한",
-            "부산업체랑", "지역업체한테", "부산업체한테",
-        ]
-        return any(kw in text for kw in REGIONAL_KEYWORDS)
-
-    amount_detected = parse_amount(user_message)
-    regional_pref = detect_regional_preference(user_message)
 
     if amount_detected is not None:
-        if amount_detected <= 20000000:
+        if amount_detected <= 20_000_000:
             amount_band = "under_20m"
             general_small_value_sole_quote = "within_threshold"
             policy_company_sole_quote = "within_threshold"
-        elif amount_detected <= 50000000:
+        elif amount_detected <= 50_000_000:
             amount_band = "over_20m_under_50m"
             general_small_value_sole_quote = "exceeds_threshold"
             policy_company_sole_quote = "within_threshold"
-        elif amount_detected <= 100000000:
+        elif amount_detected <= 100_000_000:
             amount_band = "over_50m_under_100m"
             general_small_value_sole_quote = "exceeds_threshold"
             policy_company_sole_quote = "exceeds_50m_threshold"
@@ -2458,91 +2432,20 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
             "priority_purchase_product": generation_meta.get("priority_purchase_count", 0),
         }
 
-    route_template = ""
-    if amount_detected is not None:
-        amt_str = f"{amount_detected:,}원"
-
-        # ── A. 금액대 판단 ──
-        route_template = f"## 📌 A. 금액대 판단\n\n"
-        if amount_detected <= 20000000:
-            route_template += f"- {amt_str}은 일반 소액 수의계약 기준(추정가격 2천만원 이하) 이내입니다.\n"
-            route_template += f"- 정책기업(여성기업·장애인기업·사회적기업 등) 소액 수의계약 기준(5천만원 이하)에도 해당합니다.\n"
-        elif amount_detected <= 50000000:
-            route_template += f"- {amt_str}은 일반 소액 수의계약 기준(2천만원 이하)을 초과합니다.\n"
-            route_template += f"- 정책기업(여성기업·장애인기업·사회적기업 등)의 경우 5천만원 이하까지 수의계약을 검토할 수 있습니다.\n"
-        else:
-            route_template += f"- {amt_str}은 일반 소액 수의계약 기준(2천만원 이하)과 정책기업 수의계약 기준(5천만원 이하) 모두 초과합니다.\n"
-            route_template += f"- 단, 이것만으로 \"불가\"라고 단정할 수는 없으며, 아래 다양한 계약 경로를 검토할 수 있습니다.\n"
-
-        route_template += "\n"
-
-        # ── B. 지역업체 활용 가능 경로 ──
-        if regional_pref:
-            regional_route_guidance_provided = True
-            route_template += "## 🏢 B. 지역업체 활용 가능 경로\n\n"
-            route_template += "**1. 지역제한 제한경쟁입찰**\n"
-            route_template += "   - 지방계약법 시행령 제20조 및 시행규칙 제24조에 따라 추정가격이 행안부령 기준 미만이면 지역을 제한한 제한경쟁입찰 검토가 가능합니다.\n"
-            route_template += "   - 적용 가능 금액 기준과 기관유형별 세부 요건 확인이 필요합니다.\n\n"
-
-            route_template += "**2. 지역업체 가점 또는 우대 평가**\n"
-            route_template += "   - 「지방자치단체 입찰시 낙찰자 결정기준」에 따른 적격심사 시 지역업체 가점 부여 경로를 검토할 수 있습니다.\n"
-            route_template += "   - 물품 적격심사 세부기준의 지역업체 가점 항목 확인이 필요합니다.\n\n"
-
-            route_template += "**3. MAS(다수공급자계약)/종합쇼핑몰 및 2단계 경쟁**\n"
-            route_template += "   - 나라장터 종합쇼핑몰에 해당 품목이 등록되어 있으면 납품요구 또는 2단계 경쟁을 검토할 수 있습니다.\n"
-            route_template += "   - 2단계 경쟁 시 지역제한 적용 가능 여부를 확인합니다.\n"
-            route_template += "   - 「지방자치단체 입찰 및 계약집행기준」의 다수공급자계약 2단계 경쟁 지역제한 규정을 확인합니다.\n\n"
-
-            route_template += "**4. 혁신제품·우수조달물품·기술개발제품 검토**\n"
-            route_template += "   - 혁신제품(조달사업법 시행령 제33조), 우수조달물품(조달사업법 시행령 제30조), 기술개발제품(판로지원법 제13조·제14조)이 해당 품목에 존재하는지 확인합니다.\n"
-            route_template += "   - 지정·인증 유효기간, 혁신장터/종합쇼핑몰 등록 여부, 수요기관 적용 법령 확인이 필요합니다.\n\n"
-
-            route_template += "**5. 일반경쟁·제한경쟁 시 지역업체 참여 유도**\n"
-            route_template += "   - 공동수급체 구성 시 지역업체 최소 참여비율 설정(시행령 제88조 제6항)을 검토합니다.\n"
-            route_template += "   - 입찰공고 시 부산 지역업체 참여를 유도하는 공고 방법을 활용합니다.\n\n"
-
-            route_template += "> ℹ️ 지역의무공동도급은 공사·일부 용역 중심의 제도이며, 물품 구매에는 일반적으로 자동 적용되지 않습니다.\n\n"
-        else:
-            route_template += "## 📋 B. 검토 가능한 구매 경로\n\n"
-            route_template += "1. **나라장터 종합쇼핑몰** 등록 제품이면 납품요구 또는 2단계 경쟁을 검토합니다.\n"
-            route_template += "2. **혁신제품**으로 지정되어 있고 지정기간이 유효하면 혁신제품 구매 경로를 검토할 수 있습니다.\n"
-            route_template += "3. **우수조달물품·기술개발제품** 등 인증제품이면 인증 유효기간과 적용 법령을 확인합니다.\n"
-            route_template += "4. 위 경로가 없으면 일반 입찰, 제한경쟁, 지명입찰 등 다른 계약 방식을 검토합니다.\n\n"
-
-        # ── C. 필수 확인사항 ──
-        route_template += "## ⚠️ C. 필수 확인사항\n\n"
-        route_template += "| 확인 항목 | 상태 |\n| :--- | :--- |\n"
-        route_template += "| 기관유형 (지자체/출자출연/국가기관) | 확인 필요 |\n"
-        route_template += "| 추정가격 (VAT 제외 여부) | 확인 필요 |\n"
-        route_template += "| 품목 세부 규격 | 확인 필요 |\n"
-        route_template += "| 조달청 등록 여부 | 확인 필요 |\n"
-        route_template += "| 종합쇼핑몰/MAS 등록 여부 | 확인 필요 |\n"
-        route_template += "| 지역제한 가능 금액 기준 | 확인 필요 |\n"
-        route_template += "| 정책기업 인증 유효성 | 확인 필요 |\n"
-        route_template += "| 혁신제품·우수조달·기술개발 지정 유효기간 | 확인 필요 |\n"
-        route_template += "| 기관 내부 계약규정 | 확인 필요 |\n\n"
-
-        route_template += "⚖️ 본 안내는 검토 경로 제시이며, 법적 효력이 없습니다. 실제 계약 전 적용 법령과 기관 내부 기준을 반드시 확인하세요."
-
     if post_scan_forbidden or prompt_leak_detected or amount_detected is not None:
         if amount_detected is not None:
-            answer = route_template + "\n\n"
+            route_answer, meta_updates = _build_amount_route_template(
+                amount_detected, regional_pref
+            )
+            answer = route_answer + "\n\n"
             if server_table:
                 answer += f"**[시스템 자동 추출 후보 표]**\n{server_table}"
             if generation_meta is not None:
-                generation_meta["final_answer_source"] = "regional_purchase_route_template" if regional_pref else "amount_based_route_template"
-                generation_meta["route_guidance_provided"] = True
-                generation_meta["regional_route_guidance_provided"] = regional_pref
+                generation_meta.update(meta_updates)
                 generation_meta["amount_detected"] = amount_detected
                 generation_meta["amount_band"] = amount_band
                 generation_meta["general_small_value_sole_quote"] = general_small_value_sole_quote
                 generation_meta["policy_company_sole_quote"] = policy_company_sole_quote
-                generation_meta["local_restricted_bid_route_check_required"] = regional_pref
-                generation_meta["local_preference_score_route_check_required"] = regional_pref
-                generation_meta["mas_second_stage_route_check_required"] = True
-                generation_meta["shopping_mall_route_check_required"] = True
-                generation_meta["innovation_product_route_check_required"] = True
-                generation_meta["tech_product_route_check_required"] = True
                 generation_meta["candidate_counts_by_type"] = candidate_counts_by_type
                 generation_meta["source_call_statuses"] = source_call_statuses
                 generation_meta["sensitive_fields_removed"] = True
@@ -2630,7 +2533,158 @@ def get_last_generation_meta() -> dict:
 
 
 # ─────────────────────────────────────────────
-# 테스트
+# 독립 유틸리티 (chat() 밖)
+# ─────────────────────────────────────────────
+
+def _parse_amount(text: str):
+    """
+    자연어 금액 파싱. 복합 단위도 지원.
+    - 7천만원 → 70_000_000
+    - 7000만원 → 70_000_000
+    - 70,000,000원 → 70_000_000
+    - 70000000원 → 70_000_000
+    - 1억 → 100_000_000
+    - 1억5천만원 → 150_000_000
+    - 2천만원 → 20_000_000
+    """
+    t = text.replace(" ", "").replace(",", "")
+
+    # 1) 복합: N억M천만원, N억M만원 등
+    m_comp = re.search(r'(\d+)억(\d+)(천만|백만|만)원', t)
+    if m_comp:
+        total = int(m_comp.group(1)) * 100_000_000
+        n2 = int(m_comp.group(2))
+        u2 = m_comp.group(3)
+        if u2 == '천만':
+            total += n2 * 10_000_000
+        elif u2 == '백만':
+            total += n2 * 1_000_000
+        elif u2 == '만':
+            total += n2 * 10_000
+        return total
+
+    # 2) 단일 한글 단위: N억원, N천만원, N백만원, N만원
+    m_single = re.search(r'(\d+)(억|천만|백만|만)원?', t)
+    if m_single:
+        n = int(m_single.group(1))
+        u = m_single.group(2)
+        if u == '억':
+            return n * 100_000_000
+        if u == '천만':
+            return n * 10_000_000
+        if u == '백만':
+            return n * 1_000_000
+        if u == '만':
+            return n * 10_000
+
+    # 3) 순수 숫자+원: 70000000원
+    m_plain = re.search(r'(\d{5,})원', t)
+    if m_plain:
+        return int(m_plain.group(1))
+
+    return None
+
+
+def _detect_regional_preference(text: str) -> bool:
+    """지역업체 활용 의도 감지"""
+    REGIONAL_KEYWORDS = [
+        "지역업체", "지역상품", "부산업체", "부산 업체", "부산 소재",
+        "지역업체와 계약", "지역업체 활용", "지역업체랑",
+        "부산업체 추천", "지역 제한", "지역제한",
+        "부산업체랑", "지역업체한테", "부산업체한테",
+    ]
+    return any(kw in text for kw in REGIONAL_KEYWORDS)
+
+
+def _build_amount_route_template(amount_detected: int, regional_pref: bool,
+                                 agency_type: str = None):
+    """
+    금액 + 지역업체 선호 의도에 따른 검토 경로 템플릿 생성.
+
+    Returns:
+        (answer: str, meta_updates: dict)
+    """
+    amt_str = f"{amount_detected:,}원"
+    parts = []
+
+    # ── A. 금액대 판단 ──
+    parts.append("## 📌 A. 금액대 판단\n")
+    if amount_detected <= 20_000_000:
+        parts.append(f"- {amt_str}은 일반 소액 수의계약 기준(추정가격 2천만원 이하) 이내입니다.")
+        parts.append("- 정책기업(여성기업·장애인기업·사회적기업 등) 소액 수의계약 기준(5천만원 이하)에도 해당합니다.")
+    elif amount_detected <= 50_000_000:
+        parts.append(f"- {amt_str}은 일반 소액 수의계약 기준(2천만원 이하)을 초과합니다.")
+        parts.append("- 정책기업(여성기업·장애인기업·사회적기업 등)의 경우 5천만원 이하까지 수의계약을 검토할 수 있습니다.")
+    else:
+        parts.append(f"- {amt_str}은 일반 소액 수의계약 기준(2천만원 이하)과 정책기업 수의계약 기준(5천만원 이하) 모두 초과합니다.")
+        parts.append('- 단, 이것만으로 "불가"라고 단정할 수는 없으며, 아래 다양한 계약 경로를 검토할 수 있습니다.')
+
+    parts.append("")  # blank line
+
+    # ── B. 경로 안내 ──
+    if regional_pref:
+        parts.append("## 🏢 B. 지역업체 활용 가능 경로\n")
+
+        parts.append("**1. 지역제한 제한경쟁입찰**")
+        parts.append("   - 지방계약법 시행령 제20조 및 시행규칙 제24조에 따라 추정가격이 행안부령 기준 미만이면 지역을 제한한 제한경쟁입찰 검토가 가능합니다.")
+        parts.append("   - 적용 가능 금액 기준과 기관유형별 세부 요건 확인이 필요합니다.\n")
+
+        parts.append("**2. 지역업체 가점 또는 우대 평가**")
+        parts.append("   - 「지방자치단체 입찰시 낙찰자 결정기준」에 따른 적격심사 시 지역업체 가점 부여 경로를 검토할 수 있습니다.")
+        parts.append("   - 물품 적격심사 세부기준의 지역업체 가점 항목 확인이 필요합니다.\n")
+
+        parts.append("**3. MAS(다수공급자계약)/종합쇼핑몰 및 2단계 경쟁**")
+        parts.append("   - 나라장터 종합쇼핑몰에 해당 품목이 등록되어 있으면 납품요구 또는 2단계 경쟁을 검토할 수 있습니다.")
+        parts.append("   - 2단계 경쟁 시 지역제한 적용 가능 여부를 확인합니다.")
+        parts.append("   - 「지방자치단체 입찰 및 계약집행기준」의 다수공급자계약 2단계 경쟁 지역제한 규정을 확인합니다.\n")
+
+        parts.append("**4. 혁신제품·우수조달물품·기술개발제품 검토**")
+        parts.append("   - 혁신제품(조달사업법 시행령 제33조), 우수조달물품(조달사업법 시행령 제30조), 기술개발제품(판로지원법 제13조·제14조)이 해당 품목에 존재하는지 확인합니다.")
+        parts.append("   - 지정·인증 유효기간, 혁신장터/종합쇼핑몰 등록 여부, 수요기관 적용 법령 확인이 필요합니다.\n")
+
+        parts.append("**5. 일반경쟁·제한경쟁 시 지역업체 참여 유도**")
+        parts.append("   - 공동수급체 구성 시 지역업체 최소 참여비율 설정(시행령 제88조 제6항)을 검토합니다.")
+        parts.append("   - 입찰공고 시 부산 지역업체 참여를 유도하는 공고 방법을 활용합니다.\n")
+
+        parts.append("> ℹ️ 지역의무공동도급은 공사·일부 용역 중심의 제도이며, 물품 구매에는 일반적으로 자동 적용되지 않습니다.\n")
+    else:
+        parts.append("## 📋 B. 검토 가능한 구매 경로\n")
+        parts.append("1. **나라장터 종합쇼핑몰** 등록 제품이면 납품요구 또는 2단계 경쟁을 검토합니다.")
+        parts.append("2. **혁신제품**으로 지정되어 있고 지정기간이 유효하면 혁신제품 구매 경로를 검토할 수 있습니다.")
+        parts.append("3. **우수조달물품·기술개발제품** 등 인증제품이면 인증 유효기간과 적용 법령을 확인합니다.")
+        parts.append("4. 위 경로가 없으면 일반 입찰, 제한경쟁, 지명입찰 등 다른 계약 방식을 검토합니다.\n")
+
+    # ── C. 필수 확인사항 ──
+    parts.append("## ⚠️ C. 필수 확인사항\n")
+    parts.append("| 확인 항목 | 상태 |")
+    parts.append("| :--- | :--- |")
+    parts.append("| 기관유형 (지자체/출자출연/국가기관) | 확인 필요 |")
+    parts.append("| 추정가격 (VAT 제외 여부) | 확인 필요 |")
+    parts.append("| 품목 세부 규격 | 확인 필요 |")
+    parts.append("| 조달청 등록 여부 | 확인 필요 |")
+    parts.append("| 종합쇼핑몰/MAS 등록 여부 | 확인 필요 |")
+    parts.append("| 지역제한 가능 금액 기준 | 확인 필요 |")
+    parts.append("| 정책기업 인증 유효성 | 확인 필요 |")
+    parts.append("| 혁신제품·우수조달·기술개발 지정 유효기간 | 확인 필요 |")
+    parts.append("| 기관 내부 계약규정 | 확인 필요 |")
+    parts.append("")
+    parts.append("⚖️ 본 안내는 검토 경로 제시이며, 법적 효력이 없습니다. 실제 계약 전 적용 법령과 기관 내부 기준을 반드시 확인하세요.")
+
+    answer = "\n".join(parts)
+
+    meta_updates = {
+        "final_answer_source": "regional_purchase_route_template" if regional_pref else "amount_based_route_template",
+        "route_guidance_provided": True,
+        "regional_route_guidance_provided": regional_pref,
+        "local_restricted_bid_route_check_required": regional_pref,
+        "local_preference_score_route_check_required": regional_pref,
+        "mas_second_stage_route_check_required": True,
+        "shopping_mall_route_check_required": True,
+        "innovation_product_route_check_required": True,
+        "tech_product_route_check_required": True,
+    }
+
+    return answer, meta_updates
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
     print("=== AI 법령 챗봇 테스트 ===\n")
