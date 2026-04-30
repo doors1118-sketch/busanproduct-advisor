@@ -20,7 +20,7 @@ load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from pydantic import BaseModel, Field
 from typing import Optional
 from pathlib import Path
@@ -145,6 +145,14 @@ class ChatResponse(BaseModel):
     source_call_statuses: dict = {}
     sensitive_fields_removed: bool = True
     enrichment_join_key_redacted: bool = True
+    # Latency breakdown & tools
+    total_latency_ms: Optional[int] = None
+    rag_elapsed_ms: Optional[int] = None
+    model_elapsed_ms: Optional[int] = None
+    rewrite_elapsed_ms: Optional[int] = None
+    tool_call_count: int = 0
+    fast_track_applied: bool = False
+    deterministic_template_used: bool = False
 
 
 # ─────────────────────────────────────────────
@@ -296,7 +304,7 @@ def chat_endpoint(req: ChatRequest):
         model_decision_reason = meta.get("model_decision_reason", "")
         safety_metadata_status = "ACTUAL" if meta else "NOT_EXPOSED"
 
-        return ChatResponse(
+        resp_obj = ChatResponse(
             answer=answer,
             history=updated_history,
             candidate_table_source=candidate_table_source,
@@ -318,7 +326,15 @@ def chat_endpoint(req: ChatRequest):
             source_call_statuses=meta.get("source_call_statuses", {}),
             sensitive_fields_removed=meta.get("sensitive_fields_removed", True),
             enrichment_join_key_redacted=meta.get("enrichment_join_key_redacted", True),
+            total_latency_ms=latency_ms,
+            rag_elapsed_ms=meta.get("rag_elapsed_ms"),
+            model_elapsed_ms=meta.get("model_elapsed_ms"),
+            rewrite_elapsed_ms=meta.get("rewrite_elapsed_ms"),
+            tool_call_count=meta.get("tool_call_count", 0),
+            fast_track_applied=meta.get("fast_track_applied", False),
+            deterministic_template_used=meta.get("deterministic_template_used", False),
         )
+        return JSONResponse(content=resp_obj.dict(), media_type="application/json; charset=utf-8")
 
     except Exception as e:
         latency_ms = int((time.time() - start) * 1000)
@@ -327,7 +343,7 @@ def chat_endpoint(req: ChatRequest):
         # Fail-closed: 외부 API 오류 분류
         if any(kw in err_str for kw in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE"]):
             error_msg = "API 사용량 한도 초과 또는 서버 지연. 잠시 후 다시 시도하세요."
-            return ChatResponse(
+            resp_obj = ChatResponse(
                 answer=f"⚠️ {error_msg}",
                 history=req.history,
                 candidate_table_source="none",
@@ -341,10 +357,29 @@ def chat_endpoint(req: ChatRequest):
                 latency_ms=latency_ms,
                 rag_status={},
                 production_deployment=PRODUCTION_DEPLOYMENT,
+                total_latency_ms=latency_ms,
             )
+            return JSONResponse(content=resp_obj.dict(), media_type="application/json; charset=utf-8")
         else:
             print(f"[API ERROR] {traceback.format_exc()}")
-            raise HTTPException(status_code=500, detail="Internal server error")
+            error_msg = "내부 서버 오류"
+            resp_obj = ChatResponse(
+                answer=f"⚠️ {error_msg}",
+                history=req.history,
+                candidate_table_source="none",
+                legal_conclusion_allowed=False,
+                contract_possible_auto_promoted=False,
+                forbidden_patterns_remaining_after_rewrite=[],
+                final_answer_scanned=False,
+                sensitive_fields_detected=[],
+                model_selected="",
+                model_decision_reason=f"error: {error_msg}",
+                latency_ms=latency_ms,
+                rag_status={},
+                production_deployment=PRODUCTION_DEPLOYMENT,
+                total_latency_ms=latency_ms,
+            )
+            return JSONResponse(content=resp_obj.dict(), status_code=500, media_type="application/json; charset=utf-8")
 
 
 # ─────────────────────────────────────────────

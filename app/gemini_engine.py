@@ -1415,7 +1415,10 @@ def _chat_v144(
             "retry_count": 0,
             "core_prompt_hash": assembled.core_prompt_hash if 'assembled' in locals() and getattr(assembled, 'core_prompt_hash', '') else __import__('hashlib').sha256(b"deterministic_broad_question_fallback_core").hexdigest(),
             "prompt_prefix_hash": assembled.prompt_prefix_hash if 'assembled' in locals() and getattr(assembled, 'prompt_prefix_hash', '') else __import__('hashlib').sha256(b"deterministic_broad_question_fallback_prefix").hexdigest()[:16],
-            "company_table_allowed": "company_search" in guardrails if 'guardrails' in locals() else False
+            "company_table_allowed": "company_search" in guardrails if 'guardrails' in locals() else False,
+            "rag_elapsed_ms": rag_elapsed_ms if 'rag_elapsed_ms' in locals() else 0,
+            "model_elapsed_ms": int((time.time() - model_start) * 1000) if 'model_start' in locals() else 0,
+            "tool_call_count": len(all_tool_results)
         })
         return answer, history
 
@@ -1730,7 +1733,10 @@ def _chat_v144(
                 "function_call_final_status": function_call_final_status,
                 "core_prompt_hash": assembled.core_prompt_hash if 'assembled' in locals() else "",
                 "prompt_prefix_hash": assembled.prompt_prefix_hash if 'assembled' in locals() else "",
-                "company_table_allowed": "company_search" in guardrails if 'guardrails' in locals() else False
+                "company_table_allowed": "company_search" in guardrails if 'guardrails' in locals() else False,
+                "rag_elapsed_ms": rag_elapsed_ms if 'rag_elapsed_ms' in locals() else 0,
+                "model_elapsed_ms": int((time.time() - model_start) * 1000) if 'model_start' in locals() else 0,
+                "tool_call_count": len(all_tool_results)
             })
             return answer, history
 
@@ -1757,11 +1763,16 @@ def _chat_v144(
         "function_call_final_status": function_call_final_status,
         "core_prompt_hash": assembled.core_prompt_hash if 'assembled' in locals() else "",
         "prompt_prefix_hash": assembled.prompt_prefix_hash if 'assembled' in locals() else "",
-        "company_table_allowed": "company_search" in guardrails if 'guardrails' in locals() else False
+        "company_table_allowed": "company_search" in guardrails if 'guardrails' in locals() else False,
+        "rag_elapsed_ms": rag_elapsed_ms if 'rag_elapsed_ms' in locals() else 0,
+        "model_elapsed_ms": int((time.time() - model_start) * 1000) if 'model_start' in locals() else 0,
+        "tool_call_count": len(all_tool_results)
     })
     return answer, history
 
 def _finalize_answer(answer: str, history: list, user_message: str, all_tool_results: list, api_status: ApiStatus, progress_callback=None, generation_meta: dict = None):
+    _rewrite_start = time.time()
+    
     if generation_meta is not None:
         # deterministic_template_used가 이미 True이면 source를 deterministic으로 초기화
         if generation_meta.get("deterministic_template_used", False):
@@ -2295,6 +2306,10 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
             formatted = format_candidate_tables(classified, user_message, "", is_staging=is_staging)
             formatter_output_chars = len(formatted) if formatted else 0
 
+            # counts를 generation_meta에 주입 (분기 내부에서만 정의됨)
+            if generation_meta is not None:
+                generation_meta.update(counts)  # local_company_count, mall_company_count 등
+
         if generation_meta is not None:
             generation_meta["classified_candidate_count"] = classified_candidate_count
             generation_meta["formatter_input_count"] = formatter_input_count
@@ -2506,6 +2521,9 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
             if re.search(pat, answer):
                 remaining_forbidden.append(pat)
         generation_meta["forbidden_patterns_remaining_after_rewrite"] = remaining_forbidden
+
+        # rewrite elapsed 기록
+        generation_meta["rewrite_elapsed_ms"] = int((time.time() - _rewrite_start) * 1000)
 
     # 대화 이력 업데이트
     history.append({"role": "user", "text": user_message})
