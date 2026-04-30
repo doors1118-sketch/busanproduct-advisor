@@ -24,6 +24,8 @@ _QUERY_LABEL_MAP = [
     ("내자구매업무",          ("조달청 내자구매업무 처리규정",       "조달청 구매 절차 검토")),
     ("다수공급자계약",        ("물품 다수공급자계약 업무처리규정",   "MAS 2단계 경쟁 검토")),
     ("지역상품 우선구매 조례", ("부산시 지역상품 우선구매 조례",     "지역상품 구매정책 근거")),
+    ("계약집행기준 수의계약",  ("지방자치단체 계약집행기준 수의계약 요령", "1인 견적·수의계약 절차 검토")),
+    ("수의계약 요령",         ("지방자치단체 계약집행기준 수의계약 요령", "1인 견적·수의계약 절차 검토")),
     ("수의계약",              ("지방계약법령 수의계약 기준",         "수의계약 금액 기준 검토")),
     ("제25조",                ("지방계약법령 수의계약 기준",         "수의계약 금액 기준 검토")),
     ("계약집행기준",          ("행안부/조달청 관련 규정",           "계약집행 절차 검토")),
@@ -91,9 +93,8 @@ def _render_legal_basis_table(mandatory_mcp_executed: list, generation_meta: dic
             seen_labels.add(label)
             rows.append(f"| {label} | {row_status} | {meaning} |")
 
-    # MAS 행 보장 (Tier 1/2에서 항상 포함)
-    if "물품 다수공급자계약 업무처리규정" not in seen_labels and rows:
-        rows.append(f"| 물품 다수공급자계약 업무처리규정 | {overall_user_status} | MAS 2단계 경쟁 검토 |")
+    # MAS 행은 실제 mandatory_mcp_executed에 다수공급자계약 관련 조회가 있을 때만 포함
+    # (미조회 근거를 MCP 확인된 것처럼 표시하면 안 됨)
 
     if not rows:
         return "", False
