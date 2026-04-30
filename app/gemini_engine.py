@@ -2760,6 +2760,20 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
             "priority_purchase_product": generation_meta.get("priority_purchase_count", 0),
         }
 
+    # ── source_status 사전 결정 (builder가 참조할 수 있도록) ──
+    if generation_meta is not None and ("source_status" not in generation_meta or not generation_meta["source_status"]):
+        _pre_mcp = generation_meta.get("mandatory_mcp_executed", [])
+        _pre_tier = generation_meta.get("tier_resolved", 1)
+        _pre_hits = generation_meta.get("legal_basis_cache_hit_count", 0)
+        if _pre_tier == 0:
+            generation_meta["source_status"] = "no_mcp_required"
+        elif _pre_hits > 0:
+            generation_meta["source_status"] = "cached_verified"
+        elif _pre_mcp:
+            generation_meta["source_status"] = "cache_refreshed_from_mcp" if generation_meta.get("mcp_called_for_cache_miss") else "mcp_preflight_success"
+        else:
+            generation_meta["source_status"] = "mcp_failed_no_basis"
+
     if post_scan_forbidden or prompt_leak_detected or amount_detected is not None:
         if amount_detected is not None:
             tier_resolved = generation_meta.get("tier_resolved", 1) if generation_meta else 1
@@ -2827,6 +2841,10 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
                 generation_meta["candidate_counts_by_type"] = candidate_counts_by_type
                 generation_meta["sensitive_fields_removed"] = True
                 generation_meta["enrichment_join_key_redacted"] = True
+
+    # ── Phase 5: Raw tool name 은닉 (Safety Net) ──
+    from policies.answer_builder_policy import strip_raw_tool_names
+    answer = strip_raw_tool_names(answer)
 
     # API 상태 표시
     status_display = api_status.to_display()

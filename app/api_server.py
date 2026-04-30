@@ -183,6 +183,8 @@ class ChatResponse(BaseModel):
     legal_basis_table_rendered: bool = False
     source_status_user_label: str = ""
     legal_basis_to_purchase_route_mapped: bool = False
+    answer_builder_elapsed_ms: int = 0
+    answer_builder_network_call_count: int = 0
 
 
 # ─────────────────────────────────────────────
@@ -389,6 +391,8 @@ def chat_endpoint(req: ChatRequest):
             legal_basis_table_rendered=meta.get("legal_basis_table_rendered", False),
             source_status_user_label=meta.get("source_status_user_label", ""),
             legal_basis_to_purchase_route_mapped=meta.get("legal_basis_to_purchase_route_mapped", False),
+            answer_builder_elapsed_ms=meta.get("answer_builder_elapsed_ms", 0),
+            answer_builder_network_call_count=meta.get("answer_builder_network_call_count", 0),
         )
         return JSONResponse(content=resp_obj.dict(), media_type="application/json; charset=utf-8")
 
