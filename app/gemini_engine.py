@@ -42,6 +42,9 @@ _cited_laws = []
 # API 레이어용 generation_meta 저장 (매 chat 호출 후 업데이트)
 _last_generation_meta = {}
 
+from cachetools import TTLCache
+_mcp_cache = TTLCache(maxsize=100, ttl=3600)
+
 # ─────────────────────────────────────────────
 # Gemini 클라이언트 초기화
 # ─────────────────────────────────────────────
@@ -1166,7 +1169,180 @@ def _verify_and_annotate_v144(answer: str, tool_results: list[dict]) -> str:
     return answer
 
 
+
+
+def _extract_item_keyword(msg):
+    import re
+    # 알려진 주요 품목 명시적 추출
+    known_products = ["CCTV", "컴퓨터", "공기청정기", "드론", "노트북", "책상", "의자", "프린터", "모니터", "서버"]
+    for prod in known_products:
+        if prod.lower() in msg.lower():
+            return prod
+
+    # 불용어와 서술어를 정규식으로 제거 (금액, 서술어 등)
+    pattern = r'(부산\s*업체|지역\s*업체|업체|추천.*|찾아.*|검색.*|알려.*|어딨.*|뭐야|부탁.*|요청.*|어떤.*|있.*|어디.*|가급적.*|계약.*|방법.*|할\s*수.*|싶.*|\?|!|\.|\d+천만원으로|\d+만원으로|\d+억원으로|\d+만원|\d+천만원|구매해야\s*한다|구매.*)'
+    res = re.sub(pattern, '', msg).strip()
+    # 조사 제거
+    res = re.sub(r'(은|는|이|가|을|를|로|으로|랑|하고)$', '', res).strip()
+    return res
+
+def _execute_tier_0_fast_track(user_message: str, history: list, api_status, progress_callback=None) -> tuple[str, list]:
+    import time
+    import company_api
+    from policies.candidate_policy import classify_candidates, get_candidate_counts
+    from policies.candidate_formatter import format_candidate_tables
+
+    start_time = time.time()
+    
+    if progress_callback:
+        progress_callback("⚡ [Tier 0] 초고속 지역업체 검색 중...")
+        
+    query = _extract_item_keyword(user_message)
+    if not query:
+        query = user_message # fallback
+        
+    tool_start = time.time()
+    try:
+        import json
+        mock_fc = MockFunctionCall("search_local_company_by_product", {"query": query})
+        raw_result_str = _execute_function_call(mock_fc)
+    except Exception as e:
+        import json
+        raw_result_str = json.dumps({"error": str(e)}, ensure_ascii=False)
+        
+    tool_elapsed = int((time.time() - tool_start) * 1000)
+    
+    all_tool_results = [{
+        "tool_name": "search_local_company_by_product",
+        "status": "success" if "error" not in raw_result_str else "failed",
+        "result": raw_result_str,
+        "elapsed_ms": tool_elapsed
+    }]
+    
+    # 후보표 생성 파이프라인 통과 (JSON 문자열을 파싱하는 구조와 호환됨)
+    classified = classify_candidates(all_tool_results, user_message)
+    counts = get_candidate_counts(classified)
+    
+    formatted = format_candidate_tables(classified, user_message, "")
+    candidate_table_source = "server_structured_formatter" if formatted else "none"
+    
+    generation_meta = {
+        "model_used": "bypass_tier_0",
+        "model_decision_reason": "Tier 0 (Fast Track): LLM 및 MCP 전면 우회",
+        "tier_resolved": 0,
+        "fast_track_applied": True,
+        "deterministic_template_used": True,
+        "company_table_allowed": True,
+        "legal_conclusion_allowed": False,
+        "contract_possible_auto_promoted": False,
+        "mcp_chain_executed": False,
+        "candidate_table_source": candidate_table_source,
+        "answer_schema_version": "simplified_company_search_v1",
+        "source_status": "no_mcp_required"
+    }
+    
+    from policies.answer_builder_policy import build_simple_company_search_answer
+    template = build_simple_company_search_answer(generation_meta, has_candidates=bool(formatted))
+    
+    # 병합
+    generation_meta.update(counts)
+    
+    generation_meta["candidate_counts_by_type"] = {
+        "local_procurement_company": counts.get("local_company_count", 0),
+        "shopping_mall_supplier": counts.get("mall_company_count", 0),
+        "policy_company": counts.get("primary_policy_company_count", 0),
+        "innovation_product": counts.get("innovation_product_count", 0),
+        "priority_purchase_product": counts.get("priority_purchase_count", 0),
+    }
+    
+    # API 실패 메시지 노출 방지
+    api_status.mcp_status = "not_called"
+    api_status.law_api_status = "not_called"
+    api_status.company_search_status = "success" if formatted else "not_called"
+    
+    answer, updated_history = _finalize_answer(
+        answer=template,
+        history=history,
+        user_message=user_message,
+        all_tool_results=all_tool_results,
+        api_status=api_status,
+        progress_callback=progress_callback,
+        generation_meta=generation_meta
+    )
+    return answer, updated_history
+
+class MockFunctionCall:
+    def __init__(self, name, args):
+        self.name = name
+        self.args = args
+
+def _execute_tier_2_mandatory_mcp(user_message: str, plan: list, progress_callback=None) -> tuple[str, list, list, list, dict]:
+    import concurrent.futures
+    import json
+    import time
+
+    executed = []
+    missing = []
+    results = []
+    
+    cache_stats = {
+        "legal_basis_cache_used": True,
+        "legal_basis_cache_hit_count": 0,
+        "legal_basis_cache_miss_count": 0,
+        "mcp_called_for_cache_miss": False,
+        "mcp_called_for_freshness": False,
+        "cache_status": "enabled"
+    }
+    
+    if progress_callback:
+        progress_callback("⚖️ [Tier 1/2] 사전 필수 법령/매뉴얼 조회 중...")
+
+    def fetch_mcp(tool_req):
+        tool_name = tool_req["name"]
+        args = tool_req["args"]
+        cache_key = f"{tool_name}_{json.dumps(args, sort_keys=True)}"
+        tool_key = f"{tool_name}:{args.get('query', '')}"
+        
+        if cache_key in _mcp_cache:
+            return tool_key, _mcp_cache[cache_key], True, 0
+            
+        start_time = time.time()
+        try:
+            mock_fc = MockFunctionCall(tool_name, args)
+            res_str = _execute_function_call(mock_fc)
+            elapsed_ms = int((time.time() - start_time) * 1000)
+            
+            if "error" not in res_str.lower() and "warning" not in res_str.lower():
+                _mcp_cache[cache_key] = res_str
+            return tool_key, res_str, False, elapsed_ms
+        except Exception as e:
+            elapsed_ms = int((time.time() - start_time) * 1000)
+            return tool_key, f"Error: {e}", False, elapsed_ms
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        futures = [executor.submit(fetch_mcp, req) for req in plan]
+        for future in concurrent.futures.as_completed(futures):
+            tool_key, res_str, from_cache, elapsed_ms = future.result()
+            
+            if from_cache:
+                cache_stats["legal_basis_cache_hit_count"] += 1
+                executed.append(f"{tool_key} (cache_hit)")
+            else:
+                cache_stats["legal_basis_cache_miss_count"] += 1
+                cache_stats["mcp_called_for_cache_miss"] = True
+                
+                if not res_str or "Error:" in res_str or "error" in res_str.lower() or "not found" in res_str.lower() or "warning" in res_str.lower():
+                    missing.append(f"{tool_key} (failed)")
+                else:
+                    executed.append(f"{tool_key} ({elapsed_ms}ms)")
+                
+            results.append(f"[{tool_key} (Cache: {from_cache})]\n{res_str}")
+            
+    mcp_context = "\n\n".join(results)
+    return mcp_context, plan, executed, missing, cache_stats
+
 def _chat_v144(
+
     user_message: str,
     history: list[dict],
     progress_callback=None,
@@ -1214,10 +1390,23 @@ def _chat_v144(
 
     # ─── 4. RAG 검색 (기존 로직 재사용) ───
     # P0-3: _parallel_rag_search()는 dict를 반환 → values를 조립
-    from policies.model_routing_policy import classify_risk
+    from policies.model_routing_policy import classify_risk, classify_query_tier
     intent_labels = [c.label for c in intent_result.candidates] if intent_result and hasattr(intent_result, 'candidates') else []
     risk_info = classify_risk(user_message, intent_labels)
-    skip_rag_completely = (risk_info.get("risk_level") == "low" and "company_search" in guardrails)
+    
+    query_tier = classify_query_tier(risk_info, intent_labels, user_message)
+    print(f"  [ROUTING] risk_level={risk_info.get('risk_level')} query_tier={query_tier}")
+    
+    if query_tier == 0:
+        print("  [FAST-TRACK] Tier 0 detected. Bypassing Gemini completely.")
+        api_status = ApiStatus()
+        return _execute_tier_0_fast_track(user_message, history, api_status, progress_callback)
+        
+    amount_detected = _parse_amount(user_message)
+    skip_rag_completely = (query_tier in (1, 2) and amount_detected is not None)
+    
+    # RAG elapsed time must be initialized
+    rag_elapsed_ms = 0
 
     rag_context = ""
     if not skip_rag_completely:
@@ -1235,7 +1424,23 @@ def _chat_v144(
     else:
         print("  [RAG] Skipped completely for low-risk company search.")
 
-    # ─── 5. 프롬프트 동적 조립 ───
+    mandatory_mcp_plan = []
+    mandatory_mcp_executed = []
+    mandatory_mcp_missing = []
+    mcp_preflight_elapsed_ms = 0
+    cache_stats = {}
+    
+    if query_tier in (1, 2):
+        from policies.model_routing_policy import generate_mandatory_mcp_plan
+        mandatory_mcp_plan = generate_mandatory_mcp_plan(user_message, query_tier)
+        if mandatory_mcp_plan:
+            preflight_start = time.time()
+            mcp_context, _, mandatory_mcp_executed, mandatory_mcp_missing, cache_stats = _execute_tier_2_mandatory_mcp(
+                user_message, mandatory_mcp_plan, progress_callback
+            )
+            mcp_preflight_elapsed_ms = int((time.time() - preflight_start) * 1000)
+            rag_context = f"### [사전 조회된 필수 법령/매뉴얼 근거]\n{mcp_context}\n\n" + rag_context
+
     api_status = ApiStatus()
     agency_key = _normalize_agency_type(agency_type) if agency_type else "default"
 
@@ -1435,6 +1640,55 @@ def _chat_v144(
     malformed_function_call_detected = False
     function_call_retry_count = 0
     function_call_final_status = "not_detected"
+
+    model_start = time.time()
+    
+    amount_detected = _parse_amount(user_message)
+    if query_tier in (1, 2) and amount_detected is not None:
+        if progress_callback:
+            progress_callback("⚡ [Bypass] 모델 본문 생성 우회 및 템플릿 처리 중...")
+            
+        if query_tier == 2:
+            query = _extract_item_keyword(user_message)
+            
+            import concurrent.futures
+            
+            def run_mock_tool(tool_name, query_arg):
+                start = time.time()
+                mock_call = MockFunctionCall(tool_name, {"query": query_arg})
+                res = _execute_function_call(mock_call)
+                elapsed = int((time.time() - start) * 1000)
+                return {
+                    "tool_name": tool_name,
+                    "status": "success" if "error" not in res else "failed",
+                    "result": res,
+                    "elapsed_ms": elapsed
+                }
+                
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                future_sm = executor.submit(run_mock_tool, "search_shopping_mall", query)
+                future_lc = executor.submit(run_mock_tool, "search_local_company_by_product", query)
+                
+                all_tool_results.append(future_sm.result())
+                all_tool_results.append(future_lc.result())
+
+        return _finalize_answer("", history, user_message, all_tool_results, api_status, progress_callback, generation_meta={
+            "model_used": "bypass_tier_1_2",
+            "tier_resolved": query_tier,
+            "mandatory_mcp_plan": mandatory_mcp_plan,
+            "mandatory_mcp_executed": mandatory_mcp_executed,
+            "mandatory_mcp_missing": mandatory_mcp_missing,
+            "mcp_preflight_elapsed_ms": mcp_preflight_elapsed_ms,
+            "rag_elapsed_ms": rag_elapsed_ms if 'rag_elapsed_ms' in locals() else 0,
+            "model_elapsed_ms": 0,
+            "tool_call_count": len(all_tool_results),
+            "legal_basis_cache_used": cache_stats.get("legal_basis_cache_used", False) if 'cache_stats' in locals() else False,
+            "legal_basis_cache_hit_count": cache_stats.get("legal_basis_cache_hit_count", 0) if 'cache_stats' in locals() else 0,
+            "legal_basis_cache_miss_count": cache_stats.get("legal_basis_cache_miss_count", 0) if 'cache_stats' in locals() else 0,
+            "mcp_called_for_cache_miss": cache_stats.get("mcp_called_for_cache_miss", False) if 'cache_stats' in locals() else False,
+            "mcp_called_for_freshness": cache_stats.get("mcp_called_for_freshness", False) if 'cache_stats' in locals() else False,
+            "cache_status": cache_stats.get("cache_status", "") if 'cache_stats' in locals() else "",
+        })
 
     for round_i in range(MAX_TOOL_CALL_ROUNDS):
         # API 호출 (429 재시도, Malformed 재시도 및 Fallback)
@@ -1699,7 +1953,18 @@ def _chat_v144(
                             "retry_count": total_retries - 1 if total_retries > 0 else 0,
                             "core_prompt_hash": assembled.core_prompt_hash if 'assembled' in locals() else "",
                             "prompt_prefix_hash": assembled.prompt_prefix_hash if 'assembled' in locals() else "",
-                            "company_table_allowed": "company_search" in guardrails if 'guardrails' in locals() else False
+                            "company_table_allowed": "company_search" in guardrails if 'guardrails' in locals() else False,
+                            "tier_resolved": query_tier,
+                            "mandatory_mcp_plan": mandatory_mcp_plan,
+                            "mandatory_mcp_executed": mandatory_mcp_executed,
+                            "mandatory_mcp_missing": mandatory_mcp_missing,
+                            "mcp_preflight_elapsed_ms": mcp_preflight_elapsed_ms,
+                            "legal_basis_cache_used": cache_stats.get("legal_basis_cache_used", False) if 'cache_stats' in locals() else False,
+                            "legal_basis_cache_hit_count": cache_stats.get("legal_basis_cache_hit_count", 0) if 'cache_stats' in locals() else 0,
+                            "legal_basis_cache_miss_count": cache_stats.get("legal_basis_cache_miss_count", 0) if 'cache_stats' in locals() else 0,
+                            "mcp_called_for_cache_miss": cache_stats.get("mcp_called_for_cache_miss", False) if 'cache_stats' in locals() else False,
+                            "mcp_called_for_freshness": cache_stats.get("mcp_called_for_freshness", False) if 'cache_stats' in locals() else False,
+                            "cache_status": cache_stats.get("cache_status", "") if 'cache_stats' in locals() else "",
                         })
                         return answer, history
                         
@@ -1736,7 +2001,18 @@ def _chat_v144(
                 "company_table_allowed": "company_search" in guardrails if 'guardrails' in locals() else False,
                 "rag_elapsed_ms": rag_elapsed_ms if 'rag_elapsed_ms' in locals() else 0,
                 "model_elapsed_ms": int((time.time() - model_start) * 1000) if 'model_start' in locals() else 0,
-                "tool_call_count": len(all_tool_results)
+                "tool_call_count": len(all_tool_results),
+                "tier_resolved": query_tier,
+                "mandatory_mcp_plan": mandatory_mcp_plan,
+                "mandatory_mcp_executed": mandatory_mcp_executed,
+                "mandatory_mcp_missing": mandatory_mcp_missing,
+                "mcp_preflight_elapsed_ms": mcp_preflight_elapsed_ms,
+                "legal_basis_cache_used": cache_stats.get("legal_basis_cache_used", False) if 'cache_stats' in locals() else False,
+                "legal_basis_cache_hit_count": cache_stats.get("legal_basis_cache_hit_count", 0) if 'cache_stats' in locals() else 0,
+                "legal_basis_cache_miss_count": cache_stats.get("legal_basis_cache_miss_count", 0) if 'cache_stats' in locals() else 0,
+                "mcp_called_for_cache_miss": cache_stats.get("mcp_called_for_cache_miss", False) if 'cache_stats' in locals() else False,
+                "mcp_called_for_freshness": cache_stats.get("mcp_called_for_freshness", False) if 'cache_stats' in locals() else False,
+                "cache_status": cache_stats.get("cache_status", "") if 'cache_stats' in locals() else "",
             })
             return answer, history
 
@@ -1766,7 +2042,18 @@ def _chat_v144(
         "company_table_allowed": "company_search" in guardrails if 'guardrails' in locals() else False,
         "rag_elapsed_ms": rag_elapsed_ms if 'rag_elapsed_ms' in locals() else 0,
         "model_elapsed_ms": int((time.time() - model_start) * 1000) if 'model_start' in locals() else 0,
-        "tool_call_count": len(all_tool_results)
+        "tool_call_count": len(all_tool_results),
+        "tier_resolved": query_tier,
+        "mandatory_mcp_plan": mandatory_mcp_plan,
+        "mandatory_mcp_executed": mandatory_mcp_executed,
+        "mandatory_mcp_missing": mandatory_mcp_missing,
+        "mcp_preflight_elapsed_ms": mcp_preflight_elapsed_ms,
+        "legal_basis_cache_used": cache_stats.get("legal_basis_cache_used", False) if 'cache_stats' in locals() else False,
+        "legal_basis_cache_hit_count": cache_stats.get("legal_basis_cache_hit_count", 0) if 'cache_stats' in locals() else 0,
+        "legal_basis_cache_miss_count": cache_stats.get("legal_basis_cache_miss_count", 0) if 'cache_stats' in locals() else 0,
+        "mcp_called_for_cache_miss": cache_stats.get("mcp_called_for_cache_miss", False) if 'cache_stats' in locals() else False,
+        "mcp_called_for_freshness": cache_stats.get("mcp_called_for_freshness", False) if 'cache_stats' in locals() else False,
+        "cache_status": cache_stats.get("cache_status", "") if 'cache_stats' in locals() else "",
     })
     return answer, history
 
@@ -1785,6 +2072,21 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
         generation_meta.setdefault("risk_level", "unknown")
         generation_meta.setdefault("high_risk_triggers", [])
         generation_meta.setdefault("direct_legal_basis_count", 0)
+        
+        # Schema Version 지정
+        tier_resolved = generation_meta.get("tier_resolved", 1)
+        if tier_resolved == 0:
+            generation_meta["answer_schema_version"] = "simplified_company_search_v1"
+        elif tier_resolved == 1:
+            generation_meta["answer_schema_version"] = "amount_contract_guidance_v1"
+        elif tier_resolved == 2:
+            generation_meta["answer_schema_version"] = "regional_procurement_v2"
+        elif tier_resolved == 3:
+            generation_meta["answer_schema_version"] = "agency_specific_legal_review_v1"
+
+    amount_detected = _parse_amount(user_message)
+    if generation_meta is not None:
+        generation_meta["amount_detected"] = amount_detected
     
     # LegalConclusionScope 계산
     legal_scope = evaluate_legal_scope(all_tool_results, user_message)
@@ -2188,7 +2490,16 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
                 generation_meta["flash_answer_used_in_final"] = True
     else:
         # 승인 조건 4: blocked_scope를 최종 답변에 실제 반영 (Pro 정상)
-        if not legal_scope.legal_conclusion_allowed:
+        is_deterministic = generation_meta and generation_meta.get("deterministic_template_used", False)
+        is_tier_0 = generation_meta and generation_meta.get("tier_resolved", 1) == 0
+        is_amount_route = amount_detected is not None
+        
+        final_answer_source = generation_meta.get("final_answer_source", "") if generation_meta else ""
+        has_deterministic_source = "deterministic" in final_answer_source
+        
+        should_bypass_rewrite = is_deterministic or is_tier_0 or is_amount_route or has_deterministic_source
+        
+        if not legal_scope.legal_conclusion_allowed and not should_bypass_rewrite:
             rewrite_prompt = (
                 f"다음은 사용자의 질문에 대한 초안 답변입니다:\n{answer}\n\n"
                 "하지만 법령/API 조회가 실패하거나 지연되어 일부 판단이 제한되었습니다.\n"
@@ -2333,7 +2644,10 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
     elif formatted:
         # LLM이 표를 생성하지 않았지만 formatter 결과가 있으면 서버 표로 추가
         server_table = formatted
-        answer += f"\n\n---\n{server_table}"
+        if "[SERVER_TABLE_PLACEHOLDER]" in answer:
+            answer = answer.replace("[SERVER_TABLE_PLACEHOLDER]", server_table)
+        else:
+            answer += f"\n\n---\n{server_table}"
         
         if generation_meta is not None and generation_meta.get("deterministic_template_used", False):
             generation_meta["final_answer_source"] = "deterministic_template_plus_server_table"
@@ -2406,7 +2720,6 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
     # ──────────────────────────────────────────────────────────
     # 금액 파싱 및 검토 경로 제공 로직
     # ──────────────────────────────────────────────────────────
-    amount_detected = _parse_amount(user_message)
     regional_pref = _detect_regional_preference(user_message)
     amount_band = None
     general_small_value_sole_quote = None
@@ -2449,14 +2762,30 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
 
     if post_scan_forbidden or prompt_leak_detected or amount_detected is not None:
         if amount_detected is not None:
-            route_answer, meta_updates = _build_amount_route_template(
-                amount_detected, regional_pref
+            tier_resolved = generation_meta.get("tier_resolved", 1) if generation_meta else 1
+            mcp_executed = generation_meta.get("mandatory_mcp_executed", []) if generation_meta else []
+            from policies.answer_builder_policy import (
+                build_amount_contract_guidance_answer,
+                build_regional_procurement_answer
             )
-            answer = route_answer + "\n\n"
+            
+            if tier_resolved == 2:
+                route_answer = build_regional_procurement_answer(generation_meta if generation_meta else {}, mcp_executed)
+            else:
+                route_answer = build_amount_contract_guidance_answer(generation_meta if generation_meta else {}, mcp_executed)
+                
+            answer = route_answer
+            
             if server_table:
-                answer += f"**[시스템 자동 추출 후보 표]**\n{server_table}"
+                # Replace placeholder if exists, otherwise append
+                if "[SERVER_TABLE_PLACEHOLDER]" in answer:
+                    answer = answer.replace("[SERVER_TABLE_PLACEHOLDER]", f"**[시스템 자동 추출 후보 표]**\n{server_table}")
+                else:
+                    answer += f"\n\n**[시스템 자동 추출 후보 표]**\n{server_table}"
+            else:
+                answer = answer.replace("[SERVER_TABLE_PLACEHOLDER]", "(검색 결과에서 유효한 업체 후보를 추출하지 못했습니다.)")
+
             if generation_meta is not None:
-                generation_meta.update(meta_updates)
                 generation_meta["amount_detected"] = amount_detected
                 generation_meta["amount_band"] = amount_band
                 generation_meta["general_small_value_sole_quote"] = general_small_value_sole_quote
@@ -2525,6 +2854,25 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
         # rewrite elapsed 기록
         generation_meta["rewrite_elapsed_ms"] = int((time.time() - _rewrite_start) * 1000)
 
+        # source_status 결정 로직
+        if "source_status" not in generation_meta or not generation_meta["source_status"]:
+            mcp_exec = generation_meta.get("mandatory_mcp_executed", [])
+            tier = generation_meta.get("tier_resolved", 1)
+            hit_count = generation_meta.get("legal_basis_cache_hit_count", 0)
+            
+            if tier == 0:
+                generation_meta["source_status"] = "no_mcp_required"
+            elif hit_count > 0:
+                generation_meta["source_status"] = "cached_verified"
+            elif mcp_exec:
+                generation_meta["source_status"] = "cache_refreshed_from_mcp" if generation_meta.get("mcp_called_for_cache_miss") else "mcp_preflight_success"
+            else:
+                generation_meta["source_status"] = "mcp_failed_no_basis"
+
+    if generation_meta is not None and generation_meta.get("tier_resolved") == 3:
+        from policies.answer_builder_policy import build_agency_specific_legal_review_answer
+        answer = build_agency_specific_legal_review_answer(generation_meta, answer)
+
     # 대화 이력 업데이트
     history.append({"role": "user", "text": user_message})
     history.append({"role": "model", "text": answer})
@@ -2541,6 +2889,14 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
             "final_answer_scanned": True,
             "model_used": MODEL_ID,
         }
+        
+    if "query_tier" in globals() or "query_tier" in locals():
+        _last_generation_meta["tier_resolved"] = locals().get("query_tier", 1)
+        _last_generation_meta["mandatory_mcp_plan"] = locals().get("mandatory_mcp_plan", [])
+        _last_generation_meta["mandatory_mcp_executed"] = locals().get("mandatory_mcp_executed", [])
+        _last_generation_meta["mandatory_mcp_missing"] = locals().get("mandatory_mcp_missing", [])
+        _last_generation_meta["answer_schema_version"] = "regional_procurement_v2"
+
 
     return answer, history
 
@@ -2613,96 +2969,6 @@ def _detect_regional_preference(text: str) -> bool:
     ]
     return any(kw in text for kw in REGIONAL_KEYWORDS)
 
-
-def _build_amount_route_template(amount_detected: int, regional_pref: bool,
-                                 agency_type: str = None):
-    """
-    금액 + 지역업체 선호 의도에 따른 검토 경로 템플릿 생성.
-
-    Returns:
-        (answer: str, meta_updates: dict)
-    """
-    amt_str = f"{amount_detected:,}원"
-    parts = []
-
-    # ── A. 금액대 판단 ──
-    parts.append("## 📌 A. 금액대 판단\n")
-    if amount_detected <= 20_000_000:
-        parts.append(f"- {amt_str}은 일반 소액 수의계약 기준(추정가격 2천만원 이하) 이내입니다.")
-        parts.append("- 정책기업(여성기업·장애인기업·사회적기업 등) 소액 수의계약 기준(5천만원 이하)에도 해당합니다.")
-    elif amount_detected <= 50_000_000:
-        parts.append(f"- {amt_str}은 일반 소액 수의계약 기준(2천만원 이하)을 초과합니다.")
-        parts.append("- 정책기업(여성기업·장애인기업·사회적기업 등)의 경우 5천만원 이하까지 수의계약을 검토할 수 있습니다.")
-    else:
-        parts.append(f"- {amt_str}은 일반 소액 수의계약 기준(2천만원 이하)과 정책기업 수의계약 기준(5천만원 이하) 모두 초과합니다.")
-        parts.append('- 단, 이것만으로 "불가"라고 단정할 수는 없으며, 아래 다양한 계약 경로를 검토할 수 있습니다.')
-
-    parts.append("")  # blank line
-
-    # ── B. 경로 안내 ──
-    if regional_pref:
-        parts.append("## 🏢 B. 지역업체 활용 가능 경로\n")
-
-        parts.append("**1. 지역제한 제한경쟁입찰**")
-        parts.append("   - 지방계약법 시행령 제20조 및 시행규칙 제24조에 따라 추정가격이 행안부령 기준 미만이면 지역을 제한한 제한경쟁입찰 검토가 가능합니다.")
-        parts.append("   - 적용 가능 금액 기준과 기관유형별 세부 요건 확인이 필요합니다.\n")
-
-        parts.append("**2. 지역업체 가점 또는 우대 평가**")
-        parts.append("   - 「지방자치단체 입찰시 낙찰자 결정기준」에 따른 적격심사 시 지역업체 가점 부여 경로를 검토할 수 있습니다.")
-        parts.append("   - 물품 적격심사 세부기준의 지역업체 가점 항목 확인이 필요합니다.\n")
-
-        parts.append("**3. MAS(다수공급자계약)/종합쇼핑몰 및 2단계 경쟁**")
-        parts.append("   - 나라장터 종합쇼핑몰에 해당 품목이 등록되어 있으면 납품요구 또는 2단계 경쟁을 검토할 수 있습니다.")
-        parts.append("   - 2단계 경쟁 시 지역제한 적용 가능 여부를 확인합니다.")
-        parts.append("   - 「지방자치단체 입찰 및 계약집행기준」의 다수공급자계약 2단계 경쟁 지역제한 규정을 확인합니다.\n")
-
-        parts.append("**4. 혁신제품·우수조달물품·기술개발제품 검토**")
-        parts.append("   - 혁신제품(조달사업법 시행령 제33조), 우수조달물품(조달사업법 시행령 제30조), 기술개발제품(판로지원법 제13조·제14조)이 해당 품목에 존재하는지 확인합니다.")
-        parts.append("   - 지정·인증 유효기간, 혁신장터/종합쇼핑몰 등록 여부, 수요기관 적용 법령 확인이 필요합니다.\n")
-
-        parts.append("**5. 일반경쟁·제한경쟁 시 지역업체 참여 유도**")
-        parts.append("   - 공동수급체 구성 시 지역업체 최소 참여비율 설정(시행령 제88조 제6항)을 검토합니다.")
-        parts.append("   - 입찰공고 시 부산 지역업체 참여를 유도하는 공고 방법을 활용합니다.\n")
-
-        parts.append("> ℹ️ 지역의무공동도급은 공사·일부 용역 중심의 제도이며, 물품 구매에는 일반적으로 자동 적용되지 않습니다.\n")
-    else:
-        parts.append("## 📋 B. 검토 가능한 구매 경로\n")
-        parts.append("1. **나라장터 종합쇼핑몰** 등록 제품이면 납품요구 또는 2단계 경쟁을 검토합니다.")
-        parts.append("2. **혁신제품**으로 지정되어 있고 지정기간이 유효하면 혁신제품 구매 경로를 검토할 수 있습니다.")
-        parts.append("3. **우수조달물품·기술개발제품** 등 인증제품이면 인증 유효기간과 적용 법령을 확인합니다.")
-        parts.append("4. 위 경로가 없으면 일반 입찰, 제한경쟁, 지명입찰 등 다른 계약 방식을 검토합니다.\n")
-
-    # ── C. 필수 확인사항 ──
-    parts.append("## ⚠️ C. 필수 확인사항\n")
-    parts.append("| 확인 항목 | 상태 |")
-    parts.append("| :--- | :--- |")
-    parts.append("| 기관유형 (지자체/출자출연/국가기관) | 확인 필요 |")
-    parts.append("| 추정가격 (VAT 제외 여부) | 확인 필요 |")
-    parts.append("| 품목 세부 규격 | 확인 필요 |")
-    parts.append("| 조달청 등록 여부 | 확인 필요 |")
-    parts.append("| 종합쇼핑몰/MAS 등록 여부 | 확인 필요 |")
-    parts.append("| 지역제한 가능 금액 기준 | 확인 필요 |")
-    parts.append("| 정책기업 인증 유효성 | 확인 필요 |")
-    parts.append("| 혁신제품·우수조달·기술개발 지정 유효기간 | 확인 필요 |")
-    parts.append("| 기관 내부 계약규정 | 확인 필요 |")
-    parts.append("")
-    parts.append("⚖️ 본 안내는 검토 경로 제시이며, 법적 효력이 없습니다. 실제 계약 전 적용 법령과 기관 내부 기준을 반드시 확인하세요.")
-
-    answer = "\n".join(parts)
-
-    meta_updates = {
-        "final_answer_source": "regional_purchase_route_template" if regional_pref else "amount_based_route_template",
-        "route_guidance_provided": True,
-        "regional_route_guidance_provided": regional_pref,
-        "local_restricted_bid_route_check_required": regional_pref,
-        "local_preference_score_route_check_required": regional_pref,
-        "mas_second_stage_route_check_required": True,
-        "shopping_mall_route_check_required": True,
-        "innovation_product_route_check_required": True,
-        "tech_product_route_check_required": True,
-    }
-
-    return answer, meta_updates
 # ─────────────────────────────────────────────
 if __name__ == "__main__":
     print("=== AI 법령 챗봇 테스트 ===\n")

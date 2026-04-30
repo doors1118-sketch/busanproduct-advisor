@@ -219,6 +219,8 @@ def format_candidate_tables(classified: dict, user_message: str = "",
     # 안전 템플릿 추가
     if safe_template:
         answer += safe_template
+        if not safe_template.endswith("\n"):
+            answer += "\n"
         answer += "- 계약 전 조달등록·품목 적합성·수의계약 가능 여부 확인이 필요합니다."
 
     return answer

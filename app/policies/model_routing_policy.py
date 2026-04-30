@@ -268,3 +268,52 @@ def build_routing_log(risk_info: dict,
         "deterministic_template_used": deterministic_template_used,
         "flash_answer_discarded": flash_answer_discarded,
     }
+
+def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str = "") -> int:
+    """
+    3-Tier 라우팅 구조를 위해 질문의 Tier를 결정합니다.
+    Tier 0 (Fast Track): 금액/계약/법령 의도 없고 순수 업체검색.
+    Tier 1 (General): 금액 + 수의계약/계약 가능성 질문, 품목/지역업체 선호 없음.
+    Tier 2 (Deep Research): 금액 + 품목 + 지역업체 선호 또는 지역상품 구매전략.
+    Tier 3 (Agency Specific): 특정 기관 자체규정(공기업/출자출연/부산교통공사 등)이 명확할 때.
+    """
+    if not intent_labels:
+        intent_labels = []
+
+    has_amount = any(w in user_message for w in ["천만원", "백만원", "억원", "금액", "예산", "만원"])
+    has_local = any(w in user_message for w in ["지역업체", "부산업체", "부산 업체", "지역 업체", "부산상품", "지역상품"])
+    has_item = any(w in user_message for w in ["컴퓨터", "물품", "CCTV", "구매", "조명"])
+    has_agency = any(w in user_message for w in ["부산교통공사", "공기업", "출자출연", "시설공단", "환경공단"])
+
+    # Tier 3: 기관명 패턴이 명확할 때만 (단순 "공사"는 오탐 우려로 제외)
+    if has_agency:
+        return 3
+
+    # Tier 2: 금액 + 품목 + 지역업체 선호
+    if has_amount and has_local and has_item:
+        return 2
+
+    # Tier 0: 금액이 없고, 특정 위험 요소가 없는 순수 업체 검색
+    if not has_amount and risk_info.get("risk_level") == "low" and any(i in intent_labels for i in ["company_search"]):
+        return 0
+
+    # Tier 1: 그 외 금액이 있거나, 수의계약 등 일반적인 계약 검토 질문
+    return 1
+
+def generate_mandatory_mcp_plan(user_message: str, tier: int) -> list:
+    """Tier 1/2 쿼리에 대해 필수적으로 호출해야 할 MCP 계획을 생성합니다."""
+    if tier == 1:
+        return [
+            {"name": "search_law", "args": {"query": "지방계약법 시행령 제25조 수의계약"}},
+            {"name": "search_admin_rule", "args": {"query": "지방자치단체 입찰 및 계약집행기준 수의계약 요령"}},
+        ]
+    elif tier == 2:
+        return [
+            {"name": "chain_law_system", "args": {"query": "지방계약법 물품 구매 지역제한 제한경쟁"}},
+            {"name": "chain_procedure_detail", "args": {"query": "지방자치단체 물품 구매 지역제한 MAS 2단계 경쟁"}},
+            {"name": "chain_ordinance_compare", "args": {"query": "부산광역시 지역상품 우선구매 조례"}},
+            {"name": "search_admin_rule", "args": {"query": "지방자치단체 입찰시 낙찰자 결정기준 물품 적격심사 지역업체"}},
+            {"name": "search_admin_rule", "args": {"query": "조달청 내자구매업무 처리규정"}},
+            {"name": "search_admin_rule", "args": {"query": "물품 다수공급자계약 업무처리규정"}}
+        ]
+    return []

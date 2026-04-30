@@ -150,9 +150,39 @@ class ChatResponse(BaseModel):
     rag_elapsed_ms: Optional[int] = None
     model_elapsed_ms: Optional[int] = None
     rewrite_elapsed_ms: Optional[int] = None
+    tool_elapsed_ms_by_name: dict = {}
     tool_call_count: int = 0
     fast_track_applied: bool = False
     deterministic_template_used: bool = False
+    
+    # Phase 4 (Orchestration)
+    tier_resolved: int = 1
+    answer_schema_version: str = "regional_procurement_v1"
+    mandatory_mcp_plan: list = []
+    mandatory_mcp_executed: list = []
+    mandatory_mcp_missing: list = []
+    mcp_chain_statuses: dict = {}
+    admin_rule_call_statuses: dict = {}
+    pps_rule_call_statuses: dict = {}
+    mcp_preflight_elapsed_ms: Optional[int] = None
+    legal_basis_cache_used: bool = False
+    legal_basis_cache_hit_count: int = 0
+    legal_basis_cache_miss_count: int = 0
+    mcp_called_for_cache_miss: bool = False
+    mcp_called_for_freshness: bool = False
+    cache_status: str = ""
+    source_status: str = ""
+    
+    # Phase 5 Orchestration Metadata
+    answer_builder_used: str = None
+    answer_sections_rendered: list = []
+    candidate_section_position: int = -1
+    legal_basis_section_rendered: bool = False
+    user_facing_source_labels_used: bool = False
+    raw_tool_names_hidden_from_answer: bool = False
+    legal_basis_table_rendered: bool = False
+    source_status_user_label: str = ""
+    legal_basis_to_purchase_route_mapped: bool = False
 
 
 # ─────────────────────────────────────────────
@@ -330,9 +360,35 @@ def chat_endpoint(req: ChatRequest):
             rag_elapsed_ms=meta.get("rag_elapsed_ms"),
             model_elapsed_ms=meta.get("model_elapsed_ms"),
             rewrite_elapsed_ms=meta.get("rewrite_elapsed_ms"),
+            tool_elapsed_ms_by_name=meta.get("tool_elapsed_ms_by_name", {}),
             tool_call_count=meta.get("tool_call_count", 0),
             fast_track_applied=meta.get("fast_track_applied", False),
             deterministic_template_used=meta.get("deterministic_template_used", False),
+            tier_resolved=meta.get("tier_resolved", 1),
+            answer_schema_version=meta.get("answer_schema_version", "regional_procurement_v1"),
+            mandatory_mcp_plan=meta.get("mandatory_mcp_plan", []),
+            mandatory_mcp_executed=meta.get("mandatory_mcp_executed", []),
+            mandatory_mcp_missing=meta.get("mandatory_mcp_missing", []),
+            mcp_chain_statuses=meta.get("mcp_chain_statuses", {}),
+            admin_rule_call_statuses=meta.get("admin_rule_call_statuses", {}),
+            pps_rule_call_statuses=meta.get("pps_rule_call_statuses", {}),
+            mcp_preflight_elapsed_ms=meta.get("mcp_preflight_elapsed_ms"),
+            legal_basis_cache_used=meta.get("legal_basis_cache_used", False),
+            legal_basis_cache_hit_count=meta.get("legal_basis_cache_hit_count", 0),
+            legal_basis_cache_miss_count=meta.get("legal_basis_cache_miss_count", 0),
+            mcp_called_for_cache_miss=meta.get("mcp_called_for_cache_miss", False),
+            mcp_called_for_freshness=meta.get("mcp_called_for_freshness", False),
+            cache_status=meta.get("cache_status", ""),
+            source_status=meta.get("source_status", ""),
+            answer_builder_used=meta.get("answer_builder_used"),
+            answer_sections_rendered=meta.get("answer_sections_rendered", []),
+            candidate_section_position=meta.get("candidate_section_position", -1),
+            legal_basis_section_rendered=meta.get("legal_basis_section_rendered", False),
+            user_facing_source_labels_used=meta.get("user_facing_source_labels_used", False),
+            raw_tool_names_hidden_from_answer=meta.get("raw_tool_names_hidden_from_answer", False),
+            legal_basis_table_rendered=meta.get("legal_basis_table_rendered", False),
+            source_status_user_label=meta.get("source_status_user_label", ""),
+            legal_basis_to_purchase_route_mapped=meta.get("legal_basis_to_purchase_route_mapped", False),
         )
         return JSONResponse(content=resp_obj.dict(), media_type="application/json; charset=utf-8")
 

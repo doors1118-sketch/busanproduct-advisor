@@ -1,0 +1,9 @@
+{
+  "run1_pass": true,
+  "run2_pass": true,
+  "run1_latency_ms": 26450,
+  "run2_latency_ms": 12575,
+  "run1_cache_hits": 6,
+  "run2_cache_hits": 6,
+  "production_deployment": "HOLD"
+}
