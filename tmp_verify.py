@@ -1,9 +1,10 @@
+import os
 import paramiko
 
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 try:
-    ssh.connect('49.50.133.160', username='root', password='back9900@@', timeout=10)
+    ssh.connect('49.50.133.160', username='root', password=os.environ.get('SSH_PASS'), timeout=10)
     
     print('--- systemd status ---')
     stdin, stdout, stderr = ssh.exec_command('systemctl status busan-advisor-pilot.service --no-pager; systemctl is-active busan-advisor-pilot.service; ss -ltnp | grep 8001')

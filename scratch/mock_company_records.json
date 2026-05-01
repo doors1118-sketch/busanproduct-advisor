@@ -1,0 +1,30 @@
+{
+  "total_elements": 2,
+  "total_pages": 1,
+  "content": [
+    {
+      "businessNo": "123-45-67890",
+      "companyName": "부산테스트건설",
+      "representative": "홍길동",
+      "address": "부산광역시 해운대구 센텀중앙로",
+      "regionCode": "26350",
+      "bizTypes": ["실내건축공사업"],
+      "mainProducts": ["안전펜스"],
+      "registeredAt": "2025-01-01T00:00:00Z",
+      "status": "정상",
+      "lastUpdatedAt": "2026-05-01T12:00:00Z"
+    },
+    {
+      "businessNo": "098-76-54321",
+      "companyName": "부산청소용역",
+      "representative": "김철수",
+      "address": "부산광역시 수영구 수영로",
+      "regionCode": "26500",
+      "bizTypes": ["위생관리용역업"],
+      "mainProducts": ["건물청소"],
+      "registeredAt": "2024-05-01T00:00:00Z",
+      "status": "정상",
+      "lastUpdatedAt": "2026-05-01T12:00:00Z"
+    }
+  ]
+}

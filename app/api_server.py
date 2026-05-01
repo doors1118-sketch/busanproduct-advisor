@@ -173,8 +173,18 @@ class ChatResponse(BaseModel):
     cache_status: str = ""
     source_status: str = ""
     
+    # Phase 2: 업체 데이터 상태 분리
+    company_cache_used: bool = False
+    company_cache_refreshed_at: Optional[str] = None
+    company_cache_age_hours: Optional[float] = None
+    company_source_status: str = "no_company_query"
+    company_source_status_user_label: str = "업체검색 불필요"
+    company_search_status: str = "not_called"
+    company_data_sources_used: list = []
+    company_cache_mode: str = "none"
+    
     # Phase 5 Orchestration Metadata
-    answer_builder_used: str = None
+    answer_builder_used: Optional[str] = None
     answer_sections_rendered: list = []
     candidate_section_position: int = -1
     legal_basis_section_rendered: bool = False
@@ -382,6 +392,16 @@ def chat_endpoint(req: ChatRequest):
             mcp_called_for_freshness=meta.get("mcp_called_for_freshness", False),
             cache_status=meta.get("cache_status", ""),
             source_status=meta.get("source_status", ""),
+            
+            # Phase 2: 업체 데이터 캐시 상태
+            company_cache_used=meta.get("company_cache_used", False),
+            company_cache_refreshed_at=meta.get("company_cache_refreshed_at"),
+            company_cache_age_hours=meta.get("company_cache_age_hours"),
+            company_source_status=meta.get("company_source_status", "no_company_query"),
+            company_source_status_user_label=meta.get("company_source_status_user_label", "업체검색 불필요"),
+            company_search_status=meta.get("company_search_status", "not_called"),
+            company_data_sources_used=meta.get("company_data_sources_used", []),
+            company_cache_mode=meta.get("company_cache_mode", "none"),
             answer_builder_used=meta.get("answer_builder_used"),
             answer_sections_rendered=meta.get("answer_sections_rendered", []),
             candidate_section_position=meta.get("candidate_section_position", -1),

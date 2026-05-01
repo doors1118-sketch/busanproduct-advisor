@@ -1,0 +1,33 @@
+{
+  "summary": {
+    "timestamp": "2026-05-01 08:54:57",
+    "step1_cron_disabled": true,
+    "step2_dns_resolves": true,
+    "step2_http_reachable": false,
+    "step2_https_reachable": false,
+    "step2_nc_80": false,
+    "step2_nc_443": false,
+    "step2_google_ok": true,
+    "step2_naver_ok": true,
+    "step2_public_ip": "49.50.133.160",
+    "production_deployment": "HOLD"
+  },
+  "raw": {
+    "step1_mcp_cron_active": false,
+    "step2_dig": "27.101.207.66",
+    "step2_nslookup": "Server:\t\t127.0.0.53\nAddress:\t127.0.0.53#53\n\nNon-authoritative answer:\nName:\twww.law.go.kr\nAddress: 27.101.207.66",
+    "step2_getent": "27.101.207.66   www.law.go.kr",
+    "step2_curl_http": "% Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0* Host www.law.go.kr:80 was resolved.\n* IPv6: (none)\n* IPv4: 27.101.207.66\n*   Trying 27.101.207.66:80...\n\r  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0\r  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0\r  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0\r  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0* ipv4 connect timeout after 4998ms, move on!\n* Failed to connect to www.law.go.kr port 80 after 5002 ms: Timeout was reached\n\r  0     0    0     0    0     0      0      0 --:--:--  0:00:05 --:--:--     0\n* Closing connection\ncurl: (28) Failed to connect to www.law.go.kr port 80 after 5002 ms: Timeout was reached",
+    "step2_curl_https": "% Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0* Host www.law.go.kr:443 was resolved.\n* IPv6: (none)\n* IPv4: 27.101.207.66\n*   Trying 27.101.207.66:443...\n\r  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0\r  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0\r  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0\r  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0* ipv4 connect timeout after 4998ms, move on!\n* Failed to connect to www.law.go.kr port 443 after 5002 ms: Timeout was reached\n\r  0     0    0     0    0     0      0      0 --:--:--  0:00:05 --:--:--     0\n* Closing connection\ncurl: (28) Failed to connect to www.law.go.kr port 443 after 5002 ms: Timeout was reached",
+    "step2_nc_80": "nc: connect to www.law.go.kr (27.101.207.66) port 80 (tcp) timed out: Operation now in progress",
+    "step2_nc_443": "nc: connect to www.law.go.kr (27.101.207.66) port 443 (tcp) timed out: Operation now in progress",
+    "step2_google": "200",
+    "step2_naver": "200",
+    "step2_api_https": "% Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0* Host www.law.go.kr:443 was resolved.\n* IPv6: (none)\n* IPv4: 27.101.207.66\n*   Trying 27.101.207.66:443...\n\r  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0\r  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0\r  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0\r  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0* ipv4 connect timeout after 4998ms, move on!\n* Failed to connect to www.law.go.kr port 443 after 5002 ms: Timeout was reached\n\r  0     0    0     0    0     0      0      0 --:--:--  0:00:05 --:--:--     0\n* Closing connection\ncurl: (28) Failed to connect to www.law.go.kr port 443 after 5002 ms: Timeout was reached",
+    "step2_open_law": "000",
+    "step2_public_ip": "49.50.133.160",
+    "step2_traceroute": "bash: line 1: traceroute: command not found",
+    "step2_default_route": "default via 10.0.1.1 dev eth0 proto dhcp src 10.0.1.6 metric 100",
+    "step2_resolv": "# This is /run/systemd/resolve/stub-resolv.conf managed by man:systemd-resolved(8).\n# Do not edit.\n#\n# This file might be symlinked as /etc/resolv.conf. If you're looking at\n# /etc/resolv.conf and seeing this text, you have followed the symlink.\n#\n# This is a dynamic resolv.conf file for connecting local clients to the\n# internal DNS stub resolver of systemd-resolved. This file lists all\n# configured search domains.\n#\n# Run \"resolvectl status\" to see details about the uplink DNS servers\n# currently in use.\n#\n# Third party programs should typically not access this file directly, but only\n# through the symlink at /etc/resolv.conf. To manage man:resolv.conf(5) in a\n# different way, replace this symlink by a static file or a different symlink.\n#\n# See man:systemd-resolved.service(8) for details about the supported modes of\n# operation for /etc/resolv.conf.\n\nnameserver 127.0.0.53\noptions edns0 trust-ad\nsearch ."
+  }
+}

@@ -1211,7 +1211,9 @@ def _execute_tier_0_fast_track(user_message: str, history: list, api_status, pro
         raw_result_str = json.dumps({"error": str(e)}, ensure_ascii=False)
         
     tool_elapsed = int((time.time() - tool_start) * 1000)
-    
+
+
+
     all_tool_results = [{
         "tool_name": "search_local_company_by_product",
         "status": "success" if "error" not in raw_result_str else "failed",
@@ -1274,6 +1276,44 @@ def _execute_tier_0_fast_track(user_message: str, history: list, api_status, pro
     )
     return answer, updated_history
 
+# ─── MCP 실패 응답 공통 판정 함수 ───
+_MCP_FAILURE_MARKERS = [
+    "error", "warning", "timeout", "timed out", "read timed out",
+    "connecttimeout", "readtimeout", "connectionerror",
+    "max retries exceeded", "mcp 호출 오류", "api 오류",
+    "응답 지연", "초과", "[timeout]", "[failed]",
+]
+
+def is_mcp_error(res_str: str) -> bool:
+    """MCP 응답이 실패인지 판정한다.
+    1) JSON 파싱을 먼저 수행하여 구조적 에러를 감지한다.
+    2) 이후 known failure marker 기반 문자열 검사를 수행한다.
+    """
+    if not res_str or not res_str.strip():
+        return True
+    # 1. JSON 구조 검사
+    try:
+        import json as _json_check
+        parsed = _json_check.loads(res_str)
+        if isinstance(parsed, dict):
+            if "error" in parsed or "warning" in parsed:
+                return True
+            if parsed.get("success") is False:
+                return True
+            status_val = str(parsed.get("status", "")).lower()
+            if status_val in ("timeout", "failed", "error"):
+                return True
+    except (ValueError, TypeError):
+        pass
+    # 2. Known failure marker 문자열 검사
+    lower = res_str.lower()
+    for marker in _MCP_FAILURE_MARKERS:
+        if marker in lower:
+            return True
+    return False
+
+_MCP_FAILED_PLACEHOLDER = "[MCP_FAILED] 해당 근거는 조회 실패로 법적 판단 근거에서 제외됨"
+
 class MockFunctionCall:
     def __init__(self, name, args):
         self.name = name
@@ -1315,8 +1355,10 @@ def _execute_tier_2_mandatory_mcp(user_message: str, plan: list, progress_callba
             res_str = _execute_function_call(mock_fc)
             elapsed_ms = int((time.time() - start_time) * 1000)
             
-            if "error" not in res_str.lower() and "warning" not in res_str.lower():
-                _mcp_cache[cache_key] = res_str
+            # is_mcp_error 기반 판정: 실패 응답은 캐시에 저장하지 않음
+            if is_mcp_error(res_str):
+                return tool_key, res_str, False, elapsed_ms
+            _mcp_cache[cache_key] = res_str
             return tool_key, res_str, False, elapsed_ms
         except Exception as e:
             elapsed_ms = int((time.time() - start_time) * 1000)
@@ -1334,12 +1376,17 @@ def _execute_tier_2_mandatory_mcp(user_message: str, plan: list, progress_callba
                 cache_stats["legal_basis_cache_miss_count"] += 1
                 cache_stats["mcp_called_for_cache_miss"] = True
                 
-                if not res_str or "Error:" in res_str or "error" in res_str.lower() or "not found" in res_str.lower() or "warning" in res_str.lower():
+                # is_mcp_error 기반 판정: 실패 시 missing, 성공 시 executed
+                if is_mcp_error(res_str):
                     missing.append(f"{tool_key} (failed)")
                 else:
                     executed.append(f"{tool_key} ({elapsed_ms}ms)")
                 
-            results.append(f"[{tool_key} (Cache: {from_cache})]\n{res_str}")
+            # 실패 응답은 LLM context에 안전 placeholder로 대체
+            if is_mcp_error(res_str) and not from_cache:
+                results.append(f"[{tool_key}]\n{_MCP_FAILED_PLACEHOLDER}")
+            else:
+                results.append(f"[{tool_key} (Cache: {from_cache})]\n{res_str}")
             
     mcp_context = "\n\n".join(results)
     return mcp_context, plan, executed, missing, cache_stats
@@ -1443,6 +1490,40 @@ def _chat_v144(
             )
             mcp_preflight_elapsed_ms = int((time.time() - preflight_start) * 1000)
             rag_context = f"### [사전 조회된 필수 법령/매뉴얼 근거]\n{mcp_context}\n\n" + rag_context
+
+    # [FAIL_TO_CACHE] MCP preflight 전부 실패 시 LLM 루프 우회 → deterministic template
+    _ftc_flag = os.getenv("MCP_FAIL_TO_CACHE", "false").lower() == "true"
+    if _ftc_flag and mandatory_mcp_missing and not mandatory_mcp_executed:
+        print("  [FAIL_TO_CACHE] All MCP preflight failed. Bypassing LLM loop → deterministic template.")
+        api_status = ApiStatus()
+        _ftc_meta = {
+            "model_used": "bypass_timeout_fallback",
+            "tier_resolved": query_tier,
+            "mandatory_mcp_plan": [{"name": p["name"], "args": p["args"]} for p in mandatory_mcp_plan] if mandatory_mcp_plan else [],
+            "mandatory_mcp_executed": mandatory_mcp_executed,
+            "mandatory_mcp_missing": mandatory_mcp_missing,
+            "mcp_preflight_elapsed_ms": mcp_preflight_elapsed_ms,
+            "rag_elapsed_ms": rag_elapsed_ms,
+            "model_elapsed_ms": 0,
+            "tool_call_count": 0,
+            "legal_basis_cache_used": True,
+            "legal_basis_cache_hit_count": cache_stats.get("legal_basis_cache_hit_count", 0) if cache_stats else 0,
+            "legal_basis_cache_miss_count": cache_stats.get("legal_basis_cache_miss_count", 0) if cache_stats else 0,
+            "source_status": "mcp_failed_no_basis",
+            "deterministic_template_used": True,
+            "fast_track_applied": True,
+            "company_table_allowed": False,
+            "core_prompt_hash": __import__('hashlib').sha256(b"ftc_bypass_core").hexdigest(),
+            "prompt_prefix_hash": __import__('hashlib').sha256(b"ftc_bypass_prefix").hexdigest()[:16],
+        }
+        _ftc_answer = (
+            "---\n⚠️ **확인 필요 사항**\n"
+            "- API 지연으로 일부 판단이 제한되었습니다.\n\n"
+            "[확인 필요] 법령 조회 지연으로 법적 결론을 확정할 수 없습니다.\n"
+            "관련 법령 및 기관 내부 기준을 직접 확인하시기 바랍니다."
+        )
+        answer, history = _finalize_answer(_ftc_answer, history, user_message, [], api_status, progress_callback, generation_meta=_ftc_meta)
+        return answer, history
 
     api_status = ApiStatus()
     agency_key = _normalize_agency_type(agency_type) if agency_type else "default"
@@ -1693,7 +1774,17 @@ def _chat_v144(
             "cache_status": cache_stats.get("cache_status", "") if 'cache_stats' in locals() else "",
         })
 
+    # LLM 루프 전체 경과시간 제한 (FAIL_TO_CACHE 시 12초)
+    from policies.timeout_policy import FAIL_TO_CACHE as _FTC, get_timeout as _get_tool_timeout
+    _loop_max_sec = 12 if _FTC else 45
+    _loop_start = time.time()
+
     for round_i in range(MAX_TOOL_CALL_ROUNDS):
+        # 전체 루프 경과시간 체크
+        _loop_elapsed = time.time() - _loop_start
+        if _loop_elapsed > _loop_max_sec:
+            print(f"  [LOOP_DEADLINE] {_loop_elapsed:.1f}s > {_loop_max_sec}s. Breaking.")
+            break
         # API 호출 (429 재시도, Malformed 재시도 및 Fallback)
         response = None
         last_err = None
@@ -1850,7 +1941,7 @@ def _chat_v144(
                     ))
 
                 for call_key, (fc, future) in futures.items():
-                    timeout_sec = 35  # 기존 호환 (정책 timeout은 mcp_client 내부에서 적용)
+                    timeout_sec = _get_tool_timeout(fc.name)  # timeout_policy 기반
                     try:
                         result_str = future.result(timeout=timeout_sec)
                         status = "success"
@@ -1906,23 +1997,42 @@ def _chat_v144(
             
             # 조기 탈출 (fail-closed)
             if any(r["status"] in ["timeout", "failed"] for r in all_tool_results):
-                print("  [EARLY EXIT] Timeout or failure detected, triggering fail-closed response.")
-                fallback_answer = "⚠️ API 연동 지연 또는 시스템 오류로 인해 검색이 중단되었습니다. 잠시 후 다시 시도해 주시거나 질문을 구체화해 주세요."
-                answer, history = _finalize_answer(fallback_answer, history, user_message, all_tool_results, api_status, progress_callback, generation_meta={
-                    "model_used": model_to_use,
-                    "fallback_used": fallback_used,
-                    "fallback_reason": fallback_reason,
-                    "retry_count": total_retries - 1 if total_retries > 0 else 0,
-                    "risk_level": risk_info.get("risk_level", "unknown"),
-                    "high_risk_triggers": risk_info.get("high_risk_triggers", []),
-                    "malformed_function_call_detected": malformed_function_call_detected,
-                    "function_call_retry_count": function_call_retry_count,
-                    "function_call_final_status": function_call_final_status,
-                    "prefetch_tool_called": product_prefetch_executed,
-                    "prefetch_tool_name": forced_tool_name if product_prefetch_executed else None,
-                    "model_function_call_malformed": malformed_function_call_detected
-                })
-                return answer, history
+                fail_to_cache = os.getenv("MCP_FAIL_TO_CACHE", "false").lower() == "true"
+                if fail_to_cache:
+                    print("  [FAIL_TO_CACHE] Timeout detected during LLM loop. Falling back to deterministic template.")
+                    answer, history = _finalize_answer("", history, user_message, all_tool_results, api_status, progress_callback, generation_meta={
+                        "model_used": "bypass_timeout_fallback",
+                        "tier_resolved": query_tier,
+                        "mandatory_mcp_plan": mandatory_mcp_plan,
+                        "mandatory_mcp_executed": mandatory_mcp_executed,
+                        "mandatory_mcp_missing": mandatory_mcp_missing,
+                        "mcp_preflight_elapsed_ms": mcp_preflight_elapsed_ms,
+                        "rag_elapsed_ms": rag_elapsed_ms if 'rag_elapsed_ms' in locals() else 0,
+                        "model_elapsed_ms": 0,
+                        "tool_call_count": len(all_tool_results),
+                        "legal_basis_cache_used": True,
+                        "legal_basis_cache_hit_count": cache_stats.get("legal_basis_cache_hit_count", 0) if 'cache_stats' in locals() else 0,
+                        "source_status": "cached_stale_but_available" if cache_stats.get("legal_basis_cache_hit_count", 0) > 0 else "mcp_failed_no_basis",
+                    })
+                    return answer, history
+                else:
+                    print("  [EARLY EXIT] Timeout or failure detected, triggering fail-closed response.")
+                    fallback_answer = "⚠️ API 연동 지연 또는 시스템 오류로 인해 검색이 중단되었습니다. 잠시 후 다시 시도해 주시거나 질문을 구체화해 주세요."
+                    answer, history = _finalize_answer(fallback_answer, history, user_message, all_tool_results, api_status, progress_callback, generation_meta={
+                        "model_used": model_to_use,
+                        "fallback_used": fallback_used,
+                        "fallback_reason": fallback_reason,
+                        "retry_count": total_retries - 1 if total_retries > 0 else 0,
+                        "risk_level": risk_info.get("risk_level", "unknown"),
+                        "high_risk_triggers": risk_info.get("high_risk_triggers", []),
+                        "malformed_function_call_detected": malformed_function_call_detected,
+                        "function_call_retry_count": function_call_retry_count,
+                        "function_call_final_status": function_call_final_status,
+                        "prefetch_tool_called": product_prefetch_executed if 'product_prefetch_executed' in locals() else False,
+                        "prefetch_tool_name": forced_tool_name if 'product_prefetch_executed' in locals() and product_prefetch_executed else None,
+                        "model_function_call_malformed": malformed_function_call_detected
+                    })
+                    return answer, history
         else:
             # Function call 없음 → 최종 답변
 
@@ -1947,21 +2057,40 @@ def _chat_v144(
                     mcp_was_called = True
                     
                     if status in ["timeout", "failed"]:
-                        print("  [EARLY EXIT] Prefetch failed, triggering fail-closed response.")
-                        fallback_answer = "⚠️ 법령 검색 지연 또는 오류로 인해 답변이 유보되었습니다. 잠시 후 다시 시도해 주세요."
-                        answer, history = _finalize_answer(fallback_answer, history, user_message, all_tool_results, api_status, progress_callback, generation_meta={
-                            "model_used": model_to_use,
-                            "fallback_used": fallback_used,
-                            "fallback_reason": fallback_reason,
-                            "retry_count": total_retries - 1 if total_retries > 0 else 0,
-                            "core_prompt_hash": assembled.core_prompt_hash if 'assembled' in locals() else "",
-                            "prompt_prefix_hash": assembled.prompt_prefix_hash if 'assembled' in locals() else "",
-                            "company_table_allowed": "company_search" in guardrails if 'guardrails' in locals() else False,
-                            "tier_resolved": query_tier,
-                            "mandatory_mcp_plan": mandatory_mcp_plan,
-                            "mandatory_mcp_executed": mandatory_mcp_executed,
-                            "mandatory_mcp_missing": mandatory_mcp_missing,
-                            "mcp_preflight_elapsed_ms": mcp_preflight_elapsed_ms,
+                        fail_to_cache = os.getenv("MCP_FAIL_TO_CACHE", "false").lower() == "true"
+                        if fail_to_cache:
+                            print("  [FAIL_TO_CACHE] Prefetch timeout detected, falling back to deterministic template.")
+                            answer, history = _finalize_answer("", history, user_message, all_tool_results, api_status, progress_callback, generation_meta={
+                                "model_used": "bypass_timeout_fallback",
+                                "tier_resolved": query_tier,
+                                "mandatory_mcp_plan": mandatory_mcp_plan,
+                                "mandatory_mcp_executed": mandatory_mcp_executed,
+                                "mandatory_mcp_missing": mandatory_mcp_missing,
+                                "mcp_preflight_elapsed_ms": mcp_preflight_elapsed_ms,
+                                "rag_elapsed_ms": rag_elapsed_ms if 'rag_elapsed_ms' in locals() else 0,
+                                "model_elapsed_ms": 0,
+                                "tool_call_count": len(all_tool_results),
+                                "legal_basis_cache_used": True,
+                                "legal_basis_cache_hit_count": cache_stats.get("legal_basis_cache_hit_count", 0) if 'cache_stats' in locals() else 0,
+                                "source_status": "cached_stale_but_available" if cache_stats.get("legal_basis_cache_hit_count", 0) > 0 else "mcp_failed_no_basis",
+                            })
+                            return answer, history
+                        else:
+                            print("  [EARLY EXIT] Prefetch failed, triggering fail-closed response.")
+                            fallback_answer = "⚠️ 법령 검색 지연 또는 오류로 인해 답변이 유보되었습니다. 잠시 후 다시 시도해 주세요."
+                            answer, history = _finalize_answer(fallback_answer, history, user_message, all_tool_results, api_status, progress_callback, generation_meta={
+                                "model_used": model_to_use,
+                                "fallback_used": fallback_used,
+                                "fallback_reason": fallback_reason,
+                                "retry_count": total_retries - 1 if total_retries > 0 else 0,
+                                "core_prompt_hash": assembled.core_prompt_hash if 'assembled' in locals() else "",
+                                "prompt_prefix_hash": assembled.prompt_prefix_hash if 'assembled' in locals() else "",
+                                "company_table_allowed": "company_search" in guardrails if 'guardrails' in locals() else False,
+                                "tier_resolved": query_tier,
+                                "mandatory_mcp_plan": mandatory_mcp_plan,
+                                "mandatory_mcp_executed": mandatory_mcp_executed,
+                                "mandatory_mcp_missing": mandatory_mcp_missing,
+                                "mcp_preflight_elapsed_ms": mcp_preflight_elapsed_ms,
                             "legal_basis_cache_used": cache_stats.get("legal_basis_cache_used", False) if 'cache_stats' in locals() else False,
                             "legal_basis_cache_hit_count": cache_stats.get("legal_basis_cache_hit_count", 0) if 'cache_stats' in locals() else 0,
                             "legal_basis_cache_miss_count": cache_stats.get("legal_basis_cache_miss_count", 0) if 'cache_stats' in locals() else 0,
@@ -2061,6 +2190,7 @@ def _chat_v144(
     return answer, history
 
 def _finalize_answer(answer: str, history: list, user_message: str, all_tool_results: list, api_status: ApiStatus, progress_callback=None, generation_meta: dict = None):
+    global _last_generation_meta
     _rewrite_start = time.time()
     
     if generation_meta is not None:
@@ -2383,7 +2513,30 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
             history.append({"role": "model", "text": answer})
             
             if generation_meta:
-                log_routing(generation_meta=generation_meta)
+                # [Phase 2] 업체 검색 메타데이터 초기화
+                if "company_source_status" not in generation_meta:
+                    generation_meta["company_cache_used"] = False
+                    generation_meta["company_cache_refreshed_at"] = None
+                    generation_meta["company_cache_age_hours"] = None
+                    generation_meta["company_source_status"] = "no_company_query"
+                    generation_meta["company_source_status_user_label"] = "업체검색 불필요"
+                    generation_meta["company_search_status"] = "not_called"
+                    generation_meta["company_data_sources_used"] = []
+                    generation_meta["company_cache_mode"] = "none"
+
+                # [Phase 3 보완] 강제 상태 지정
+                if not generation_meta.get("source_status"):
+                    _tier = generation_meta.get("tier_resolved", 1)
+                    if _tier == 0:
+                        generation_meta["source_status"] = "no_mcp_required"
+                    else:
+                        generation_meta["source_status"] = "mcp_failed_no_basis"
+
+                generation_meta["legal_conclusion_allowed"] = legal_scope.legal_conclusion_allowed
+                generation_meta["blocked_scope"] = legal_scope.blocked_scope
+                generation_meta["final_answer_scanned"] = True
+
+                _last_generation_meta = dict(generation_meta)
             return answer, history
 
     MISSING_MSG_MAP = {
@@ -2523,6 +2676,9 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
                 
             try:
                 rewrite_model = generation_meta.get("model_used", MODEL_ID) if generation_meta else MODEL_ID
+                if rewrite_model == "bypass_timeout_fallback":
+                    rewrite_model = MODEL_ID
+                    
                 rewrite_response = client.models.generate_content(
                     model=rewrite_model,
                     contents=[types.Content(role="user", parts=[types.Part.from_text(text=rewrite_prompt)])],
@@ -2763,17 +2919,73 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
             "priority_purchase_product": generation_meta.get("priority_purchase_count", 0),
         }
 
+    # ── Phase 2: 업체 데이터 캐시 상태 분리 ──
+    if generation_meta is not None:
+        if "company_source_status" not in generation_meta:
+            generation_meta["company_cache_used"] = False
+            generation_meta["company_cache_refreshed_at"] = None
+            generation_meta["company_cache_age_hours"] = None
+            generation_meta["company_source_status"] = "no_company_query"
+            generation_meta["company_source_status_user_label"] = "업체검색 불필요"
+            generation_meta["company_search_status"] = getattr(api_status, 'company_search_status', 'not_called')
+            generation_meta["company_data_sources_used"] = []
+            generation_meta["company_cache_mode"] = "none"
+
+        used_sources = []
+        is_live = False
+        is_cached = False
+        
+        for tr in all_tool_results:
+            tn = tr.get("tool_name", "")
+            if "search_local_company" in tn or "search_shopping_mall" in tn:
+                used_sources.append(tn)
+                is_live = True
+            elif "search_innovation" in tn or "search_tech" in tn:
+                used_sources.append(tn)
+                is_cached = True
+
+        if is_live or is_cached or generation_meta.get("company_search_status") not in ("not_called", None):
+            if is_live and is_cached:
+                generation_meta["company_source_status"] = "mixed_company_sources"
+                generation_meta["company_source_status_user_label"] = "실시간 업체 조회와 로컬 캐시 혼합 사용"
+                generation_meta["company_cache_mode"] = "hybrid"
+                generation_meta["company_cache_used"] = True
+            elif is_live:
+                generation_meta["company_source_status"] = "live_company_lookup"
+                generation_meta["company_source_status_user_label"] = "실시간 업체 데이터 조회 사용"
+                generation_meta["company_cache_mode"] = "live_only"
+                generation_meta["company_cache_used"] = False
+            elif is_cached:
+                generation_meta["company_source_status"] = "cached_daily"
+                generation_meta["company_source_status_user_label"] = "일 단위 갱신 업체 데이터 사용"
+                generation_meta["company_cache_mode"] = "daily_cache"
+                generation_meta["company_cache_used"] = True
+            
+            # Remove duplicates while preserving order
+            generation_meta["company_data_sources_used"] = list(dict.fromkeys(used_sources))
+
+
     # ── source_status 사전 결정 (builder가 참조할 수 있도록) ──
+    # missing 우선순위로 처리
     if generation_meta is not None and ("source_status" not in generation_meta or not generation_meta["source_status"]):
         _pre_mcp = generation_meta.get("mandatory_mcp_executed", [])
+        _pre_missing = generation_meta.get("mandatory_mcp_missing", [])
         _pre_tier = generation_meta.get("tier_resolved", 1)
         _pre_hits = generation_meta.get("legal_basis_cache_hit_count", 0)
         if _pre_tier == 0:
             generation_meta["source_status"] = "no_mcp_required"
-        elif _pre_hits > 0:
+        elif _pre_missing and _pre_mcp:
+            generation_meta["source_status"] = "partial_mcp_with_missing"
+        elif _pre_missing and _pre_hits > 0:
+            generation_meta["source_status"] = "cached_stale_but_available"
+        elif _pre_missing and not _pre_mcp and _pre_hits == 0:
+            generation_meta["source_status"] = "mcp_failed_no_basis"
+        elif _pre_hits > 0 and not _pre_missing:
             generation_meta["source_status"] = "cached_verified"
+        elif _pre_mcp and generation_meta.get("mcp_called_for_cache_miss"):
+            generation_meta["source_status"] = "cache_refreshed_from_mcp"
         elif _pre_mcp:
-            generation_meta["source_status"] = "cache_refreshed_from_mcp" if generation_meta.get("mcp_called_for_cache_miss") else "mcp_preflight_success"
+            generation_meta["source_status"] = "mcp_preflight_success"
         else:
             generation_meta["source_status"] = "mcp_failed_no_basis"
 
@@ -2899,9 +3111,17 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
     history.append({"role": "model", "text": answer})
 
     # API 레이어용 generation_meta 저장
-    global _last_generation_meta
     if generation_meta is not None:
+        # [Phase 3 보완] 최종 단계에서 반드시 1회 계산 (어떤 경로든 무조건 채워짐)
+        if not generation_meta.get("source_status"):
+            _tier = generation_meta.get("tier_resolved", 1)
+            if _tier == 0:
+                generation_meta["source_status"] = "no_mcp_required"
+            else:
+                generation_meta["source_status"] = "mcp_failed_no_basis"
+                
         _last_generation_meta = dict(generation_meta)
+        print("!!! GLOBAL META UPDATED TO:", list(_last_generation_meta.keys()))
     else:
         _last_generation_meta = {
             "prompt_mode": "legacy",

@@ -1,10 +1,11 @@
+import os
 import paramiko
 import time
 
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 try:
-    ssh.connect('49.50.133.160', username='root', password='back9900@@', timeout=10)
+    ssh.connect('49.50.133.160', username='root', password=os.environ.get('SSH_PASS'), timeout=10)
     
     # Check what is in /root/e2e_workspace/.env
     stdin, stdout, stderr = ssh.exec_command("cat /root/e2e_workspace/.env")

@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-05-01 08:44:46",
+  "phase1_service_running": true,
+  "phase1_port_listening": true,
+  "phase2_mcp_responsive": false,
+  "phase3_all_healthy": false,
+  "phase3_health_checks": [
+    {
+      "attempt": 1,
+      "ok": false,
+      "raw_len": 0
+    },
+    {
+      "attempt": 2,
+      "ok": false,
+      "raw_len": 0
+    },
+    {
+      "attempt": 3,
+      "ok": false,
+      "raw_len": 0
+    }
+  ],
+  "phase3_errors_after_restart": "May 01 08:41:25 busanlocalproducts npx[2833823]: SIGTERM received, shutting down server...\nMay 01 08:41:40 busanlocalproducts npx[2834372]: SIGTERM received, shutting down server...\nMay 01 08:41:49 busanlocalproducts korean-law-mcp[2834476]: SIGTERM received, shutting down server...\nMay 01 08:42:01 busanlocalproducts korean-law-mcp[2834551]: SIGTERM received, shutting down server...\nMay 01 08:43:01 busanlocalproducts korean-law-mcp[2834616]: SIGTERM received, shutting down server...\nMay 01 08:43:19 busanlocalproducts korean-law-mcp[2834721]: SIGTERM received, shutting down server...\nMay 01 08:44:01 busanlocalproducts korean-law-mcp[2834847]: SIGTERM received, shutting down server...",
+  "phase4_action": "already hardened",
+  "phase4_hardened_ok": false,
+  "phase5_cron_installed": true,
+  "phase5_health_log": "2026-05-01 08:44:15 FAIL - restarting\n2026-05-01 08:44:15 STILL_FAILED",
+  "phase6_external_self_ok": false,
+  "overall_verdict": "FAIL",
+  "production_deployment": "HOLD"
+}

@@ -7,26 +7,34 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeou
 from prompting.schemas import LegalConclusionScope
 
 # ─── 환경변수 기반 timeout (초) ───
+FAIL_TO_CACHE = os.getenv("MCP_FAIL_TO_CACHE", "false").lower() == "true"
+fast_val = os.getenv("MCP_TIMEOUT_SEC", "3")
+FAST_TIMEOUT = int(fast_val) if FAIL_TO_CACHE else 10
+
+# chain 계열도 FAIL_TO_CACHE 시 FAST_TIMEOUT 적용
+_chain_env = int(os.getenv("MCP_CHAIN_TIMEOUT_SECONDS", "12"))
+CHAIN_TIMEOUT = FAST_TIMEOUT if FAIL_TO_CACHE else _chain_env
+
 MCP_TIMEOUT_MAP = {
-    "chain_full_research":    int(os.getenv("MCP_CHAIN_TIMEOUT_SECONDS", "12")),
-    "chain_law_system":       int(os.getenv("MCP_CHAIN_TIMEOUT_SECONDS", "12")),
-    "chain_procedure_detail": int(os.getenv("MCP_CHAIN_TIMEOUT_SECONDS", "12")),
-    "chain_ordinance_compare":int(os.getenv("MCP_CHAIN_TIMEOUT_SECONDS", "12")),
-    "chain_amendment_track":  int(os.getenv("MCP_CHAIN_TIMEOUT_SECONDS", "12")),
-    "chain_document_review":  int(os.getenv("MCP_CHAIN_TIMEOUT_SECONDS", "12")),
-    "chain_action_basis":     int(os.getenv("MCP_CHAIN_TIMEOUT_SECONDS", "12")),
-    "get_law_text":           int(os.getenv("MCP_LAW_TEXT_TIMEOUT_SECONDS", "10")),
-    "search_law":             int(os.getenv("MCP_LAW_TEXT_TIMEOUT_SECONDS", "10")),
-    "search_admin_rule":      int(os.getenv("MCP_ADMIN_RULE_TIMEOUT_SECONDS", "10")),
-    "get_admin_rule":         int(os.getenv("MCP_ADMIN_RULE_TIMEOUT_SECONDS", "10")),
+    "chain_full_research":    CHAIN_TIMEOUT,
+    "chain_law_system":       CHAIN_TIMEOUT,
+    "chain_procedure_detail": CHAIN_TIMEOUT,
+    "chain_ordinance_compare":CHAIN_TIMEOUT,
+    "chain_amendment_track":  CHAIN_TIMEOUT,
+    "chain_document_review":  CHAIN_TIMEOUT,
+    "chain_action_basis":     CHAIN_TIMEOUT,
+    "get_law_text":           int(os.getenv("MCP_LAW_TEXT_TIMEOUT_SECONDS", FAST_TIMEOUT)),
+    "search_law":             int(os.getenv("MCP_LAW_TEXT_TIMEOUT_SECONDS", FAST_TIMEOUT)),
+    "search_admin_rule":      int(os.getenv("MCP_ADMIN_RULE_TIMEOUT_SECONDS", FAST_TIMEOUT)),
+    "get_admin_rule":         int(os.getenv("MCP_ADMIN_RULE_TIMEOUT_SECONDS", FAST_TIMEOUT)),
     "search_decisions":       int(os.getenv("MCP_DECISION_TIMEOUT_SECONDS", "5")),
     "search_interpretations": int(os.getenv("MCP_DECISION_TIMEOUT_SECONDS", "5")),
     "get_decision_text":      int(os.getenv("MCP_DECISION_TIMEOUT_SECONDS", "5")),
     "get_annexes":            int(os.getenv("MCP_ORDINANCE_TIMEOUT_SECONDS", "8")),
-    "verify_citations":       int(os.getenv("MCP_LAW_TEXT_TIMEOUT_SECONDS", "10")),
+    "verify_citations":       int(os.getenv("MCP_LAW_TEXT_TIMEOUT_SECONDS", FAST_TIMEOUT)),
 }
 
-DEFAULT_TIMEOUT = 10
+DEFAULT_TIMEOUT = FAST_TIMEOUT if FAIL_TO_CACHE else 10
 
 # ─── 핵심 법령 도구 (fail-closed 대상) ───
 CRITICAL_LAW_TOOLS = {

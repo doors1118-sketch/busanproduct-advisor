@@ -1,10 +1,11 @@
+import os
 import paramiko
 import time
 
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 try:
-    ssh.connect('49.50.133.160', username='root', password='back9900@@', timeout=10)
+    ssh.connect('49.50.133.160', username='root', password=os.environ.get('SSH_PASS'), timeout=10)
     
     # 1. Create pilot_auth.env
     env_content = """PILOT_AUTH_ENABLED=true
@@ -32,6 +33,7 @@ WorkingDirectory=/root/advisor
 EnvironmentFile=/root/advisor/.env
 EnvironmentFile=/root/advisor/pilot_auth.env
 ExecStart=/usr/bin/python3 -m uvicorn app.api_server:app --host 0.0.0.0 --port 8001
+ExecStartPost=/bin/bash /root/advisor/warmup.sh
 Restart=always
 RestartSec=5
 StandardOutput=append:/var/log/busan_advisor_pilot_out.log
@@ -40,6 +42,22 @@ StandardError=append:/var/log/busan_advisor_pilot_err.log
 [Install]
 WantedBy=multi-user.target
 """
+    
+    warmup_content = """#!/bin/bash
+# wait for uvicorn to be ready
+sleep 5
+source /root/advisor/pilot_auth.env
+TOKEN=$(echo -n "$PILOT_AUTH_USER:$PILOT_AUTH_PASSWORD" | base64)
+
+curl -s -H "Authorization: Basic $TOKEN" http://127.0.0.1:8001/rag/status > /dev/null
+curl -s -X POST http://127.0.0.1:8001/chat \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Basic $TOKEN" \\
+  -d '{"message":"CCTV 부산업체 추천해줘","history":[]}' > /dev/null
+echo "warmup done"
+"""
+    ssh.exec_command(f"cat << 'EOF' > /root/advisor/warmup.sh\n{warmup_content}EOF")
+    ssh.exec_command("chmod +x /root/advisor/warmup.sh")
     ssh.exec_command(f"cat << 'EOF' > /etc/systemd/system/busan-advisor-pilot.service\n{service_content}EOF")
     
     # 3. Start service

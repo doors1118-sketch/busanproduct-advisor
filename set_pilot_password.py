@@ -1,3 +1,4 @@
+import os
 import paramiko
 import getpass
 
@@ -32,7 +33,7 @@ def main():
         # 이전 단계에서 사용한 root 접속 정보
         host = '49.50.133.160'
         username = 'root'
-        pwd = 'back9900@@'
+        pwd = os.environ.get('SSH_PASS')
         
         ssh.connect(host, username=username, password=pwd, timeout=10)
         

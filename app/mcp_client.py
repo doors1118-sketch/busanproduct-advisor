@@ -17,7 +17,7 @@ load_dotenv()
 # .env.example과의 호환: MCP_ENDPOINT / MCP_BASE_URL 모두 인식
 MCP_BASE_URL = os.getenv("MCP_ENDPOINT") or os.getenv("MCP_BASE_URL", "http://49.50.133.160:3000/mcp")
 # .env.example과의 호환: LAW_OC / LAW_API_OC 모두 인식
-OC = os.getenv("LAW_OC") or os.getenv("LAW_API_OC", "busanproduct")
+OC = os.getenv("LAW_OC") or os.getenv("LAW_API_OC", "busanproduct1")
 MCP_HEADERS = {
     "Content-Type": "application/json",
     "Accept": "application/json, text/event-stream",

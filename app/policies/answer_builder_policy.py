@@ -14,6 +14,7 @@ _SOURCE_STATUS_MAP = {
     "cached_stale_but_available": "기존 확인 근거 사용, 최신성 재확인 필요",
     "no_mcp_required": "법령조회 불필요",
     "mcp_failed_no_basis": "근거 확인 실패, 법적 판단 유보",
+    "partial_mcp_with_missing": "일부 근거만 확인, 미확인 근거 존재",
 }
 
 # ─── Query 기반 사용자용 근거명 매핑 (순서=우선순위, 먼저 매칭되면 채택) ───
@@ -120,6 +121,28 @@ def strip_raw_tool_names(text: str) -> str:
     return text.strip()
 
 
+def _render_missing_mcp_table(generation_meta: dict) -> str:
+    """mandatory_mcp_missing을 사용자용 '미확인 근거' 표로 렌더링한다.
+    raw tool name은 노출하지 않고 _QUERY_LABEL_MAP 기반 사용자 라벨만 표시."""
+    missing_list = generation_meta.get("mandatory_mcp_missing", [])
+    if not missing_list:
+        return ""
+    seen = set()
+    rows = []
+    for entry in missing_list:
+        label_pair = _resolve_query_label(entry)
+        if label_pair is None:
+            continue
+        label, meaning = label_pair
+        if label not in seen:
+            seen.add(label)
+            rows.append(f"| {label} | 조회 실패 | {meaning} 유보 |")
+    if not rows:
+        return ""
+    header = "\n### 미확인 근거\n| 미확인 근거 | 상태 | 의미 |\n|---|---|---|\n"
+    return header + "\n".join(rows) + "\n"
+
+
 def _set_timing(generation_meta: dict, start: float):
     """빌더 성능 메타데이터 기록."""
     generation_meta["answer_builder_elapsed_ms"] = int((_time.time() - start) * 1000)
@@ -187,6 +210,9 @@ def build_amount_contract_guidance_answer(generation_meta: dict, mandatory_mcp_e
     )
     if basis_table:
         template += f"\n{basis_table}"
+    missing_table = _render_missing_mcp_table(generation_meta)
+    if missing_table:
+        template += missing_table
     if has_cache:
         template += _CACHE_NOTICE
     template += (
@@ -228,6 +254,9 @@ def build_regional_procurement_answer(generation_meta: dict, mandatory_mcp_execu
     )
     if basis_table:
         template += f"\n{basis_table}"
+    missing_table = _render_missing_mcp_table(generation_meta)
+    if missing_table:
+        template += missing_table
     if has_cache:
         template += _CACHE_NOTICE
     template += (
