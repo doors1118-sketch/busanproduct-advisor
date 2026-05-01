@@ -218,6 +218,18 @@ law_tools = [
                 ),
             ),
             types.FunctionDeclaration(
+                name="get_local_license_list",
+                description="부산 지역업체가 보유 중인 전체 면허/업종 종류 목록을 조회합니다. 사용자가 어떤 면허가 있는지 물어볼 때 사용하세요.",
+            ),
+            types.FunctionDeclaration(
+                name="get_local_product_list",
+                description="부산 지역업체가 생산 중인 세부품명(물품) 전체 목록을 조회합니다.",
+            ),
+            types.FunctionDeclaration(
+                name="get_local_category_list",
+                description="부산 지역업체가 등록된 전체 G2B 분류코드(UNSPSC) 목록을 조회합니다.",
+            ),
+            types.FunctionDeclaration(
                 name="search_shopping_mall",
                 description="나라장터 종합쇼핑몰에 등록된 부산 지역업체의 MAS(다수공급자계약) 상품을 검색합니다. 쇼핑몰 등록 상품은 별도 계약 없이 바로 구매 가능합니다.",
                 parameters=types.Schema(
@@ -461,6 +473,19 @@ def _execute_function_call(function_call) -> str:
             company_api.last_search_results = data
             company_api.last_search_query = f"분류: {q}"
             return format_company_for_llm(data, max_results=10)
+        # ── 기초 목록 ──
+        elif name == "get_local_license_list":
+            data = company_api.get_license_list()
+            import json
+            return json.dumps(data, ensure_ascii=False)
+        elif name == "get_local_product_list":
+            data = company_api.get_product_list()
+            import json
+            return json.dumps(data, ensure_ascii=False)
+        elif name == "get_local_category_list":
+            data = company_api.get_category_list()
+            import json
+            return json.dumps(data, ensure_ascii=False)
         # ── 종합쇼핑몰 ──
         elif name == "search_shopping_mall":
             import shopping_mall
