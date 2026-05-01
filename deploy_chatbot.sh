@@ -3,7 +3,24 @@
 # cron에서 5분마다 자동 실행
 
 cd /root/advisor
-git pull origin main -q
+
+# 원격 저장소 상태 업데이트
+git fetch origin main -q
+
+# 로컬과 원격 해시 비교
+LOCAL=$(git rev-parse HEAD)
+REMOTE=$(git rev-parse origin/main)
+
+if [ "$LOCAL" = "$REMOTE" ]; then
+    # 업데이트가 없으면 아무 작업도 하지 않고 종료 (CPU/메모리 절약)
+    exit 0
+fi
+
+# 변경사항이 있을 때만 pull 시도 (Merge 충돌 등으로 실패하면 즉시 중단)
+git pull origin main -q || {
+    echo "$(date): Git pull failed (merge conflict). Aborting deployment." >> /tmp/deploy_error.log
+    exit 1
+}
 
 # 의존성 설치 (에러 로그 기록)
 pip3 install -r requirements.txt --break-system-packages -q >> /tmp/pip_install.log 2>&1
