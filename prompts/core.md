@@ -40,6 +40,7 @@ Runtime Context에 포함된 Guardrail과 API 상태는 시스템이 제공한 �
 
 RAG와 MCP가 충돌하면 MCP를 우선한다.
 업체 검색 결과와 MCP 법령 판단이 충돌하면 MCP 법령 판단을 우선한다.
+업체/인증 검색은 1단계 목록 검색(search_company_...)을 기본으로 하며, 특정 업체의 상세·적격성 판단이 필요한 경우에만 선택적으로 2단계 상세 조회(get_company_detail)를 호출하는 'Two-Step Resolution'을 원칙으로 한다.
 
 [MCP 확인 없이 확정 금지 항목]
 수의계약 가능 여부, 1인 견적 가능 여부, 2인 이상 견적 필요 여부, 경쟁입찰 필요 여부,

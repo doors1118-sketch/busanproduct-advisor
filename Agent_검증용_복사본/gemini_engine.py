@@ -1220,11 +1220,10 @@ def _execute_tier_0_fast_track(user_message: str, history: list, api_status, pro
     called_tools_list = []
     source_call_statuses = {}
     
-    def _run_tool(tool_name: str, func, *, tool_args: dict = None, **kwargs):
-        _tool_args = tool_args if tool_args is not None else {}
+    def _run_tool(tool_name: str, func, *args, **kwargs):
         tool_start = time.time()
         try:
-            raw_res = func(**kwargs)
+            raw_res = func(*args, **kwargs)
             status = "success"
             if isinstance(raw_res, dict) and "error" in raw_res:
                 status = "failed"
@@ -1237,8 +1236,7 @@ def _execute_tier_0_fast_track(user_message: str, history: list, api_status, pro
             "tool_name": tool_name,
             "status": status,
             "result": json.dumps(raw_res, ensure_ascii=False),
-            "elapsed_ms": elapsed,
-            "tool_args": _tool_args
+            "elapsed_ms": elapsed
         })
         called_tools_list.append(tool_name)
         source_call_statuses[tool_name] = status
@@ -1252,26 +1250,13 @@ def _execute_tier_0_fast_track(user_message: str, history: list, api_status, pro
         match = re.search(r'[a-fA-F0-9]{32}', user_message)
         if match:
             company_id = match.group(0)
-            detail_data = _run_tool("get_company_detail", company_api.get_company_detail,
-                                    tool_args={"company_id": company_id}, company_id=company_id)
+            detail_data = _run_tool("get_company_detail", company_api.get_company_detail, company_id=company_id)
             is_detail_view = True
         else:
-            _run_tool("search_company_by_product", company_api.search_by_product,
-                      tool_args={"query": query}, query=query)
+            _run_tool("search_company_by_product", company_api.search_by_product, query=query)
     elif "policy_candidate_search" in intent_labels:
-        # 정책기업 매핑 정보를 tool_args에 명시적으로 기록
-        from company_api import POLICY_ALIAS_MAP
-        mapped_subtype = POLICY_ALIAS_MAP.get(user_message.strip(), user_message.strip())
-        # 키워드에서 정책 유형 추출 시도
-        for kor_key, eng_val in POLICY_ALIAS_MAP.items():
-            if kor_key in user_message:
-                mapped_subtype = eng_val
-                break
-        pol_res = _run_tool("search_company_by_policy", company_api.search_by_policy,
-                            tool_args={"raw_query": user_message, "mapped_policy_subtype": mapped_subtype, "query": query},
-                            query=user_message)
-        prod_res = _run_tool("search_company_by_product", company_api.search_by_product,
-                             tool_args={"query": query}, query=query)
+        pol_res = _run_tool("search_company_by_policy", company_api.search_by_policy, query=user_message)
+        prod_res = _run_tool("search_company_by_product", company_api.search_by_product, query=query)
         
         pol_cands = pol_res.get("data", pol_res.get("candidates", [])) if isinstance(pol_res, dict) else []
         prod_cands = prod_res.get("data", prod_res.get("candidates", [])) if isinstance(prod_res, dict) else []
@@ -1283,98 +1268,42 @@ def _execute_tier_0_fast_track(user_message: str, history: list, api_status, pro
             "candidates": intersected,
             "meta": pol_res.get("meta", {}) if isinstance(pol_res, dict) else {}
         }
-        # 기존 tool_args_log 보존
-        _preserved_args = [tr.get("tool_args", {}) for tr in all_tool_results]
         all_tool_results = [{
             "tool_name": "intersected_policy_product_search",
             "status": "success",
             "result": json.dumps(intersected_result, ensure_ascii=False),
-            "elapsed_ms": sum(r["elapsed_ms"] for r in all_tool_results),
-            "tool_args": {"raw_query": user_message, "mapped_policy_subtype": mapped_subtype, "product_query": query,
-                          "sub_tool_args": _preserved_args}
+            "elapsed_ms": sum(r["elapsed_ms"] for r in all_tool_results)
         }]
     elif "certified_product_search" in intent_labels:
         if "혁신" in user_message:
-            _run_tool("search_innovation_product", company_api.search_innovation_product,
-                      tool_args={"product_name": query}, product_name=query)
+            _run_tool("search_innovation_product", company_api.search_innovation_product, product_name=query)
         elif "우수" in user_message:
-            _run_tool("search_excellent_procurement_product", company_api.search_excellent_procurement_product,
-                      tool_args={"product_name": query}, product_name=query)
+            _run_tool("search_excellent_procurement_product", company_api.search_excellent_procurement_product, product_name=query)
         else:
-            _run_tool("search_certified_product", company_api.search_certified_product,
-                      tool_args={"product_name": query}, product_name=query)
+            _run_tool("search_certified_product", company_api.search_certified_product, product_name=query)
     elif "shopping_mall_search" in intent_labels or "mas_shopping_mall" in intent_labels:
-        _run_tool("search_shopping_mall_product", company_api.search_shopping_mall_product,
-                  tool_args={"product_name": query}, product_name=query)
+        _run_tool("search_shopping_mall_product", company_api.search_shopping_mall_product, product_name=query)
     else:
-        _run_tool("search_company_by_product", company_api.search_by_product,
-                  tool_args={"query": query}, query=query)
-
-    def _get_detail_field(d_dict, *keys, default="알 수 없음"):
-        """Multi-key fallback: 여러 후보 키 중 첫 번째 유효한 값 반환."""
-        for k in keys:
-            v = d_dict.get(k)
-            if v and v != "알 수 없음" and v != "unknown":
-                if isinstance(v, list):
-                    return ", ".join(str(x) for x in v) if v else default
-                return str(v)
-        return default
+        _run_tool("search_company_by_product", company_api.search_by_product, query=query)
 
     if is_detail_view and detail_data:
         classified = {}
         counts = {}
-        # API 응답 구조: {meta, candidates: [...]} → candidates[0]에서 실제 데이터 추출
-        _raw = detail_data
-        if isinstance(_raw, dict):
-            _cands = _raw.get("candidates", [])
-            if _cands and isinstance(_cands, list) and len(_cands) > 0:
-                d = _cands[0]
-            else:
-                d = _raw.get("data", _raw)
-        else:
-            d = _raw
+        d = detail_data.get("data", detail_data) if isinstance(detail_data, dict) else detail_data
         
         if not isinstance(d, dict) or "error" in d:
             formatted = ""
         else:
             lines = ["### 🏢 업체 상세 정보"]
-            lines.append(f"- **업체명**: {_get_detail_field(d, 'company_name', '업체명', 'name')}")
-            lines.append(f"- **소재지**: {_get_detail_field(d, 'detail_address', 'address', 'company_address', '주소', '소재지', 'location')}")
-            lines.append(f"- **주요품목**: {_get_detail_field(d, 'main_products', 'products', '대표품목', 'items')}")
-            # 면허/업종
-            lic = d.get('license_or_business_type', [])
-            if lic and isinstance(lic, list):
-                lines.append(f"- **면허/업종**: {', '.join(str(x) for x in lic)}")
-            # 영업상태
-            biz_status = d.get('business_status', 'unknown')
-            biz_freshness = d.get('business_status_freshness', '')
-            if biz_status and biz_status != 'unknown':
-                status_label = f"{biz_status}"
-                if biz_freshness:
-                    status_label += f" ({biz_freshness})"
-                lines.append(f"- **영업상태**: {status_label}")
-            # 후보유형
-            c_types = d.get('candidate_types', [])
-            if c_types and isinstance(c_types, list):
-                lines.append(f"- **후보유형**: {', '.join(str(t) for t in c_types)}")
-            # 정책기업
-            policy_subs = d.get('policy_subtypes', d.get('policy_tags', []))
-            if policy_subs and isinstance(policy_subs, list) and len(policy_subs) > 0:
-                lines.append(f"- **정책기업**: {', '.join(str(t) for t in policy_subs)}")
-            # 쇼핑몰 플래그
-            mall_flags = d.get('shopping_mall_flags', [])
-            if mall_flags and isinstance(mall_flags, list):
-                lines.append(f"- **쇼핑몰 등록**: {', '.join(str(f) for f in mall_flags)}")
-            # 인증제품
-            cert_types = d.get('certified_product_types', [])
-            if cert_types and isinstance(cert_types, list) and len(cert_types) > 0:
-                lines.append(f"- **인증제품**: {', '.join(str(t) for t in cert_types)}")
-            # 중소기업 직접생산
-            sme = d.get('sme_competition_product')
-            if sme:
-                lines.append(f"- **중소기업간 경쟁제품**: 해당")
-            # 디버그: API 응답에 존재하는 실제 키를 generation_meta에 기록
-            _detail_api_keys = list(d.keys()) if isinstance(d, dict) else []
+            lines.append(f"- **업체명**: {d.get('company_name', '알 수 없음')}")
+            lines.append(f"- **대표자**: {d.get('ceo_name', '알 수 없음')}")
+            lines.append(f"- **사업장 주소**: {d.get('address', '알 수 없음')}")
+            lines.append(f"- **전화번호**: {d.get('phone_number', '알 수 없음')}")
+            lines.append(f"- **기업구분**: {d.get('company_scale', '알 수 없음')}")
+            lines.append(f"- **주요품목**: {d.get('main_products', '알 수 없음')}")
+            tags = d.get('policy_tags', [])
+            if tags:
+                lines.append(f"- **정책기업**: {', '.join(tags)}")
             formatted = "\n".join(lines)
             
         candidate_table_source = "server_structured_formatter" if formatted else "none"
@@ -1383,16 +1312,6 @@ def _execute_tier_0_fast_track(user_message: str, history: list, api_status, pro
         counts = get_candidate_counts(classified)
         formatted = format_candidate_tables(classified, user_message, "")
         candidate_table_source = "server_structured_formatter" if formatted else "none"
-        _detail_api_keys = []
-
-    # tool_elapsed_ms_by_name 집계
-    _tool_elapsed_by_name = {}
-    for _tr in all_tool_results:
-        _tn = _tr.get("tool_name", "unknown")
-        _tool_elapsed_by_name[_tn] = _tool_elapsed_by_name.get(_tn, 0) + _tr.get("elapsed_ms", 0)
-
-    # tool_args_log 생성
-    _tool_args_log = [{"tool": _tr["tool_name"], "args": _tr.get("tool_args", {})} for _tr in all_tool_results]
 
     generation_meta = {
         "model_used": "bypass_tier_0",
@@ -1415,12 +1334,8 @@ def _execute_tier_0_fast_track(user_message: str, history: list, api_status, pro
         "source_call_statuses": source_call_statuses,
         "company_search_status": "success" if formatted else "no_results",
         "classified_candidate_count": sum(counts.values()) if not is_detail_view else (1 if formatted else 0),
-        "formatter_input_count": sum(counts.values()) if not is_detail_view else (1 if formatted else 0),
         "formatter_output_chars": len(formatted) if formatted else 0,
         "tool_call_count": len(all_tool_results),
-        "tool_elapsed_ms_by_name": _tool_elapsed_by_name,
-        "tool_args_log": _tool_args_log,
-        "detail_api_response_keys": _detail_api_keys if is_detail_view else [],
     }
 
     if is_detail_view:
@@ -3311,31 +3226,7 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
                 generation_meta["source_status"] = "no_mcp_required"
             else:
                 generation_meta["source_status"] = "mcp_failed_no_basis"
-
-        # [Phase 7-A] tool_elapsed_ms_by_name 집계 (Tier 0 이외 경로에서도 기록)
-        if "tool_elapsed_ms_by_name" not in generation_meta and all_tool_results:
-            _te_by_name = {}
-            for _tr in all_tool_results:
-                _tn = _tr.get("tool_name", "unknown")
-                _te_by_name[_tn] = _te_by_name.get(_tn, 0) + _tr.get("elapsed_ms", 0)
-            generation_meta["tool_elapsed_ms_by_name"] = _te_by_name
-
-        # [Phase 7-A] tool_args_log 집계 (Tier 0 이외 경로에서도 기록)
-        if "tool_args_log" not in generation_meta and all_tool_results:
-            generation_meta["tool_args_log"] = [
-                {"tool": _tr.get("tool_name", "unknown"), "args": _tr.get("tool_args", {})}
-                for _tr in all_tool_results
-            ]
-
-        # [Phase 7-A] 필수 필드 기본값 보장
-        generation_meta.setdefault("tool_elapsed_ms_by_name", {})
-        generation_meta.setdefault("tool_args_log", [])
-        generation_meta.setdefault("source_call_statuses", source_call_statuses)
-        generation_meta.setdefault("classified_candidate_count", 0)
-        generation_meta.setdefault("formatter_input_count", 0)
-        generation_meta.setdefault("formatter_output_chars", 0)
-        generation_meta.setdefault("candidate_table_source", "none")
-
+                
         _last_generation_meta = dict(generation_meta)
         print("!!! GLOBAL META UPDATED TO:", list(_last_generation_meta.keys()))
     else:

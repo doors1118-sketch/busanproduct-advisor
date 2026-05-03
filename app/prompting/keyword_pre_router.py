@@ -68,7 +68,10 @@ def keyword_pre_route(question: str) -> KeywordRouteResult:
         len(matched) == 1
         and len(ambiguous) == 0
         and matched[0] in ("item_purchase", "service_contract",
-                           "construction_contract", "mas_shopping_mall")
+                           "construction_contract", "mas_shopping_mall",
+                           "company_search", "policy_candidate_search",
+                           "certified_product_search", "shopping_mall_search",
+                           "company_detail")
     )
 
     # 다의어 있으면 mixed_contract 후보 추가

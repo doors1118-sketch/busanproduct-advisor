@@ -1,0 +1,13 @@
+- `[ ]` Step 1: Modify `_execute_tier_0_fast_track` in `app/gemini_engine.py`
+  - `[ ]` Remove `MockFunctionCall` and `_execute_function_call`.
+  - `[ ]` Call `company_api` functions directly:
+    - `company_search` → `company_api.search_by_product(query)`
+    - `policy_candidate_search` → `company_api.search_by_policy(policy_subtype)` + `company_api.search_by_product(query)` -> Intersection of `company_id`.
+    - `shopping_mall_search` → `company_api.search_shopping_mall_product(product_name=query)`
+    - `certified_product_search` → `company_api.search_innovation_product(product_name=query)` or `company_api.search_excellent_procurement_product(product_name=query)` or `company_api.search_certified_product(product_name=query)`
+    - `company_detail` → `company_api.get_company_detail(company_id=match)`
+  - `[ ]` Build `all_tool_results` with `raw_api_result` dumped to JSON.
+  - `[ ]` For `company_detail` intent, use a separate detail formatter instead of `format_candidate_tables`.
+- `[ ]` Step 2: Run `scratch_test.py`
+  - `[ ]` Ensure tests pass (called_tools matching, server_structured_formatter, detail formatted properly).
+- `[ ]` Step 3: Update `walkthrough.md`

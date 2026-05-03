@@ -12,17 +12,26 @@ BASE_URL = os.getenv("MONITORING_COMPANY_API_BASE_URL", "http://127.0.0.1:8000")
 last_search_results: dict = {}
 last_search_query: str = ""
 
-def _sanitize_candidate(candidate: dict) -> dict:
-    """민감정보 필터"""
+def _sanitize_payload(data):
+    """재귀적으로 PII 및 내부 식별자를 제거합니다."""
     keys_to_remove = [
-        "businessNo", "biz_no", "사업자등록번호", 
-        "internal_join_key", "API key", "api_key", 
-        "token", "serviceKey", "개인 휴대전화", 
-        "이메일", "email"
+        "사업자번호", "businessNo", "biz_no", "사업자등록번호", 
+        "canonical_business_no", "raw_business_no", 
+        "internal_join_key", "contract_no", "contract_no_hash", 
+        "certification_no_hash", "route_codes", "check_codes", 
+        "serviceKey", "API key", "api_key", "token", 
+        "개인 휴대전화", "이메일", "email"
     ]
-    for k in keys_to_remove:
-        candidate.pop(k, None)
-    return candidate
+    if isinstance(data, dict):
+        return {k: _sanitize_payload(v) for k, v in data.items() if k not in keys_to_remove}
+    elif isinstance(data, list):
+        return [_sanitize_payload(item) for item in data]
+    else:
+        return data
+
+def _sanitize_candidate(candidate: dict) -> dict:
+    """민감정보 필터 (하위 호환)"""
+    return _sanitize_payload(candidate)
 
 def _normalize_response(data: dict, is_list_api: bool = False) -> dict:
     """후보 row 정규화"""
@@ -44,8 +53,6 @@ def _normalize_response(data: dict, is_list_api: bool = False) -> dict:
             "main_products": c.get("main_products", []),
             "candidate_types": c.get("candidate_types", []),
             "primary_candidate_type": c.get("primary_candidate_type", "unknown"),
-            "route_codes": c.get("route_codes", []),
-            "check_codes": c.get("check_codes", []),
             "business_status": c.get("business_status", "unknown"),
             "business_status_label": c.get("business_status_label", ""),
             "business_status_checked_at": c.get("business_status_checked_at", ""),
@@ -66,7 +73,7 @@ def _normalize_response(data: dict, is_list_api: bool = False) -> dict:
         "company_search_status": "success"
     }
 
-def _api_get(endpoint: str, params: dict = None, is_list_api: bool = False) -> dict:
+def _api_get(endpoint: str, params: dict = None, is_list_api: bool = False, raw: bool = False) -> dict:
     """공통 GET 요청"""
     req_timeout = (1, 5) if is_list_api else (1, 3)
     req_params = params if params is not None else {}
@@ -77,16 +84,19 @@ def _api_get(endpoint: str, params: dict = None, is_list_api: bool = False) -> d
         resp.raise_for_status()
         data = resp.json()
         
+        if raw:
+            return _sanitize_payload(data)
+            
         if is_list_api:
             # list API는 candidates 그대로 반환 (단순 목록)
-            return {
+            return _sanitize_payload({
                 "meta": data.get("meta", {}),
-                "candidates": data.get("candidates", []),
+                "candidates": data.get("candidates", data.get("items", data.get("data", []))),
                 "company_source_status": "live_company_lookup",
                 "company_cache_mode": "live_only",
                 "company_cache_used": False,
                 "company_search_status": "success"
-            }
+            })
         return _normalize_response(data)
             
     except Exception as e:
@@ -98,35 +108,86 @@ def _api_get(endpoint: str, params: dict = None, is_list_api: bool = False) -> d
             "company_cache_mode": "none",
             "company_cache_used": False,
             "company_search_status": "failed",
-            "error": "업체 후보 조회 실패"
+            "error": "API 요청 실패"
         }
 
+POLICY_ALIAS_MAP = {
+    "여성기업": "women_company",
+    "장애인기업": "disabled_company",
+    "사회적기업": "social_enterprise",
+    "중소기업": "sme",
+    "소상공인": "small_business",
+    "창업기업": "startup",
+    "청년창업기업": "youth_startup",
+    "벤처기업": "venture_company"
+}
+
+def get_company_detail(company_id: str) -> dict:
+    """단일 업체 상세 조회 (Master API)"""
+    return _api_get("/api/chatbot/company/detail", {"company_id": company_id}, raw=True)
+
 def search_by_license(query: str) -> dict:
-    res = _api_get("/api/chatbot/company/license-search", {"license_name": query})
+    res = _api_get("/api/chatbot/company/license-search", {"license_name": query}, raw=True)
     global last_search_results, last_search_query
     last_search_results = res
     last_search_query = f"면허: {query}"
     return res
 
 def search_by_product(query: str) -> dict:
-    res = _api_get("/api/chatbot/company/product-search", {"product_name": query})
+    res = _api_get("/api/chatbot/company/product-search", {"product_name": query}, raw=True)
     global last_search_results, last_search_query
     last_search_results = res
     last_search_query = f"품목: {query}"
     return res
 
-def search_by_category(query: str) -> dict:
-    res = _api_get("/api/chatbot/company/category-search", {"category_name": query})
+def search_by_policy(query: str) -> dict:
+    mapped_query = POLICY_ALIAS_MAP.get(query, query)
+    res = _api_get("/api/chatbot/company/policy-search", {"policy_subtype": mapped_query}, raw=True)
     global last_search_results, last_search_query
     last_search_results = res
-    last_search_query = f"분류: {query}"
+    last_search_query = f"정책: {query}"
     return res
 
-def search_manufacturers(query: str) -> dict:
-    res = _api_get("/api/chatbot/company/manufacturers", {"product_name": query})
+def search_shopping_mall_product(product_name: str, contract_type_filter: str = "all", contract_status_filter: str = "active_only") -> dict:
+    res = _api_get("/api/chatbot/shopping-mall/product-search", {
+        "product_name": product_name,
+        "contract_type_filter": contract_type_filter,
+        "contract_status_filter": contract_status_filter
+    }, raw=True)
     global last_search_results, last_search_query
     last_search_results = res
-    last_search_query = f"제조업체: {query}"
+    last_search_query = f"쇼핑몰상품: {product_name}"
+    return res
+
+def search_shopping_mall_supplier(company_keyword: str) -> dict:
+    res = _api_get("/api/chatbot/shopping-mall/supplier-search", {"company_keyword": company_keyword}, raw=True)
+    global last_search_results, last_search_query
+    last_search_results = res
+    last_search_query = f"쇼핑몰공급사: {company_keyword}"
+    return res
+
+def search_certified_product(product_name: str, certification_type: str = "") -> dict:
+    params = {"product_name": product_name}
+    if certification_type:
+        params["certification_type"] = certification_type
+    res = _api_get("/api/chatbot/product/certified-search", params, raw=True)
+    global last_search_results, last_search_query
+    last_search_results = res
+    last_search_query = f"인증제품: {product_name}"
+    return res
+
+def search_innovation_product(product_name: str) -> dict:
+    res = _api_get("/api/chatbot/product/innovation-search", {"product_name": product_name}, raw=True)
+    global last_search_results, last_search_query
+    last_search_results = res
+    last_search_query = f"혁신제품: {product_name}"
+    return res
+
+def search_excellent_procurement_product(product_name: str) -> dict:
+    res = _api_get("/api/chatbot/product/excellent-procurement-search", {"product_name": product_name}, raw=True)
+    global last_search_results, last_search_query
+    last_search_results = res
+    last_search_query = f"우수조달물품: {product_name}"
     return res
 
 def get_license_list(limit: int = 50) -> dict:
@@ -134,9 +195,6 @@ def get_license_list(limit: int = 50) -> dict:
 
 def get_product_list(limit: int = 50) -> dict:
     return _api_get("/api/chatbot/company/product-list", {"limit": limit}, is_list_api=True)
-
-def get_category_list(limit: int = 50) -> dict:
-    return _api_get("/api/chatbot/company/category-list", {"limit": limit}, is_list_api=True)
 
 def format_company_results(data: dict, max_results: int = 10) -> str:
     """Gemini/LLM context용 텍스트 변환 (개인정보 미포함)"""
@@ -148,7 +206,9 @@ def format_company_results(data: dict, max_results: int = 10) -> str:
         return "검색 결과가 없습니다."
         
     total = len(candidates)
-    lines = [f"부산 지역업체 검색 결과: 총 {total}건 (상위 {min(max_results, total)}건 표시)"]
+    lines = [f"부산 지역업체 검색 결과: 총 {total}건 (상위 {min(max_results, total)}건, 정렬기준: 현재 캐시 기준 후보)"]
+    lines.append("※ 상세한 정책/인증/실적 정보는 'get_company_detail(company_id)' 도구를 사용해 별도로 확인해야 합니다.")
+    lines.append("※ 관리ID(company_id)는 상세조회용 내부 식별자이며 사업자등록번호가 아닙니다.")
     lines.append("")
     
     for i, c in enumerate(candidates[:max_results]):
@@ -159,8 +219,9 @@ def format_company_results(data: dict, max_results: int = 10) -> str:
             lic = ", ".join(c.get("license_or_business_type", []))
             prod = ", ".join(c.get("main_products", []))
             biz_status = c.get("business_status", "")
+            company_id = c.get("company_id", "unknown")
             
-            line = f"{i+1}. {name}"
+            line = f"- [{company_id}] {name}"
             if loc:
                 line += f" ({loc})"
             if lic:

@@ -1,0 +1,215 @@
+[
+  {
+    "No": 1,
+    "질문": "안전펜스 부산업체 추천",
+    "기대 intent": "company_search",
+    "호출 API": "search_company_by_product",
+    "RAG 호출": "X",
+    "MCP 호출": "X",
+    "total_elapsed_ms": 797,
+    "tool_elapsed_ms_by_name": {
+      "search_company_by_product": 713
+    },
+    "tool_args_log": [
+      {
+        "tool": "search_company_by_product",
+        "args": {
+          "query": "안전펜스"
+        }
+      }
+    ],
+    "tool_call_count": 1,
+    "후보표 소스": "server_structured_formatter",
+    "classified_candidate_count": 1,
+    "formatter_input_count": 1,
+    "formatter_output_chars": 328,
+    "source_call_statuses": {
+      "search_company_by_product": "success"
+    },
+    "fast_track_applied": true,
+    "tier_resolved": 0,
+    "응답내용": "### 1. 질문의도 파악\n- 입력하신 질문은 법적 계약 가능 여부 판단이 아니라, 부산 지역업체 후보 검색 요청으로 분류했습니다.\n\n### 2. 지역업체 후보 소개\n- 아래 후보는 조달등록·정책기업·쇼핑몰/MAS·인증 여부를 기준으로 정리한 검토 후보입니다.\n\n부산 지역업체 후보를 구매 경로별로 안내합니다.\n\n**[표 1] 입찰·수의계약 검토용 조달등록 부산업체 후보**\n| 후보유형 | 업체명 | 소재지 | 대표품목/등록상품명 | 조달등록 | 쇼핑몰/MAS | 정책기업 태그 | 인증유형 | 유효기간 | 검토 가능 경로 | 비고 |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n| 조달등록 | (주)안전관리연구소 ...",
+    "금지어": "없음",
+    "PII": "없음",
+    "결과": "PASS",
+    "phase": "7-A"
+  },
+  {
+    "No": 2,
+    "질문": "여성기업 중 수중펌프 업체",
+    "기대 intent": "policy_candidate_search",
+    "호출 API": "search_company_by_policy, search_company_by_product",
+    "RAG 호출": "X",
+    "MCP 호출": "X",
+    "total_elapsed_ms": 11663,
+    "tool_elapsed_ms_by_name": {
+      "intersected_policy_product_search": 1193
+    },
+    "tool_args_log": [
+      {
+        "tool": "intersected_policy_product_search",
+        "args": {
+          "raw_query": "여성기업 중 수중펌프 업체",
+          "mapped_policy_subtype": "women_company",
+          "product_query": "수중펌프",
+          "sub_tool_args": [
+            {
+              "raw_query": "여성기업 중 수중펌프 업체",
+              "mapped_policy_subtype": "women_company",
+              "query": "수중펌프"
+            },
+            {
+              "query": "수중펌프"
+            }
+          ]
+        }
+      }
+    ],
+    "tool_call_count": 1,
+    "후보표 소스": "none",
+    "classified_candidate_count": 0,
+    "formatter_input_count": 0,
+    "formatter_output_chars": 0,
+    "source_call_statuses": {
+      "search_company_by_policy": "failed",
+      "search_company_by_product": "success"
+    },
+    "fast_track_applied": true,
+    "tier_resolved": 0,
+    "응답내용": "### 1. 질문의도 파악\n- 입력하신 질문은 법적 계약 가능 여부 판단이 아니라, 부산 지역업체 후보 검색 요청으로 분류했습니다.\n\n### 2. 지역업체 후보 소개\n- 아래 후보는 조달등록·정책기업·쇼핑몰/MAS·인증 여부를 기준으로 정리한 검토 후보입니다.\n\n(검색 결과에서 유효한 업체 후보를 추출하지 못했습니다.)\n\n### 3. 확인 필요사항\n- 본 안내는 후보 정보 제공이며, 실제 계약 전 품목 적합성, 조달등록 상태, 인증 유효성, 기관 내부 기준을 확인해야 합니다.",
+    "금지어": "없음",
+    "PII": "없음",
+    "policy_subtype_logged": true,
+    "결과": "PASS (no_results)",
+    "phase": "7-A"
+  },
+  {
+    "No": 3,
+    "질문": "종합쇼핑몰 수중펌프 부산업체",
+    "기대 intent": "shopping_mall_search",
+    "호출 API": "search_shopping_mall_product",
+    "RAG 호출": "X",
+    "MCP 호출": "X",
+    "total_elapsed_ms": 8713,
+    "tool_elapsed_ms_by_name": {
+      "search_shopping_mall_product": 658
+    },
+    "tool_args_log": [
+      {
+        "tool": "search_shopping_mall_product",
+        "args": {
+          "product_name": "수중펌프"
+        }
+      }
+    ],
+    "tool_call_count": 1,
+    "후보표 소스": "server_structured_formatter",
+    "classified_candidate_count": 4,
+    "formatter_input_count": 4,
+    "formatter_output_chars": 1336,
+    "source_call_statuses": {
+      "search_shopping_mall_product": "success"
+    },
+    "fast_track_applied": true,
+    "tier_resolved": 0,
+    "응답내용": "### 1. 질문의도 파악\n- 입력하신 질문은 법적 계약 가능 여부 판단이 아니라, 부산 지역업체 후보 검색 요청으로 분류했습니다.\n\n### 2. 지역업체 후보 소개\n- 아래 후보는 조달등록·정책기업·쇼핑몰/MAS·인증 여부를 기준으로 정리한 검토 후보입니다.\n\n부산 지역업체 후보를 구매 경로별로 안내합니다.\n\n**[표 1] 나라장터 종합쇼핑몰 등록 부산업체 후보**\n| 후보유형 | 업체명 | 소재지 | 대표품목/등록상품명 | 조달등록 | 쇼핑몰/MAS | 정책기업 태그 | 인증유형 | 유효기간 | 검토 가능 경로 | 비고 |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n| 조달등록 | 신신이앤지(주) | 부산광...",
+    "금지어": "없음",
+    "PII": "없음",
+    "결과": "PASS",
+    "phase": "7-A"
+  },
+  {
+    "No": 4,
+    "질문": "인증 펌프수문 후보",
+    "기대 intent": "certified_product_search",
+    "호출 API": "search_certified_product",
+    "RAG 호출": "X",
+    "MCP 호출": "X",
+    "total_elapsed_ms": 8201,
+    "tool_elapsed_ms_by_name": {
+      "search_certified_product": 727
+    },
+    "tool_args_log": [
+      {
+        "tool": "search_certified_product",
+        "args": {
+          "product_name": "펌프수문"
+        }
+      }
+    ],
+    "tool_call_count": 1,
+    "후보표 소스": "server_structured_formatter",
+    "classified_candidate_count": 4,
+    "formatter_input_count": 4,
+    "formatter_output_chars": 1336,
+    "source_call_statuses": {
+      "search_certified_product": "success"
+    },
+    "fast_track_applied": true,
+    "tier_resolved": 0,
+    "응답내용": "### 1. 질문의도 파악\n- 입력하신 질문은 법적 계약 가능 여부 판단이 아니라, 부산 지역업체 후보 검색 요청으로 분류했습니다.\n\n### 2. 지역업체 후보 소개\n- 아래 후보는 조달등록·정책기업·쇼핑몰/MAS·인증 여부를 기준으로 정리한 검토 후보입니다.\n\n부산 지역업체 후보를 구매 경로별로 안내합니다.\n\n**[표 1] 나라장터 종합쇼핑몰 등록 부산업체 후보**\n| 후보유형 | 업체명 | 소재지 | 대표품목/등록상품명 | 조달등록 | 쇼핑몰/MAS | 정책기업 태그 | 인증유형 | 유효기간 | 검토 가능 경로 | 비고 |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n| 조달등록 | 신신이앤지(주) | 부산광...",
+    "금지어": "없음",
+    "PII": "없음",
+    "결과": "PASS",
+    "phase": "7-A"
+  },
+  {
+    "No": 5,
+    "질문": "04bd039a0e08f1aa5f94ccc9c9352e60 상세 알려줘",
+    "기대 intent": "company_detail",
+    "호출 API": "get_company_detail",
+    "RAG 호출": "X",
+    "MCP 호출": "X",
+    "total_elapsed_ms": 522,
+    "tool_elapsed_ms_by_name": {
+      "get_company_detail": 498
+    },
+    "tool_args_log": [
+      {
+        "tool": "get_company_detail",
+        "args": {
+          "company_id": "04bd039a0e08f1aa5f94ccc9c9352e60"
+        }
+      }
+    ],
+    "tool_call_count": 1,
+    "후보표 소스": "server_structured_formatter",
+    "classified_candidate_count": 1,
+    "formatter_input_count": 1,
+    "formatter_output_chars": 327,
+    "source_call_statuses": {
+      "get_company_detail": "success"
+    },
+    "fast_track_applied": true,
+    "tier_resolved": 0,
+    "응답내용": "### 1. 질문의도 파악\n- 특정 업체 상세정보 조회 요청입니다.\n\n### 🏢 업체 상세 정보\n- **업체명**: 태광조명\n- **소재지**: 부산광역시 사상구 새벽로 113 (감전동) 1층 태광조명\n- **주요품목**: LED경관조명기구\n- **영업상태**: active (fresh)\n- **후보유형**: local_procurement_company\n- **중소기업간 경쟁제품**: 해당\n\n### 3. 확인 필요사항\n- 관리ID(company_id)는 상세조회용 내부 식별자이며 사업자등록번호가 아닙니다.\n- 상세조회 정보는 정책적격성을 최종 판단하는 법적 효력이 없으므로 반드시 원본 서류를 확인하세요.\n\n---\n부산 지역업체 후보를 구매 경로별로 안내합니다.\n\n**[표 1] 입찰·수의계약 검토용 조달등록...",
+    "금지어": "없음",
+    "PII": "없음",
+    "결과": "PASS",
+    "phase": "7-A"
+  },
+  {
+    "No": 6,
+    "질문": "8천만원 수중펌프 수의계약 가능?",
+    "기대 intent": "legal_judgment",
+    "호출 API": "없음",
+    "RAG 호출": "X",
+    "MCP 호출": "X",
+    "total_elapsed_ms": 47276,
+    "tool_elapsed_ms_by_name": {},
+    "tool_args_log": [],
+    "tool_call_count": 0,
+    "후보표 소스": "none",
+    "classified_candidate_count": 0,
+    "formatter_input_count": 0,
+    "formatter_output_chars": 0,
+    "source_call_statuses": {},
+    "fast_track_applied": false,
+    "tier_resolved": 1,
+    "응답내용": "### 1. 질문의도 파악\n- 입력하신 질문은 금액 기준에 따른 구매/계약 방식 안내 요청으로 분류했습니다.\n\n### 2. 법령 적용 해석\n- 수의계약 한도 등 금액 기준을 검토했습니다. (근거 확인 실패, 법적 판단 유보)\n\n### 미확인 근거\n| 미확인 근거 | 상태 | 의미 |\n|---|---|---|\n| 지방자치단체 계약집행기준 수의계약 요령 | 조회 실패 | 1인 견적·수의계약 절차 검토 유보 |\n| 지방계약법령 수의계약 기준 | 조회 실패 | 수의계약 금액 기준 검토 유보 |\n\n### 3. 구매 방법 안내\n- 2천만원, 5천만원 등 수의계약 한도는 기준 검토 용도로 안내됩니다.\n- 적용 가능 여부는 기관유형, 추정가격, 품목, 내부 기준에 따라 다르므로 개별 확인이 필요합니다.\n\n### 4. 확인...",
+    "금지어": "없음",
+    "PII": "없음",
+    "결과": "Phase 7-B backlog",
+    "phase": "7-B"
+  }
+]

@@ -109,6 +109,10 @@ LOW_RISK_PATTERNS = [
     r"어디서.*살 수",
     r"어디서.*구매",
     r"어디서.*구입",
+    # 상세 조회
+    r"상세.*알려",
+    r"상세.*보여",
+    r"[a-fA-F0-9]{32}",
 ]
 
 
@@ -285,6 +289,11 @@ def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str 
     has_item = any(w in user_message for w in ["컴퓨터", "물품", "CCTV", "구매", "조명"])
     has_agency = any(w in user_message for w in ["부산교통공사", "공기업", "출자출연", "시설공단", "환경공단"])
 
+    # Tier 0: 금액 관련 법적 제한/한도 판단이 주 목적이 아닌 순수 업체 검색/상세 조회
+    fast_track_intents = {"company_search", "policy_candidate_search", "shopping_mall_search", "certified_product_search", "company_detail", "license_search", "mas_search", "innovation_product_search", "excellent_procurement_search"}
+    if risk_info.get("risk_level") in ["low", "medium"] and any(i in intent_labels for i in fast_track_intents):
+        return 0
+
     # Tier 3: 기관명 패턴이 명확할 때만 (단순 "공사"는 오탐 우려로 제외)
     if has_agency:
         return 3
@@ -292,10 +301,6 @@ def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str 
     # Tier 2: 금액 + 품목 + 지역업체 선호
     if has_amount and has_local and has_item:
         return 2
-
-    # Tier 0: 금액이 없고, 특정 위험 요소가 없는 순수 업체 검색
-    if not has_amount and risk_info.get("risk_level") == "low" and any(i in intent_labels for i in ["company_search"]):
-        return 0
 
     # Tier 1: 그 외 금액이 있거나, 수의계약 등 일반적인 계약 검토 질문
     return 1

@@ -64,6 +64,23 @@ company_search:
   - 공급업체
   - 가능한 업체
   - 조달등록 업체
+  - 후보
+
+policy_candidate_search:
+  - 여성기업
+  - 장애인기업
+  - 사회적기업
+  - 창업기업
+
+certified_product_search:
+  - 혁신제품
+  - 우수조달
+  - 우수제품
+  - 신기술
+  - 인증
+
+company_detail:
+  - 상세
 
 # 다의어 — 단일 유형 확정 금지, mixed_contract 또는 unclear 후보
 ambiguous_keywords:

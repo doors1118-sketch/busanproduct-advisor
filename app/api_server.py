@@ -152,6 +152,7 @@ class ChatResponse(BaseModel):
     rewrite_elapsed_ms: Optional[int] = None
     tool_elapsed_ms_by_name: dict = {}
     tool_call_count: int = 0
+    tool_args_log: list = []
     fast_track_applied: bool = False
     deterministic_template_used: bool = False
     
@@ -374,6 +375,7 @@ def chat_endpoint(req: ChatRequest):
             rewrite_elapsed_ms=meta.get("rewrite_elapsed_ms"),
             tool_elapsed_ms_by_name=meta.get("tool_elapsed_ms_by_name", {}),
             tool_call_count=meta.get("tool_call_count", 0),
+            tool_args_log=meta.get("tool_args_log", []),
             fast_track_applied=meta.get("fast_track_applied", False),
             deterministic_template_used=meta.get("deterministic_template_used", False),
             tier_resolved=meta.get("tier_resolved", 1),
