@@ -119,162 +119,75 @@ def _parse_company_line(line: str) -> Optional[dict]:
 
 
 def classify_candidates(tool_results: list, user_message: str = "") -> dict:
-    """
-    tool_results를 파싱하여 candidate_type별로 분류.
-
-    Returns:
-        {
-            "shopping_mall_supplier": [rows...],
-            "local_procurement_company": [rows...],
-            "policy_company": [rows...],
-            "innovation_product": [rows...],
-            "priority_purchase_product": [],
-        }
-    """
     classified = {k: [] for k in CANDIDATE_TYPES}
     seen = {k: set() for k in CANDIDATE_TYPES}
 
     for r in tool_results:
         t_name = r.get("tool_name", "")
         res_str = r.get("result", "")
+        
+        # Try JSON parse first
+        try:
+            import json
+            data = json.loads(res_str) if isinstance(res_str, str) else res_str
+            if isinstance(data, dict):
+                cands = data.get("candidates", data.get("data", []))
+                if cands:
+                    for cand in cands:
+                        c_types = cand.get("candidate_types", [])
+                    key = cand.get("company_name", cand.get("product_name", ""))
+                    if key:
+                        cand.setdefault("contract_possible_auto_promoted", False)
+                        cand.setdefault("legal_eligibility_status", "확인 필요")
+                        cand.setdefault("display_status", "후보")
+                        for p_type in c_types:
+                            if p_type in classified and key not in seen[p_type]:
+                                seen[p_type].add(key)
+                                classified[p_type].append(cand)
+                continue
+        except Exception:
+            pass
 
-        # ── 조달등록 부산업체 ──
-        if "search_local_company" in t_name:
-            for line in res_str.split("\n"):
+        # ── 레거시 텍스트 파싱 ──
+        if "search_local_company" in t_name or "search_company_by_product" in t_name or "search_company_by_policy" in t_name:
+            for line in str(res_str).split("\n"):
                 if re.match(r"^\d+\.\s+", line):
                     parsed = _parse_company_line(line)
-                    if not parsed:
-                        continue
-
+                    if not parsed: continue
                     name = parsed["name"]
                     has_policy = bool(parsed["policy_tags"])
-
-                    # candidate_types 배열 (복수 분류)
+                    primary = "policy_company" if has_policy else "local_procurement_company"
                     c_types = ["local_procurement_company"]
-                    primary = "local_procurement_company"
-                    if has_policy:
-                        c_types.append("policy_company")
-                        primary = "policy_company"
-
+                    if has_policy: c_types.append("policy_company")
                     meta = CANDIDATE_TYPES[primary]
-                    row = {
-                        "company_name": name,
-                        "location": parsed["loc"],
-                        "main_products": [parsed["prod"]],
-                        "policy_tags": parsed["policy_tags"],
-                        "candidate_types": c_types,
-                        "primary_candidate_type": primary,
-                        "purchase_routes": meta["purchase_routes"],
-                        "source_label": meta["source_label"],
-                        "innovation_product_status": None,
-                        "shopping_mall_registered": None,
-                        "certification_valid_until": None,
-                        "business_status": "영업상태 확인 필요",
-                        "legal_eligibility_status": "확인 필요",
-                        "display_status": "후보",
-                        "required_checks": meta["required_checks"],
-                        "contract_possible_auto_promoted": False,
-                        "note": meta["default_note"],
-                    }
-
+                    row = {"company_name": name, "location": parsed["loc"], "main_products": [parsed["prod"]], "policy_tags": parsed["policy_tags"], "candidate_types": c_types, "primary_candidate_type": primary, "purchase_routes": meta["purchase_routes"], "source_label": meta["source_label"], "business_status": "영업상태 확인 필요", "legal_eligibility_status": "확인 필요", "display_status": "후보", "required_checks": meta["required_checks"], "contract_possible_auto_promoted": False, "note": meta["default_note"]}
                     if has_policy and name not in seen["policy_company"]:
                         seen["policy_company"].add(name)
                         classified["policy_company"].append(row)
                     elif not has_policy and name not in seen["local_procurement_company"]:
                         seen["local_procurement_company"].add(name)
                         classified["local_procurement_company"].append(row)
-
-        # ── 종합쇼핑몰 등록 부산업체 ──
         elif "search_shopping_mall" in t_name:
-            for line in res_str.split("\n"):
+            for line in str(res_str).split("\n"):
                 if re.match(r"^\d+\.\s+", line):
                     parsed = _parse_company_line(line)
-                    if not parsed:
-                        continue
+                    if not parsed: continue
                     name = parsed["name"]
-                    if name in seen["shopping_mall_supplier"]:
-                        continue
+                    if name in seen["shopping_mall_supplier"]: continue
                     seen["shopping_mall_supplier"].add(name)
-
                     meta = CANDIDATE_TYPES["shopping_mall_supplier"]
-                    c_types = ["shopping_mall_supplier"]
-                    if parsed["policy_tags"]:
-                        c_types.append("policy_company")
-
-                    row = {
-                        "company_name": name,
-                        "location": parsed["loc"],
-                        "main_products": [parsed["prod"]],
-                        "policy_tags": parsed["policy_tags"],
-                        "candidate_types": c_types,
-                        "primary_candidate_type": "shopping_mall_supplier",
-                        "purchase_routes": meta["purchase_routes"],
-                        "source_label": meta["source_label"],
-                        "innovation_product_status": None,
-                        "shopping_mall_registered": True,
-                        "certification_valid_until": None,
-                        "business_status": "영업상태 확인 필요",
-                        "legal_eligibility_status": "확인 필요",
-                        "display_status": "후보",
-                        "required_checks": meta["required_checks"],
-                        "contract_possible_auto_promoted": False,
-                        "note": meta["default_note"],
-                    }
+                    row = {"company_name": name, "location": parsed["loc"], "main_products": [parsed["prod"]], "policy_tags": parsed["policy_tags"], "candidate_types": ["shopping_mall_supplier"], "primary_candidate_type": "shopping_mall_supplier", "purchase_routes": meta["purchase_routes"], "source_label": meta["source_label"], "shopping_mall_registered": True, "business_status": "영업상태 확인 필요", "legal_eligibility_status": "확인 필요", "display_status": "후보", "required_checks": meta["required_checks"], "contract_possible_auto_promoted": False, "note": meta["default_note"]}
                     classified["shopping_mall_supplier"].append(row)
-
-        # ── 혁신제품 (구조화 결과 수용) ──
         elif "search_innovation" in t_name or "innovation" in t_name:
-            # 구조화 dict 결과인 경우 (innovation_search.py 반환값)
             struct_rows = r.get("structured_rows") or r.get("product_sample_rows")
             if isinstance(struct_rows, list) and struct_rows:
                 for row in struct_rows:
-                    pname = row.get("product_name", "")
-                    key = pname or row.get("company_name", "")
+                    key = row.get("product_name") or row.get("company_name", "")
                     if key and key not in seen["innovation_product"]:
                         seen["innovation_product"].add(key)
                         row.setdefault("contract_possible_auto_promoted", False)
-                        row.setdefault("legal_eligibility_status", "확인 필요")
                         classified["innovation_product"].append(row)
-            else:
-                # 레거시 문자열 파싱 (기존 호환)
-                for line in res_str.split("\n"):
-                    if line.startswith("- "):
-                        prod_name = line.lstrip("- ").split("\n")[0].strip()
-                        if not prod_name or prod_name in seen["innovation_product"]:
-                            continue
-                        seen["innovation_product"].add(prod_name)
-                        company, location, innov_type, cert_no = "", "", "", ""
-                        m_company = re.search(r"업체:\s*([^|]+)", res_str)
-                        if m_company: company = m_company.group(1).strip()
-                        m_loc = re.search(r"소재지:\s*([^\n|]+)", res_str)
-                        if m_loc: location = m_loc.group(1).strip()
-                        m_type = re.search(r"구분:\s*([^|]+)", res_str)
-                        if m_type: innov_type = m_type.group(1).strip()
-                        m_cert = re.search(r"인증번호:\s*([^|]+)", res_str)
-                        if m_cert: cert_no = m_cert.group(1).strip()
-                        meta = CANDIDATE_TYPES["innovation_product"]
-                        row = {
-                            "product_name": prod_name, "company_name": company,
-                            "location": location, "main_products": [prod_name],
-                            "policy_tags": [], "candidate_types": ["innovation_product"],
-                            "primary_candidate_type": "innovation_product",
-                            "purchase_routes": meta["purchase_routes"],
-                            "source_label": meta["source_label"],
-                            "innovation_product_status": innov_type or "확인 필요",
-                            "innovation_cert_no": cert_no,
-                            "shopping_mall_registered": None,
-                            "certification_valid_until": "확인 필요",
-                            "business_status": "확인 필요",
-                            "legal_eligibility_status": "확인 필요",
-                            "display_status": "후보",
-                            "required_checks": meta["required_checks"],
-                            "contract_possible_auto_promoted": False,
-                            "note": meta["default_note"],
-                        }
-                        classified["innovation_product"].append(row)
-
-        # ── 기술개발제품 13종 (구조화 결과 수용) ──
-        elif "search_tech_development" in t_name or "tech_product" in t_name:
+        elif "search_tech_development" in t_name or "tech_product" in t_name or "certified_product" in t_name:
             struct_rows = r.get("structured_rows") or r.get("product_sample_rows")
             if isinstance(struct_rows, list) and struct_rows:
                 for row in struct_rows:
@@ -282,9 +195,7 @@ def classify_candidates(tool_results: list, user_message: str = "") -> dict:
                     if key and key not in seen["priority_purchase_product"]:
                         seen["priority_purchase_product"].add(key)
                         row.setdefault("contract_possible_auto_promoted", False)
-                        row.setdefault("legal_eligibility_status", "확인 필요")
                         classified["priority_purchase_product"].append(row)
-
     return classified
 
 

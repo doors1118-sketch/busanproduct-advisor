@@ -176,71 +176,87 @@ law_tools = [
                 ),
             ),
             types.FunctionDeclaration(
-                name="search_local_company_by_product",
-                description="부산 지역업체를 대표품목으로 검색합니다. 반드시 짧고 핵심적인 키워드만 사용하세요. 'LED조명'→'LED', 'CCTV카메라'→'CCTV', '소방설비'→'소방'. 조달청 등록 업체 중 부산 소재 업체만 검색됩니다.",
+                name="get_company_detail",
+                description="[2단계 필수] 업체 상세 정보 조회 (Master Detail API). 1단계 검색을 통해 얻은 company_id로 업체의 면허, 품목, 쇼핑몰상품, 인증, 정책기업 정보 등을 구체적으로 확인합니다. 수의계약이나 적격성 판단 전 반드시 호출해야 합니다.",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "company_id": types.Schema(
+                            type="STRING",
+                            description="1단계 검색 결과에서 획득한 company_id"
+                        ),
+                    },
+                    required=["company_id"],
+                ),
+            ),
+            types.FunctionDeclaration(
+                name="search_company_by_product",
+                description="[1단계] 부산 업체를 대표품목으로 검색. 'LED조명'→'LED'. 검색 결과의 company_id를 사용해 get_company_detail을 호출하세요.",
                 parameters=types.Schema(
                     type="OBJECT",
                     properties={
                         "query": types.Schema(
                             type="STRING",
-                            description="검색할 품목명 (예: 'LED', 'CCTV', '사무용가구')"
+                            description="검색할 품목명 (예: 'LED', 'CCTV')"
                         ),
                     },
                     required=["query"],
                 ),
             ),
             types.FunctionDeclaration(
-                name="search_local_company_by_license",
-                description="부산 지역업체를 면허(업종)으로 검색합니다. 공사/용역 업체를 찾을 때 사용. 예: '전기공사', '소방', '건축설계'",
+                name="search_company_by_license",
+                description="[1단계] 부산 업체를 면허/업종으로 검색. 공사/용역 업체 찾을 때 사용. 결과의 company_id로 get_company_detail 호출.",
                 parameters=types.Schema(
                     type="OBJECT",
                     properties={
                         "query": types.Schema(
                             type="STRING",
-                            description="검색할 면허/업종명 (예: '전기공사', '소방시설업')"
+                            description="면허/업종명 (예: '전기공사', '소방시설업')"
                         ),
                     },
                     required=["query"],
                 ),
             ),
             types.FunctionDeclaration(
-                name="search_local_company_by_category",
-                description="부산 지역업체를 UNSPSC 분류코드 또는 분류명으로 검색합니다. 예: '43'(IT장비), '소방설비'",
+                name="search_company_by_policy",
+                description="[1단계] 부산 업체를 정책기업(여성, 장애인 등)으로 검색. 결과의 company_id로 get_company_detail 호출.",
                 parameters=types.Schema(
                     type="OBJECT",
                     properties={
                         "query": types.Schema(
                             type="STRING",
-                            description="UNSPSC 분류코드 또는 분류명 (예: '43', '소방설비', '사무용품')"
+                            description="정책 분류 (예: '여성기업', '장애인기업', '사회적기업')"
                         ),
                     },
                     required=["query"],
                 ),
             ),
             types.FunctionDeclaration(
-                name="get_local_license_list",
-                description="부산 지역업체가 보유 중인 전체 면허/업종 종류 목록을 조회합니다. 사용자가 어떤 면허가 있는지 물어볼 때 사용하세요.",
-            ),
-            types.FunctionDeclaration(
-                name="get_local_product_list",
-                description="부산 지역업체가 생산 중인 세부품명(물품) 전체 목록을 조회합니다.",
-            ),
-            types.FunctionDeclaration(
-                name="get_local_category_list",
-                description="부산 지역업체가 등록된 전체 G2B 분류코드(UNSPSC) 목록을 조회합니다.",
-            ),
-            types.FunctionDeclaration(
-                name="search_shopping_mall",
-                description="나라장터 종합쇼핑몰에 등록된 부산 지역업체의 MAS(다수공급자계약) 상품을 검색합니다. 쇼핑몰 등록 상품은 별도 계약 없이 바로 구매 가능합니다.",
+                name="search_shopping_mall_product",
+                description="[1단계] 나라장터 종합쇼핑몰에 등록된 부산 업체의 MAS(다수공급자계약) 상품 검색. 결과의 company_id로 get_company_detail 호출.",
                 parameters=types.Schema(
                     type="OBJECT",
                     properties={
-                        "query": types.Schema(
+                        "product_name": types.Schema(
                             type="STRING",
-                            description="품목명 (예: 'LED', '소방', '사무용가구', '컴퓨터')"
+                            description="품목명 (예: 'LED', '소방', '사무용가구')"
                         ),
                     },
-                    required=["query"],
+                    required=["product_name"],
+                ),
+            ),
+            types.FunctionDeclaration(
+                name="search_shopping_mall_supplier",
+                description="[1단계] 쇼핑몰에 등록된 부산 공급사를 업체명으로 검색. 결과의 company_id로 get_company_detail 호출.",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "company_keyword": types.Schema(
+                            type="STRING",
+                            description="업체명 검색어"
+                        ),
+                    },
+                    required=["company_keyword"],
                 ),
             ),
             # ── 행정규칙 (훈령/예규/고시) ──
@@ -348,34 +364,47 @@ law_tools = [
                     required=["decision_id"],
                 ),
             ),
-            # ── 혁신제품·혁신시제품 검색 ──
+            # ── 인증·기술개발제품 검색 ──
             types.FunctionDeclaration(
-                name="search_innovation_products",
-                description="혁신제품·혁신시제품 검색. 제품명 키워드 1순위, 인증번호, 업체명 순으로 검색합니다. 부산 소재 혁신제품 지정 업체를 찾을 때 사용. 검색 결과는 수의계약 검토 후보이며 계약 가능 여부는 별도 확인이 필요합니다.",
+                name="search_certified_product",
+                description="[1단계] 인증제품(일반인증 등) 보유 부산 업체 검색. 결과의 company_id로 get_company_detail 호출.",
                 parameters=types.Schema(
                     type="OBJECT",
                     properties={
-                        "query": types.Schema(
+                        "product_name": types.Schema(
                             type="STRING",
-                            description="검색 키워드 (예: '공기청정기', '배전반', 'LED')"
+                            description="품목명 (예: 'LED')"
                         ),
                     },
-                    required=["query"],
+                    required=["product_name"],
                 ),
             ),
-            # ── 기술개발제품 13종 인증 검색 ──
             types.FunctionDeclaration(
-                name="search_tech_development_products",
-                description="기술개발제품 13종(성능인증·NEP·NET·GS인증·우수조달물품 등) 인증 보유 부산업체 검색. 제품명 키워드로 검색합니다. 검색 결과는 우선구매 또는 수의계약 검토 후보이며 인증 유효기간과 적합성 확인이 필요합니다.",
+                name="search_innovation_product",
+                description="[1단계] 혁신제품/혁신시제품 지정 부산 업체 검색. 결과의 company_id로 get_company_detail 호출.",
                 parameters=types.Schema(
                     type="OBJECT",
                     properties={
-                        "query": types.Schema(
+                        "product_name": types.Schema(
                             type="STRING",
-                            description="검색 키워드 (예: 'LED', '소방', '배전반')"
+                            description="품목명"
                         ),
                     },
-                    required=["query"],
+                    required=["product_name"],
+                ),
+            ),
+            types.FunctionDeclaration(
+                name="search_excellent_procurement_product",
+                description="[1단계] 우수조달물품 인증 보유 부산 업체 검색. 결과의 company_id로 get_company_detail 호출.",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "product_name": types.Schema(
+                            type="STRING",
+                            description="품목명"
+                        ),
+                    },
+                    required=["product_name"],
                 ),
             ),
         ]
@@ -386,7 +415,18 @@ law_tools = [
 def _execute_function_call(function_call) -> str:
     """Function call을 실행하고 결과를 반환. MCP 원격 엔드포인트 사용."""
     from policies.timeout_policy import get_timeout
-    name = function_call.name
+    
+    TOOL_ALIAS_MAP = {
+        "search_local_company_by_product": "search_company_by_product",
+        "search_local_company_by_license": "search_company_by_license",
+        "search_local_company_by_category": "search_company_by_category",
+        "search_shopping_mall": "search_shopping_mall_product",
+        "search_innovation_products": "search_innovation_product",
+        "search_tech_development_products": "search_certified_product"
+    }
+    
+    raw_name = function_call.name
+    name = TOOL_ALIAS_MAP.get(raw_name, raw_name)
     args = dict(function_call.args) if function_call.args else {}
     global _cited_laws
 
@@ -454,88 +494,34 @@ def _execute_function_call(function_call) -> str:
                 args.get("decision_id", ""),
                 args.get("domain", "precedent"),
             )
-        # ── 부산 지역업체 검색 (P0-4: company_policy formatter 사용) ──
-        elif name == "search_local_company_by_product":
-            q = args.get("query", "")
-            data = company_api.search_by_product(q)
-            company_api.last_search_results = data
-            company_api.last_search_query = f"품목: {q}"
-            return format_company_for_llm(data, max_results=10)
-        elif name == "search_local_company_by_license":
-            q = args.get("query", "")
-            data = company_api.search_by_license(q)
-            company_api.last_search_results = data
-            company_api.last_search_query = f"면허: {q}"
-            return format_company_for_llm(data, max_results=10)
-        elif name == "search_local_company_by_category":
-            q = args.get("query", "")
-            data = company_api.search_by_category(q)
-            company_api.last_search_results = data
-            company_api.last_search_query = f"분류: {q}"
-            return format_company_for_llm(data, max_results=10)
-        # ── 기초 목록 ──
-        elif name == "get_local_license_list":
-            data = company_api.get_license_list()
-            import json
+        # ── 부산 지역업체 검색 (Monitoring API 통합) ──
+        elif name == "get_company_detail":
+            data = company_api.get_company_detail(args.get("company_id", ""))
             return json.dumps(data, ensure_ascii=False)
-        elif name == "get_local_product_list":
-            data = company_api.get_product_list()
-            import json
-            return json.dumps(data, ensure_ascii=False)
-        elif name == "get_local_category_list":
-            data = company_api.get_category_list()
-            import json
-            return json.dumps(data, ensure_ascii=False)
-        # ── 종합쇼핑몰 ──
-        elif name == "search_shopping_mall":
-            import shopping_mall
-            q = args.get("query", "")
-            data = shopping_mall.search_mall_products(q, busan_only=True)
-            shopping_mall.last_mall_results = data
-            shopping_mall.last_mall_query = q
-            return shopping_mall.format_mall_results(data, max_results=5)
-        # ── 혁신제품·혁신시제품 검색 ──
-        elif name == "search_innovation_products":
-            from policies.innovation_search import search_innovation_products
-            q = args.get("query", "")
-            result = search_innovation_products(q, n_results=10)
-            # 구조화 dict를 tool_result로 반환 (classify_candidates에서 structured_rows/product_sample_rows로 수용)
-            return json.dumps({
-                "tool_name": "search_innovation_products",
-                "status": "success",
-                "structured_rows": result.get("product_sample_rows", []),
-                "product_sample_rows": result.get("product_sample_rows", []),
-                "innovation_product_count": result.get("innovation_product_count", 0),
-                "product_name_matched_count": result.get("product_name_matched_count", 0),
-                "low_confidence_count": result.get("low_confidence_count", 0),
-                "unknown_cert_count": result.get("unknown_cert_count", 0),
-                "data_source_status": result.get("data_source_status", "connected_local_search"),
-                "runtime_tool_integration": "connected_staging",
-                "sensitive_fields_removed": True,
-                "contract_possible_auto_promoted": False,
-            }, ensure_ascii=False)
-        # ── 기술개발제품 13종 검색 ──
-        elif name == "search_tech_development_products":
-            from policies.innovation_search import search_tech_development_products
-            q = args.get("query", "")
-            result = search_tech_development_products(q, max_results=10)
-            return json.dumps({
-                "tool_name": "search_tech_development_products",
-                "status": "success",
-                "structured_rows": result.get("product_sample_rows", []),
-                "product_sample_rows": result.get("product_sample_rows", []),
-                "priority_purchase_count": result.get("priority_purchase_count", 0),
-                "matched_business_no_count": result.get("matched_business_no_count", 0),
-                "unmatched_tech_product_count": result.get("unmatched_tech_product_count", 0),
-                "unmatched_count_scope": "search_result_vs_busan_procurement_db",
-                "valid_cert_count": result.get("valid_cert_count", 0),
-                "expired_cert_count": result.get("expired_cert_count", 0),
-                "unknown_cert_count": result.get("unknown_cert_count", 0),
-                "data_source_status": result.get("data_source_status", "connected_local_search"),
-                "runtime_tool_integration": "connected_staging",
-                "sensitive_fields_removed": True,
-                "contract_possible_auto_promoted": False,
-            }, ensure_ascii=False)
+        elif name == "search_company_by_product":
+            data = company_api.search_by_product(args.get("query", ""))
+            return format_company_for_llm(data, max_results=10)
+        elif name == "search_company_by_license":
+            data = company_api.search_by_license(args.get("query", ""))
+            return format_company_for_llm(data, max_results=10)
+        elif name == "search_company_by_policy":
+            data = company_api.search_by_policy(args.get("query", ""))
+            return format_company_for_llm(data, max_results=10)
+        elif name == "search_shopping_mall_product":
+            data = company_api.search_shopping_mall_product(args.get("product_name", ""))
+            return format_company_for_llm(data, max_results=10)
+        elif name == "search_shopping_mall_supplier":
+            data = company_api.search_shopping_mall_supplier(args.get("company_keyword", ""))
+            return format_company_for_llm(data, max_results=10)
+        elif name == "search_certified_product":
+            data = company_api.search_certified_product(args.get("product_name", ""))
+            return format_company_for_llm(data, max_results=10)
+        elif name == "search_innovation_product":
+            data = company_api.search_innovation_product(args.get("product_name", ""))
+            return format_company_for_llm(data, max_results=10)
+        elif name == "search_excellent_procurement_product":
+            data = company_api.search_excellent_procurement_product(args.get("product_name", ""))
+            return format_company_for_llm(data, max_results=10)
         else:
             return json.dumps({"error": f"알 수 없는 함수: {name}"}, ensure_ascii=False)
     except Exception as e:
@@ -1199,7 +1185,7 @@ def _verify_and_annotate_v144(answer: str, tool_results: list[dict]) -> str:
 def _extract_item_keyword(msg):
     import re
     # 알려진 주요 품목 명시적 추출
-    known_products = ["CCTV", "컴퓨터", "공기청정기", "드론", "노트북", "책상", "의자", "프린터", "모니터", "서버"]
+    known_products = ["CCTV", "컴퓨터", "공기청정기", "드론", "노트북", "책상", "의자", "프린터", "모니터", "서버", "수중펌프", "펌프수문", "안전펜스"]
     for prod in known_products:
         if prod.lower() in msg.lower():
             return prod
@@ -1211,14 +1197,18 @@ def _extract_item_keyword(msg):
     res = re.sub(r'(은|는|이|가|을|를|로|으로|랑|하고)$', '', res).strip()
     return res
 
-def _execute_tier_0_fast_track(user_message: str, history: list, api_status, progress_callback=None) -> tuple[str, list]:
+def _execute_tier_0_fast_track(user_message: str, history: list, api_status, progress_callback=None, intent_labels: list = None) -> tuple[str, list]:
     import time
-    import company_api
+    import json
+    import re
+    import app.company_api as company_api
     from policies.candidate_policy import classify_candidates, get_candidate_counts
     from policies.candidate_formatter import format_candidate_tables
 
     start_time = time.time()
-    
+    if not intent_labels:
+        intent_labels = []
+        
     if progress_callback:
         progress_callback("⚡ [Tier 0] 초고속 지역업체 검색 중...")
         
@@ -1226,33 +1216,103 @@ def _execute_tier_0_fast_track(user_message: str, history: list, api_status, pro
     if not query:
         query = user_message # fallback
         
-    tool_start = time.time()
-    try:
-        import json
-        mock_fc = MockFunctionCall("search_local_company_by_product", {"query": query})
-        raw_result_str = _execute_function_call(mock_fc)
-    except Exception as e:
-        import json
-        raw_result_str = json.dumps({"error": str(e)}, ensure_ascii=False)
+    all_tool_results = []
+    called_tools_list = []
+    source_call_statuses = {}
+    
+    def _run_tool(tool_name: str, func, *args, **kwargs):
+        tool_start = time.time()
+        try:
+            raw_res = func(*args, **kwargs)
+            status = "success"
+            if isinstance(raw_res, dict) and "error" in raw_res:
+                status = "failed"
+        except Exception as e:
+            raw_res = {"error": str(e)}
+            status = "failed"
+            
+        elapsed = int((time.time() - tool_start) * 1000)
+        all_tool_results.append({
+            "tool_name": tool_name,
+            "status": status,
+            "result": json.dumps(raw_res, ensure_ascii=False),
+            "elapsed_ms": elapsed
+        })
+        called_tools_list.append(tool_name)
+        source_call_statuses[tool_name] = status
+        return raw_res
+
+    # Intent -> API mapping logic
+    is_detail_view = False
+    detail_data = None
+
+    if "company_detail" in intent_labels:
+        match = re.search(r'[a-fA-F0-9]{32}', user_message)
+        if match:
+            company_id = match.group(0)
+            detail_data = _run_tool("get_company_detail", company_api.get_company_detail, company_id=company_id)
+            is_detail_view = True
+        else:
+            _run_tool("search_company_by_product", company_api.search_by_product, query=query)
+    elif "policy_candidate_search" in intent_labels:
+        pol_res = _run_tool("search_company_by_policy", company_api.search_by_policy, query=user_message)
+        prod_res = _run_tool("search_company_by_product", company_api.search_by_product, query=query)
         
-    tool_elapsed = int((time.time() - tool_start) * 1000)
+        pol_cands = pol_res.get("data", pol_res.get("candidates", [])) if isinstance(pol_res, dict) else []
+        prod_cands = prod_res.get("data", prod_res.get("candidates", [])) if isinstance(prod_res, dict) else []
+        
+        pol_ids = {c.get("company_id") for c in pol_cands if isinstance(c, dict) and c.get("company_id")}
+        intersected = [c for c in prod_cands if isinstance(c, dict) and c.get("company_id") in pol_ids]
+        
+        intersected_result = {
+            "candidates": intersected,
+            "meta": pol_res.get("meta", {}) if isinstance(pol_res, dict) else {}
+        }
+        all_tool_results = [{
+            "tool_name": "intersected_policy_product_search",
+            "status": "success",
+            "result": json.dumps(intersected_result, ensure_ascii=False),
+            "elapsed_ms": sum(r["elapsed_ms"] for r in all_tool_results)
+        }]
+    elif "certified_product_search" in intent_labels:
+        if "혁신" in user_message:
+            _run_tool("search_innovation_product", company_api.search_innovation_product, product_name=query)
+        elif "우수" in user_message:
+            _run_tool("search_excellent_procurement_product", company_api.search_excellent_procurement_product, product_name=query)
+        else:
+            _run_tool("search_certified_product", company_api.search_certified_product, product_name=query)
+    elif "shopping_mall_search" in intent_labels or "mas_shopping_mall" in intent_labels:
+        _run_tool("search_shopping_mall_product", company_api.search_shopping_mall_product, product_name=query)
+    else:
+        _run_tool("search_company_by_product", company_api.search_by_product, query=query)
 
+    if is_detail_view and detail_data:
+        classified = {}
+        counts = {}
+        d = detail_data.get("data", detail_data) if isinstance(detail_data, dict) else detail_data
+        
+        if not isinstance(d, dict) or "error" in d:
+            formatted = ""
+        else:
+            lines = ["### 🏢 업체 상세 정보"]
+            lines.append(f"- **업체명**: {d.get('company_name', '알 수 없음')}")
+            lines.append(f"- **대표자**: {d.get('ceo_name', '알 수 없음')}")
+            lines.append(f"- **사업장 주소**: {d.get('address', '알 수 없음')}")
+            lines.append(f"- **전화번호**: {d.get('phone_number', '알 수 없음')}")
+            lines.append(f"- **기업구분**: {d.get('company_scale', '알 수 없음')}")
+            lines.append(f"- **주요품목**: {d.get('main_products', '알 수 없음')}")
+            tags = d.get('policy_tags', [])
+            if tags:
+                lines.append(f"- **정책기업**: {', '.join(tags)}")
+            formatted = "\n".join(lines)
+            
+        candidate_table_source = "server_structured_formatter" if formatted else "none"
+    else:
+        classified = classify_candidates(all_tool_results, user_message)
+        counts = get_candidate_counts(classified)
+        formatted = format_candidate_tables(classified, user_message, "")
+        candidate_table_source = "server_structured_formatter" if formatted else "none"
 
-
-    all_tool_results = [{
-        "tool_name": "search_local_company_by_product",
-        "status": "success" if "error" not in raw_result_str else "failed",
-        "result": raw_result_str,
-        "elapsed_ms": tool_elapsed
-    }]
-    
-    # 후보표 생성 파이프라인 통과 (JSON 문자열을 파싱하는 구조와 호환됨)
-    classified = classify_candidates(all_tool_results, user_message)
-    counts = get_candidate_counts(classified)
-    
-    formatted = format_candidate_tables(classified, user_message, "")
-    candidate_table_source = "server_structured_formatter" if formatted else "none"
-    
     generation_meta = {
         "model_used": "bypass_tier_0",
         "model_decision_reason": "Tier 0 (Fast Track): LLM 및 MCP 전면 우회",
@@ -1267,25 +1327,40 @@ def _execute_tier_0_fast_track(user_message: str, history: list, api_status, pro
         "answer_schema_version": "simplified_company_search_v1",
         "source_status": "no_mcp_required",
         "rag_elapsed_ms": 0,
+        "mcp_status": "not_called",
         "model_elapsed_ms": 0,
         "mcp_preflight_elapsed_ms": 0,
+        "called_tools": called_tools_list,
+        "source_call_statuses": source_call_statuses,
+        "company_search_status": "success" if formatted else "no_results",
+        "classified_candidate_count": sum(counts.values()) if not is_detail_view else (1 if formatted else 0),
+        "formatter_output_chars": len(formatted) if formatted else 0,
+        "tool_call_count": len(all_tool_results),
     }
+
+    if is_detail_view:
+        template = (
+            "### 1. 질문의도 파악\n"
+            "- 특정 업체 상세정보 조회 요청입니다.\n\n"
+            f"{formatted}\n\n"
+            "### 3. 확인 필요사항\n"
+            "- 관리ID(company_id)는 상세조회용 내부 식별자이며 사업자등록번호가 아닙니다.\n"
+            "- 상세조회 정보는 정책적격성을 최종 판단하는 법적 효력이 없으므로 반드시 원본 서류를 확인하세요.\n"
+        ) if formatted else (
+            "⚠️ 해당 ID의 업체 정보를 찾을 수 없거나 조회가 실패했습니다."
+        )
+    else:
+        from policies.answer_builder_policy import build_simple_company_search_answer
+        template = build_simple_company_search_answer(generation_meta, has_candidates=bool(formatted))
+        generation_meta.update(counts)
+        generation_meta["candidate_counts_by_type"] = {
+            "local_procurement_company": counts.get("local_company_count", 0),
+            "shopping_mall_supplier": counts.get("mall_company_count", 0),
+            "policy_company": counts.get("primary_policy_company_count", 0),
+            "innovation_product": counts.get("innovation_product_count", 0),
+            "priority_purchase_product": counts.get("priority_purchase_count", 0),
+        }
     
-    from policies.answer_builder_policy import build_simple_company_search_answer
-    template = build_simple_company_search_answer(generation_meta, has_candidates=bool(formatted))
-    
-    # 병합
-    generation_meta.update(counts)
-    
-    generation_meta["candidate_counts_by_type"] = {
-        "local_procurement_company": counts.get("local_company_count", 0),
-        "shopping_mall_supplier": counts.get("mall_company_count", 0),
-        "policy_company": counts.get("primary_policy_company_count", 0),
-        "innovation_product": counts.get("innovation_product_count", 0),
-        "priority_purchase_product": counts.get("priority_purchase_count", 0),
-    }
-    
-    # API 실패 메시지 노출 방지
     api_status.mcp_status = "not_called"
     api_status.law_api_status = "not_called"
     api_status.company_search_status = "success" if formatted else "not_called"
@@ -1467,6 +1542,13 @@ def _chat_v144(
     # P0-3: _parallel_rag_search()는 dict를 반환 → values를 조립
     from policies.model_routing_policy import classify_risk, classify_query_tier
     intent_labels = [c.label for c in intent_result.candidates] if intent_result and hasattr(intent_result, 'candidates') else []
+    
+    # [NEW] Pre-router에서 감지된 명시적 intent들을 보존
+    if keyword_result and hasattr(keyword_result, 'matched_categories'):
+        for cat in keyword_result.matched_categories:
+            if cat not in intent_labels and cat != "unclear":
+                intent_labels.append(cat)
+                
     risk_info = classify_risk(user_message, intent_labels)
     
     query_tier = classify_query_tier(risk_info, intent_labels, user_message)
@@ -1475,7 +1557,7 @@ def _chat_v144(
     if query_tier == 0:
         print("  [FAST-TRACK] Tier 0 detected. Bypassing Gemini completely.")
         api_status = ApiStatus()
-        return _execute_tier_0_fast_track(user_message, history, api_status, progress_callback)
+        return _execute_tier_0_fast_track(user_message, history, api_status, progress_callback, intent_labels)
         
     amount_detected = _parse_amount(user_message)
     skip_rag_completely = (query_tier in (1, 2) and amount_detected is not None)
