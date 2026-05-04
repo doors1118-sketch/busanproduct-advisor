@@ -31,6 +31,10 @@ def main():
     ]
     
     failures = []
+    tc_id_set = set()
+    request_id_set = set()
+    expected_tc_ids = {f"TC-T{i}" for i in range(1, 13)}
+    expected_tc_ids.add("TC-EX1")
     
     for mock_file in mock_files:
         mock_path = os.path.join(base_dir, 'app', 'data', mock_file)
@@ -57,6 +61,7 @@ def main():
         
         for tc in data.get('test_cases', []):
             tc_id = tc.get('tc_id', 'Unknown')
+            tc_id_set.add(tc_id)
             expected_trigger = tc.get('expected_trigger')
             gw_resp = tc.get('gateway_response', {})
             
@@ -66,15 +71,18 @@ def main():
             except ValidationError as e:
                 failures.append({"file": mock_file, "tc": tc_id, "reason": f"Schema validation failed: {e.message}"})
             
-            # 5. request_id UUID format and variant
+            # 5. request_id UUID format, variant, and duplication
             req_id = gw_resp.get('request_id')
-            try:
-                val = uuid.UUID(req_id)
-                if val.variant != uuid.RFC_4122:
-                    failures.append({"file": mock_file, "tc": tc_id, "reason": "UUID variant is not RFC_4122"})
-                # We skip randomness check (version 4) as requested: "고정 fixture UUID를 사용하므로 무작위성 검증은 하지 않는다."
-            except ValueError:
-                failures.append({"file": mock_file, "tc": tc_id, "reason": f"Invalid UUID format: {req_id}"})
+            if req_id in request_id_set:
+                failures.append({"file": mock_file, "tc": tc_id, "reason": f"Duplicate request_id: {req_id}"})
+            if req_id:
+                request_id_set.add(req_id)
+                try:
+                    val = uuid.UUID(req_id)
+                    if val.variant != uuid.RFC_4122:
+                        failures.append({"file": mock_file, "tc": tc_id, "reason": "UUID variant is not RFC_4122"})
+                except ValueError:
+                    failures.append({"file": mock_file, "tc": tc_id, "reason": f"Invalid UUID format: {req_id}"})
                 
             # 6. expected_trigger validation
             metadata = gw_resp.get('metadata', {})
@@ -90,16 +98,47 @@ def main():
                 if trigger_grade != expected_trigger:
                     failures.append({"file": mock_file, "tc": tc_id, "reason": f"expected_trigger={expected_trigger} but trigger_grade={trigger_grade}"})
             
-            # 7. procedure_context.judgment_eligible == false
+            # 7 & 8. procedure_context
             proc_ctx = gw_resp.get('procedure_context', {})
             if proc_ctx.get('judgment_eligible') is not False:
                 failures.append({"file": mock_file, "tc": tc_id, "reason": "procedure_context.judgment_eligible is not false"})
                 
-            # 8. procedure_context.usage
             usage = proc_ctx.get('usage')
             if usage != "answer_builder_procedure_section_only":
                 failures.append({"file": mock_file, "tc": tc_id, "reason": f"procedure_context.usage is invalid for read-only: {usage}"})
                 
+            for source in proc_ctx.get('sources', []):
+                s_usage = source.get('usage')
+                if s_usage != "procedure_guidance_only":
+                    failures.append({"file": mock_file, "tc": tc_id, "reason": f"procedure_context.sources[].usage is not procedure_guidance_only: {s_usage}"})
+
+            # metadata consistency
+            item_elig_result = gw_resp.get('item_eligibility_result', {})
+            context = item_elig_result.get('context', {}) or {}
+            company_candidate_ctx = gw_resp.get('company_candidate_context') or {}
+
+            if resolver_status != item_elig_result.get('resolver_status'):
+                failures.append({"file": mock_file, "tc": tc_id, "reason": "metadata resolver_status does not match item_eligibility_result.resolver_status"})
+            
+            ctx_trigger_grade = context.get('trigger_grade') if context else None
+            if trigger_grade != ctx_trigger_grade:
+                failures.append({"file": mock_file, "tc": tc_id, "reason": "metadata trigger_grade does not match context.trigger_grade"})
+
+            meta_enrich_applied = metadata.get('enrichment_applied')
+            cand_enrich_applied = company_candidate_ctx.get('enrichment_applied', False)
+            if meta_enrich_applied != cand_enrich_applied:
+                failures.append({"file": mock_file, "tc": tc_id, "reason": "metadata enrichment_applied does not match company_candidate_context"})
+
+            meta_enrich_scope = metadata.get('enrichment_scope')
+            cand_enrich_scope = company_candidate_ctx.get('enrichment_scope')
+            if meta_enrich_scope != cand_enrich_scope:
+                failures.append({"file": mock_file, "tc": tc_id, "reason": "metadata enrichment_scope does not match company_candidate_context"})
+                
+    if tc_id_set != expected_tc_ids:
+        failures.append({"file": "All", "tc": "N/A", "reason": f"TC ID mismatch. Expected: {expected_tc_ids}, Found: {tc_id_set}"})
+    if len(tc_id_set) != 13:
+        failures.append({"file": "All", "tc": "N/A", "reason": f"Total TC count is not 13 (found {len(tc_id_set)})"})
+
     if failures:
         print("Validation FAILED")
         for fail in failures:
