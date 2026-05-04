@@ -115,7 +115,8 @@ def test_runtime_candidate_search_empty_result(monkeypatch):
     )
     assert resp.runtime_status == "success"
     cs = _get_stage(resp, "company_candidate_resolver")
-    assert cs is not None and cs.status == "empty"
+    assert cs is not None and cs.status == "success"
+    assert "후보업체 없음" in cs.reason
     assert resp.answer_output.candidate_table_section is None
     assert "API 연동" in resp.answer_output.rendered_markdown
     _assert_clean(resp)
@@ -179,6 +180,11 @@ def test_runtime_forbidden_rescan_after_candidate_table(monkeypatch):
     assert len(resp.answer_output.blocked_phrases_found) > 0
     assert resp.answer_output.fallback_applied is True
     assert resp.runtime_status == "degraded"
+
+    # rendered_markdown에서 금지 표현이 제거되고 fallback 문구로 교체되어야 함
+    assert "수의계약 가능합니다" not in resp.answer_output.rendered_markdown
+    assert "답변이 제한되었습니다" in resp.answer_output.rendered_markdown
+    assert resp.answer_output.candidate_table_section is None
 
 
 # ────────────────────────────────────────────────────
@@ -277,3 +283,34 @@ def test_runtime_router_exception_fallback(monkeypatch):
     assert resp.fallback_applied is True
     assert "intent_router" in resp.errors[0]
     _assert_clean(resp)
+
+
+# ────────────────────────────────────────────────
+# runtime_options mock/live 전환
+# ────────────────────────────────────────────────
+
+def test_runtime_options_mock_mode():
+    """명시적 use_mock_company_api=True → mock 후보 반환."""
+    req = ChatbotRuntimeRequest(
+        user_query="CCTV 추천해줘",
+        mock_gemini_response={"primary_intent": "candidate_search", "confidence": 0.9, "slots": {"item_name": "CCTV", "location": "부산"}},
+        runtime_options={"use_mock_company_api": True}
+    )
+    resp = run_chatbot_runtime(req)
+    assert resp.runtime_status == "success"
+    assert resp.answer_output.candidate_table_section is not None
+    assert "가나다***" in resp.answer_output.rendered_markdown
+    _assert_clean(resp)
+
+
+def test_runtime_options_default_is_mock():
+    """옵션 생략 시 기본값 mock."""
+    req = ChatbotRuntimeRequest(
+        user_query="CCTV 추천해줘",
+        mock_gemini_response={"primary_intent": "candidate_search", "confidence": 0.9, "slots": {"item_name": "CCTV", "location": "부산"}}
+    )
+    resp = run_chatbot_runtime(req)
+    assert resp.runtime_status == "success"
+    assert resp.answer_output.candidate_table_section is not None
+    _assert_clean(resp)
+

@@ -173,7 +173,7 @@ class ChatbotRuntimeOrchestrator:
             elif company_result.status == "empty":
                 stages.append(RuntimeStageResult(
                     stage_name="company_candidate_resolver",
-                    status="empty",
+                    status="success",
                     skipped=False,
                     reason="검색 조건에 해당하는 후보업체 없음"
                 ))
@@ -227,6 +227,19 @@ class ChatbotRuntimeOrchestrator:
         answer_output.forbidden_phrase_scan_passed = len(blocked) == 0
         if blocked:
             answer_output.fallback_applied = True
+            answer_output.rendered_markdown = (
+                "## 안내\n"
+                "내부 검토 로직에 따라 안전한 답변 생성을 위해 "
+                "일시적으로 답변이 제한되었습니다.\n\n"
+                "## 주의사항\n"
+                "정확한 판단은 관련 법령과 규정을 직접 확인하시기 바랍니다.\n\n"
+                f"*{DISCLAIMER}*"
+            )
+            answer_output.candidate_table_section = None
+            answer_output.local_purchase_support_review_section = None
+            answer_output.route_review_section = None
+            answer_output.item_eligibility_section = None
+            answer_output.procedure_guidance_section = None
             errors.append(f"forbidden_phrase_rescan: {blocked}")
 
         # ── Runtime Status 산출 ──
@@ -253,5 +266,9 @@ class ChatbotRuntimeOrchestrator:
 
 
 def run_chatbot_runtime(request: ChatbotRuntimeRequest) -> ChatbotRuntimeResponse:
-    """함수형 진입점."""
-    return ChatbotRuntimeOrchestrator().run(request)
+    """함수형 진입점. runtime_options로 Company API mock/live 전환 가능."""
+    opts = request.runtime_options or {}
+    use_mock_company_api = opts.get("use_mock_company_api", True)
+    return ChatbotRuntimeOrchestrator(
+        use_mock_company_api=use_mock_company_api
+    ).run(request)
