@@ -30,11 +30,18 @@ def execute_rule_engine(gateway_response: GatewayResponse) -> DecisionContext:
     if comp_ctx and comp_ctx.enrichment_applied:
         ctx.enrichment_available = True
         
+    if item_res:
+        ctx.item_eligibility_status = item_res.resolver_status
+        
     if item_res and item_res.context:
         ctx.item_eligibility_grade = item_res.context.trigger_grade
-        ctx.item_eligibility_status = item_res.context.eligibility_status
+        if item_res.context.eligibility_status:
+            ctx.item_eligibility_status = item_res.context.eligibility_status
         
     # 5. Rule Engine 우선순위 매핑 (1 -> 6)
+    
+    # 1) out_of_scope: ReviewOutcome에는 있으나 v0.1에서는 emitting rule이 없음.
+    # 향후 jurisdiction/scope rule에서 사용할 예정임.
     
     # 2) insufficient_data (buyer_type)
     if gateway_response.source_context and gateway_response.source_context.buyer_type_confidence == "low":

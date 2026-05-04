@@ -89,6 +89,7 @@ def test_ambiguous_leads_to_manual_review():
     assert ctx.review_outcome == "manual_review_required"
     assert "detail_item_code_ambiguous" in ctx.manual_review_reasons
     assert ctx.legal_conclusion == "not_determined"
+    assert ctx.item_eligibility_status == "ambiguous"
 
 def test_procedure_context_not_in_applied_sources():
     resp = get_base_gateway_response()
