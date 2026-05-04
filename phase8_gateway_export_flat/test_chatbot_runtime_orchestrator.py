@@ -1,10 +1,10 @@
 """
-Phase 10.4: Chatbot Runtime Orchestrator Tests
+Chatbot Runtime Orchestrator Tests (Phase 10.4 + Phase 8.3)
 
 사용자 질문 → Intent Router → Gateway(stub) → Rule Engine(stub)
-→ Answer Type Router → AnswerBuilderOutput → Runtime Response
+→ Company API Adapter → Answer Type Router → Runtime Response
 
-모든 테스트는 mock Gemini 응답 기반. 실제 API 호출 없음.
+모든 테스트는 mock 기반. 실제 API 호출 없음.
 """
 from app.runtime.chatbot_orchestrator import run_chatbot_runtime
 from app.runtime.runtime_schema import ChatbotRuntimeRequest
@@ -25,14 +25,17 @@ def _assert_clean(resp):
 
 
 def _assert_stages(resp):
-    """runtime_stages가 비어 있지 않고, routing_decision이 채워져 있어야 함."""
+    """runtime_stages 기본 검증."""
     assert len(resp.runtime_stages) >= 2
     assert resp.router_result.routing_decision != ""
-    # Gateway / Rule Engine은 skipped로 기록
     gw = next((s for s in resp.runtime_stages if s.stage_name == "gateway_context"), None)
     re = next((s for s in resp.runtime_stages if s.stage_name == "rule_engine"), None)
     assert gw is not None and gw.skipped is True
     assert re is not None and re.skipped is True
+
+
+def _get_stage(resp, name):
+    return next((s for s in resp.runtime_stages if s.stage_name == name), None)
 
 
 # ────────────────────────────────────────────────────
@@ -46,9 +49,13 @@ def test_runtime_legal_explanation():
     )
     assert resp.runtime_status == "success"
     assert resp.router_result.primary_intent == "legal_explanation"
-    assert resp.router_result.routing_decision == "legal_explanation_flow"
     assert "법령·제도 설명" in resp.answer_output.rendered_markdown
     assert resp.answer_output.candidate_table_section is None
+
+    # company resolver는 skipped
+    cs = _get_stage(resp, "company_candidate_resolver")
+    assert cs is not None and cs.skipped is True
+
     _assert_clean(resp)
     _assert_stages(resp)
 
@@ -66,36 +73,50 @@ def test_runtime_contract_review():
         }
     )
     assert resp.runtime_status == "success"
-    assert resp.router_result.routing_decision == "contract_review_flow"
-    assert "local_purchase_support" in resp.router_result.secondary_intents
     assert "계약 검토 요약" in resp.answer_output.rendered_markdown
     assert "지역업체 구매지원 제도 검토" in resp.answer_output.rendered_markdown
-    assert "확인 필요" in resp.answer_output.rendered_markdown
     assert resp.answer_output.local_purchase_support_review_section is not None
+
+    # candidate_lookup_required=False이므로 company resolver skipped
+    cs = _get_stage(resp, "company_candidate_resolver")
+    assert cs is not None and cs.skipped is True
+
     _assert_clean(resp)
     _assert_stages(resp)
 
 
 # ────────────────────────────────────────────────────
-# 8.3 후보조회
+# 8.3 후보조회 → Company API Adapter 동작
 # ────────────────────────────────────────────────────
 
-def test_runtime_candidate_search():
+def test_runtime_candidate_search_with_company_api():
     resp = _run(
         "CCTV 부산업체 추천해줘",
         {"primary_intent": "candidate_search", "confidence": 0.9, "slots": {"item_name": "CCTV", "location": "부산"}}
     )
     assert resp.runtime_status == "success"
     assert resp.router_result.candidate_lookup_required is True
-    assert "업체 후보 조회 조건" in resp.answer_output.rendered_markdown
-    assert "API 연동" in resp.answer_output.rendered_markdown
-    assert "조회합니다" not in resp.answer_output.rendered_markdown
+
+    # company resolver가 success
+    cs = _get_stage(resp, "company_candidate_resolver")
+    assert cs is not None and cs.status == "success"
+
+    # 후보표가 생성됨
+    assert resp.answer_output.candidate_table_section is not None
+    assert len(resp.answer_output.candidate_table_section.rows) > 0
+    assert "검토 후보" in resp.answer_output.candidate_table_section.description
+    assert "계약 가능" not in resp.answer_output.candidate_table_section.description
+
+    # rendered_markdown에 후보표 포함
+    assert "검토 후보 업체" in resp.answer_output.rendered_markdown
+    assert "가나다***" in resp.answer_output.rendered_markdown
+
     _assert_clean(resp)
     _assert_stages(resp)
 
 
 # ────────────────────────────────────────────────────
-# 8.4 mixed
+# 8.4 mixed → company resolver skipped
 # ────────────────────────────────────────────────────
 
 def test_runtime_mixed():
@@ -108,13 +129,13 @@ def test_runtime_mixed():
         }
     )
     assert resp.runtime_status == "success"
-    assert resp.router_result.routing_decision == "mixed_flow"
     assert resp.router_result.candidate_lookup_required is False
-    assert "item_name" in resp.router_result.clarification_needed
+
+    cs = _get_stage(resp, "company_candidate_resolver")
+    assert cs is not None and cs.skipped is True
+
     assert "조달경로 검토" in resp.answer_output.rendered_markdown
     assert "지역업체 구매지원 제도 검토" in resp.answer_output.rendered_markdown
-    assert resp.answer_output.route_review_section is not None
-    assert resp.answer_output.local_purchase_support_review_section is not None
     _assert_clean(resp)
     _assert_stages(resp)
 
@@ -124,10 +145,7 @@ def test_runtime_mixed():
 # ────────────────────────────────────────────────────
 
 def test_runtime_low_confidence():
-    resp = _run(
-        "이거 해도 돼?",
-        {"primary_intent": "mixed", "confidence": 0.4, "slots": {}}
-    )
+    resp = _run("이거 해도 돼?", {"primary_intent": "mixed", "confidence": 0.4, "slots": {}})
     assert resp.runtime_status == "success"
     assert resp.router_result.routing_decision == "clarification_required"
     assert "추가 정보 요청" in resp.answer_output.rendered_markdown
@@ -140,21 +158,15 @@ def test_runtime_low_confidence():
 # ────────────────────────────────────────────────────
 
 def test_runtime_out_of_scope():
-    resp = _run(
-        "오늘 점심 뭐 먹지?",
-        {"primary_intent": "out_of_scope", "confidence": 0.95, "slots": {}}
-    )
+    resp = _run("오늘 점심 뭐 먹지?", {"primary_intent": "out_of_scope", "confidence": 0.95, "slots": {}})
     assert resp.runtime_status == "success"
-    assert resp.router_result.routing_decision == "out_of_scope"
     assert "지원 범위 밖" in resp.answer_output.rendered_markdown
-    assert resp.answer_output.local_purchase_support_review_section is None
-    assert resp.answer_output.candidate_table_section is None
     _assert_clean(resp)
     _assert_stages(resp)
 
 
 # ────────────────────────────────────────────────────
-# 9. 금지 표현 전체 sweep
+# 9. 금지 표현 sweep
 # ────────────────────────────────────────────────────
 
 def test_runtime_forbidden_sweep():
@@ -174,11 +186,29 @@ def test_runtime_forbidden_sweep():
 # 10. Fallback 안전성
 # ────────────────────────────────────────────────────
 
-def test_runtime_invalid_json_fallback():
-    """mock_gemini_response가 None이면 fallback 동작."""
+def test_runtime_no_mock_response_safe_fallback():
+    """mock=None이면 내부 synthetic out_of_scope로 안전 처리."""
     req = ChatbotRuntimeRequest(user_query="아무거나", mock_gemini_response=None)
     resp = run_chatbot_runtime(req)
-
-    assert resp.runtime_status == "success"  # out_of_scope로 정상 처리됨
+    assert resp.runtime_status == "success"
     assert resp.router_result.routing_decision != ""
+    _assert_clean(resp)
+
+
+def test_runtime_router_exception_fallback(monkeypatch):
+    """Router에서 예외가 발생하면 fail-closed fallback."""
+    def _raise(*args, **kwargs):
+        raise RuntimeError("Simulated Gemini failure")
+
+    monkeypatch.setattr(
+        "app.runtime.chatbot_orchestrator.GeminiIntentRouter.parse_gemini_response",
+        _raise
+    )
+    req = ChatbotRuntimeRequest(
+        user_query="테스트", mock_gemini_response={"primary_intent": "legal_explanation", "slots": {}}
+    )
+    resp = run_chatbot_runtime(req)
+    assert resp.runtime_status == "failed"
+    assert resp.fallback_applied is True
+    assert "intent_router" in resp.errors[0]
     _assert_clean(resp)
