@@ -30,7 +30,7 @@ response: GatewayResponse = resolve_context(request: GatewayRequest)
 1. Source Resolver → `source_context`
 2. Route Resolver → `route_context`
 3. Procedure Resolver → `procedure_context`
-4. Item Resolver → `item_eligibility_context`
+4. Item Resolver → `item_eligibility_result`
 5. Company Resolver → `company_candidate_context`
 
 **특성**:

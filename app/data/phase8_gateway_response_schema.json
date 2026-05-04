@@ -23,7 +23,7 @@
 
     "source_context": {
       "type": "object",
-      "required": ["sources"],
+      "required": ["sources", "required_slots_missing"],
       "description": "Source Resolver 출력. 판단근거 법령 source 목록.",
       "properties": {
         "sources": {
@@ -54,7 +54,7 @@
 
     "route_context": {
       "type": "object",
-      "required": ["base_jurisdiction", "overlay_applied", "dual_routing"],
+      "required": ["base_jurisdiction", "overlay_applied", "overlay_sources", "dual_routing"],
       "description": "Route Resolver 출력. Overlay 여부와 overlay source만 포함. base source는 source_context 참조.",
       "properties": {
         "base_jurisdiction": {
@@ -83,7 +83,7 @@
 
     "procedure_context": {
       "type": "object",
-      "required": ["sources", "usage", "judgment_eligible"],
+      "required": ["sources", "filter_applied", "usage", "judgment_eligible"],
       "description": "Procedure Resolver 출력. 절차 안내 전용. Rule Engine 판단근거 사용 금지.",
       "properties": {
         "sources": {
@@ -109,7 +109,7 @@
 
     "item_eligibility_result": {
       "type": "object",
-      "required": ["resolver_status"],
+      "required": ["resolver_status", "unavailable_reason", "context"],
       "description": "Item Resolver 출력. 트리거 판정 상태와 eligibility context.",
       "properties": {
         "resolver_status": {
@@ -126,7 +126,7 @@
             "detail_item_code_ambiguous",
             null
           ],
-          "description": "data_unavailable 또는 ambiguous 시 상세 사유. ambiguous 상태에서도 detail_item_code_ambiguous 사용 가능."
+          "description": "data_unavailable 또는 ambiguous 시 상세 사유. ambiguous 상태에서도 detail_item_code_ambiguous 사용 가능. resolver_status가 resolved/not_triggered이면 null."
         },
         "context": {
           "oneOf": [
@@ -148,7 +148,7 @@
 
     "metadata": {
       "type": "object",
-      "required": ["total_sources_matched", "overlay_applied", "item_eligibility_resolver_status", "company_candidates_found", "enrichment_applied"],
+      "required": ["total_sources_matched", "procedure_sources_matched", "overlay_applied", "item_eligibility_resolver_status", "item_eligibility_trigger_grade", "company_candidates_found", "enrichment_applied", "enrichment_scope"],
       "description": "Gateway 실행 요약 메타데이터",
       "properties": {
         "total_sources_matched": {
