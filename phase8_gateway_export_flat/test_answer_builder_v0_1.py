@@ -23,10 +23,10 @@ def test_answer_builder_safe_outcome():
     assert out.fallback_applied is False
     assert "우선 검토 후보로 분류" in out.summary_section.content
     
-    assert out.local_purchase_legal_review_section is not None
-    assert "지역제한" in out.rendered_markdown
-    assert "계약경로" in out.rendered_markdown
-    assert "금액 기준 확인" in out.rendered_markdown
+    assert out.local_purchase_support_review_section is not None
+    assert "지역의무공동도급 검토" in out.rendered_markdown
+    assert "수의계약 활용 가능성 검토" in out.rendered_markdown
+    assert "MAS·종합쇼핑몰 내 지역업체 후보 활용 검토" in out.rendered_markdown
 
 def test_answer_builder_ambiguous_creates_item_section():
     gw = get_base_gateway_response()
@@ -72,5 +72,5 @@ def test_answer_builder_forbidden_phrase_fallback():
     # Fallback applied check
     assert "내부 검토 로직에 따라" in out.summary_section.content
     assert out.candidate_table_section is None
-    assert out.local_purchase_legal_review_section is None
+    assert out.local_purchase_support_review_section is None
     assert "계약 가능합니다" not in out.rendered_markdown

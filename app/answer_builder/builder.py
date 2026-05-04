@@ -36,17 +36,19 @@ def build_answer(gateway_response: GatewayResponse, decision_context: DecisionCo
         content=get_summary_text(decision_context.review_outcome)
     )
     
-    # 1-1. Local Purchase Legal Review Section
-    local_purchase_section = AnswerSection(
-        title="지역업체 구매 법적 검토 경로",
-        content="안전한 계약 진행을 위해 다음의 검토 경로를 확인하시기 바랍니다.",
+    # 1-1. Local Purchase Support Review Section
+    local_support_section = AnswerSection(
+        title="지역업체 지원 및 우선구매 검토 경로",
+        content="안전하고 효과적인 계약 진행을 위해 다음의 제도 활용 가능성을 확인하시기 바랍니다.",
         bullets=[
-            "기관유형 확인",
-            "계약목적물 확인",
-            "금액 기준 확인",
-            "계약경로 확인",
-            "지역제한·지역업체 참여·지역상품 우선구매 기준 검토",
-            "정책기업·인증 여부 확인"
+            "지역제한 경쟁입찰 검토",
+            "지역의무공동도급 검토",
+            "지역업체 참여도 가점 검토",
+            "지역상품 우선구매 조례·시책 검토",
+            "수의계약 활용 가능성 검토",
+            "정책기업 우대·우선구매 검토",
+            "MAS·종합쇼핑몰 내 지역업체 후보 활용 검토",
+            "품목별 중기경쟁제품·직접생산확인 추가 검토"
         ]
     )
     
@@ -124,9 +126,9 @@ def build_answer(gateway_response: GatewayResponse, decision_context: DecisionCo
     for b in summary.bullets:
         rendered_parts.append(f"- {b}")
         
-    if local_purchase_section:
-        rendered_parts.append(f"## {local_purchase_section.title}\n{local_purchase_section.content}")
-        for b in local_purchase_section.bullets:
+    if local_support_section:
+        rendered_parts.append(f"## {local_support_section.title}\n{local_support_section.content}")
+        for b in local_support_section.bullets:
             rendered_parts.append(f"- {b}")
             
     if route_section:
@@ -156,7 +158,7 @@ def build_answer(gateway_response: GatewayResponse, decision_context: DecisionCo
     
     out = AnswerBuilderOutput(
         summary_section=summary,
-        local_purchase_legal_review_section=local_purchase_section,
+        local_purchase_support_review_section=local_support_section,
         route_review_section=route_section,
         item_eligibility_section=item_section,
         procedure_guidance_section=procedure_section,
@@ -173,7 +175,7 @@ def build_answer(gateway_response: GatewayResponse, decision_context: DecisionCo
         out.fallback_applied = True
         out.summary_section.content = "내부 검토 로직에 따라 안전한 답변 생성을 위해 일시적으로 답변이 제한되었습니다."
         out.summary_section.bullets = []
-        out.local_purchase_legal_review_section = None
+        out.local_purchase_support_review_section = None
         out.item_eligibility_section = None
         out.procedure_guidance_section = None
         out.candidate_table_section = None
