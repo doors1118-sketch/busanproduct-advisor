@@ -8,38 +8,66 @@
 
 ## 1. 개요
 
-본 문서는 Gateway가 출력한 `GatewayResponse`를 Rule Engine이 소비하는 인터페이스를 정의합니다.
+본 문서는 Gateway가 출력한 `GatewayResponse`와 원본 슬롯(`GatewayRequest`)을 Rule Engine이 소비하는 인터페이스를 정의합니다.
 
 ```
-Gateway                    Rule Engine                 Answer Builder
-GatewayResponse ──────────▶ rule evaluation ──────────▶ 자연어 답변
-(context 번들)              (decision context)          (trigger_grade별 노출)
+Slot Parser     Gateway              Rule Engine           Answer Builder
+GatewayRequest ─▶ GatewayResponse ─┐
+                                   ├─▶ rule evaluation ──▶ 자연어 답변
+GatewayRequest (slots) ────────────┘   (decision context)  (trigger_grade별 노출)
 ```
+
+### 1.1 Rule Engine 입력 객체
+
+Rule Engine은 `GatewayResponse`만이 아니라 원본 슬롯도 필요합니다.
+
+```python
+@dataclass
+class RuleEngineInput:
+    original_request: GatewayRequest      # 원본 슬롯 포함
+    gateway_response: GatewayResponse     # Gateway 조회 결과
+```
+
+> **[설계 사유]** GatewayResponse에는 slots가 포함되어 있지 않습니다.  
+> ❷~❼ 단계에서 `contract_object`, `amount`, `contract_method`, `location` 등  
+> 슬롯 값이 필요하므로 `original_request`를 함께 전달합니다.
 
 **원칙**:
-- Rule Engine은 `GatewayResponse`의 **구조화된 필드만** 소비합니다.
+- Rule Engine은 `RuleEngineInput`의 **구조화된 필드만** 소비합니다.
 - Rule Engine은 자연어 답변을 생성하지 않습니다.
 - Rule Engine은 DB를 수정하지 않습니다.
+- Enrichment 데이터는 계약 판단에 **영향을 주지 않습니다**.
 
 ---
 
 ## 2. Rule Engine 입력 매핑
 
-### 2.1 필수 소비 필드
+### 2.1 필수 소비 필드 — original_request.slots
 
-Rule Engine은 `GatewayResponse`에서 다음 필드를 **항상** 읽습니다:
+| 필드 | 사용 단계 | 용도 |
+|------|:--------:|------|
+| `slots.buyer_type` | ❶ | 기관유형 분기 |
+| `slots.contract_object` | ❷ | 공사/물품/용역 분기 |
+| `slots.amount` | ❸ ❻ | 금액 기준 분기, 지역제한 금액 요건 |
+| `slots.procurement_route` | ❹ | 조달경로 분기 |
+| `slots.contract_method` | ❺ | 계약방식 분기 |
+| `slots.item_name` | ❽ | 품목 트리거 판정 |
+| `slots.detail_item_code` | ❽ | 세부품명 트리거 판정 |
+| `slots.location` | ❻ | 지역제한 적용 범위 |
 
-| GatewayResponse 필드 | Rule Engine 소비 | 용도 |
-|---------------------|:-:|------|
-| `source_context.sources` | ✅ | ❶~❼ 판단 근거 법령 |
-| `source_context.buyer_type_confidence` | ✅ | 기관유형 확정 여부 판단 |
-| `source_context.required_slots_missing` | ✅ | 추가 질문 유도 판단 |
-| `route_context.overlay_applied` | ✅ | overlay 적용 여부 |
-| `route_context.overlay_sources` | ✅ | overlay 법령 (병합 대상) |
-| `route_context.dual_routing` | ✅ | base+overlay 병합 여부 |
-| `item_eligibility_result.resolver_status` | ✅ | ❽ 실행 여부 판단 |
-| `metadata` | ✅ | 요약 정보 |
-| `error` | ✅ | 에러 시 fallback 판단 |
+### 2.2 필수 소비 필드 — gateway_response
+
+| GatewayResponse 필드 | 사용 단계 | 용도 |
+|---------------------|:--------:|------|
+| `source_context.sources` | ❶~❼ | 판단 근거 법령 |
+| `source_context.buyer_type_confidence` | ❶ | 기관유형 확정 여부 |
+| `source_context.required_slots_missing` | ❶ | 추가 질문 유도 |
+| `route_context.overlay_applied` | ❹ | overlay 적용 여부 |
+| `route_context.overlay_sources` | ❹ | overlay 법령 (병합) |
+| `route_context.dual_routing` | ❹ | base+overlay 병합 여부 |
+| `item_eligibility_result.resolver_status` | ❽ | 실행 여부 판단 |
+| `metadata` | 전체 | 요약 정보 |
+| `error` | 전체 | 에러 시 fallback |
 
 ### 2.2 조건부 소비 필드
 
@@ -64,51 +92,55 @@ Rule Engine은 `GatewayResponse`에서 다음 필드를 **항상** 읽습니다:
 ### ❶ buyer_type 판단
 
 ```
-입력: source_context.buyer_type_confidence
-      source_context.required_slots_missing
+입력: original_request.slots.buyer_type
+      gateway_response.source_context.buyer_type_confidence
+      gateway_response.source_context.required_slots_missing
 
 if buyer_type_confidence == "low":
-    → 추가 질문 유도 (Answer Builder에 전달)
-    → 판단은 assumed 기준으로 임시 진행
+    → provisional_evaluation = true
+    → assumption_warnings에 "기관유형 미확정. 부산시 기준 임시 추정." 추가
+    → 판단은 assumed 기준으로 임시 진행하되 provisional 플래그 전달
 elif buyer_type_confidence == "high":
+    → provisional_evaluation = false
     → 확정된 buyer_type 기준으로 판단
 ```
 
 ### ❷ contract_object 판단
 
 ```
-입력: slots.contract_object (GatewayRequest에서 전달)
+입력: original_request.slots.contract_object
 
 → 공사/물품/용역 분기
-→ source_context.sources에서 해당 contract_object 관련 source 필터링
+→ gateway_response.source_context.sources에서 해당 contract_object 관련 source 필터링
 ```
 
 ### ❸ amount 판단
 
 ```
-입력: slots.amount
+입력: original_request.slots.amount
 
 → 금액 기준 계약방식 분기 (수의계약 한도 등)
-→ source_context.sources에서 금액 관련 조문 참조
+→ applicable_sources에서 금액 관련 조문 참조
 ```
 
 ### ❹ procurement_route 판단
 
 ```
-입력: route_context.overlay_applied
-      route_context.overlay_sources
-      route_context.dual_routing
+입력: gateway_response.route_context.overlay_applied
+      gateway_response.route_context.overlay_sources
+      gateway_response.route_context.dual_routing
 
 if overlay_applied:
-    applicable_sources = source_context.sources + route_context.overlay_sources
+    applicable_sources = gateway_response.source_context.sources
+                       + gateway_response.route_context.overlay_sources
 else:
-    applicable_sources = source_context.sources
+    applicable_sources = gateway_response.source_context.sources
 ```
 
 ### ❺ contract_method 판단
 
 ```
-입력: slots.contract_method
+입력: original_request.slots.contract_method
 
 → 일반경쟁/제한경쟁/지명경쟁/수의계약 분기
 → applicable_sources에서 해당 계약방식 관련 조문 참조
@@ -117,16 +149,19 @@ else:
 ### ❻ local_preference 판단
 
 ```
-입력: slots.amount, slots.contract_object, slots.location
+입력: original_request.slots.amount
+      original_request.slots.contract_object
+      original_request.slots.location
 
 → 지역제한 적용 가능성 검토
-→ 지역제한 관련 source 참조
+→ applicable_sources에서 지역제한 관련 조문 참조
 ```
 
 ### ❼ policy_company / certification 판단
 
 ```
-입력: slots (정책기업, 인증 관련 슬롯)
+입력: original_request.slots (정책기업, 인증 관련 슬롯)
+      gateway_response.route_context.overlay_scope
 
 → 중소기업, 여성기업, 사회적기업 등 정책 우대 검토
 → overlay_scope에서 sme_purchase, policy_company 등 확인
@@ -135,8 +170,8 @@ else:
 ### ❽ item_eligibility 판단
 
 ```
-입력: item_eligibility_result.resolver_status
-      item_eligibility_result.context (있으면)
+입력: gateway_response.item_eligibility_result.resolver_status
+      gateway_response.item_eligibility_result.context (있으면)
 
 switch resolver_status:
   case "not_triggered":
@@ -160,6 +195,14 @@ switch resolver_status:
     → Answer Builder: 세부품명 확정 유도 문구
 ```
 
+> **[Enrichment 판단 영향 금지]**  
+> `company_candidate_context.enrichment_data`는 후보표 보조 정보입니다.  
+> `enrichment_available = true`여도 다음 필드를 **변경하지 않습니다**:  
+> - `contract_method_candidates`  
+> - `amount_threshold_met`  
+> - `local_preference_applicable`  
+> 직생 유효 여부는 계약 가능 판단으로 연결하지 않습니다.
+
 ---
 
 ## 4. Rule Engine 출력: DecisionContext
@@ -169,18 +212,34 @@ Rule Engine은 판단 결과를 `DecisionContext`로 Answer Builder에 전달합
 ```python
 @dataclass
 class DecisionContext:
+    # ❶ 기관유형
     buyer_type_confirmed: bool
     buyer_type_assumed: Optional[str]
+    provisional_evaluation: bool             # buyer_type 미확정 시 True
+    assumption_warnings: List[str]           # ["기관유형 미확정. 부산시 기준 임시 추정."] 등
     slots_missing: List[str]
-    applicable_sources: List[str]       # source_id 목록
+
+    # ❷~❼ 판단 결과
+    applicable_sources: List[str]            # source_id 목록
     contract_method_candidates: List[str]
     amount_threshold_met: Optional[bool]
     local_preference_applicable: Optional[bool]
-    item_eligibility_grade: Optional[str]  # "explicit" | "silent" | None
+
+    # ❽ Item Eligibility
+    item_eligibility_grade: Optional[str]    # "explicit" | "silent" | None
     item_eligibility_status: Optional[str]
+
+    # Enrichment (판단 영향 없음)
     enrichment_available: bool
-    decision_notes: List[str]           # 판단 근거 요약
+    enrichment_judgment_effect: str = "none" # 항상 "none". 판단에 영향 없음 명시.
+
+    # 판단 근거
+    decision_notes: List[str]
 ```
+
+> **`enrichment_judgment_effect = "none"`**: Enrichment 데이터가 존재하더라도  
+> 계약방식·금액기준·지역제한 등 ❶~❼ 판단 결과를 변경하지 않습니다.  
+> 이 필드는 이 원칙을 코드 수준에서 명시하기 위한 것입니다.
 
 ---
 
@@ -221,28 +280,30 @@ Answer Builder는 다음 단정 표현을 생성하지 않습니다:
 | `error = null` | 정상 실행 |
 | `error ≠ null` + 부분 context 존재 | 가용 context로 판단, 에러 부분은 "확인 불가" |
 | `source_context.sources = []` | "관련 법령 미발견" → Answer Builder에 전달 |
-| `buyer_type_confidence = "low"` | 임시 판단 + 추가 질문 유도 |
+| `buyer_type_confidence = "low"` | provisional_evaluation=true + assumption_warnings 생성 + 추가 질문 유도 |
 
 ---
 
 ## 7. 데이터 흐름 요약
 
 ```
-GatewayResponse
+RuleEngineInput
+    ├── original_request.slots ──────────────▶ ❷~❼ 슬롯 기반 분기
     │
-    ├── source_context.sources ──────────────▶ ❶~❼ 판단 근거
-    ├── source_context.buyer_type_confidence ─▶ ❶ 기관유형 확정 여부
-    ├── route_context.overlay_sources ────────▶ ❹ overlay 병합
-    ├── item_eligibility_result ─────────────▶ ❽ 트리거/등급 판단
-    │
-    ▼
-DecisionContext
-    │
-    ├── 판단 결과 ──────────────────────────▶ Answer Builder
-    │
-    ▼
-GatewayResponse (Answer Builder 직접 참조)
-    ├── procedure_context ───────────────────▶ 절차 안내 섹션
-    ├── company_candidate_context ───────────▶ 후보 업체 표
-    └── item_eligibility_result.context ─────▶ trigger_grade별 노출
+    └── gateway_response
+        ├── source_context.sources ──────────▶ ❶~❼ 판단 근거
+        ├── source_context.buyer_type_confidence ▶ ❶ 기관유형 확정
+        ├── route_context.overlay_sources ───▶ ❹ overlay 병합
+        ├── item_eligibility_result ─────────▶ ❽ 트리거/등급
+        │
+        ▼
+    DecisionContext (enrichment_judgment_effect = "none")
+        │
+        ├── 판단 결과 ──────────────────────▶ Answer Builder
+        │
+        ▼
+    gateway_response (Answer Builder 직접 참조)
+        ├── procedure_context ──────────────▶ 절차 안내 섹션
+        ├── company_candidate_context ──────▶ 후보 업체 표
+        └── item_eligibility_result.context ▶ trigger_grade별 노출
 ```
