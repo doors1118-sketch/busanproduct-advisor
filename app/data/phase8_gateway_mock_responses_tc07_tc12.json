@@ -1,0 +1,425 @@
+{
+  "mock_set_version": "v0.1.1",
+  "schema_ref": "phase8_gateway_response_schema.json",
+  "part": "tc07_tc12",
+  "test_cases": [
+    {
+      "tc_id": "TC-T7",
+      "description": "업체+직생 명시 — Explicit + Enrichment(specific_item). 세부품명 기준 직생 확인.",
+      "user_query": "CCTV 부산업체 찾아줘. 직생도 봐줘.",
+      "expected_trigger": "explicit",
+      "gateway_response": {
+        "request_id": "tc07-0001-0001-0001-000000000007",
+        "gateway_version": "v0.1.1",
+        "baseline_db": "legal_db_v0_1_3.sqlite",
+        "source_context": {
+          "sources": [
+            {"source_id": "src-001", "source_name": "지방자치단체를 당사자로 하는 계약에 관한 법률", "normalized_title": "지방계약법", "law_category": "법률", "source_type": "law", "applicability_scope": "local_contract", "active_for_rule": true, "activation_mode": "always"}
+          ],
+          "assumed_buyer_type": "local_government",
+          "assumption_reason": "부산시 업무 기본 맥락에 따른 임시 추정",
+          "buyer_type_confidence": "low",
+          "required_slots_missing": ["buyer_type"]
+        },
+        "route_context": {
+          "base_jurisdiction": "local_contract",
+          "overlay_applied": false,
+          "overlay_scope": null,
+          "overlay_sources": [],
+          "dual_routing": false
+        },
+        "procedure_context": {
+          "sources": [],
+          "filter_applied": false,
+          "usage": "answer_builder_procedure_section_only",
+          "judgment_eligible": false
+        },
+        "item_eligibility_result": {
+          "resolver_status": "resolved",
+          "unavailable_reason": null,
+          "context": {
+            "item_eligibility_required": true,
+            "trigger_grade": "explicit",
+            "triggered_by": ["T1_keyword"],
+            "detail_item_resolved": false,
+            "detail_item_code": null,
+            "detail_item_name": null,
+            "detail_item_candidates": [
+              {"detail_item_code": "4617162201", "detail_item_name": "영상감시장치(CCTV)", "is_sme_competition": true}
+            ],
+            "is_sme_competition_product": null,
+            "direct_production_required": null,
+            "company_cert_status": null,
+            "eligibility_status": null,
+            "candidate_action": null
+          }
+        },
+        "company_candidate_context": {
+          "candidates": [
+            {
+              "company_id": "hmac_a1b2c3",
+              "company_name_masked": "(주)○○보안",
+              "location": "부산 해운대구",
+              "business_type": "보안장비",
+              "contract_count": 3,
+              "contract_amount": 200000000,
+              "enrichment_data": {
+                "cert_status": "valid",
+                "cert_expiry": "2027-03",
+                "detail_item_codes": ["4617162201"],
+                "matched_by": "candidate_match",
+                "per_candidate_match": [
+                  {"detail_item_code": "4617162201", "detail_item_name": "영상감시장치(CCTV)", "cert_status": "valid", "cert_expiry": "2027-03"}
+                ]
+              }
+            },
+            {
+              "company_id": "hmac_d4e5f6",
+              "company_name_masked": "(주)△△영상",
+              "location": "부산 사상구",
+              "business_type": "영상장비",
+              "contract_count": 5,
+              "contract_amount": 400000000,
+              "enrichment_data": null
+            }
+          ],
+          "enrichment_applied": true,
+          "enrichment_scope": "candidate_items",
+          "total_found": 2
+        },
+        "metadata": {
+          "total_sources_matched": 1,
+          "procedure_sources_matched": 0,
+          "overlay_applied": false,
+          "item_eligibility_resolver_status": "resolved",
+          "item_eligibility_trigger_grade": "explicit",
+          "company_candidates_found": 2,
+          "enrichment_applied": true,
+          "enrichment_scope": "candidate_items"
+        },
+        "error": null
+      }
+    },
+    {
+      "tc_id": "TC-T8",
+      "description": "Silent에서 사용자가 직생 추가 질문 → Explicit 승격",
+      "user_query": "아까 컴퓨터 직생확인 해줘",
+      "expected_trigger": "explicit",
+      "gateway_response": {
+        "request_id": "tc08-0001-0001-0001-000000000008",
+        "gateway_version": "v0.1.1",
+        "baseline_db": "legal_db_v0_1_3.sqlite",
+        "source_context": {
+          "sources": [
+            {"source_id": "src-001", "source_name": "지방자치단체를 당사자로 하는 계약에 관한 법률", "normalized_title": "지방계약법", "law_category": "법률", "source_type": "law", "applicability_scope": "local_contract", "active_for_rule": true, "activation_mode": "always"}
+          ],
+          "assumed_buyer_type": "local_government",
+          "assumption_reason": "부산시 업무 기본 맥락에 따른 임시 추정",
+          "buyer_type_confidence": "low",
+          "required_slots_missing": ["buyer_type"]
+        },
+        "route_context": {
+          "base_jurisdiction": "local_contract",
+          "overlay_applied": false,
+          "overlay_scope": null,
+          "overlay_sources": [],
+          "dual_routing": false
+        },
+        "procedure_context": {
+          "sources": [],
+          "filter_applied": false,
+          "usage": "answer_builder_procedure_section_only",
+          "judgment_eligible": false
+        },
+        "item_eligibility_result": {
+          "resolver_status": "resolved",
+          "unavailable_reason": null,
+          "context": {
+            "item_eligibility_required": true,
+            "trigger_grade": "explicit",
+            "triggered_by": ["T1_keyword"],
+            "detail_item_resolved": false,
+            "detail_item_code": null,
+            "detail_item_name": null,
+            "detail_item_candidates": [
+              {"detail_item_code": "2311150101", "detail_item_name": "데스크톱컴퓨터", "is_sme_competition": true},
+              {"detail_item_code": "2311150201", "detail_item_name": "노트북컴퓨터", "is_sme_competition": true}
+            ],
+            "is_sme_competition_product": null,
+            "direct_production_required": null,
+            "company_cert_status": null,
+            "eligibility_status": null,
+            "candidate_action": null
+          }
+        },
+        "company_candidate_context": null,
+        "metadata": {
+          "total_sources_matched": 1,
+          "procedure_sources_matched": 0,
+          "overlay_applied": false,
+          "item_eligibility_resolver_status": "resolved",
+          "item_eligibility_trigger_grade": "explicit",
+          "company_candidates_found": 0,
+          "enrichment_applied": false,
+          "enrichment_scope": null
+        },
+        "error": null
+      }
+    },
+    {
+      "tc_id": "TC-T9",
+      "description": "공사 질문 — 중기경쟁 트리거 미발동. 공사는 직생 적용 대상 아님.",
+      "user_query": "학교 체육관 리모델링 공사 입찰 절차",
+      "expected_trigger": "not_triggered",
+      "gateway_response": {
+        "request_id": "tc09-0001-0001-0001-000000000009",
+        "gateway_version": "v0.1.1",
+        "baseline_db": "legal_db_v0_1_3.sqlite",
+        "source_context": {
+          "sources": [
+            {"source_id": "src-001", "source_name": "지방자치단체를 당사자로 하는 계약에 관한 법률", "normalized_title": "지방계약법", "law_category": "법률", "source_type": "law", "applicability_scope": "local_contract", "active_for_rule": true, "activation_mode": "always"}
+          ],
+          "assumed_buyer_type": "local_government",
+          "assumption_reason": "부산시 업무 기본 맥락에 따른 임시 추정",
+          "buyer_type_confidence": "low",
+          "required_slots_missing": ["buyer_type"]
+        },
+        "route_context": {
+          "base_jurisdiction": "local_contract",
+          "overlay_applied": false,
+          "overlay_scope": null,
+          "overlay_sources": [],
+          "dual_routing": false
+        },
+        "procedure_context": {
+          "sources": [
+            {"source_id": "src-proc-001", "source_name": "지방자치단체 입찰 및 계약집행기준 (공사)", "source_type": "administrative_rule", "applicability_scope": "construction", "usage": "procedure_guidance_only"}
+          ],
+          "filter_applied": true,
+          "usage": "answer_builder_procedure_section_only",
+          "judgment_eligible": false
+        },
+        "item_eligibility_result": {
+          "resolver_status": "not_triggered",
+          "unavailable_reason": null,
+          "context": null
+        },
+        "company_candidate_context": null,
+        "metadata": {
+          "total_sources_matched": 1,
+          "procedure_sources_matched": 1,
+          "overlay_applied": false,
+          "item_eligibility_resolver_status": "not_triggered",
+          "item_eligibility_trigger_grade": null,
+          "company_candidates_found": 0,
+          "enrichment_applied": false,
+          "enrichment_scope": null
+        },
+        "error": null
+      }
+    },
+    {
+      "tc_id": "TC-T10",
+      "description": "직생 0건 — Explicit 트리거 발동했으나 데이터 부족.",
+      "user_query": "특수장비XYZ 직생 확인해줘",
+      "expected_trigger": "data_unavailable",
+      "gateway_response": {
+        "request_id": "tc10-0001-0001-0001-000000000010",
+        "gateway_version": "v0.1.1",
+        "baseline_db": "legal_db_v0_1_3.sqlite",
+        "source_context": {
+          "sources": [
+            {"source_id": "src-001", "source_name": "지방자치단체를 당사자로 하는 계약에 관한 법률", "normalized_title": "지방계약법", "law_category": "법률", "source_type": "law", "applicability_scope": "local_contract", "active_for_rule": true, "activation_mode": "always"}
+          ],
+          "assumed_buyer_type": "local_government",
+          "assumption_reason": "부산시 업무 기본 맥락에 따른 임시 추정",
+          "buyer_type_confidence": "low",
+          "required_slots_missing": ["buyer_type"]
+        },
+        "route_context": {
+          "base_jurisdiction": "local_contract",
+          "overlay_applied": false,
+          "overlay_scope": null,
+          "overlay_sources": [],
+          "dual_routing": false
+        },
+        "procedure_context": {
+          "sources": [],
+          "filter_applied": false,
+          "usage": "answer_builder_procedure_section_only",
+          "judgment_eligible": false
+        },
+        "item_eligibility_result": {
+          "resolver_status": "data_unavailable",
+          "unavailable_reason": "item_alias_map_not_available",
+          "context": null
+        },
+        "company_candidate_context": null,
+        "metadata": {
+          "total_sources_matched": 1,
+          "procedure_sources_matched": 0,
+          "overlay_applied": false,
+          "item_eligibility_resolver_status": "data_unavailable",
+          "item_eligibility_trigger_grade": "explicit",
+          "company_candidates_found": 0,
+          "enrichment_applied": false,
+          "enrichment_scope": null
+        },
+        "error": null
+      }
+    },
+    {
+      "tc_id": "TC-T11",
+      "description": "검색 차단 방지 — Silent이 업체 후보 검색을 차단하지 않음.",
+      "user_query": "프린터 부산업체 알려줘",
+      "expected_trigger": "silent",
+      "gateway_response": {
+        "request_id": "tc11-0001-0001-0001-000000000011",
+        "gateway_version": "v0.1.1",
+        "baseline_db": "legal_db_v0_1_3.sqlite",
+        "source_context": {
+          "sources": [
+            {"source_id": "src-001", "source_name": "지방자치단체를 당사자로 하는 계약에 관한 법률", "normalized_title": "지방계약법", "law_category": "법률", "source_type": "law", "applicability_scope": "local_contract", "active_for_rule": true, "activation_mode": "always"}
+          ],
+          "assumed_buyer_type": "local_government",
+          "assumption_reason": "부산시 업무 기본 맥락에 따른 임시 추정",
+          "buyer_type_confidence": "low",
+          "required_slots_missing": ["buyer_type"]
+        },
+        "route_context": {
+          "base_jurisdiction": "local_contract",
+          "overlay_applied": false,
+          "overlay_scope": null,
+          "overlay_sources": [],
+          "dual_routing": false
+        },
+        "procedure_context": {
+          "sources": [],
+          "filter_applied": false,
+          "usage": "answer_builder_procedure_section_only",
+          "judgment_eligible": false
+        },
+        "item_eligibility_result": {
+          "resolver_status": "resolved",
+          "unavailable_reason": null,
+          "context": {
+            "item_eligibility_required": true,
+            "trigger_grade": "silent",
+            "triggered_by": ["T3_alias_map_sme_candidate"],
+            "detail_item_resolved": false,
+            "detail_item_code": null,
+            "detail_item_name": null,
+            "detail_item_candidates": [
+              {"detail_item_code": "2312100101", "detail_item_name": "레이저프린터", "is_sme_competition": true}
+            ],
+            "is_sme_competition_product": null,
+            "direct_production_required": null,
+            "company_cert_status": null,
+            "eligibility_status": null,
+            "candidate_action": null
+          }
+        },
+        "company_candidate_context": {
+          "candidates": [
+            {
+              "company_id": "hmac_g7h8i9",
+              "company_name_masked": "(주)□□OA",
+              "location": "부산 중구",
+              "business_type": "사무기기",
+              "contract_count": 7,
+              "contract_amount": 150000000,
+              "enrichment_data": {
+                "cert_status": "valid",
+                "cert_expiry": "2027-06",
+                "detail_item_codes": ["2312100101"],
+                "matched_by": "company_level",
+                "per_candidate_match": null
+              }
+            }
+          ],
+          "enrichment_applied": true,
+          "enrichment_scope": "general",
+          "total_found": 1
+        },
+        "metadata": {
+          "total_sources_matched": 1,
+          "procedure_sources_matched": 0,
+          "overlay_applied": false,
+          "item_eligibility_resolver_status": "resolved",
+          "item_eligibility_trigger_grade": "silent",
+          "company_candidates_found": 1,
+          "enrichment_applied": true,
+          "enrichment_scope": "general"
+        },
+        "error": null
+      }
+    },
+    {
+      "tc_id": "TC-T12",
+      "description": "ambiguous — 복수 세부품명 후보, 세부품명 미확정. partial context 허용.",
+      "user_query": "소프트웨어 중기경쟁 확인해줘",
+      "expected_trigger": "ambiguous",
+      "gateway_response": {
+        "request_id": "tc12-0001-0001-0001-000000000012",
+        "gateway_version": "v0.1.1",
+        "baseline_db": "legal_db_v0_1_3.sqlite",
+        "source_context": {
+          "sources": [
+            {"source_id": "src-001", "source_name": "지방자치단체를 당사자로 하는 계약에 관한 법률", "normalized_title": "지방계약법", "law_category": "법률", "source_type": "law", "applicability_scope": "local_contract", "active_for_rule": true, "activation_mode": "always"}
+          ],
+          "assumed_buyer_type": "local_government",
+          "assumption_reason": "부산시 업무 기본 맥락에 따른 임시 추정",
+          "buyer_type_confidence": "low",
+          "required_slots_missing": ["buyer_type"]
+        },
+        "route_context": {
+          "base_jurisdiction": "local_contract",
+          "overlay_applied": false,
+          "overlay_scope": null,
+          "overlay_sources": [],
+          "dual_routing": false
+        },
+        "procedure_context": {
+          "sources": [],
+          "filter_applied": false,
+          "usage": "answer_builder_procedure_section_only",
+          "judgment_eligible": false
+        },
+        "item_eligibility_result": {
+          "resolver_status": "ambiguous",
+          "unavailable_reason": "detail_item_code_ambiguous",
+          "context": {
+            "item_eligibility_required": true,
+            "trigger_grade": "explicit",
+            "triggered_by": ["T1_keyword"],
+            "detail_item_resolved": false,
+            "detail_item_code": null,
+            "detail_item_name": null,
+            "detail_item_candidates": [
+              {"detail_item_code": "4311110101", "detail_item_name": "시스템소프트웨어", "is_sme_competition": false},
+              {"detail_item_code": "4311110201", "detail_item_name": "응용소프트웨어", "is_sme_competition": true},
+              {"detail_item_code": "4311110301", "detail_item_name": "보안소프트웨어", "is_sme_competition": true}
+            ],
+            "is_sme_competition_product": null,
+            "direct_production_required": null,
+            "company_cert_status": null,
+            "eligibility_status": null,
+            "candidate_action": null
+          }
+        },
+        "company_candidate_context": null,
+        "metadata": {
+          "total_sources_matched": 1,
+          "procedure_sources_matched": 0,
+          "overlay_applied": false,
+          "item_eligibility_resolver_status": "ambiguous",
+          "item_eligibility_trigger_grade": "explicit",
+          "company_candidates_found": 0,
+          "enrichment_applied": false,
+          "enrichment_scope": null
+        },
+        "error": null
+      }
+    }
+  ]
+}

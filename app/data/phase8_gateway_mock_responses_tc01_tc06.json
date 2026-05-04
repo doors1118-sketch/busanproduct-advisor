@@ -1,0 +1,398 @@
+{
+  "mock_set_version": "v0.1.1",
+  "schema_ref": "phase8_gateway_response_schema.json",
+  "part": "tc01_tc06",
+  "test_cases": [
+    {
+      "tc_id": "TC-T1",
+      "description": "일반 금액·계약방식 질문 (트리거 미발동)",
+      "user_query": "8천만원 물품 수의계약 가능한가?",
+      "expected_trigger": "not_triggered",
+      "gateway_response": {
+        "request_id": "tc01-0001-0001-0001-000000000001",
+        "gateway_version": "v0.1.1",
+        "baseline_db": "legal_db_v0_1_3.sqlite",
+        "source_context": {
+          "sources": [
+            {"source_id": "src-001", "source_name": "지방자치단체를 당사자로 하는 계약에 관한 법률", "normalized_title": "지방계약법", "law_category": "법률", "source_type": "law", "applicability_scope": "local_contract", "active_for_rule": true, "activation_mode": "always"},
+            {"source_id": "src-002", "source_name": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령", "normalized_title": "지방계약법 시행령", "law_category": "시행령", "source_type": "law", "applicability_scope": "local_contract", "active_for_rule": true, "activation_mode": "always"}
+          ],
+          "assumed_buyer_type": "local_government",
+          "assumption_reason": "부산시 업무 기본 맥락에 따른 임시 추정",
+          "buyer_type_confidence": "low",
+          "required_slots_missing": ["buyer_type"]
+        },
+        "route_context": {
+          "base_jurisdiction": "local_contract",
+          "overlay_applied": false,
+          "overlay_scope": null,
+          "overlay_sources": [],
+          "dual_routing": false
+        },
+        "procedure_context": {
+          "sources": [],
+          "filter_applied": false,
+          "usage": "answer_builder_procedure_section_only",
+          "judgment_eligible": false
+        },
+        "item_eligibility_result": {
+          "resolver_status": "not_triggered",
+          "unavailable_reason": null,
+          "context": null
+        },
+        "company_candidate_context": null,
+        "metadata": {
+          "total_sources_matched": 2,
+          "procedure_sources_matched": 0,
+          "overlay_applied": false,
+          "item_eligibility_resolver_status": "not_triggered",
+          "item_eligibility_trigger_grade": null,
+          "company_candidates_found": 0,
+          "enrichment_applied": false,
+          "enrichment_scope": null
+        },
+        "error": null
+      }
+    },
+    {
+      "tc_id": "TC-T2",
+      "description": "지역업체 범용 질문 (트리거 미발동)",
+      "user_query": "부산업체 쓸 수 있는 방법 알려줘",
+      "expected_trigger": "not_triggered",
+      "gateway_response": {
+        "request_id": "tc02-0001-0001-0001-000000000002",
+        "gateway_version": "v0.1.1",
+        "baseline_db": "legal_db_v0_1_3.sqlite",
+        "source_context": {
+          "sources": [
+            {"source_id": "src-001", "source_name": "지방자치단체를 당사자로 하는 계약에 관한 법률", "normalized_title": "지방계약법", "law_category": "법률", "source_type": "law", "applicability_scope": "local_contract", "active_for_rule": true, "activation_mode": "always"},
+            {"source_id": "src-002", "source_name": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령", "normalized_title": "지방계약법 시행령", "law_category": "시행령", "source_type": "law", "applicability_scope": "local_contract", "active_for_rule": true, "activation_mode": "always"}
+          ],
+          "assumed_buyer_type": "local_government",
+          "assumption_reason": "부산시 업무 기본 맥락에 따른 임시 추정",
+          "buyer_type_confidence": "low",
+          "required_slots_missing": ["buyer_type"]
+        },
+        "route_context": {
+          "base_jurisdiction": "local_contract",
+          "overlay_applied": false,
+          "overlay_scope": null,
+          "overlay_sources": [],
+          "dual_routing": false
+        },
+        "procedure_context": {
+          "sources": [],
+          "filter_applied": false,
+          "usage": "answer_builder_procedure_section_only",
+          "judgment_eligible": false
+        },
+        "item_eligibility_result": {
+          "resolver_status": "not_triggered",
+          "unavailable_reason": null,
+          "context": null
+        },
+        "company_candidate_context": null,
+        "metadata": {
+          "total_sources_matched": 2,
+          "procedure_sources_matched": 0,
+          "overlay_applied": false,
+          "item_eligibility_resolver_status": "not_triggered",
+          "item_eligibility_trigger_grade": null,
+          "company_candidates_found": 0,
+          "enrichment_applied": false,
+          "enrichment_scope": null
+        },
+        "error": null
+      }
+    },
+    {
+      "tc_id": "TC-T3",
+      "description": "일반 품목명 — T3 Silent 검증. 보조 문구 1줄만, 전면 노출 금지.",
+      "user_query": "컴퓨터 구매 방법 알려줘",
+      "expected_trigger": "silent",
+      "gateway_response": {
+        "request_id": "tc03-0001-0001-0001-000000000003",
+        "gateway_version": "v0.1.1",
+        "baseline_db": "legal_db_v0_1_3.sqlite",
+        "source_context": {
+          "sources": [
+            {"source_id": "src-001", "source_name": "지방자치단체를 당사자로 하는 계약에 관한 법률", "normalized_title": "지방계약법", "law_category": "법률", "source_type": "law", "applicability_scope": "local_contract", "active_for_rule": true, "activation_mode": "always"}
+          ],
+          "assumed_buyer_type": "local_government",
+          "assumption_reason": "부산시 업무 기본 맥락에 따른 임시 추정",
+          "buyer_type_confidence": "low",
+          "required_slots_missing": ["buyer_type"]
+        },
+        "route_context": {
+          "base_jurisdiction": "local_contract",
+          "overlay_applied": false,
+          "overlay_scope": null,
+          "overlay_sources": [],
+          "dual_routing": false
+        },
+        "procedure_context": {
+          "sources": [],
+          "filter_applied": false,
+          "usage": "answer_builder_procedure_section_only",
+          "judgment_eligible": false
+        },
+        "item_eligibility_result": {
+          "resolver_status": "resolved",
+          "unavailable_reason": null,
+          "context": {
+            "item_eligibility_required": true,
+            "trigger_grade": "silent",
+            "triggered_by": ["T3_alias_map_sme_candidate"],
+            "detail_item_resolved": false,
+            "detail_item_code": null,
+            "detail_item_name": null,
+            "detail_item_candidates": [
+              {"detail_item_code": "2311150101", "detail_item_name": "데스크톱컴퓨터", "is_sme_competition": true},
+              {"detail_item_code": "2311150201", "detail_item_name": "노트북컴퓨터", "is_sme_competition": true}
+            ],
+            "is_sme_competition_product": null,
+            "direct_production_required": null,
+            "company_cert_status": null,
+            "eligibility_status": null,
+            "candidate_action": null
+          }
+        },
+        "company_candidate_context": null,
+        "metadata": {
+          "total_sources_matched": 1,
+          "procedure_sources_matched": 0,
+          "overlay_applied": false,
+          "item_eligibility_resolver_status": "resolved",
+          "item_eligibility_trigger_grade": "silent",
+          "company_candidates_found": 0,
+          "enrichment_applied": false,
+          "enrichment_scope": null
+        },
+        "error": null
+      }
+    },
+    {
+      "tc_id": "TC-T4",
+      "description": "업체 추천 — T3 Silent + T4 Enrichment 결합. 검색 차단 금지, optional column.",
+      "user_query": "CCTV 업체 추천",
+      "expected_trigger": "silent",
+      "gateway_response": {
+        "request_id": "tc04-0001-0001-0001-000000000004",
+        "gateway_version": "v0.1.1",
+        "baseline_db": "legal_db_v0_1_3.sqlite",
+        "source_context": {
+          "sources": [
+            {"source_id": "src-001", "source_name": "지방자치단체를 당사자로 하는 계약에 관한 법률", "normalized_title": "지방계약법", "law_category": "법률", "source_type": "law", "applicability_scope": "local_contract", "active_for_rule": true, "activation_mode": "always"}
+          ],
+          "assumed_buyer_type": "local_government",
+          "assumption_reason": "부산시 업무 기본 맥락에 따른 임시 추정",
+          "buyer_type_confidence": "low",
+          "required_slots_missing": ["buyer_type"]
+        },
+        "route_context": {
+          "base_jurisdiction": "local_contract",
+          "overlay_applied": false,
+          "overlay_scope": null,
+          "overlay_sources": [],
+          "dual_routing": false
+        },
+        "procedure_context": {
+          "sources": [],
+          "filter_applied": false,
+          "usage": "answer_builder_procedure_section_only",
+          "judgment_eligible": false
+        },
+        "item_eligibility_result": {
+          "resolver_status": "resolved",
+          "unavailable_reason": null,
+          "context": {
+            "item_eligibility_required": true,
+            "trigger_grade": "silent",
+            "triggered_by": ["T3_alias_map_sme_candidate"],
+            "detail_item_resolved": false,
+            "detail_item_code": null,
+            "detail_item_name": null,
+            "detail_item_candidates": [
+              {"detail_item_code": "4617162201", "detail_item_name": "영상감시장치(CCTV)", "is_sme_competition": true}
+            ],
+            "is_sme_competition_product": null,
+            "direct_production_required": null,
+            "company_cert_status": null,
+            "eligibility_status": null,
+            "candidate_action": null
+          }
+        },
+        "company_candidate_context": {
+          "candidates": [
+            {
+              "company_id": "hmac_a1b2c3",
+              "company_name_masked": "(주)○○보안",
+              "location": "부산 해운대구",
+              "business_type": "보안장비",
+              "contract_count": 3,
+              "contract_amount": 200000000,
+              "enrichment_data": {
+                "cert_status": "valid",
+                "cert_expiry": "2027-03",
+                "detail_item_codes": ["4617162201"],
+                "matched_by": "company_level",
+                "per_candidate_match": null
+              }
+            },
+            {
+              "company_id": "hmac_d4e5f6",
+              "company_name_masked": "(주)△△영상",
+              "location": "부산 사상구",
+              "business_type": "영상장비",
+              "contract_count": 5,
+              "contract_amount": 400000000,
+              "enrichment_data": null
+            }
+          ],
+          "enrichment_applied": true,
+          "enrichment_scope": "general",
+          "total_found": 2
+        },
+        "metadata": {
+          "total_sources_matched": 1,
+          "procedure_sources_matched": 0,
+          "overlay_applied": false,
+          "item_eligibility_resolver_status": "resolved",
+          "item_eligibility_trigger_grade": "silent",
+          "company_candidates_found": 2,
+          "enrichment_applied": true,
+          "enrichment_scope": "general"
+        },
+        "error": null
+      }
+    },
+    {
+      "tc_id": "TC-T5",
+      "description": "직생 명시 요청 — Explicit 검증. 별도 섹션 전면 표시.",
+      "user_query": "CCTV 직생도 봐줘",
+      "expected_trigger": "explicit",
+      "gateway_response": {
+        "request_id": "tc05-0001-0001-0001-000000000005",
+        "gateway_version": "v0.1.1",
+        "baseline_db": "legal_db_v0_1_3.sqlite",
+        "source_context": {
+          "sources": [
+            {"source_id": "src-001", "source_name": "지방자치단체를 당사자로 하는 계약에 관한 법률", "normalized_title": "지방계약법", "law_category": "법률", "source_type": "law", "applicability_scope": "local_contract", "active_for_rule": true, "activation_mode": "always"}
+          ],
+          "assumed_buyer_type": "local_government",
+          "assumption_reason": "부산시 업무 기본 맥락에 따른 임시 추정",
+          "buyer_type_confidence": "low",
+          "required_slots_missing": ["buyer_type"]
+        },
+        "route_context": {
+          "base_jurisdiction": "local_contract",
+          "overlay_applied": false,
+          "overlay_scope": null,
+          "overlay_sources": [],
+          "dual_routing": false
+        },
+        "procedure_context": {
+          "sources": [],
+          "filter_applied": false,
+          "usage": "answer_builder_procedure_section_only",
+          "judgment_eligible": false
+        },
+        "item_eligibility_result": {
+          "resolver_status": "resolved",
+          "unavailable_reason": null,
+          "context": {
+            "item_eligibility_required": true,
+            "trigger_grade": "explicit",
+            "triggered_by": ["T1_keyword"],
+            "detail_item_resolved": false,
+            "detail_item_code": null,
+            "detail_item_name": null,
+            "detail_item_candidates": [
+              {"detail_item_code": "4617162201", "detail_item_name": "영상감시장치(CCTV)", "is_sme_competition": true}
+            ],
+            "is_sme_competition_product": null,
+            "direct_production_required": null,
+            "company_cert_status": null,
+            "eligibility_status": null,
+            "candidate_action": null
+          }
+        },
+        "company_candidate_context": null,
+        "metadata": {
+          "total_sources_matched": 1,
+          "procedure_sources_matched": 0,
+          "overlay_applied": false,
+          "item_eligibility_resolver_status": "resolved",
+          "item_eligibility_trigger_grade": "explicit",
+          "company_candidates_found": 0,
+          "enrichment_applied": false,
+          "enrichment_scope": null
+        },
+        "error": null
+      }
+    },
+    {
+      "tc_id": "TC-T6",
+      "description": "세부품명 명시 — Explicit 검증. 중기경쟁 검토 수행.",
+      "user_query": "세부품명번호 4617162201 영상감시장치",
+      "expected_trigger": "explicit",
+      "gateway_response": {
+        "request_id": "tc06-0001-0001-0001-000000000006",
+        "gateway_version": "v0.1.1",
+        "baseline_db": "legal_db_v0_1_3.sqlite",
+        "source_context": {
+          "sources": [
+            {"source_id": "src-001", "source_name": "지방자치단체를 당사자로 하는 계약에 관한 법률", "normalized_title": "지방계약법", "law_category": "법률", "source_type": "law", "applicability_scope": "local_contract", "active_for_rule": true, "activation_mode": "always"}
+          ],
+          "assumed_buyer_type": "local_government",
+          "assumption_reason": "부산시 업무 기본 맥락에 따른 임시 추정",
+          "buyer_type_confidence": "low",
+          "required_slots_missing": ["buyer_type"]
+        },
+        "route_context": {
+          "base_jurisdiction": "local_contract",
+          "overlay_applied": false,
+          "overlay_scope": null,
+          "overlay_sources": [],
+          "dual_routing": false
+        },
+        "procedure_context": {
+          "sources": [],
+          "filter_applied": false,
+          "usage": "answer_builder_procedure_section_only",
+          "judgment_eligible": false
+        },
+        "item_eligibility_result": {
+          "resolver_status": "resolved",
+          "unavailable_reason": null,
+          "context": {
+            "item_eligibility_required": true,
+            "trigger_grade": "explicit",
+            "triggered_by": ["T2_detail_item_code"],
+            "detail_item_resolved": true,
+            "detail_item_code": "4617162201",
+            "detail_item_name": "영상감시장치(CCTV)",
+            "detail_item_candidates": null,
+            "is_sme_competition_product": true,
+            "direct_production_required": true,
+            "company_cert_status": null,
+            "eligibility_status": "sme_competition_confirmed",
+            "candidate_action": "direct_production_verification_required"
+          }
+        },
+        "company_candidate_context": null,
+        "metadata": {
+          "total_sources_matched": 1,
+          "procedure_sources_matched": 0,
+          "overlay_applied": false,
+          "item_eligibility_resolver_status": "resolved",
+          "item_eligibility_trigger_grade": "explicit",
+          "company_candidates_found": 0,
+          "enrichment_applied": false,
+          "enrichment_scope": null
+        },
+        "error": null
+      }
+    }
+  ]
+}
