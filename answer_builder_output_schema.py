@@ -33,6 +33,7 @@ class AnswerBuilderOutput:
     rendered_markdown: str
     
     # 4. 선택적 섹션들
+    local_purchase_legal_review_section: Optional[AnswerSection] = None
     route_review_section: Optional[AnswerSection] = None
     item_eligibility_section: Optional[AnswerSection] = None
     procedure_guidance_section: Optional[AnswerSection] = None

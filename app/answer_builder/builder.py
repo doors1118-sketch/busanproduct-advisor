@@ -36,6 +36,20 @@ def build_answer(gateway_response: GatewayResponse, decision_context: DecisionCo
         content=get_summary_text(decision_context.review_outcome)
     )
     
+    # 1-1. Local Purchase Legal Review Section
+    local_purchase_section = AnswerSection(
+        title="지역업체 구매 법적 검토 경로",
+        content="안전한 계약 진행을 위해 다음의 검토 경로를 확인하시기 바랍니다.",
+        bullets=[
+            "기관유형 확인",
+            "계약목적물 확인",
+            "금액 기준 확인",
+            "계약경로 확인",
+            "지역제한·지역업체 참여·지역상품 우선구매 기준 검토",
+            "정책기업·인증 여부 확인"
+        ]
+    )
+    
     # 2. Item Eligibility Section
     item_section = None
     if decision_context.item_eligibility_grade == "explicit":
@@ -45,7 +59,7 @@ def build_answer(gateway_response: GatewayResponse, decision_context: DecisionCo
         )
     elif decision_context.item_eligibility_grade == "silent":
         summary.bullets.append("해당 품목이 중소기업자간 경쟁제품으로 특정되면 직접생산확인 검토가 필요할 수 있습니다.")
-    elif decision_context.review_outcome == "ambiguous":
+    elif decision_context.item_eligibility_status == "ambiguous" or (decision_context.review_outcome == "manual_review_required" and decision_context.item_eligibility_status == "ambiguous"):
         item_section = AnswerSection(
             title="품목 자격 안내",
             content="세부품명 확정이 불가합니다. 정확한 품번/품명을 확인해주시기 바랍니다."
@@ -79,11 +93,11 @@ def build_answer(gateway_response: GatewayResponse, decision_context: DecisionCo
             if c.enrichment_data:
                 cert_status = c.enrichment_data.cert_status
                 if cert_status == "valid":
-                    enrichment_info = "직생증명서: 보유"
+                    enrichment_info = "참고: 직생증명서 보유"
                 elif cert_status == "expired":
-                    enrichment_info = "직생증명서: 만료"
+                    enrichment_info = "참고: 직생증명서 만료"
                 else:
-                    enrichment_info = "직생증명서: 알 수 없음"
+                    enrichment_info = "참고: 직생증명서 상태 미확인"
                     
             rows.append(CandidateTableRow(
                 company_name_masked=c.company_name_masked,
@@ -110,6 +124,11 @@ def build_answer(gateway_response: GatewayResponse, decision_context: DecisionCo
     for b in summary.bullets:
         rendered_parts.append(f"- {b}")
         
+    if local_purchase_section:
+        rendered_parts.append(f"## {local_purchase_section.title}\n{local_purchase_section.content}")
+        for b in local_purchase_section.bullets:
+            rendered_parts.append(f"- {b}")
+            
     if route_section:
         rendered_parts.append(f"## {route_section.title}\n{route_section.content}")
         
@@ -137,6 +156,7 @@ def build_answer(gateway_response: GatewayResponse, decision_context: DecisionCo
     
     out = AnswerBuilderOutput(
         summary_section=summary,
+        local_purchase_legal_review_section=local_purchase_section,
         route_review_section=route_section,
         item_eligibility_section=item_section,
         procedure_guidance_section=procedure_section,
@@ -153,6 +173,7 @@ def build_answer(gateway_response: GatewayResponse, decision_context: DecisionCo
         out.fallback_applied = True
         out.summary_section.content = "내부 검토 로직에 따라 안전한 답변 생성을 위해 일시적으로 답변이 제한되었습니다."
         out.summary_section.bullets = []
+        out.local_purchase_legal_review_section = None
         out.item_eligibility_section = None
         out.procedure_guidance_section = None
         out.candidate_table_section = None

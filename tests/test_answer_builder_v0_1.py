@@ -22,6 +22,19 @@ def test_answer_builder_safe_outcome():
     assert out.forbidden_phrase_scan_passed is True
     assert out.fallback_applied is False
     assert "우선 검토 후보로 분류" in out.summary_section.content
+    
+    assert out.local_purchase_legal_review_section is not None
+    assert "지역제한" in out.rendered_markdown
+    assert "계약경로" in out.rendered_markdown
+    assert "금액 기준 확인" in out.rendered_markdown
+
+def test_answer_builder_ambiguous_creates_item_section():
+    gw = get_base_gateway_response()
+    dc = DecisionContext(review_outcome="manual_review_required", item_eligibility_status="ambiguous")
+    
+    out = build_answer(gw, dc)
+    assert out.item_eligibility_section is not None
+    assert "세부품명 확정이 불가합니다" in out.item_eligibility_section.content
 
 def test_answer_builder_silent_adds_bullet():
     gw = get_base_gateway_response()
@@ -59,4 +72,5 @@ def test_answer_builder_forbidden_phrase_fallback():
     # Fallback applied check
     assert "내부 검토 로직에 따라" in out.summary_section.content
     assert out.candidate_table_section is None
+    assert out.local_purchase_legal_review_section is None
     assert "계약 가능합니다" not in out.rendered_markdown
