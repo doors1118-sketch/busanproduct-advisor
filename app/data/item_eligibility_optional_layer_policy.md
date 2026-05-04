@@ -71,14 +71,33 @@ Answer Builder (최종 답변 조립)
 
 ## 6. Answer Builder 결합 규칙
 
-1. `item_eligibility_required = false`인 경우:
-   - ❶~❼ 결과만으로 답변을 조립합니다.
-   - 직생/중기경쟁 관련 문구를 답변에 포함하지 않습니다.
+`item_eligibility_required`와 `trigger_grade`의 조합에 따라 답변 노출 수준을 달리합니다.
 
-2. `item_eligibility_required = true`인 경우:
-   - ❶~❼ 결과를 기반으로 답변을 조립합니다.
-   - eligibility_context를 **별도 섹션**으로 답변에 추가합니다.
-   - 직생 상태는 "우선 검토 후보" / "증빙 확인 후보" / "갱신 확인 필요" 등 `item_eligibility_answer_policy_v0_1_2.md`의 표현만 사용합니다.
+### 6.1 미발동 (`item_eligibility_required = false`)
+- ❶~❼ 결과만으로 답변을 조립합니다.
+- 직생/중기경쟁 관련 문구를 답변에 **포함하지 않습니다**.
+- 후보표에 직생 열을 표시하지 않습니다.
+
+### 6.2 Explicit (`item_eligibility_required = true`, `trigger_grade = "explicit"`)
+- ❶~❼ 결과를 기반으로 답변을 조립합니다.
+- eligibility_context를 **별도 섹션**으로 답변에 추가합니다.
+- 후보표에 직생 상태를 **정규 열**로 전면 표시합니다.
+- 직생 상태는 "우선 검토 후보" / "증빙 확인 후보" / "갱신 확인 필요" 등 `item_eligibility_answer_policy_v0_1_2.md`의 표현만 사용합니다.
+
+### 6.3 Silent (`item_eligibility_required = true`, `trigger_grade = "silent"`)
+- ❶~❼ 결과를 기반으로 답변을 조립합니다.
+- 답변 본문에 직생/중기경쟁 **별도 섹션을 생성하지 않습니다**.
+- 답변 **말미에 보조 문구 1줄만** 허용합니다: "해당 품목이 중소기업자간 경쟁제품으로 특정되면 직접생산확인 검토가 필요할 수 있습니다."
+- 후보표에 직생 열을 **전면 표시하지 않습니다**.
+- 상세는 `item_eligibility_silent_trigger_policy.md` 참조.
+
+### 6.4 Enrichment (T4, 업체 후보 조회 후)
+- 초기 라우팅과 분리된 별도 단계로, `item_eligibility_required`와 무관하게 실행됩니다.
+- 답변 본문에 직생 관련 문구를 **추가하지 않습니다**.
+- 후보표에 **optional column** "직생 참고"로만 표시합니다.
+- 계약 판단에 **영향을 주지 않습니다**.
+- Explicit 트리거와 동시 발동 시 Explicit이 우선합니다 (optional column이 아닌 정규 열로 전면 표시).
+- 상세는 `company_candidate_enrichment_policy.md` 참조.
 
 ## 7. 기존 문서와의 관계
 

@@ -1,0 +1,149 @@
+{
+  "phase": "Phase 7 Final Baseline Freeze",
+  "baseline_date": "2026-05-04",
+  "status": "frozen_for_phase8_gateway_design",
+  "mutation_allowed": false,
+  "production_deployment_allowed": false,
+  "scheduler_registration_allowed": false,
+  "external_api_call_allowed": false,
+  "law_api_call_allowed": false,
+  "admrul_api_call_allowed": false,
+  "db_write_allowed": false,
+
+  "baseline_assets": {
+    "legal_db": {
+      "name": "legal_db_v0_1_3.sqlite",
+      "path": "app/data/legal_db_v0_1_3.sqlite",
+      "status": "baseline",
+      "size_bytes": 397312,
+      "total_sources": 217,
+      "active_for_rule": 63,
+      "active_for_procedure": 15,
+      "activation_mode_coverage": "all active sources have activation_mode",
+      "wrong_match_excluded": true,
+      "needs_manual_source_excluded": true,
+      "procedure_only_separated": true
+    },
+    "legal_db_schema": {
+      "name": "legal_db_schema.sql",
+      "path": "app/data/legal_db_schema.sql",
+      "status": "baseline"
+    },
+    "legal_source_registry": {
+      "name": "legal_source_registry.json",
+      "path": "app/data/legal_source_registry.json",
+      "status": "baseline"
+    },
+    "legal_update_manifest": {
+      "name": "legal_update_manifest_v0_1_2.json",
+      "path": "app/data/legal_update_manifest_v0_1_2.json",
+      "status": "baseline"
+    }
+  },
+
+  "update_pipeline": {
+    "version": "v0.1.3",
+    "dry_run_status": "PASS",
+    "dry_run_report": "app/data/legal_update_pipeline_dry_run_report_v0_1_3.json",
+    "update_policy": "app/data/legal_update_policy.md",
+    "pdf_manual_targets": [
+      {
+        "name": "지방자치단체 입찰 및 계약집행기준",
+        "type": "행정안전부 예규",
+        "metadata_watch_frequency": "weekly",
+        "full_text_refresh_frequency": "monthly",
+        "source_refresh_method": "pdf_manual",
+        "law_api_target": "none"
+      },
+      {
+        "name": "지방자치단체 입찰시 낙찰자 결정기준",
+        "type": "행정안전부 예규",
+        "metadata_watch_frequency": "weekly",
+        "full_text_refresh_frequency": "monthly",
+        "source_refresh_method": "pdf_manual",
+        "law_api_target": "none"
+      }
+    ],
+    "pdf_watch_policy": "app/data/manual_pdf_metadata_watch_policy.md"
+  },
+
+  "rule_engine": {
+    "priority_order_document": "app/data/rule_engine_priority_order_v0_1.md",
+    "priority_sequence": [
+      "buyer_type",
+      "contract_object",
+      "amount",
+      "procurement_route",
+      "contract_method",
+      "local_preference",
+      "policy_company_certification",
+      "item_eligibility_optional"
+    ]
+  },
+
+  "item_eligibility_policy": {
+    "version": "v0.1.4",
+    "optional_layer": true,
+    "pre_gate": false,
+    "trigger_grades": ["explicit", "silent", "enrichment"],
+    "documents": {
+      "optional_layer_policy": "app/data/item_eligibility_optional_layer_policy.md",
+      "trigger_policy": "app/data/item_eligibility_trigger_policy_v0_1_4.md",
+      "silent_trigger_policy": "app/data/item_eligibility_silent_trigger_policy.md",
+      "enrichment_policy": "app/data/company_candidate_enrichment_policy.md",
+      "answer_policy": "app/data/item_eligibility_answer_policy_v0_1_2.md",
+      "lookup_policy": "app/data/item_eligibility_lookup_policy_v0_1_2.md",
+      "candidate_table_policy": "app/data/item_eligibility_candidate_table_policy.md",
+      "status_taxonomy": "app/data/item_eligibility_status_taxonomy.json",
+      "test_cases": "app/data/item_eligibility_trigger_test_cases_v0_1_4.md"
+    },
+    "explicit_triggers": ["T1_keyword", "T2_detail_item_code", "T5_contract_path"],
+    "silent_triggers": ["T3_alias_map_sme_candidate"],
+    "enrichment_triggers": ["T4_company_cert_data"],
+    "answer_builder_rules": {
+      "not_triggered": "no_eligibility_mention",
+      "explicit": "full_section_display",
+      "silent": "single_line_auxiliary_note_only",
+      "enrichment": "candidate_table_optional_column_only"
+    }
+  },
+
+  "supplementary_policies": {
+    "procurement_route_layer": "app/data/procurement_route_layer_policy.md",
+    "local_institution_routing": "app/data/local_public_institution_routing_policy.md",
+    "procedure_only_separation": "app/data/procedure_only_separation_policy.md"
+  },
+
+  "superseded_documents": [
+    "app/data/item_eligibility_rule_integration_plan.md",
+    "app/data/item_eligibility_rule_integration_plan_v0_1_2.md",
+    "app/data/item_eligibility_trigger_policy_v0_1_3.md",
+    "app/data/item_eligibility_trigger_test_cases.md",
+    "app/data/item_eligibility_test_cases.md"
+  ],
+
+  "test_assets": {
+    "trigger_test_cases": "app/data/item_eligibility_trigger_test_cases_v0_1_4.md",
+    "test_case_count": 12,
+    "dry_run_reports": [
+      "app/data/legal_update_pipeline_dry_run_report_v0_1_3.json",
+      "app/data/item_eligibility_update_dry_run_report.json"
+    ]
+  },
+
+  "no_mutation_policy": "app/data/phase7_no_mutation_policy.md",
+
+  "next_phase": {
+    "name": "Phase 8 Internal Legal MCP Gateway",
+    "type": "read_only_query_layer",
+    "principles": [
+      "read-only",
+      "no judgment",
+      "no DB write",
+      "no LLM answer generation",
+      "source / route / item / company context lookup only",
+      "safe query layer before Rule Engine"
+    ],
+    "handoff_report": "app/data/phase7_final_handoff_report.md"
+  }
+}
