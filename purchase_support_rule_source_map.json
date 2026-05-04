@@ -584,10 +584,10 @@
     "display_name": "정책기업 특례 검토",
     "category": "direct_contract",
     "primary_source_ids": [
-      "e45cf17a-8fd2-4ab3-956a-bd90f8737fe8",
-      "4ed16661-e9df-420d-84b4-02d048161859",
       "3fdec1c1-0886-4258-87b0-f77fd90bc359",
       "088cc30c-24c1-429f-9a7e-5c14255b0a47",
+      "e45cf17a-8fd2-4ab3-956a-bd90f8737fe8",
+      "4ed16661-e9df-420d-84b4-02d048161859",
       "c13b1dc1-e006-42be-a5ec-36fd64836430",
       "233b60a7-b053-482d-b31c-95886f7f51d2",
       "93bc6b1f-eef0-4bc7-a346-72cd3ce39cf6",
@@ -601,9 +601,9 @@
     "matched_query_terms": {
       "original": [
         "특례",
-        "장애인기업",
         "여성기업",
-        "사회적기업"
+        "사회적기업",
+        "장애인기업"
       ],
       "expanded": []
     },
@@ -611,36 +611,6 @@
     "numeric_parameters": [],
     "source_chain_status": "mapped_verified",
     "primary_source_details": [
-      {
-        "id": "e45cf17a-8fd2-4ab3-956a-bd90f8737fe8",
-        "title": "사회적기업 육성법",
-        "status": "verified",
-        "source_type": "law",
-        "law_category": "act",
-        "rank_score": 120,
-        "score_breakdown": {
-          "review_status": 50,
-          "source_type": 30,
-          "query_match": 30,
-          "category_fit": 10,
-          "specificity_penalty": 0
-        }
-      },
-      {
-        "id": "4ed16661-e9df-420d-84b4-02d048161859",
-        "title": "사회적기업 육성법 시행령",
-        "status": "verified",
-        "source_type": "law",
-        "law_category": "enforcement_decree",
-        "rank_score": 120,
-        "score_breakdown": {
-          "review_status": 50,
-          "source_type": 30,
-          "query_match": 30,
-          "category_fit": 10,
-          "specificity_penalty": 0
-        }
-      },
       {
         "id": "3fdec1c1-0886-4258-87b0-f77fd90bc359",
         "title": "여성기업지원에 관한 법률",
@@ -659,6 +629,36 @@
       {
         "id": "088cc30c-24c1-429f-9a7e-5c14255b0a47",
         "title": "여성기업지원에 관한 법률 시행령",
+        "status": "verified",
+        "source_type": "law",
+        "law_category": "enforcement_decree",
+        "rank_score": 120,
+        "score_breakdown": {
+          "review_status": 50,
+          "source_type": 30,
+          "query_match": 30,
+          "category_fit": 10,
+          "specificity_penalty": 0
+        }
+      },
+      {
+        "id": "e45cf17a-8fd2-4ab3-956a-bd90f8737fe8",
+        "title": "사회적기업 육성법",
+        "status": "verified",
+        "source_type": "law",
+        "law_category": "act",
+        "rank_score": 120,
+        "score_breakdown": {
+          "review_status": 50,
+          "source_type": 30,
+          "query_match": 30,
+          "category_fit": 10,
+          "specificity_penalty": 0
+        }
+      },
+      {
+        "id": "4ed16661-e9df-420d-84b4-02d048161859",
+        "title": "사회적기업 육성법 시행령",
         "status": "verified",
         "source_type": "law",
         "law_category": "enforcement_decree",
@@ -801,9 +801,9 @@
     "display_name": "기술개발제품·인증제품 특례 검토",
     "category": "direct_contract",
     "primary_source_ids": [
+      "6d2f8a64-e7ff-4933-8293-fb970bfe75e6",
       "863f0bf1-76f0-4837-94dd-814acc017ea3",
-      "2fdbed57-ef09-4dcf-b1ec-62f6041c5529",
-      "6d2f8a64-e7ff-4933-8293-fb970bfe75e6"
+      "2fdbed57-ef09-4dcf-b1ec-62f6041c5529"
     ],
     "related_source_ids": [
       "fbda7cb3-6915-4e0e-999d-a07532f4f5d3",
@@ -811,9 +811,9 @@
     ],
     "matched_query_terms": {
       "original": [
-        "우수조달",
         "혁신제품",
-        "기술개발제품"
+        "기술개발제품",
+        "우수조달"
       ],
       "expanded": []
     },
@@ -823,6 +823,21 @@
     "numeric_parameters": [],
     "source_chain_status": "partial_mapped",
     "primary_source_details": [
+      {
+        "id": "6d2f8a64-e7ff-4933-8293-fb970bfe75e6",
+        "title": "혁신제품 구매 운영 규정",
+        "status": "verified",
+        "source_type": "admrul",
+        "law_category": "notice",
+        "rank_score": 110,
+        "score_breakdown": {
+          "review_status": 50,
+          "source_type": 20,
+          "query_match": 30,
+          "category_fit": 10,
+          "specificity_penalty": 0
+        }
+      },
       {
         "id": "863f0bf1-76f0-4837-94dd-814acc017ea3",
         "title": "중소기업기술개발제품 우선구매제도 운영 등에 관한 시행세칙",
@@ -843,21 +858,6 @@
         "title": "우수조달물품 지정ㆍ관리 규정",
         "status": "verified",
         "source_type": "admrul_notice",
-        "law_category": "notice",
-        "rank_score": 110,
-        "score_breakdown": {
-          "review_status": 50,
-          "source_type": 20,
-          "query_match": 30,
-          "category_fit": 10,
-          "specificity_penalty": 0
-        }
-      },
-      {
-        "id": "6d2f8a64-e7ff-4933-8293-fb970bfe75e6",
-        "title": "혁신제품 구매 운영 규정",
-        "status": "verified",
-        "source_type": "admrul",
         "law_category": "notice",
         "rank_score": 110,
         "score_breakdown": {
@@ -935,11 +935,11 @@
       "expanded": []
     },
     "unmatched_query_terms": [
+      "지방계약법 시행령",
       "국가계약법 시행령",
-      "제한경쟁",
-      "입찰참가자격 제한",
       "주된 영업소",
-      "지방계약법 시행령"
+      "제한경쟁",
+      "입찰참가자격 제한"
     ],
     "numeric_parameters": [],
     "source_chain_status": "partial_mapped",
@@ -1188,7 +1188,7 @@
       }
     ],
     "high_priority_source_count": 14,
-    "remaining_gap_reason": "Unmatched required terms: 국가계약법 시행령, 제한경쟁, 입찰참가자격 제한, 주된 영업소, 지방계약법 시행령"
+    "remaining_gap_reason": "Unmatched required terms: 지방계약법 시행령, 국가계약법 시행령, 주된 영업소, 제한경쟁, 입찰참가자격 제한"
   },
   "R_REGIONAL_RESTRICTION_SERVICE": {
     "rule_id": "R_REGIONAL_RESTRICTION_SERVICE",
@@ -1223,11 +1223,11 @@
       "expanded": []
     },
     "unmatched_query_terms": [
+      "지방계약법 시행령",
       "국가계약법 시행령",
-      "제한경쟁",
-      "입찰참가자격 제한",
       "주된 영업소",
-      "지방계약법 시행령"
+      "제한경쟁",
+      "입찰참가자격 제한"
     ],
     "numeric_parameters": [],
     "source_chain_status": "partial_mapped",
@@ -1520,7 +1520,7 @@
     ],
     "related_source_details": [],
     "high_priority_source_count": 19,
-    "remaining_gap_reason": "Unmatched required terms: 국가계약법 시행령, 제한경쟁, 입찰참가자격 제한, 주된 영업소, 지방계약법 시행령"
+    "remaining_gap_reason": "Unmatched required terms: 지방계약법 시행령, 국가계약법 시행령, 주된 영업소, 제한경쟁, 입찰참가자격 제한"
   },
   "R_REGIONAL_RESTRICTION_CONSTRUCTION": {
     "rule_id": "R_REGIONAL_RESTRICTION_CONSTRUCTION",
@@ -1558,11 +1558,11 @@
       "expanded": []
     },
     "unmatched_query_terms": [
+      "지방계약법 시행령",
       "국가계약법 시행령",
-      "제한경쟁",
-      "입찰참가자격 제한",
       "주된 영업소",
-      "지방계약법 시행령"
+      "제한경쟁",
+      "입찰참가자격 제한"
     ],
     "numeric_parameters": [],
     "source_chain_status": "partial_mapped",
@@ -1886,7 +1886,7 @@
       }
     ],
     "high_priority_source_count": 20,
-    "remaining_gap_reason": "Unmatched required terms: 국가계약법 시행령, 제한경쟁, 입찰참가자격 제한, 주된 영업소, 지방계약법 시행령"
+    "remaining_gap_reason": "Unmatched required terms: 지방계약법 시행령, 국가계약법 시행령, 주된 영업소, 제한경쟁, 입찰참가자격 제한"
   },
   "R_LIMITED_COMPETITION_REVIEW": {
     "rule_id": "R_LIMITED_COMPETITION_REVIEW",
@@ -1900,8 +1900,8 @@
     },
     "unmatched_query_terms": [
       "제한경쟁",
-      "국가계약법 시행령",
       "지방계약법 시행령",
+      "국가계약법 시행령",
       "입찰참가자격 제한"
     ],
     "numeric_parameters": [],
@@ -1917,11 +1917,11 @@
     "category": "evaluation",
     "primary_source_ids": [
       "234d9d61-0d1f-441c-ab51-5afdba652a14",
-      "cf171376-9772-4dfa-b5ca-956ae10450f8",
-      "c1e08761-4a30-4f0f-927b-24cecf272b46",
       "605bac29-20a4-4505-a2ff-a4f26964d2a7",
       "41dfc53f-0afc-4eb1-9bb2-3a2331202865",
+      "cf171376-9772-4dfa-b5ca-956ae10450f8",
       "7555e63c-a4cc-4d3f-9e66-31ee90e1010e",
+      "c1e08761-4a30-4f0f-927b-24cecf272b46",
       "74afa4fe-885b-49cc-ab04-a387a464f7b6",
       "0d0fec83-6fc5-4783-91c7-b8f4710c03f9",
       "39a1decb-7f34-4821-8afc-2a69e313d470",
@@ -1938,9 +1938,9 @@
       "4029a250-fc93-4446-a36a-bc624941d23e",
       "f231f288-21d9-4f95-b6df-9457d9ddccb0",
       "8db21c63-e0ae-43d8-9b55-9091852951eb",
-      "404ff4ab-c331-4679-961d-2755eb72093f",
       "2a81f262-98ca-46d8-91cf-0de9cf1f20ba",
-      "b8df0768-b615-4bf4-b88f-cf4f4fd4c5fa"
+      "b8df0768-b615-4bf4-b88f-cf4f4fd4c5fa",
+      "404ff4ab-c331-4679-961d-2755eb72093f"
     ],
     "related_source_ids": [
       "c7a7cb3f-ec36-4b29-8a4e-4ed9e8fc5763"
@@ -1975,36 +1975,6 @@
         }
       },
       {
-        "id": "cf171376-9772-4dfa-b5ca-956ae10450f8",
-        "title": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준",
-        "status": "candidate_needs_review",
-        "source_type": "admrul_regulation",
-        "law_category": "regulation",
-        "rank_score": 90,
-        "score_breakdown": {
-          "review_status": 20,
-          "source_type": 20,
-          "query_match": 30,
-          "category_fit": 20,
-          "specificity_penalty": 0
-        }
-      },
-      {
-        "id": "c1e08761-4a30-4f0f-927b-24cecf272b46",
-        "title": "기술용역 적격심사 및 협상에 의한 낙찰자 결정기준",
-        "status": "candidate_needs_review",
-        "source_type": "admrul_regulation",
-        "law_category": "regulation",
-        "rank_score": 90,
-        "score_breakdown": {
-          "review_status": 20,
-          "source_type": 20,
-          "query_match": 30,
-          "category_fit": 20,
-          "specificity_penalty": 0
-        }
-      },
-      {
         "id": "605bac29-20a4-4505-a2ff-a4f26964d2a7",
         "title": "물품 적격심사기준에 관한 훈령",
         "status": "candidate_needs_review",
@@ -2035,11 +2005,41 @@
         }
       },
       {
+        "id": "cf171376-9772-4dfa-b5ca-956ae10450f8",
+        "title": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준",
+        "status": "candidate_needs_review",
+        "source_type": "admrul_regulation",
+        "law_category": "regulation",
+        "rank_score": 90,
+        "score_breakdown": {
+          "review_status": 20,
+          "source_type": 20,
+          "query_match": 30,
+          "category_fit": 20,
+          "specificity_penalty": 0
+        }
+      },
+      {
         "id": "7555e63c-a4cc-4d3f-9e66-31ee90e1010e",
         "title": "군시설공사 적격심사기준에 관한 훈령",
         "status": "candidate_needs_review",
         "source_type": "admrul_instruction",
         "law_category": "instruction",
+        "rank_score": 90,
+        "score_breakdown": {
+          "review_status": 20,
+          "source_type": 20,
+          "query_match": 30,
+          "category_fit": 20,
+          "specificity_penalty": 0
+        }
+      },
+      {
+        "id": "c1e08761-4a30-4f0f-927b-24cecf272b46",
+        "title": "기술용역 적격심사 및 협상에 의한 낙찰자 결정기준",
+        "status": "candidate_needs_review",
+        "source_type": "admrul_regulation",
+        "law_category": "regulation",
         "rank_score": 90,
         "score_breakdown": {
           "review_status": 20,
@@ -2290,21 +2290,6 @@
         }
       },
       {
-        "id": "404ff4ab-c331-4679-961d-2755eb72093f",
-        "title": "일괄입찰 등에 의한 낙찰자 결정기준",
-        "status": "candidate_needs_review",
-        "source_type": "admrul_regulation",
-        "law_category": "regulation",
-        "rank_score": 80,
-        "score_breakdown": {
-          "review_status": 20,
-          "source_type": 20,
-          "query_match": 30,
-          "category_fit": 10,
-          "specificity_penalty": 0
-        }
-      },
-      {
         "id": "2a81f262-98ca-46d8-91cf-0de9cf1f20ba",
         "title": "2017년도 「문화재수리 종합평가 낙찰자 결정기준」 적용대상 문화재수리(추가)",
         "status": "candidate_needs_review",
@@ -2325,6 +2310,21 @@
         "status": "candidate_needs_review",
         "source_type": "admrul",
         "law_category": "admin_rule",
+        "rank_score": 80,
+        "score_breakdown": {
+          "review_status": 20,
+          "source_type": 20,
+          "query_match": 30,
+          "category_fit": 10,
+          "specificity_penalty": 0
+        }
+      },
+      {
+        "id": "404ff4ab-c331-4679-961d-2755eb72093f",
+        "title": "일괄입찰 등에 의한 낙찰자 결정기준",
+        "status": "candidate_needs_review",
+        "source_type": "admrul_regulation",
+        "law_category": "regulation",
         "rank_score": 80,
         "score_breakdown": {
           "review_status": 20,
@@ -2904,7 +2904,7 @@
     ],
     "related_source_details": [],
     "high_priority_source_count": 6,
-    "remaining_gap_reason": "Lacks highly ranked (>=80) verified source aligned with category"
+    "remaining_gap_reason": "Verified source missing"
   },
   "R_JOINT_CONTRACT_NOT_PRIMARY_SERVICE": {
     "rule_id": "R_JOINT_CONTRACT_NOT_PRIMARY_SERVICE",
@@ -3007,7 +3007,7 @@
     ],
     "related_source_details": [],
     "high_priority_source_count": 5,
-    "remaining_gap_reason": "Lacks highly ranked (>=80) verified source aligned with category"
+    "remaining_gap_reason": "Verified source missing"
   },
   "R_GOODS_REGIONAL_POINTS_NOT_PRIMARY": {
     "rule_id": "R_GOODS_REGIONAL_POINTS_NOT_PRIMARY",
@@ -4096,8 +4096,8 @@
       ]
     },
     "unmatched_query_terms": [
-      "다수공급자계약",
-      "지역업체"
+      "지역업체",
+      "다수공급자계약"
     ],
     "numeric_parameters": [
       {
@@ -4182,8 +4182,8 @@
       "expanded": []
     },
     "unmatched_query_terms": [
-      "조례",
-      "지역상품"
+      "지역상품",
+      "조례"
     ],
     "numeric_parameters": [],
     "source_chain_status": "partial_mapped",
@@ -4222,19 +4222,19 @@
       }
     ],
     "high_priority_source_count": 1,
-    "remaining_gap_reason": "Unmatched required terms: 조례, 지역상품"
+    "remaining_gap_reason": "Unmatched required terms: 지역상품, 조례"
   },
   "R_POLICY_COMPANY_PREFERENCE": {
     "rule_id": "R_POLICY_COMPANY_PREFERENCE",
     "display_name": "정책기업 우대·우선구매 검토",
     "category": "policy_company",
     "primary_source_ids": [
-      "c13b1dc1-e006-42be-a5ec-36fd64836430",
-      "233b60a7-b053-482d-b31c-95886f7f51d2",
       "3fdec1c1-0886-4258-87b0-f77fd90bc359",
       "088cc30c-24c1-429f-9a7e-5c14255b0a47",
       "e45cf17a-8fd2-4ab3-956a-bd90f8737fe8",
       "4ed16661-e9df-420d-84b4-02d048161859",
+      "c13b1dc1-e006-42be-a5ec-36fd64836430",
+      "233b60a7-b053-482d-b31c-95886f7f51d2",
       "863f0bf1-76f0-4837-94dd-814acc017ea3"
     ],
     "related_source_ids": [
@@ -4242,10 +4242,10 @@
     ],
     "matched_query_terms": {
       "original": [
-        "사회적기업",
+        "장애인기업",
         "여성기업",
-        "우선구매",
-        "장애인기업"
+        "사회적기업",
+        "우선구매"
       ],
       "expanded": []
     },
@@ -4253,36 +4253,6 @@
     "numeric_parameters": [],
     "source_chain_status": "mapped_verified",
     "primary_source_details": [
-      {
-        "id": "c13b1dc1-e006-42be-a5ec-36fd64836430",
-        "title": "장애인기업활동 촉진법",
-        "status": "verified",
-        "source_type": "law",
-        "law_category": "act",
-        "rank_score": 120,
-        "score_breakdown": {
-          "review_status": 50,
-          "source_type": 30,
-          "query_match": 30,
-          "category_fit": 10,
-          "specificity_penalty": 0
-        }
-      },
-      {
-        "id": "233b60a7-b053-482d-b31c-95886f7f51d2",
-        "title": "장애인기업활동 촉진법 시행령",
-        "status": "verified",
-        "source_type": "law",
-        "law_category": "enforcement_decree",
-        "rank_score": 120,
-        "score_breakdown": {
-          "review_status": 50,
-          "source_type": 30,
-          "query_match": 30,
-          "category_fit": 10,
-          "specificity_penalty": 0
-        }
-      },
       {
         "id": "3fdec1c1-0886-4258-87b0-f77fd90bc359",
         "title": "여성기업지원에 관한 법률",
@@ -4331,6 +4301,36 @@
       {
         "id": "4ed16661-e9df-420d-84b4-02d048161859",
         "title": "사회적기업 육성법 시행령",
+        "status": "verified",
+        "source_type": "law",
+        "law_category": "enforcement_decree",
+        "rank_score": 120,
+        "score_breakdown": {
+          "review_status": 50,
+          "source_type": 30,
+          "query_match": 30,
+          "category_fit": 10,
+          "specificity_penalty": 0
+        }
+      },
+      {
+        "id": "c13b1dc1-e006-42be-a5ec-36fd64836430",
+        "title": "장애인기업활동 촉진법",
+        "status": "verified",
+        "source_type": "law",
+        "law_category": "act",
+        "rank_score": 120,
+        "score_breakdown": {
+          "review_status": 50,
+          "source_type": 30,
+          "query_match": 30,
+          "category_fit": 10,
+          "specificity_penalty": 0
+        }
+      },
+      {
+        "id": "233b60a7-b053-482d-b31c-95886f7f51d2",
+        "title": "장애인기업활동 촉진법 시행령",
         "status": "verified",
         "source_type": "law",
         "law_category": "enforcement_decree",
@@ -4397,9 +4397,9 @@
     },
     "unmatched_query_terms": [
       "사회적경제기업",
+      "사회적가치",
       "장애인생산품",
-      "중증장애인생산품",
-      "사회적가치"
+      "중증장애인생산품"
     ],
     "numeric_parameters": [],
     "source_chain_status": "partial_mapped",
@@ -4438,7 +4438,7 @@
       }
     ],
     "high_priority_source_count": 1,
-    "remaining_gap_reason": "Unmatched required terms: 사회적경제기업, 장애인생산품, 중증장애인생산품, 사회적가치"
+    "remaining_gap_reason": "Unmatched required terms: 사회적경제기업, 사회적가치, 장애인생산품, 중증장애인생산품"
   },
   "R_SHOPPING_MALL_ROUTE_CLASSIFICATION": {
     "rule_id": "R_SHOPPING_MALL_ROUTE_CLASSIFICATION",
@@ -4453,8 +4453,8 @@
     ],
     "matched_query_terms": {
       "original": [
-        "MAS",
-        "종합쇼핑몰"
+        "종합쇼핑몰",
+        "MAS"
       ],
       "expanded": []
     },
@@ -4527,9 +4527,9 @@
     },
     "unmatched_query_terms": [
       "조달사업법 시행령",
-      "제3자단가계약",
+      "제3자를 위한 단가계약",
       "납품요구",
-      "제3자를 위한 단가계약"
+      "제3자단가계약"
     ],
     "numeric_parameters": [],
     "source_chain_status": "pending_resolution",
@@ -4640,8 +4640,8 @@
     ],
     "matched_query_terms": {
       "original": [
-        "다수공급자계약",
-        "중소기업자간 경쟁제품"
+        "중소기업자간 경쟁제품",
+        "다수공급자계약"
       ],
       "expanded": []
     },
@@ -4860,8 +4860,8 @@
       "expanded": []
     },
     "unmatched_query_terms": [
-      "2단계경쟁 예외",
-      "직접 납품요구"
+      "직접 납품요구",
+      "2단계경쟁 예외"
     ],
     "numeric_parameters": [],
     "source_chain_status": "partial_mapped",
@@ -4915,7 +4915,7 @@
       }
     ],
     "high_priority_source_count": 2,
-    "remaining_gap_reason": "Unmatched required terms: 2단계경쟁 예외, 직접 납품요구"
+    "remaining_gap_reason": "Unmatched required terms: 직접 납품요구, 2단계경쟁 예외"
   },
   "R_MAS_SECOND_STAGE_EVALUATION_METHOD_REVIEW": {
     "rule_id": "R_MAS_SECOND_STAGE_EVALUATION_METHOD_REVIEW",
@@ -4935,8 +4935,8 @@
       ]
     },
     "unmatched_query_terms": [
-      "다수공급자계약",
-      "표준평가방식"
+      "표준평가방식",
+      "다수공급자계약"
     ],
     "numeric_parameters": [],
     "source_chain_status": "partial_mapped",
@@ -4990,7 +4990,7 @@
       }
     ],
     "high_priority_source_count": 2,
-    "remaining_gap_reason": "Unmatched required terms: 다수공급자계약, 표준평가방식"
+    "remaining_gap_reason": "Unmatched required terms: 표준평가방식, 다수공급자계약"
   },
   "R_MAS_LOCAL_SUPPLIER_CANDIDATE_LOOKUP": {
     "rule_id": "R_MAS_LOCAL_SUPPLIER_CANDIDATE_LOOKUP",
@@ -5258,15 +5258,15 @@
     "display_name": "기관유형 확인 필요",
     "category": "validation",
     "primary_source_ids": [
+      "2aaf22e3-6105-4b7c-b710-7820095a4c8e",
       "66b76bdb-6516-4e5d-819f-fba5e4ecd785",
-      "93bc6b1f-eef0-4bc7-a346-72cd3ce39cf6",
-      "2aaf22e3-6105-4b7c-b710-7820095a4c8e"
+      "93bc6b1f-eef0-4bc7-a346-72cd3ce39cf6"
     ],
     "related_source_ids": [],
     "matched_query_terms": {
       "original": [
-        "국가계약",
-        "지방계약"
+        "지방계약",
+        "국가계약"
       ],
       "expanded": []
     },
@@ -5276,6 +5276,21 @@
     "numeric_parameters": [],
     "source_chain_status": "partial_mapped",
     "primary_source_details": [
+      {
+        "id": "2aaf22e3-6105-4b7c-b710-7820095a4c8e",
+        "title": "지방계약 전문기관 지정",
+        "status": "candidate_needs_review",
+        "source_type": "admrul",
+        "law_category": "admin_rule",
+        "rank_score": 80,
+        "score_breakdown": {
+          "review_status": 20,
+          "source_type": 20,
+          "query_match": 30,
+          "category_fit": 10,
+          "specificity_penalty": 0
+        }
+      },
       {
         "id": "66b76bdb-6516-4e5d-819f-fba5e4ecd785",
         "title": "국가계약분쟁조정위원회 운영규정",
@@ -5297,21 +5312,6 @@
         "status": "candidate_needs_review",
         "source_type": "admrul_notice",
         "law_category": "notice",
-        "rank_score": 80,
-        "score_breakdown": {
-          "review_status": 20,
-          "source_type": 20,
-          "query_match": 30,
-          "category_fit": 10,
-          "specificity_penalty": 0
-        }
-      },
-      {
-        "id": "2aaf22e3-6105-4b7c-b710-7820095a4c8e",
-        "title": "지방계약 전문기관 지정",
-        "status": "candidate_needs_review",
-        "source_type": "admrul",
-        "law_category": "admin_rule",
         "rank_score": 80,
         "score_breakdown": {
           "review_status": 20,

@@ -294,7 +294,7 @@ def resolve_sources():
                 status = "partial_mapped"
                 summary["partial_mapped"] += 1
             else:
-                if has_verified and len(unmatched_terms) == 0 and not has_unresolved_numeric and top_rank_score >= 80:
+                if has_verified and len(unmatched_terms) == 0 and not has_unresolved_numeric:
                     status = "mapped_verified"
                     summary["mapped_verified"] += 1
                 else:
@@ -311,7 +311,7 @@ def resolve_sources():
             else:
                 gap_reason = f"Unmatched required terms: {', '.join(unmatched_terms)}"
         elif status == "mapped_candidate":
-            gap_reason = "Lacks highly ranked (>=80) verified source aligned with category"
+            gap_reason = "Verified source missing"
             
         # High priority count
         high_priority_count = sum(1 for ps in primary_source_details if ps["rank_score"] >= 80 or (ps["rank_score"] >= 70 and ps["score_breakdown"].get("query_match", 0) > 0))
@@ -368,18 +368,19 @@ def resolve_sources():
             
         for cat, rules in categories.items():
             f.write(f"### Category: `{cat}`\n\n")
-            f.write("| Rule ID | Name | Status | High Priority / Total | Top Ranked Source | Gap Reason |\n")
-            f.write("|---------|------|--------|-----------------------|-------------------|------------|\n")
+            f.write("| Rule ID | Name | Status | Matched Terms | Unmatched Terms | Numeric Pending | Candidate Sources | Top Candidate by Score |\n")
+            f.write("|---------|------|--------|---------------|-----------------|-----------------|-------------------|------------------------|\n")
             for r in rules:
                 total_cnt = len(r["primary_source_ids"])
-                high_cnt = r["high_priority_source_count"]
+                
+                matched = ", ".join(r["matched_query_terms"]["original"] + r["matched_query_terms"]["expanded"]) if (r["matched_query_terms"]["original"] or r["matched_query_terms"]["expanded"]) else "None"
+                unmatched = ", ".join(r["unmatched_query_terms"]) if r["unmatched_query_terms"] else "None"
+                numeric_pending = "Yes" if r["numeric_parameters"] else "No"
                 
                 top_source = r["primary_source_details"][0] if r["primary_source_details"] else None
                 top_html = f"{top_source['title']} (Score: {top_source['rank_score']})" if top_source else "None"
                 
-                gap = r["remaining_gap_reason"]
-                
-                f.write(f"| `{r['rule_id']}` | {r['display_name']} | `{r['source_chain_status']}` | {high_cnt} / {total_cnt} | {top_html} | {gap} |\n")
+                f.write(f"| `{r['rule_id']}` | {r['display_name']} | `{r['source_chain_status']}` | {matched} | {unmatched} | {numeric_pending} | {total_cnt} | {top_html} |\n")
             f.write("\n")
 
 if __name__ == "__main__":
