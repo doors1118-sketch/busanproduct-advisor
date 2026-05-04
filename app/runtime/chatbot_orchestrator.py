@@ -77,7 +77,8 @@ def _render_candidate_table(company_result: CompanyCandidateResult, answer_outpu
     table_md_parts = [f"\n\n## {table.title}\n{table.description}"]
     for r in rows:
         info = f" ({r.enrichment_info})" if r.enrichment_info else ""
-        table_md_parts.append(f"- {r.company_name_masked} / {r.location}{info}")
+        biz = f" / {r.business_type}" if r.business_type else ""
+        table_md_parts.append(f"- {r.company_name_masked} / {r.location}{biz} / 상태: 검토 후보, 적격 확인 필요{info}")
     table_md_parts.append(f"\n총 {company_result.total_found}건 조회됨 (상위 {len(rows)}건 표시)")
 
     # 주의사항 앞에 삽입
@@ -169,10 +170,17 @@ class ChatbotRuntimeOrchestrator:
                     reason=company_result.error
                 ))
                 errors.append(f"company_candidate_resolver: {company_result.error}")
+            elif company_result.status == "empty":
+                stages.append(RuntimeStageResult(
+                    stage_name="company_candidate_resolver",
+                    status="empty",
+                    skipped=False,
+                    reason="검색 조건에 해당하는 후보업체 없음"
+                ))
             else:
                 stages.append(RuntimeStageResult(
                     stage_name="company_candidate_resolver",
-                    status="success",
+                    status=company_result.status,
                     skipped=False
                 ))
         except Exception as e:
@@ -213,9 +221,13 @@ class ChatbotRuntimeOrchestrator:
                 errors=errors,
             )
 
-        # ── Forbidden phrase scan ──
-        if not answer_output.forbidden_phrase_scan_passed:
-            errors.append("forbidden_phrase_scan: blocked phrases detected")
+        # ── Forbidden phrase re-scan (후보표 추가 후 재검사) ──
+        blocked = [p for p in FORBIDDEN_PHRASES if p in answer_output.rendered_markdown]
+        answer_output.blocked_phrases_found = blocked
+        answer_output.forbidden_phrase_scan_passed = len(blocked) == 0
+        if blocked:
+            answer_output.fallback_applied = True
+            errors.append(f"forbidden_phrase_rescan: {blocked}")
 
         # ── Runtime Status 산출 ──
         failed_stages = [s for s in stages if s.status == "failed"]
