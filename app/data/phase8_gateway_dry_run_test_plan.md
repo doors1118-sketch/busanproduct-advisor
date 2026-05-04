@@ -39,7 +39,7 @@ Phase 8 Mock Response로 분리된 총 13개 케이스를 대상으로 합니다
 | **TC-T4** | CCTV 업체 추천 | `silent` 상태 발동 + Enrichment(`general`). 검색 차단 없이 후보 노출 |
 | **TC-T5** | CCTV 직생도 봐줘 | `explicit` 발동 (T1 키워드). 직생 전면 표시 및 정규 열 제공 |
 | **TC-T6** | 세부품명 4617162201 | `explicit` 발동 (T2 품명). 품명 확정 기반 중기경쟁/직생 검토 수행 |
-| **TC-T7** | 펌프 업체. 직생도 봐줘 | `explicit` 상태 + Enrichment(`specific_item`). 직생 데이터의 판단 영향 금지 검증 |
+| **TC-T7** | 부산 펌프 업체 추천 | `not_triggered` + Enrichment(`general`). 직생 데이터의 판단 영향 금지 검증 |
 | **TC-T8** | 아까 컴퓨터 직생확인 | `silent` → `explicit` 승격 검증 (T1) |
 | **TC-T9** | CCTV 업체 직생 | `explicit` + Enrichment(`candidate_items`). 후보별 직생 정규 열 검증 |
 | **TC-T10** | 3억 공사 지역제한 가능? | 공사(`construction`)는 직생 적용 배제. `procedure_context` 필터 작동 |
@@ -54,7 +54,7 @@ Phase 8 Mock Response로 분리된 총 13개 케이스를 대상으로 합니다
 ### 단계 1: Mock Data 파싱 및 검증
 - 3개의 Mock JSON 파일(`tc01_tc06.json`, `tc07_tc12.json`, `extra.json`)을 파싱합니다.
 - `phase8_gateway_response_schema.json` v0.1.1 기반으로 13개 `GatewayResponse` 객체의 유효성을 Strict 검증합니다.
-- `request_id` 형식이 UUID v4인지 확인합니다.
+- `request_id`가 UUID format 및 RFC 4122 variant 조건을 만족하는지 확인합니다. (고정 fixture UUID를 사용하므로 무작위성 검증은 하지 않습니다.)
 
 ### 단계 2: RuleEngineInput 구성
 - 각 Mock 응답에 대응하는 가상의 `original_request` (슬롯 정보)를 결합하여 `RuleEngineInput` 객체를 생성합니다.
@@ -77,3 +77,16 @@ Phase 8 Mock Response로 분리된 총 13개 케이스를 대상으로 합니다
 2. **Provisional 평가**: `buyer_type_confidence`가 `"low"`인 경우, `DecisionContext.provisional_evaluation`가 `true`로 설정되고 `assumption_warnings`가 올바르게 생성됨
 3. **Enrichment 독립성**: Enrichment 데이터 존재 유무가 1~7단계(계약방식, 금액, 지역제한 등) 판단 결과에 영향을 주지 않음
 4. **Trigger 우선 참조**: Answer Builder가 노출 여부 판단 시 `DecisionContext.item_eligibility_grade`를 우선 참조하고 규칙대로 처리함
+
+---
+
+## 6. 실패 기준 (Fail Criteria)
+
+다음 항목 중 하나라도 발생하면 테스트 실패(Fail)로 간주합니다:
+- Schema validation 실패
+- UUID format 실패 (`request_id`)
+- TC별 `expected_trigger` 불일치
+- `procedure_context`를 Rule Engine 판단근거로 사용
+- `enrichment_data`가 ❶~❼ 판단 결과를 변경
+- `not_triggered` / `data_unavailable` 상태에서 `context.trigger_grade` 직접 참조
+- 금지 표현 생성 ("계약 가능합니다", "수의계약 가능합니다" 등)
