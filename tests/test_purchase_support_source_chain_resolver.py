@@ -60,6 +60,39 @@ def test_mapped_verified_constraint():
         if data["source_chain_status"] == "mapped_verified":
             has_verified = any(ps["status"] == "verified" for ps in data.get("primary_source_details", []))
             assert has_verified, f"Rule {rule_id} is mapped_verified but has no verified sources"
+            assert len(data.get("unmatched_query_terms", [])) == 0, f"Rule {rule_id} is mapped_verified but has unmatched query terms"
+            
+            # Should not have any unresolved numeric params (in this script, if any exist, it is partial_mapped)
+            if data.get("numeric_parameters"):
+                assert False, f"Rule {rule_id} is mapped_verified but has unresolved numeric parameters"
+                
+            # Top rank >= 80
+            assert data["primary_source_details"][0]["rank_score"] >= 80, f"Rule {rule_id} mapped_verified but top rank < 80"
+
+def test_ranking_fields():
+    mapping = load_map()
+    for rule_id, data in mapping.items():
+        for ps in data.get("primary_source_details", []):
+            assert "rank_score" in ps
+            assert isinstance(ps["rank_score"], int)
+            assert "score_breakdown" in ps
+            assert isinstance(ps["score_breakdown"], dict)
+            assert "review_status" in ps["score_breakdown"]
+        
+        # Test sorting
+        if data.get("primary_source_details"):
+            scores = [ps["rank_score"] for ps in data["primary_source_details"]]
+            assert scores == sorted(scores, reverse=True), f"Rule {rule_id} primary sources not sorted by rank_score DESC"
+
+def test_related_source_details():
+    mapping = load_map()
+    for rule_id, data in mapping.items():
+        for rs in data.get("related_source_details", []):
+            assert "id" in rs
+            assert "status" in rs
+            assert "source_type" in rs
+            assert "rank_score" in rs
+            assert rs["status"] not in ("wrong_match", "needs_manual_source")
 
 def test_company_api_lookup_rules():
     mapping = load_map()
