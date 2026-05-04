@@ -1,8 +1,9 @@
 # Phase 8 Gateway API Specification
 
-> **버전**: v0.1.0  
+> **버전**: v0.1.1  
 > **기준 설계**: `phase8_gateway_design.md` (보완 반영본)  
-> **준수 정책**: `phase7_no_mutation_policy.md` (A9)
+> **준수 정책**: `phase7_no_mutation_policy.md` (A9)  
+> **v0.1.1 변경**: Company Resolver 세부품명 입력, Procedure Resolver 필터, 금지 표현 수정, Route/Source 중복 제거, Item Resolver 상태 세분화
 
 ---
 
@@ -84,7 +85,7 @@ class SlotValues:
 @dataclass
 class GatewayResponse:
     request_id: str
-    gateway_version: str = "v0.1.0"
+    gateway_version: str = "v0.1.1"
     baseline_db: str = "legal_db_v0_1_3.sqlite"
     source_context: SourceContext
     route_context: RouteContext
@@ -155,22 +156,33 @@ class RouteContext:
     base_jurisdiction: str                  # "local_contract" 등
     overlay_applied: bool
     overlay_scope: Optional[str]            # "pps_delegated_contract" 등
-    base_sources: List[SourceEntry]         # 기본 법령
-    overlay_sources: List[SourceEntry]      # 조달청 기준 (overlay 시)
-    dual_routing: bool                      # True면 기본+overlay 병합
+    overlay_sources: List[SourceEntry]      # 조달청 기준 (overlay 시에만 채워짐)
+    dual_routing: bool                      # True면 source_context의 base + overlay 병합
 ```
+
+> **[설계 원칙] base source 중복 조회 제거**:  
+> base source 조회는 **Source Resolver 전담**입니다.  
+> Route Resolver는 overlay 여부 판정과 overlay source 조회만 수행합니다.  
+> Rule Engine은 `source_context.sources`(base) + `route_context.overlay_sources`(overlay)를 병합하여 사용합니다.  
+> 이렇게 하면 base source 불일치 가능성이 제거됩니다.
 
 **procurement_route 분기**:
 
 | procurement_route 입력 | 동작 |
 |----------------------|------|
-| `null` | overlay 미적용. base_sources만 반환 |
-| 조달청 경로 값 | overlay 적용. base + overlay 병합 |
+| `null` | overlay_applied = false. overlay_sources = [] |
+| 조달청 경로 값 | overlay_applied = true. overlay_sources 조회 |
 
 ### 5.3 Procedure Resolver
 
 ```python
-def resolve_procedures() -> ProcedureContext
+def resolve_procedures(
+    buyer_type: Optional[str],
+    contract_object: Optional[str],
+    procurement_route: Optional[str],
+    contract_method: Optional[str],
+    procedure_topic: Optional[str]          # "위원회구성" | "물가변동" | "제안서평가" | ... | None
+) -> ProcedureContext
 ```
 
 **반환**:
@@ -178,6 +190,7 @@ def resolve_procedures() -> ProcedureContext
 @dataclass
 class ProcedureContext:
     sources: List[ProcedureSourceEntry]
+    filter_applied: bool                    # 필터가 적용되었는지 여부
     usage: str = "answer_builder_procedure_section_only"
     judgment_eligible: bool = False         # 항상 False
 
@@ -186,12 +199,25 @@ class ProcedureSourceEntry:
     source_id: str
     source_name: str
     source_type: Optional[str]
+    applicability_scope: Optional[str]      # 절차 source의 적용 범위
     usage: str = "procedure_guidance_only"
 ```
 
+**필터 동작**:
+- procedure_only source 전체를 무조건 반환하지 않습니다.
+- buyer_type, contract_object, procurement_route, contract_method, procedure_topic으로 필터링하여 **관련 절차 source만** 반환합니다.
+- 모든 필터가 null이면 해당 조건의 절차 source를 넓게 반환합니다 (전체 반환은 아님).
+
+| 필터 | 예시 | 동작 |
+|------|------|------|
+| `contract_object = "construction"` | 공사 절차만 | 공사 관련 절차 source만 반환 |
+| `procedure_topic = "물가변동"` | 물가변동 처리 절차 | 해당 topic 관련 source만 반환 |
+| `buyer_type = "local_government"` | 지방자치단체 절차 | 지방계약 관련 절차 source만 반환 |
+
 **제약**:
 - `active_for_procedure = 1` AND `active_for_rule = 0` source만 조회.
-- Rule Engine 판단 근거로 사용 금지. Answer Builder 절차 안내 섹션에서만 사용.
+- Rule Engine 판단 근거로 사용 **금지**. Answer Builder 절차 안내 섹션에서만 사용.
+- procedure_context 결과로 계약 방식, 낙찰자 결정 가능 여부를 확정하지 않음.
 
 ### 5.4 Item Resolver
 
@@ -203,11 +229,17 @@ def resolve_item_eligibility(
     company_id: Optional[str],
     procurement_route: Optional[str],
     contract_method: Optional[str]
-) -> Optional[ItemEligibilityContext]
+) -> ItemEligibilityResult
 ```
 
-**반환** (트리거 미발동 시 `None`):
+**반환** (항상 반환. null이 아닌 resolver_status로 상태 구분):
 ```python
+@dataclass
+class ItemEligibilityResult:
+    resolver_status: str                    # "resolved" | "not_triggered" | "data_unavailable" | "ambiguous"
+    unavailable_reason: Optional[str]       # 상세 사유 (data_unavailable 시)
+    context: Optional[ItemEligibilityContext]  # resolved 시에만 채워짐
+
 @dataclass
 class ItemEligibilityContext:
     item_eligibility_required: bool = True
@@ -224,6 +256,21 @@ class ItemEligibilityContext:
     candidate_action: Optional[str]         # item_eligibility_status_taxonomy.json 값
 ```
 
+**resolver_status 값 정의**:
+
+| 값 | 의미 | context | Rule Engine 해석 |
+|:---|------|:-------:|------------------|
+| `resolved` | 트리거 발동 + 데이터 조회 완료 | 채워짐 | eligibility_context 소비 |
+| `not_triggered` | 트리거 미발동 (검토 불필요) | null | ❽ 완전 스킵 |
+| `data_unavailable` | 트리거 발동했으나 조회 데이터 부족 | null | "데이터 확인 필요" 안내 가능 |
+| `ambiguous` | 트리거 발동 + 복수 후보, 세부품명 미확정 | 부분 채움 | 세부품명 확정 유도 |
+
+**unavailable_reason 값 예시**:
+- `item_alias_map_not_available`: alias_map 테이블 미구축
+- `sme_competition_table_not_available`: 중기경쟁제품 테이블 미구축
+- `company_cert_table_not_available`: 직생 인증 매핑 테이블 미구축
+- `detail_item_code_ambiguous`: 복수 세부품명 후보, 확정 불가
+
 **트리거 판정 순서** (`item_eligibility_trigger_policy_v0_1_4.md` 기준):
 
 | 순서 | 조건 | 결과 |
@@ -232,7 +279,7 @@ class ItemEligibilityContext:
 | 2 | T2: detail_item_code 제공 | trigger_grade = "explicit" |
 | 3 | T5: 계약경로상 중기경쟁 검증 필수 | trigger_grade = "explicit" |
 | 4 | T3: item_alias_map 해소 결과 중기경쟁 후보 | trigger_grade = "silent" |
-| 5 | 모두 미충족 | return None |
+| 5 | 모두 미충족 | resolver_status = "not_triggered" |
 
 ### 5.5 Company Resolver
 
@@ -240,7 +287,9 @@ class ItemEligibilityContext:
 def resolve_company_candidates(
     item_name: Optional[str],
     location: str,
-    company_id: Optional[str]
+    company_id: Optional[str],
+    detail_item_code: Optional[str],
+    detail_item_candidates: Optional[List[str]]
 ) -> Optional[CompanyCandidateContext]
 ```
 
@@ -250,6 +299,7 @@ def resolve_company_candidates(
 class CompanyCandidateContext:
     candidates: List[CompanyCandidate]
     enrichment_applied: bool
+    enrichment_scope: Optional[str]         # "specific_item" | "candidate_items" | "general"
     total_found: int
 
 @dataclass
@@ -267,12 +317,27 @@ class EnrichmentData:
     cert_status: Optional[str]              # "valid" | "expired" | None
     cert_expiry: Optional[str]              # "YYYY-MM" | None
     detail_item_codes: Optional[List[str]]  # 직생 보유 세부품명 목록
+    matched_by: Optional[str]               # "specific_code" | "candidate_match" | "company_level"
+    per_candidate_match: Optional[List[dict]]  # 복수 후보 시 후보별 매칭 결과
 ```
 
 **T4 Enrichment 동작**:
 - 후보 업체 조회 완료 후 각 업체에 대해 `company_direct_production_cert_mapping` 조회.
 - 직생 데이터 있으면 `enrichment_data` 첨부. 없으면 `null`.
 - Enrichment 결과는 계약 판단에 **영향 없음**. 후보표 optional column 용도.
+
+**세부품명 기반 Enrichment 분기**:
+
+| detail_item_code | detail_item_candidates | 동작 | enrichment_scope |
+|:----------------:|:---------------------:|------|:----------------:|
+| 확정값 있음 | 무관 | 해당 세부품명 기준으로 직생 조회 | `specific_item` |
+| null | 후보 있음 | 후보 세부품명별 직생 보유 여부를 `per_candidate_match`에 배열로 표시 | `candidate_items` |
+| null | null | 업체 수준의 직생 데이터만 조회. 세부품명 기준 매칭 불가 | `general` |
+
+**세부품명 정보 없을 때 제약**:
+- `enrichment_scope = "general"`이면 직생을 **단정적으로 표시하지 않음**.
+- 후보표에는 "직생 데이터 있음 (세부품명 미확정)" 수준의 참고 정보만 표시.
+- `matched_by = "company_level"`로 명시하여, 세부품명 기준 매칭이 아님을 구분.
 
 ---
 
@@ -284,10 +349,11 @@ class GatewayMetadata:
     total_sources_matched: int
     procedure_sources_matched: int
     overlay_applied: bool
-    item_eligibility_required: bool
+    item_eligibility_resolver_status: str    # "resolved" | "not_triggered" | "data_unavailable" | "ambiguous"
     item_eligibility_trigger_grade: Optional[str]  # "explicit" | "silent" | None
     company_candidates_found: int
     enrichment_applied: bool
+    enrichment_scope: Optional[str]          # "specific_item" | "candidate_items" | "general" | None
 ```
 
 ---
@@ -382,11 +448,18 @@ response = resolve_context(request)
 
 ## 9. Gateway가 생성하지 않는 것
 
-| 항목 | Gateway | 담당 |
-|------|:-------:|------|
-| "수의계약 가능합니다" | ❌ | Answer Builder |
-| "지역제한 가능합니다" | ❌ | Answer Builder |
-| 법적 결론 | ❌ | Rule Engine → Answer Builder |
-| 자연어 답변 | ❌ | Answer Builder |
-| DB INSERT/UPDATE/DELETE | ❌ | 해당 없음 (금지) |
-| 외부 API 호출 | ❌ | 해당 없음 (금지) |
+| 항목 | Gateway | Answer Builder | 비고 |
+|------|:-------:|:--------------:|------|
+| 수의계약 검토 경로 안내 | ❌ | ✅ (검토 안내만, 단정 금지) | "수의계약 가능합니다" 단정 표현 금지 |
+| 지역제한 적용 가능성 검토 안내 | ❌ | ✅ (검토 안내만, 단정 금지) | "지역제한 가능합니다" 단정 표현 금지 |
+| decision_context 기반 검토 결과 | ❌ | ✅ (검토 결과 안내) | 법적 결론이 아닌 검토 경로 안내 |
+| 자연어 답변 | ❌ | ✅ | |
+| DB INSERT/UPDATE/DELETE | ❌ | ❌ | 전체 시스템 금지 |
+| 외부 API 호출 | ❌ | ❌ | 전체 시스템 금지 |
+
+> **[금지 표현 원칙]**  
+> Answer Builder도 다음 **단정 표현을 생성하지 않습니다**:  
+> - "계약 가능합니다", "구매 가능합니다", "수의계약 가능합니다"  
+> - "지역제한 가능합니다", "낙찰 가능합니다"  
+> Answer Builder는 "검토 경로", "적용 가능성", "확인 필요" 수준의 안내만 생성합니다.  
+> 최종 계약 가능 여부는 실무 담당자가 판단합니다.

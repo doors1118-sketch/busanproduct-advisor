@@ -1,0 +1,345 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Phase 8 Gateway Response Schema",
+  "description": "Internal Legal MCP Gateway의 출력 JSON 스키마. v0.1.1.",
+  "type": "object",
+  "required": ["request_id", "gateway_version", "baseline_db", "source_context", "route_context", "procedure_context", "metadata"],
+  "properties": {
+    "request_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "요청 식별자"
+    },
+    "gateway_version": {
+      "type": "string",
+      "enum": ["v0.1.1"],
+      "description": "Gateway 버전"
+    },
+    "baseline_db": {
+      "type": "string",
+      "enum": ["legal_db_v0_1_3.sqlite"],
+      "description": "기준 DB 파일명 (Phase 7 Baseline)"
+    },
+
+    "source_context": {
+      "type": "object",
+      "required": ["sources"],
+      "description": "Source Resolver 출력. 판단근거 법령 source 목록.",
+      "properties": {
+        "sources": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/source_entry" }
+        },
+        "assumed_buyer_type": {
+          "type": ["string", "null"],
+          "enum": ["local_government", "national_government", "public_institution", null],
+          "description": "buyer_type 미제공 시 임시 추정값"
+        },
+        "assumption_reason": {
+          "type": ["string", "null"],
+          "description": "추정 사유. 예: '부산시 업무 기본 맥락에 따른 임시 추정'"
+        },
+        "buyer_type_confidence": {
+          "type": ["string", "null"],
+          "enum": ["high", "low", null],
+          "description": "buyer_type 신뢰도"
+        },
+        "required_slots_missing": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "미제공 필수 슬롯 목록"
+        }
+      }
+    },
+
+    "route_context": {
+      "type": "object",
+      "required": ["base_jurisdiction", "overlay_applied", "dual_routing"],
+      "description": "Route Resolver 출력. Overlay 여부와 overlay source만 포함. base source는 source_context 참조.",
+      "properties": {
+        "base_jurisdiction": {
+          "type": "string",
+          "description": "기본 법령체계. 예: 'local_contract'"
+        },
+        "overlay_applied": {
+          "type": "boolean",
+          "description": "조달경로 overlay 적용 여부"
+        },
+        "overlay_scope": {
+          "type": ["string", "null"],
+          "description": "적용된 overlay 범위. 예: 'pps_delegated_contract'"
+        },
+        "overlay_sources": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/source_entry" },
+          "description": "overlay source 목록. overlay_applied=false이면 빈 배열."
+        },
+        "dual_routing": {
+          "type": "boolean",
+          "description": "true이면 source_context.sources(base) + overlay_sources를 병합"
+        }
+      }
+    },
+
+    "procedure_context": {
+      "type": "object",
+      "required": ["sources", "usage", "judgment_eligible"],
+      "description": "Procedure Resolver 출력. 절차 안내 전용. Rule Engine 판단근거 사용 금지.",
+      "properties": {
+        "sources": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/procedure_source_entry" }
+        },
+        "filter_applied": {
+          "type": "boolean",
+          "description": "필터링이 적용되었는지 여부"
+        },
+        "usage": {
+          "type": "string",
+          "enum": ["answer_builder_procedure_section_only"],
+          "description": "Answer Builder 절차 안내 섹션에서만 사용"
+        },
+        "judgment_eligible": {
+          "type": "boolean",
+          "enum": [false],
+          "description": "항상 false. 판단근거로 사용 불가."
+        }
+      }
+    },
+
+    "item_eligibility_result": {
+      "type": "object",
+      "required": ["resolver_status"],
+      "description": "Item Resolver 출력. 트리거 판정 상태와 eligibility context.",
+      "properties": {
+        "resolver_status": {
+          "type": "string",
+          "enum": ["resolved", "not_triggered", "data_unavailable", "ambiguous"],
+          "description": "resolved=조회완료, not_triggered=검토불필요, data_unavailable=데이터부족, ambiguous=복수후보미확정"
+        },
+        "unavailable_reason": {
+          "type": ["string", "null"],
+          "enum": [
+            "item_alias_map_not_available",
+            "sme_competition_table_not_available",
+            "company_cert_table_not_available",
+            "detail_item_code_ambiguous",
+            null
+          ],
+          "description": "data_unavailable 또는 ambiguous 시 상세 사유"
+        },
+        "context": {
+          "oneOf": [
+            { "$ref": "#/definitions/item_eligibility_context" },
+            { "type": "null" }
+          ],
+          "description": "resolved 시에만 채워짐. not_triggered/data_unavailable이면 null."
+        }
+      }
+    },
+
+    "company_candidate_context": {
+      "oneOf": [
+        { "$ref": "#/definitions/company_candidate_context_object" },
+        { "type": "null" }
+      ],
+      "description": "Company Resolver 출력. 검색 조건 없으면 null."
+    },
+
+    "metadata": {
+      "type": "object",
+      "required": ["total_sources_matched", "overlay_applied", "item_eligibility_resolver_status", "company_candidates_found", "enrichment_applied"],
+      "description": "Gateway 실행 요약 메타데이터",
+      "properties": {
+        "total_sources_matched": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "source_context에 포함된 판단근거 source 수"
+        },
+        "procedure_sources_matched": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "procedure_context에 포함된 절차 source 수"
+        },
+        "overlay_applied": {
+          "type": "boolean"
+        },
+        "item_eligibility_resolver_status": {
+          "type": "string",
+          "enum": ["resolved", "not_triggered", "data_unavailable", "ambiguous"]
+        },
+        "item_eligibility_trigger_grade": {
+          "type": ["string", "null"],
+          "enum": ["explicit", "silent", null]
+        },
+        "company_candidates_found": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "enrichment_applied": {
+          "type": "boolean"
+        },
+        "enrichment_scope": {
+          "type": ["string", "null"],
+          "enum": ["specific_item", "candidate_items", "general", null],
+          "description": "Enrichment 범위. specific_item=세부품명확정, candidate_items=후보별매칭, general=업체수준"
+        }
+      }
+    },
+
+    "error": {
+      "type": ["string", "null"],
+      "description": "부분 실패 시 에러 메시지. 정상이면 null."
+    }
+  },
+
+  "definitions": {
+    "source_entry": {
+      "type": "object",
+      "required": ["source_id", "source_name", "active_for_rule"],
+      "properties": {
+        "source_id": { "type": "string" },
+        "source_name": { "type": "string" },
+        "normalized_title": { "type": "string" },
+        "law_category": { "type": ["string", "null"] },
+        "source_type": { "type": ["string", "null"] },
+        "applicability_scope": { "type": ["string", "null"] },
+        "active_for_rule": {
+          "type": "boolean",
+          "enum": [true],
+          "description": "source_context에 포함되는 조건. 항상 true."
+        },
+        "activation_mode": { "type": ["string", "null"] }
+      }
+    },
+
+    "procedure_source_entry": {
+      "type": "object",
+      "required": ["source_id", "source_name", "usage"],
+      "properties": {
+        "source_id": { "type": "string" },
+        "source_name": { "type": "string" },
+        "source_type": { "type": ["string", "null"] },
+        "applicability_scope": { "type": ["string", "null"] },
+        "usage": {
+          "type": "string",
+          "enum": ["procedure_guidance_only"],
+          "description": "절차 안내 전용. 판단근거 사용 금지."
+        }
+      }
+    },
+
+    "item_eligibility_context": {
+      "type": "object",
+      "required": ["item_eligibility_required", "trigger_grade", "triggered_by", "detail_item_resolved"],
+      "properties": {
+        "item_eligibility_required": { "type": "boolean", "enum": [true] },
+        "trigger_grade": {
+          "type": "string",
+          "enum": ["explicit", "silent"]
+        },
+        "triggered_by": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["T1_keyword", "T2_detail_item_code", "T3_alias_map_sme_candidate", "T5_contract_path"]
+          }
+        },
+        "detail_item_resolved": { "type": "boolean" },
+        "detail_item_code": { "type": ["string", "null"] },
+        "detail_item_name": { "type": ["string", "null"] },
+        "detail_item_candidates": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "object",
+            "properties": {
+              "detail_item_code": { "type": "string" },
+              "detail_item_name": { "type": "string" },
+              "is_sme_competition": { "type": "boolean" }
+            }
+          }
+        },
+        "is_sme_competition_product": { "type": ["boolean", "null"] },
+        "direct_production_required": { "type": ["boolean", "null"] },
+        "company_cert_status": {
+          "type": ["string", "null"],
+          "enum": ["valid", "expired", "unknown", null]
+        },
+        "eligibility_status": { "type": ["string", "null"] },
+        "candidate_action": { "type": ["string", "null"] }
+      }
+    },
+
+    "company_candidate_context_object": {
+      "type": "object",
+      "required": ["candidates", "enrichment_applied", "total_found"],
+      "properties": {
+        "candidates": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/company_candidate" }
+        },
+        "enrichment_applied": { "type": "boolean" },
+        "enrichment_scope": {
+          "type": ["string", "null"],
+          "enum": ["specific_item", "candidate_items", "general", null]
+        },
+        "total_found": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "company_candidate": {
+      "type": "object",
+      "required": ["company_id", "company_name_masked", "location"],
+      "properties": {
+        "company_id": { "type": "string", "description": "HMAC-SHA256 해시" },
+        "company_name_masked": { "type": "string" },
+        "location": { "type": "string" },
+        "business_type": { "type": ["string", "null"] },
+        "contract_count": { "type": ["integer", "null"] },
+        "contract_amount": { "type": ["integer", "null"] },
+        "enrichment_data": {
+          "oneOf": [
+            { "$ref": "#/definitions/enrichment_data" },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+
+    "enrichment_data": {
+      "type": "object",
+      "properties": {
+        "cert_status": {
+          "type": ["string", "null"],
+          "enum": ["valid", "expired", null]
+        },
+        "cert_expiry": {
+          "type": ["string", "null"],
+          "description": "YYYY-MM 형식"
+        },
+        "detail_item_codes": {
+          "type": ["array", "null"],
+          "items": { "type": "string" }
+        },
+        "matched_by": {
+          "type": ["string", "null"],
+          "enum": ["specific_code", "candidate_match", "company_level", null],
+          "description": "매칭 기준. company_level이면 세부품명 기준 매칭이 아님."
+        },
+        "per_candidate_match": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "object",
+            "properties": {
+              "detail_item_code": { "type": "string" },
+              "detail_item_name": { "type": "string" },
+              "cert_status": { "type": ["string", "null"] },
+              "cert_expiry": { "type": ["string", "null"] }
+            }
+          },
+          "description": "복수 후보 세부품명별 직생 매칭 결과"
+        }
+      }
+    }
+  }
+}
