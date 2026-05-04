@@ -2,6 +2,17 @@ from typing import Dict, Any, List
 import json
 from app.router.intent_schema import RouterResult, Intent
 
+ROUTING_BY_INTENT = {
+    "legal_explanation": "legal_explanation_flow",
+    "contract_review": "contract_review_flow",
+    "local_purchase_support": "local_purchase_support_flow",
+    "candidate_search": "candidate_search_flow",
+    "item_eligibility": "item_eligibility_flow",
+    "procurement_route_review": "procurement_route_review_flow",
+    "mixed": "mixed_flow",
+    "out_of_scope": "out_of_scope"
+}
+
 class DeterministicIntentValidator:
     def __init__(self):
         # 1. local_purchase_support triggers
@@ -52,51 +63,83 @@ class DeterministicIntentValidator:
             )
             
         text_no_space = text.replace(" ", "")
+        slots = result.slots
         
-        # 1. Force add local_purchase_support
-        if any(kw in text or kw.replace(" ", "") in text_no_space for kw in self.local_support_keywords):
+        # ── 1. Force add intents AND sync slot flags ──
+        
+        has_local_kw = any(kw in text or kw.replace(" ", "") in text_no_space for kw in self.local_support_keywords)
+        has_candidate_kw = any(kw in text or kw.replace(" ", "") in text_no_space for kw in self.candidate_keywords)
+        has_eligibility_kw = any(kw in text or kw.replace(" ", "") in text_no_space for kw in self.eligibility_keywords)
+        has_route_kw = any(kw in text or kw.replace(" ", "") in text_no_space for kw in self.route_keywords)
+        
+        if has_local_kw:
             if "local_purchase_support" not in result.secondary_intents and result.primary_intent != "local_purchase_support":
                 result.secondary_intents.append("local_purchase_support")
-                
-        # 2. Force add candidate_search
-        if any(kw in text or kw.replace(" ", "") in text_no_space for kw in self.candidate_keywords):
+            slots.local_supplier_intent = True
+            
+        if has_candidate_kw:
             if "candidate_search" not in result.secondary_intents and result.primary_intent != "candidate_search":
                 result.secondary_intents.append("candidate_search")
-                
-        # 3. Force add item_eligibility
-        if any(kw in text or kw.replace(" ", "") in text_no_space for kw in self.eligibility_keywords):
+            slots.candidate_lookup_requested = True
+            
+        if has_eligibility_kw:
             if "item_eligibility" not in result.secondary_intents and result.primary_intent != "item_eligibility":
                 result.secondary_intents.append("item_eligibility")
+            slots.item_eligibility_requested = True
                 
-        # 4. Force add procurement_route_review
-        if any(kw in text or kw.replace(" ", "") in text_no_space for kw in self.route_keywords):
+        if has_route_kw:
             if "procurement_route_review" not in result.secondary_intents and result.primary_intent != "procurement_route_review":
                 result.secondary_intents.append("procurement_route_review")
                 
-        # 5. Contract review condition adjustment
-        is_explanation = any(kw in text for kw in self.explanation_verbs)
+        # Location correction
+        if ("부산업체" in text or "부산 지역업체" in text) and not slots.location:
+            slots.location = "부산"
+                
+        # ── 2. Explanation / execution detection ──
+        
+        has_explanation_phrase = any(kw in text for kw in self.explanation_verbs)
         has_execution = any(kw in text for kw in self.execution_verbs)
         
-        # Count slots
-        slots = result.slots
         slot_count = 0
         if slots.buyer_name: slot_count += 1
         if slots.amount: slot_count += 1
         if slots.item_name or slots.service_type or slots.construction_type: slot_count += 1
         if slots.contract_method: slot_count += 1
         
-        if not is_explanation and (has_execution or slot_count >= 2):
+        is_pure_explanation = (
+            has_explanation_phrase
+            and not has_execution
+            and not slots.buyer_name
+            and not slots.amount
+            and not slots.item_name
+            and not slots.service_type
+            and not slots.construction_type
+        )
+        
+        # ── 3. Contract review force-add ──
+        
+        if not has_explanation_phrase and (has_execution or slot_count >= 2):
             if "contract_review" not in result.secondary_intents and result.primary_intent != "contract_review":
                 result.secondary_intents.append("contract_review")
         
-        # If it's pure explanation, force it back
-        if is_explanation:
+        # Pure explanation override
+        if is_pure_explanation:
             result.primary_intent = "legal_explanation"
             if "contract_review" in result.secondary_intents:
                 result.secondary_intents.remove("contract_review")
                 
-        # 6. Conservative candidate_lookup_required logic
-        explicit_candidate_req = any(kw in text or kw.replace(" ", "") in text_no_space for kw in self.candidate_keywords)
+        # ── 4. Auto local_purchase_support for contract_review ──
+        
+        is_contract = result.primary_intent == "contract_review" or "contract_review" in result.secondary_intents
+        has_object = bool(slots.item_name or slots.service_type or slots.construction_type or slots.contract_object)
+        
+        if is_contract and not is_pure_explanation and has_object:
+            if "local_purchase_support" not in result.secondary_intents and result.primary_intent != "local_purchase_support":
+                result.secondary_intents.append("local_purchase_support")
+                
+        # ── 5. Conservative candidate_lookup_required ──
+        
+        explicit_candidate_req = has_candidate_kw
         implicit_candidate_ready = bool(slots.item_name) and slots.local_supplier_intent
         
         if explicit_candidate_req or implicit_candidate_ready:
@@ -104,31 +147,42 @@ class DeterministicIntentValidator:
         else:
             result.candidate_lookup_required = False
             
-        # Add item_name clarification if candidate search or local purchase support is hinted but no item
+        # item_name clarification ONLY if NOT a pure explanation query
         has_local_or_candidate = any(i in [result.primary_intent] + result.secondary_intents for i in ["candidate_search", "local_purchase_support"])
-        if has_local_or_candidate and not slots.item_name:
+        if has_local_or_candidate and not slots.item_name and not is_pure_explanation:
             if "item_name" not in result.clarification_needed:
                 result.clarification_needed.append("item_name")
             result.candidate_lookup_required = False
             
-        # 7. legal_explanation_only logic
-        if result.primary_intent == "legal_explanation" and not slots.amount and not slots.buyer_name and not slots.item_name and not result.candidate_lookup_required and not slots.local_supplier_intent:
+        # ── 6. legal_explanation_only ──
+        
+        if is_pure_explanation:
             result.legal_explanation_only = True
-        elif result.primary_intent == "legal_explanation" and is_explanation:
+        elif result.primary_intent == "legal_explanation" and not slots.amount and not slots.buyer_name and not slots.item_name and not result.candidate_lookup_required and not slots.local_supplier_intent:
             result.legal_explanation_only = True
         else:
             result.legal_explanation_only = False
             
-        # 8. Fallback for confidence < 0.65
+        # ── 7. Confidence fallback ──
+        
         if result.confidence < 0.65:
             result.routing_decision = "clarification_required"
             if not result.clarification_needed:
                 result.clarification_needed.append("의도 불분명")
                 
-        # Prohibited phrases check
+        # ── 8. Prohibited phrases ──
+        
         prohibited = ["계약 가능합니다", "구매 가능합니다", "수의계약 가능합니다", "지역제한 가능합니다", "낙찰 가능합니다"]
         for p in prohibited:
             if result.reason and p in result.reason:
                 result.reason = result.reason.replace(p, "(금지된 표현 제거됨)")
+                
+        # ── 9. routing_decision default fill ──
+        
+        if not result.routing_decision:
+            if result.confidence < 0.65:
+                result.routing_decision = "clarification_required"
+            else:
+                result.routing_decision = ROUTING_BY_INTENT.get(result.primary_intent, "out_of_scope")
                 
         return result
