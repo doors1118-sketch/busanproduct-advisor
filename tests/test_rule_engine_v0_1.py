@@ -126,3 +126,62 @@ def test_forbidden_phrases_not_included():
     
     for phrase in forbidden_phrases:
         assert phrase not in ctx_str
+
+def test_local_purchase_support_mapping_goods_direct():
+    gw = get_base_gateway_response()
+    request_slots = {
+        "contract_object": "goods",
+        "contract_method": "direct_contract"
+    }
+    ctx = execute_rule_engine(gw, request_slots)
+    assert ctx.local_purchase_support_review_required is True
+    assert "지역제한 경쟁입찰 검토" in ctx.local_purchase_support_tools
+    assert "수의계약 활용 가능성 검토" in ctx.local_purchase_support_tools
+    assert "지역상품 우선구매 조례·시책 검토" in ctx.local_purchase_support_tools
+    
+def test_local_purchase_support_mapping_construction():
+    gw = get_base_gateway_response()
+    request_slots = {
+        "contract_object": "construction"
+    }
+    ctx = execute_rule_engine(gw, request_slots)
+    assert "지역의무공동도급 검토" in ctx.local_purchase_support_tools
+    assert "지역업체 참여도 가점 검토" in ctx.local_purchase_support_tools
+
+def test_local_purchase_support_mapping_mas():
+    gw = get_base_gateway_response()
+    request_slots = {
+        "procurement_route": "mas"
+    }
+    ctx = execute_rule_engine(gw, request_slots)
+    assert "MAS·종합쇼핑몰 내 지역업체 후보 활용 검토" in ctx.local_purchase_support_tools
+
+def test_local_purchase_support_mapping_explicit_item():
+    gw = get_base_gateway_response()
+    gw.item_eligibility_result = ItemEligibilityResult(
+        resolver_status="resolved",
+        unavailable_reason=None,
+        context=ItemEligibilityContext(
+            trigger_grade="explicit",
+            triggered_by=["direct_production"],
+            detail_item_resolved=True,
+            detail_item_code="12345678",
+            detail_item_name="test",
+            detail_item_candidates=None,
+            is_sme_competition_product=True,
+            direct_production_required=True,
+            company_cert_status="valid",
+            eligibility_status="eligible",
+            candidate_action="none",
+            item_eligibility_required=True
+        )
+    )
+    ctx = execute_rule_engine(gw)
+    assert "품목별 중기경쟁제품·직접생산확인 추가 검토" in ctx.local_purchase_support_tools
+
+def test_local_purchase_support_mapping_empty():
+    gw = get_base_gateway_response()
+    # No matching conditions
+    ctx = execute_rule_engine(gw, {})
+    assert ctx.local_purchase_support_review_required is False
+    assert len(ctx.local_purchase_support_tools) == 0

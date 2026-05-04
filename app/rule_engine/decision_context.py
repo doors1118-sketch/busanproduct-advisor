@@ -37,6 +37,13 @@ class DecisionContext:
     route_directive: Optional[str] = None
     manual_review_reasons: List[str] = field(default_factory=list)
     
+    # Phase 9.1 Local Purchase Support Rule Mapping
+    local_purchase_support_review_required: bool = False
+    local_purchase_support_tools: List[str] = field(default_factory=list)
+    local_purchase_support_source_ids: List[str] = field(default_factory=list)
+    local_purchase_support_notes: List[str] = field(default_factory=list)
+    local_purchase_required_checks: List[str] = field(default_factory=list)
+
     # 메타 상태 및 노출 정책
     buyer_type_assumed: bool = False
     dual_routing_active: bool = False

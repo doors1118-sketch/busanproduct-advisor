@@ -16,7 +16,14 @@ def get_base_gateway_response() -> GatewayResponse:
 
 def test_answer_builder_safe_outcome():
     gw = get_base_gateway_response()
-    dc = DecisionContext(review_outcome="review_candidate")
+    dc = DecisionContext(
+        review_outcome="review_candidate",
+        local_purchase_support_tools=[
+            "지역의무공동도급 검토",
+            "수의계약 활용 가능성 검토",
+            "MAS·종합쇼핑몰 내 지역업체 후보 활용 검토"
+        ]
+    )
     
     out = build_answer(gw, dc)
     assert out.forbidden_phrase_scan_passed is True

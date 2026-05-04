@@ -37,20 +37,13 @@ def build_answer(gateway_response: GatewayResponse, decision_context: DecisionCo
     )
     
     # 1-1. Local Purchase Support Review Section
-    local_support_section = AnswerSection(
-        title="지역업체 구매지원 제도 검토",
-        content="지역업체 활용을 검토하기 위해 다음 구매지원 제도의 적용 여부를 확인해야 합니다.",
-        bullets=[
-            "지역제한 경쟁입찰 검토",
-            "지역의무공동도급 검토",
-            "지역업체 참여도 가점 검토",
-            "지역상품 우선구매 조례·시책 검토",
-            "수의계약 활용 가능성 검토",
-            "정책기업 우대·우선구매 검토",
-            "MAS·종합쇼핑몰 내 지역업체 후보 활용 검토",
-            "품목별 중기경쟁제품·직접생산확인 추가 검토"
-        ]
-    )
+    local_support_section = None
+    if decision_context.local_purchase_support_tools:
+        local_support_section = AnswerSection(
+            title="지역업체 구매지원 제도 검토",
+            content="지역업체 활용을 검토하기 위해 다음 구매지원 제도의 적용 여부를 확인해야 합니다.",
+            bullets=decision_context.local_purchase_support_tools
+        )
     
     # 2. Item Eligibility Section
     item_section = None

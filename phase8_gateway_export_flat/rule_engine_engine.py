@@ -1,7 +1,7 @@
 from app.gateway.models.context import GatewayResponse
 from app.rule_engine.decision_context import DecisionContext
 
-def execute_rule_engine(gateway_response: GatewayResponse) -> DecisionContext:
+def execute_rule_engine(gateway_response: GatewayResponse, request_slots: dict = None) -> DecisionContext:
     # 1. 초기 상태 설정
     ctx = DecisionContext(review_outcome="not_triggered")
     
@@ -38,6 +38,47 @@ def execute_rule_engine(gateway_response: GatewayResponse) -> DecisionContext:
         if item_res.context.eligibility_status:
             ctx.item_eligibility_status = item_res.context.eligibility_status
         
+    # 4.5. Phase 9.1 Local Purchase Support Rule Mapping
+    request_slots = request_slots or {}
+    contract_object = request_slots.get("contract_object")
+    procurement_route = request_slots.get("procurement_route")
+    contract_method = request_slots.get("contract_method")
+    
+    tools = set()
+    
+    if contract_object == "goods":
+        tools.update(["지역제한 경쟁입찰 검토", "수의계약 활용 가능성 검토", "지역상품 우선구매 조례·시책 검토"])
+    elif contract_object == "service":
+        tools.update(["지역제한 경쟁입찰 검토", "지역업체 참여도 가점 검토", "수의계약 활용 가능성 검토"])
+    elif contract_object == "construction":
+        tools.update(["지역제한 경쟁입찰 검토", "지역의무공동도급 검토", "지역업체 참여도 가점 검토"])
+        
+    if procurement_route in ("mas", "pps_shopping_mall", "third_party_unit_price_contract"):
+        tools.add("MAS·종합쇼핑몰 내 지역업체 후보 활용 검토")
+        
+    if contract_method == "direct_contract":
+        tools.add("수의계약 활용 가능성 검토")
+        
+    if item_res and item_res.context and item_res.context.trigger_grade == "explicit":
+        tools.add("품목별 중기경쟁제품·직접생산확인 추가 검토")
+        
+    if gateway_response.source_context and gateway_response.source_context.buyer_type_confidence == "low":
+        tools.add("기관유형 확인 필요")
+        
+    if tools:
+        ctx.local_purchase_support_review_required = True
+        fixed_order = [
+            "기관유형 확인 필요",
+            "지역제한 경쟁입찰 검토",
+            "지역의무공동도급 검토",
+            "지역업체 참여도 가점 검토",
+            "지역상품 우선구매 조례·시책 검토",
+            "수의계약 활용 가능성 검토",
+            "MAS·종합쇼핑몰 내 지역업체 후보 활용 검토",
+            "품목별 중기경쟁제품·직접생산확인 추가 검토"
+        ]
+        ctx.local_purchase_support_tools = [t for t in fixed_order if t in tools]
+
     # 5. Rule Engine 우선순위 매핑 (1 -> 6)
     
     # 1) out_of_scope: ReviewOutcome에는 있으나 v0.1에서는 emitting rule이 없음.
