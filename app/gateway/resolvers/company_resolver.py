@@ -14,7 +14,15 @@ def resolve_company_candidates(
         return None
         
     enrichment_applied = bool(detail_item_code or detail_item_codes_from_candidates)
-    enrichment_scope = "specific_item" if detail_item_code else ("candidate_items" if detail_item_codes_from_candidates else "general")
+    
+    enrichment_scope = None
+    if enrichment_applied:
+        if detail_item_code:
+            enrichment_scope = "specific_item"
+        elif detail_item_codes_from_candidates:
+            enrichment_scope = "candidate_items"
+        else:
+            enrichment_scope = "general"
     
     enrichment_data = None
     if enrichment_applied:
@@ -22,7 +30,7 @@ def resolve_company_candidates(
             cert_status="valid",
             cert_expiry="2027-12",
             detail_item_codes=[detail_item_code] if detail_item_code else detail_item_codes_from_candidates,
-            matched_by="specific_code" if detail_item_code else "candidate_match",
+            matched_by="specific_code" if detail_item_code else ("candidate_match" if detail_item_codes_from_candidates else "company_level"),
             per_candidate_match=None
         )
         

@@ -12,15 +12,17 @@ def resolve_procedures(
     
     filter_applied = any(x is not None for x in [buyer_type, contract_object, procurement_route, contract_method, procedure_topic])
     
-    sources = [
-        ProcedureSourceEntry(
-            source_id="proc_1",
-            source_name="계약 일반 절차",
-            source_type="procedure",
-            applicability_scope="general",
-            usage="procedure_guidance_only"
+    sources = []
+    if contract_object == "construction" or procedure_topic is not None:
+        sources.append(
+            ProcedureSourceEntry(
+                source_id="proc_1",
+                source_name="공사/특정 절차 일반 안내",
+                source_type="procedure",
+                applicability_scope="general",
+                usage="procedure_guidance_only"
+            )
         )
-    ]
     
     return ProcedureContext(
         sources=sources,

@@ -60,6 +60,48 @@ def test_gateway_skeleton_schema_and_logic():
     for phrase in prohibited:
         assert phrase not in resp_str
 
+def test_gateway_triggers_and_enrichment():
+    # 1. "CCTV 업체 추천" -> silent trigger
+    req1 = GatewayRequest(
+        request_id=str(uuid.uuid4()),
+        user_query="CCTV 업체 추천",
+        slots=SlotValues(item_name="CCTV", location="부산", buyer_type=None, contract_object=None, amount=None, procurement_route=None, contract_method=None, detail_item_code=None, company_id=None)
+    )
+    resp1 = resolve_context(req1)
+    assert resp1.item_eligibility_result.resolver_status == "resolved"
+    assert resp1.item_eligibility_result.context.trigger_grade == "silent"
+    
+    # 2. "CCTV 구매 절차" -> silent trigger
+    req2 = GatewayRequest(
+        request_id=str(uuid.uuid4()),
+        user_query="CCTV 구매 절차",
+        slots=SlotValues(item_name="CCTV", location="부산", buyer_type=None, contract_object=None, amount=None, procurement_route=None, contract_method=None, detail_item_code=None, company_id=None)
+    )
+    resp2 = resolve_context(req2)
+    assert resp2.item_eligibility_result.resolver_status == "resolved"
+    assert resp2.item_eligibility_result.context.trigger_grade == "silent"
+    
+    # 3. "CCTV 직생도 봐줘" -> explicit trigger
+    req3 = GatewayRequest(
+        request_id=str(uuid.uuid4()),
+        user_query="CCTV 직생도 봐줘",
+        slots=SlotValues(item_name="CCTV", location="부산", buyer_type=None, contract_object=None, amount=None, procurement_route=None, contract_method=None, detail_item_code=None, company_id=None)
+    )
+    resp3 = resolve_context(req3)
+    assert resp3.item_eligibility_result.resolver_status == "resolved"
+    assert resp3.item_eligibility_result.context.trigger_grade == "explicit"
+    
+    # 4. enrichment_applied=False이면 enrichment_scope is None
+    req4 = GatewayRequest(
+        request_id=str(uuid.uuid4()),
+        user_query="그냥 업체 찾아줘",
+        slots=SlotValues(item_name="기타", location="부산", buyer_type=None, contract_object=None, amount=None, procurement_route=None, contract_method=None, detail_item_code=None, company_id=None)
+    )
+    resp4 = resolve_context(req4)
+    if resp4.company_candidate_context:
+        assert resp4.company_candidate_context.enrichment_applied is False
+        assert resp4.company_candidate_context.enrichment_scope is None
+
 def test_db_reader_mutation_block(tmp_path):
     # create dummy db
     db_file = tmp_path / "dummy.sqlite"

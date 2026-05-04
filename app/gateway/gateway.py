@@ -54,6 +54,7 @@ def resolve_context(request: GatewayRequest) -> GatewayResponse:
     )
     
     # Metadata
+    # total_sources_matched는 "base + overlay 적용 source 수"를 의미합니다.
     total_sources = len(source_ctx.sources) + len(route_ctx.overlay_sources)
     proc_sources = len(procedure_ctx.sources)
     trigger_grade = None
