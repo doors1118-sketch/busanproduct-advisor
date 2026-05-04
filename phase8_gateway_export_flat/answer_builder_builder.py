@@ -38,8 +38,8 @@ def build_answer(gateway_response: GatewayResponse, decision_context: DecisionCo
     
     # 1-1. Local Purchase Support Review Section
     local_support_section = AnswerSection(
-        title="지역업체 지원 및 우선구매 검토 경로",
-        content="안전하고 효과적인 계약 진행을 위해 다음의 제도 활용 가능성을 확인하시기 바랍니다.",
+        title="지역업체 구매지원 제도 검토",
+        content="지역업체 활용을 검토하기 위해 다음 구매지원 제도의 적용 여부를 확인해야 합니다.",
         bullets=[
             "지역제한 경쟁입찰 검토",
             "지역의무공동도급 검토",

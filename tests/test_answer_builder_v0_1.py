@@ -74,3 +74,7 @@ def test_answer_builder_forbidden_phrase_fallback():
     assert out.candidate_table_section is None
     assert out.local_purchase_support_review_section is None
     assert "계약 가능합니다" not in out.rendered_markdown
+    assert "구매 가능합니다" not in out.rendered_markdown
+    assert "수의계약 가능합니다" not in out.rendered_markdown
+    assert "지역제한 가능합니다" not in out.rendered_markdown
+    assert "낙찰 가능합니다" not in out.rendered_markdown
