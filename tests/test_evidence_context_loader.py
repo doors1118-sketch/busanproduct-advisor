@@ -145,3 +145,62 @@ def test_merged_source_map_changes_display_level():
         assert rs.numeric_parameters[0].display_allowed is True
     finally:
         os.remove(tmp_path)
+
+
+def test_candidate_search_goods_default():
+    """candidate_search + contract_object 미지정 → GOODS lookup rule."""
+    rr = _make_router("candidate_search", {"item_name": "CCTV"})
+    ctx = build_evidence_context(rr)
+    assert "R_COMPANY_CANDIDATE_LOOKUP_GOODS" in ctx.active_rule_ids
+    assert "R_COMPANY_CANDIDATE_LOOKUP_SERVICE" not in ctx.active_rule_ids
+
+
+def test_candidate_search_service():
+    """candidate_search + service → SERVICE lookup rule."""
+    rr = _make_router("candidate_search", {"item_name": "청소", "contract_object": "service"})
+    ctx = build_evidence_context(rr)
+    assert "R_COMPANY_CANDIDATE_LOOKUP_SERVICE" in ctx.active_rule_ids
+    assert "R_COMPANY_CANDIDATE_LOOKUP_GOODS" not in ctx.active_rule_ids
+
+
+def test_candidate_search_construction():
+    """candidate_search + construction → CONSTRUCTION lookup rule."""
+    rr = _make_router("candidate_search", {"item_name": "도로", "contract_object": "construction"})
+    ctx = build_evidence_context(rr)
+    assert "R_COMPANY_CANDIDATE_LOOKUP_CONSTRUCTION" in ctx.active_rule_ids
+    assert "R_COMPANY_CANDIDATE_LOOKUP_GOODS" not in ctx.active_rule_ids
+
+
+def test_procurement_route_slot_auto_fill():
+    """DeterministicIntentValidator가 MAS 키워드 → procurement_route='mas' 보정."""
+    from app.router.deterministic_intent_validator import DeterministicIntentValidator
+    v = DeterministicIntentValidator()
+    result = v.validate("MAS에서 LED조명 구매하려면?", {
+        "primary_intent": "contract_review", "confidence": 0.9,
+        "slots": {"item_name": "LED조명"}
+    })
+    assert result.slots.procurement_route == "mas"
+    assert "procurement_route_review" in result.secondary_intents
+
+
+def test_procurement_route_third_party():
+    """제3자단가 키워드 → procurement_route='third_party_unit_price'."""
+    from app.router.deterministic_intent_validator import DeterministicIntentValidator
+    v = DeterministicIntentValidator()
+    result = v.validate("제3자단가 계약 절차가 궁금해", {
+        "primary_intent": "legal_explanation", "confidence": 0.9,
+        "slots": {}
+    })
+    assert result.slots.procurement_route == "third_party_unit_price"
+
+
+def test_procurement_route_shopping_mall():
+    """종합쇼핑몰 키워드 → procurement_route='shopping_mall'."""
+    from app.router.deterministic_intent_validator import DeterministicIntentValidator
+    v = DeterministicIntentValidator()
+    result = v.validate("종합쇼핑몰에서 물품 구매 가능한가?", {
+        "primary_intent": "contract_review", "confidence": 0.9,
+        "slots": {"item_name": "물품"}
+    })
+    assert result.slots.procurement_route == "shopping_mall"
+

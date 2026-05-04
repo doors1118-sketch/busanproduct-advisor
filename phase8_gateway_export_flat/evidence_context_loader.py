@@ -131,9 +131,14 @@ def _infer_active_rules(router_result: RouterResult) -> List[str]:
         else:
             rules.append("R_SHOPPING_MALL_ROUTE_CLASSIFICATION")
 
-    # candidate_search
+    # candidate_search: contract_object 기준 분기
     if "candidate_search" in all_intents:
-        rules.extend(_RULE_SET_CANDIDATE)
+        if contract_object == "service":
+            rules.append("R_COMPANY_CANDIDATE_LOOKUP_SERVICE")
+        elif contract_object == "construction":
+            rules.append("R_COMPANY_CANDIDATE_LOOKUP_CONSTRUCTION")
+        else:
+            rules.append("R_COMPANY_CANDIDATE_LOOKUP_GOODS")
         if "mas" in procurement_route.lower():
             rules.extend(_RULE_SET_CANDIDATE_MAS)
 

@@ -97,14 +97,14 @@ def apply_evidence_to_answer(
     else:
         answer_output.rendered_markdown += evidence_md
 
-    # 최종 forbidden phrase + numeric 재검사
+    # 최종 forbidden phrase 재검사 (전체 markdown)
+    # 주의: FORBIDDEN_NUMERIC_HINTS는 evidence section에만 적용하고
+    # 기존 answer body에는 적용하지 않는다.
+    # 사용자가 입력한 금액(예: 추정가격: 50,000,000원)이 치환되면 안 된다.
     final_md = answer_output.rendered_markdown
     for phrase in FORBIDDEN_PHRASES:
         if phrase in final_md:
             final_md = final_md.replace(phrase, "[표현 제한]")
-    for hint in FORBIDDEN_NUMERIC_HINTS:
-        if hint in final_md:
-            final_md = final_md.replace(hint, "[수치 확인 필요]")
     answer_output.rendered_markdown = final_md
 
     return answer_output

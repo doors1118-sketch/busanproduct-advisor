@@ -181,3 +181,58 @@ def test_source_gap_section_present():
     )
     out = route_answer(rr, evidence_context=ctx)
     assert "Source Gap 안내" in out.rendered_markdown
+
+
+def test_user_input_amount_preserved():
+    """사용자가 입력한 금액(50,000,000원)이 evidence builder에 의해 치환되면 안 된다."""
+    param = EvidenceParameterStatus(
+        parameter_ref="P_THRESHOLD",
+        resolved_value=None,
+        expected_value_hint="50,000,000",
+        requires_manual_numeric_verification=True,
+        display_allowed=False,
+    )
+    rules = [_make_rule("R_USER_AMT", "금액 검토", "partial_evidence", [param])]
+    ctx = _make_context(rules)
+
+    rr = RouterResult(
+        primary_intent="contract_review",
+        routing_decision="contract_review_flow",
+        slots=RouterSlots(buyer_name="테스트기관", amount=50000000, item_name="물품"),
+        secondary_intents=[],
+    )
+    out = route_answer(rr, evidence_context=ctx)
+
+    # 사용자 입력 추정가격은 보존
+    assert "50,000,000" in out.rendered_markdown
+    # evidence section에서 expected_value_hint가 출력되면 안 됨
+    # (hint가 evidence section content에 나올 경우 sanitize 된다)
+
+
+def test_expected_value_hint_never_in_evidence_section():
+    """expected_value_hint 값이 evidence section 본문에 직접 출력되면 안 된다."""
+    hints_to_test = ["5천만원", "1억원", "7.5점", "40%", "49%"]
+    for hint in hints_to_test:
+        param = EvidenceParameterStatus(
+            parameter_ref="P_HINT",
+            resolved_value=None,
+            expected_value_hint=hint,
+            requires_manual_numeric_verification=True,
+            display_allowed=False,
+        )
+        rules = [_make_rule("R_HINT_TEST", "힌트 검증", "partial_evidence", [param])]
+        ctx = _make_context(rules)
+
+        rr = RouterResult(
+            primary_intent="contract_review",
+            routing_decision="contract_review_flow",
+            slots=RouterSlots(item_name="LED"),
+            secondary_intents=[],
+        )
+        out = route_answer(rr, evidence_context=ctx)
+        # hint가 evidence section에 출력되면 안 됨
+        # (build_evidence_sections는 hint를 출력하지 않고,
+        # _sanitize_evidence_text가 혹시 남아있을 경우 치환)
+        # evidence section content에서만 검증
+        assert hint not in out.rendered_markdown, f"expected_value_hint '{hint}' leaked into output"
+
