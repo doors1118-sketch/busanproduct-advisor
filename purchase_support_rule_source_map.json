@@ -5,17 +5,22 @@
     "category": "direct_contract",
     "primary_source_ids": [],
     "related_source_ids": [],
-    "matched_query_terms": [],
+    "matched_query_terms": {
+      "original": [],
+      "expanded": []
+    },
     "unmatched_query_terms": [
-      "지방계약법 시행령 제25조",
       "국가계약법 시행령 제26조",
-      "소액수의계약"
+      "소액수의계약",
+      "지방계약법 시행령 제25조"
     ],
     "numeric_parameters": [
       {
         "parameter_ref": "P_GENERAL_SMALL_DIRECT_CONTRACT_THRESHOLD",
         "candidate_source_ids": [],
         "expected_value_hint": null,
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
         "parameter_status": "candidate_only"
       }
     ],
@@ -28,7 +33,10 @@
     "category": "direct_contract",
     "primary_source_ids": [],
     "related_source_ids": [],
-    "matched_query_terms": [],
+    "matched_query_terms": {
+      "original": [],
+      "expanded": []
+    },
     "unmatched_query_terms": [
       "금액 초과",
       "소액수의계약"
@@ -38,6 +46,8 @@
         "parameter_ref": "P_GENERAL_SMALL_DIRECT_CONTRACT_THRESHOLD",
         "candidate_source_ids": [],
         "expected_value_hint": null,
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
         "parameter_status": "candidate_only"
       }
     ],
@@ -58,14 +68,17 @@
       "04af1467-aac3-4c52-9b74-631b6deb0927"
     ],
     "related_source_ids": [],
-    "matched_query_terms": [
-      "수의계약"
-    ],
-    "unmatched_query_terms": [
-      "1인 견적"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "수의계약"
+      ],
+      "expanded": [
+        "수의계약"
+      ]
+    },
+    "unmatched_query_terms": [],
     "numeric_parameters": [],
-    "source_chain_status": "partial_mapped",
+    "source_chain_status": "mapped_candidate",
     "primary_source_details": [
       {
         "id": "5fe736da-cfe5-47d6-9cc5-9d99d75719e0",
@@ -118,14 +131,17 @@
       "04af1467-aac3-4c52-9b74-631b6deb0927"
     ],
     "related_source_ids": [],
-    "matched_query_terms": [
-      "수의계약"
-    ],
-    "unmatched_query_terms": [
-      "2인 이상 견적"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "수의계약"
+      ],
+      "expanded": [
+        "수의계약"
+      ]
+    },
+    "unmatched_query_terms": [],
     "numeric_parameters": [],
-    "source_chain_status": "partial_mapped",
+    "source_chain_status": "mapped_candidate",
     "primary_source_details": [
       {
         "id": "5fe736da-cfe5-47d6-9cc5-9d99d75719e0",
@@ -183,15 +199,18 @@
       "04af1467-aac3-4c52-9b74-631b6deb0927"
     ],
     "related_source_ids": [],
-    "matched_query_terms": [
-      "여성기업",
-      "장애인기업",
-      "특례",
-      "사회적기업"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "특례",
+        "여성기업",
+        "사회적기업",
+        "장애인기업"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [],
     "numeric_parameters": [],
-    "source_chain_status": "resolved",
+    "source_chain_status": "mapped_verified",
     "primary_source_details": [
       {
         "id": "3fdec1c1-0886-4258-87b0-f77fd90bc359",
@@ -268,11 +287,14 @@
       "fbda7cb3-6915-4e0e-999d-a07532f4f5d3",
       "7e5ce552-be23-4f0c-b7f4-3b7808322fe4"
     ],
-    "matched_query_terms": [
-      "혁신제품",
-      "기술개발제품",
-      "우수조달"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "우수조달",
+        "기술개발제품",
+        "혁신제품"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [
       "성능인증"
     ],
@@ -302,10 +324,13 @@
     "category": "regional_restriction",
     "primary_source_ids": [],
     "related_source_ids": [],
-    "matched_query_terms": [],
+    "matched_query_terms": {
+      "original": [],
+      "expanded": []
+    },
     "unmatched_query_terms": [
-      "지역제한",
       "제한경쟁",
+      "지역제한",
       "주된 영업소"
     ],
     "numeric_parameters": [],
@@ -318,10 +343,13 @@
     "category": "regional_restriction",
     "primary_source_ids": [],
     "related_source_ids": [],
-    "matched_query_terms": [],
+    "matched_query_terms": {
+      "original": [],
+      "expanded": []
+    },
     "unmatched_query_terms": [
-      "지역제한",
       "제한경쟁",
+      "지역제한",
       "주된 영업소"
     ],
     "numeric_parameters": [],
@@ -334,10 +362,13 @@
     "category": "regional_restriction",
     "primary_source_ids": [],
     "related_source_ids": [],
-    "matched_query_terms": [],
+    "matched_query_terms": {
+      "original": [],
+      "expanded": []
+    },
     "unmatched_query_terms": [
-      "지역제한",
       "제한경쟁",
+      "지역제한",
       "주된 영업소"
     ],
     "numeric_parameters": [],
@@ -350,10 +381,13 @@
     "category": "regional_restriction",
     "primary_source_ids": [],
     "related_source_ids": [],
-    "matched_query_terms": [],
+    "matched_query_terms": {
+      "original": [],
+      "expanded": []
+    },
     "unmatched_query_terms": [
-      "참가자격 제한",
-      "제한경쟁"
+      "제한경쟁",
+      "참가자격 제한"
     ],
     "numeric_parameters": [],
     "source_chain_status": "pending_resolution",
@@ -393,11 +427,14 @@
     "related_source_ids": [
       "c7a7cb3f-ec36-4b29-8a4e-4ed9e8fc5763"
     ],
-    "matched_query_terms": [
-      "종합평가",
-      "적격심사",
-      "낙찰자 결정기준"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "종합평가",
+        "적격심사",
+        "낙찰자 결정기준"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [
       "기술평가"
     ],
@@ -540,12 +577,15 @@
       "34ce45fb-5924-4e68-b9a1-b95782af2948"
     ],
     "related_source_ids": [],
-    "matched_query_terms": [
-      "공동계약"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "공동계약"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [
-      "지역의무공동도급",
-      "지방계약법"
+      "지방계약법",
+      "지역의무공동도급"
     ],
     "numeric_parameters": [
       {
@@ -555,6 +595,8 @@
           "34ce45fb-5924-4e68-b9a1-b95782af2948"
         ],
         "expected_value_hint": null,
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
         "parameter_status": "candidate_only"
       },
       {
@@ -564,6 +606,8 @@
           "34ce45fb-5924-4e68-b9a1-b95782af2948"
         ],
         "expected_value_hint": null,
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
         "parameter_status": "candidate_only"
       }
     ],
@@ -590,9 +634,12 @@
       "34ce45fb-5924-4e68-b9a1-b95782af2948"
     ],
     "related_source_ids": [],
-    "matched_query_terms": [
-      "공동계약"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "공동계약"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [
       "국가계약법",
       "지역의무공동도급"
@@ -605,6 +652,8 @@
           "34ce45fb-5924-4e68-b9a1-b95782af2948"
         ],
         "expected_value_hint": null,
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
         "parameter_status": "candidate_only"
       }
     ],
@@ -646,10 +695,13 @@
       "9928250d-c97a-427a-a086-dccbf34ad8c5",
       "7d7276f2-393d-4060-8623-916453c9eec7"
     ],
-    "matched_query_terms": [
-      "공공기관",
-      "공동계약"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "공공기관",
+        "공동계약"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [
       "내부규정"
     ],
@@ -741,13 +793,16 @@
       "46e79847-c9a8-4890-b6b4-3a239ad3d72d"
     ],
     "related_source_ids": [],
-    "matched_query_terms": [
-      "물품구매",
-      "공동계약"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "공동계약",
+        "물품구매"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [],
     "numeric_parameters": [],
-    "source_chain_status": "resolved",
+    "source_chain_status": "mapped_candidate",
     "primary_source_details": [
       {
         "id": "2ded3873-f12d-4516-b5e8-d6b995d2e85f",
@@ -793,13 +848,16 @@
       "c43d2b56-45aa-4b73-bdeb-c96200cc5be7"
     ],
     "related_source_ids": [],
-    "matched_query_terms": [
-      "일반용역",
-      "공동계약"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "일반용역",
+        "공동계약"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [],
     "numeric_parameters": [],
-    "source_chain_status": "resolved",
+    "source_chain_status": "mapped_candidate",
     "primary_source_details": [
       {
         "id": "2ded3873-f12d-4516-b5e8-d6b995d2e85f",
@@ -852,9 +910,12 @@
       "7e5ce552-be23-4f0c-b7f4-3b7808322fe4",
       "fbda7cb3-6915-4e0e-999d-a07532f4f5d3"
     ],
-    "matched_query_terms": [
-      "물품"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "물품"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [
       "지역업체 가점"
     ],
@@ -965,10 +1026,13 @@
       "20aae559-93dc-43c0-ad3f-63a7bf04e6df"
     ],
     "related_source_ids": [],
-    "matched_query_terms": [
-      "적격심사",
-      "제안서평가"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "적격심사",
+        "제안서평가"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [
       "지역업체 참여도"
     ],
@@ -1130,9 +1194,12 @@
       "8db21c63-e0ae-43d8-9b55-9091852951eb"
     ],
     "related_source_ids": [],
-    "matched_query_terms": [
-      "적격심사"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "적격심사"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [
       "지역업체 배점"
     ],
@@ -1257,12 +1324,16 @@
     "related_source_ids": [
       "7e5ce552-be23-4f0c-b7f4-3b7808322fe4"
     ],
-    "matched_query_terms": [
-      "다수공급자계약",
-      "2단계경쟁"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "2단계경쟁",
+        "다수공급자계약"
+      ],
+      "expanded": [
+        "다수공급자계약"
+      ]
+    },
     "unmatched_query_terms": [
-      "종합평가방식",
       "지역업체"
     ],
     "numeric_parameters": [
@@ -1273,6 +1344,8 @@
           "76b54c12-ed16-4b6c-b615-164db74f5692"
         ],
         "expected_value_hint": "7.5",
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
         "parameter_status": "candidate_only"
       }
     ],
@@ -1300,9 +1373,12 @@
     "related_source_ids": [
       "fbda7cb3-6915-4e0e-999d-a07532f4f5d3"
     ],
-    "matched_query_terms": [
-      "우선구매"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "우선구매"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [
       "조례",
       "지역상품"
@@ -1333,15 +1409,18 @@
     "related_source_ids": [
       "fbda7cb3-6915-4e0e-999d-a07532f4f5d3"
     ],
-    "matched_query_terms": [
-      "여성기업",
-      "장애인기업",
-      "우선구매",
-      "사회적기업"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "여성기업",
+        "우선구매",
+        "사회적기업",
+        "장애인기업"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [],
     "numeric_parameters": [],
-    "source_chain_status": "resolved",
+    "source_chain_status": "mapped_verified",
     "primary_source_details": [
       {
         "id": "3fdec1c1-0886-4258-87b0-f77fd90bc359",
@@ -1386,7 +1465,10 @@
     "category": "policy_company",
     "primary_source_ids": [],
     "related_source_ids": [],
-    "matched_query_terms": [],
+    "matched_query_terms": {
+      "original": [],
+      "expanded": []
+    },
     "unmatched_query_terms": [
       "사회적가치",
       "중증장애인생산품"
@@ -1405,9 +1487,12 @@
     "related_source_ids": [
       "7e5ce552-be23-4f0c-b7f4-3b7808322fe4"
     ],
-    "matched_query_terms": [
-      "종합쇼핑몰"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "종합쇼핑몰"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [
       "제3자단가계약",
       "MAS"
@@ -1428,10 +1513,13 @@
     "category": "shopping_mall",
     "primary_source_ids": [],
     "related_source_ids": [],
-    "matched_query_terms": [],
+    "matched_query_terms": {
+      "original": [],
+      "expanded": []
+    },
     "unmatched_query_terms": [
-      "제3자를 위한 단가계약",
-      "직접 납품요구"
+      "직접 납품요구",
+      "제3자를 위한 단가계약"
     ],
     "numeric_parameters": [],
     "source_chain_status": "pending_resolution",
@@ -1448,12 +1536,15 @@
     "related_source_ids": [
       "7e5ce552-be23-4f0c-b7f4-3b7808322fe4"
     ],
-    "matched_query_terms": [
-      "다수공급자계약"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "다수공급자계약"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [
-      "기준금액",
-      "일반제품"
+      "일반제품",
+      "기준금액"
     ],
     "numeric_parameters": [
       {
@@ -1463,6 +1554,8 @@
           "76b54c12-ed16-4b6c-b615-164db74f5692"
         ],
         "expected_value_hint": "50000000",
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
         "parameter_status": "candidate_only"
       }
     ],
@@ -1493,10 +1586,13 @@
       "7e5ce552-be23-4f0c-b7f4-3b7808322fe4",
       "fbda7cb3-6915-4e0e-999d-a07532f4f5d3"
     ],
-    "matched_query_terms": [
-      "중소기업자간 경쟁제품",
-      "다수공급자계약"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "중소기업자간 경쟁제품",
+        "다수공급자계약"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [
       "기준금액"
     ],
@@ -1509,6 +1605,8 @@
           "e34672de-21f2-4ead-8afd-39b2a0b9e604"
         ],
         "expected_value_hint": "100000000",
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
         "parameter_status": "candidate_only"
       }
     ],
@@ -1542,9 +1640,12 @@
     "related_source_ids": [
       "7e5ce552-be23-4f0c-b7f4-3b7808322fe4"
     ],
-    "matched_query_terms": [
-      "다수공급자계약"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "다수공급자계약"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [
       "중소기업 제조품목"
     ],
@@ -1556,6 +1657,8 @@
           "76b54c12-ed16-4b6c-b615-164db74f5692"
         ],
         "expected_value_hint": "50000000~100000000",
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
         "parameter_status": "candidate_only"
       },
       {
@@ -1565,6 +1668,8 @@
           "76b54c12-ed16-4b6c-b615-164db74f5692"
         ],
         "expected_value_hint": "50000000~100000000",
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
         "parameter_status": "candidate_only"
       }
     ],
@@ -1593,12 +1698,15 @@
     "related_source_ids": [
       "7e5ce552-be23-4f0c-b7f4-3b7808322fe4"
     ],
-    "matched_query_terms": [
-      "다수공급자계약"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "다수공급자계약"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [
-      "2단계경쟁 예외",
-      "직접 납품요구"
+      "직접 납품요구",
+      "2단계경쟁 예외"
     ],
     "numeric_parameters": [],
     "source_chain_status": "partial_mapped",
@@ -1626,12 +1734,16 @@
     "related_source_ids": [
       "7e5ce552-be23-4f0c-b7f4-3b7808322fe4"
     ],
-    "matched_query_terms": [
-      "다수공급자계약"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "다수공급자계약"
+      ],
+      "expanded": [
+        "다수공급자계약"
+      ]
+    },
     "unmatched_query_terms": [
-      "표준평가방식",
-      "종합평가방식"
+      "표준평가방식"
     ],
     "numeric_parameters": [],
     "source_chain_status": "partial_mapped",
@@ -1658,9 +1770,12 @@
     "related_source_ids": [
       "7e5ce552-be23-4f0c-b7f4-3b7808322fe4"
     ],
-    "matched_query_terms": [
-      "종합쇼핑몰"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "종합쇼핑몰"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [
       "지역업체 등록현황"
     ],
@@ -1684,9 +1799,12 @@
     "related_source_ids": [
       "fbda7cb3-6915-4e0e-999d-a07532f4f5d3"
     ],
-    "matched_query_terms": [
-      "중소기업자간 경쟁제품"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "중소기업자간 경쟁제품"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [
       "직접생산확인증명서"
     ],
@@ -1712,10 +1830,13 @@
       "fbda7cb3-6915-4e0e-999d-a07532f4f5d3",
       "7e5ce552-be23-4f0c-b7f4-3b7808322fe4"
     ],
-    "matched_query_terms": [
-      "혁신제품",
-      "기술개발제품"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "혁신제품",
+        "기술개발제품"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [
       "성능인증"
     ],
@@ -1740,7 +1861,10 @@
     "category": "candidate_lookup",
     "primary_source_ids": [],
     "related_source_ids": [],
-    "matched_query_terms": [],
+    "matched_query_terms": {
+      "original": [],
+      "expanded": []
+    },
     "unmatched_query_terms": [],
     "numeric_parameters": [],
     "source_chain_status": "company_api_mapping_required",
@@ -1752,7 +1876,10 @@
     "category": "candidate_lookup",
     "primary_source_ids": [],
     "related_source_ids": [],
-    "matched_query_terms": [],
+    "matched_query_terms": {
+      "original": [],
+      "expanded": []
+    },
     "unmatched_query_terms": [],
     "numeric_parameters": [],
     "source_chain_status": "company_api_mapping_required",
@@ -1764,7 +1891,10 @@
     "category": "candidate_lookup",
     "primary_source_ids": [],
     "related_source_ids": [],
-    "matched_query_terms": [],
+    "matched_query_terms": {
+      "original": [],
+      "expanded": []
+    },
     "unmatched_query_terms": [],
     "numeric_parameters": [],
     "source_chain_status": "company_api_mapping_required",
@@ -1780,10 +1910,13 @@
       "2aaf22e3-6105-4b7c-b710-7820095a4c8e"
     ],
     "related_source_ids": [],
-    "matched_query_terms": [
-      "지방계약",
-      "국가계약"
-    ],
+    "matched_query_terms": {
+      "original": [
+        "국가계약",
+        "지방계약"
+      ],
+      "expanded": []
+    },
     "unmatched_query_terms": [
       "공공기관운영법"
     ],

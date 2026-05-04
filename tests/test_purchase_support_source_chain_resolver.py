@@ -44,7 +44,22 @@ def test_numeric_parameters():
             for param in mapped_params:
                 assert "candidate_source_ids" in param
                 assert "parameter_ref" in param
+                assert param["resolved_value"] is None
+                assert param["requires_manual_numeric_verification"] is True
                 assert param["parameter_status"] in ("candidate_only", "pending_resolution")
+
+def test_status_enum():
+    mapping = load_map()
+    valid_statuses = {"mapped_verified", "mapped_candidate", "partial_mapped", "pending_resolution", "company_api_mapping_required"}
+    for rule_id, data in mapping.items():
+        assert data["source_chain_status"] in valid_statuses, f"Rule {rule_id} has invalid status {data['source_chain_status']}"
+
+def test_mapped_verified_constraint():
+    mapping = load_map()
+    for rule_id, data in mapping.items():
+        if data["source_chain_status"] == "mapped_verified":
+            has_verified = any(ps["status"] == "verified" for ps in data.get("primary_source_details", []))
+            assert has_verified, f"Rule {rule_id} is mapped_verified but has no verified sources"
 
 def test_company_api_lookup_rules():
     mapping = load_map()
