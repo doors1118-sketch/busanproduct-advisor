@@ -102,6 +102,26 @@ def test_gateway_triggers_and_enrichment():
         assert resp4.company_candidate_context.enrichment_applied is False
         assert resp4.company_candidate_context.enrichment_scope is None
 
+    # 5. "소프트웨어 중기경쟁 확인해줘" -> ambiguous
+    req5 = GatewayRequest(
+        request_id=str(uuid.uuid4()),
+        user_query="소프트웨어 중기경쟁 확인해줘",
+        slots=SlotValues(item_name="소프트웨어", location="부산", buyer_type=None, contract_object=None, amount=None, procurement_route=None, contract_method=None, detail_item_code=None, company_id=None)
+    )
+    resp5 = resolve_context(req5)
+    assert resp5.item_eligibility_result.resolver_status == "ambiguous"
+    
+    # 6. "부산 펌프 업체 추천해줘" -> enrichment_applied == True, enrichment_scope == "general"
+    req6 = GatewayRequest(
+        request_id=str(uuid.uuid4()),
+        user_query="부산 펌프 업체 추천해줘",
+        slots=SlotValues(item_name="펌프", location="부산", buyer_type=None, contract_object=None, amount=None, procurement_route=None, contract_method=None, detail_item_code=None, company_id=None)
+    )
+    resp6 = resolve_context(req6)
+    if resp6.company_candidate_context:
+        assert resp6.company_candidate_context.enrichment_applied is True
+        assert resp6.company_candidate_context.enrichment_scope == "general"
+
 def test_db_reader_mutation_block(tmp_path):
     # create dummy db
     db_file = tmp_path / "dummy.sqlite"
