@@ -51,9 +51,13 @@ class RuleEngineInput:
 | `slots.amount` | ❸ ❻ | 금액 기준 분기, 지역제한 금액 요건 |
 | `slots.procurement_route` | ❹ | 조달경로 분기 |
 | `slots.contract_method` | ❺ | 계약방식 분기 |
-| `slots.item_name` | ❽ | 품목 트리거 판정 |
-| `slots.detail_item_code` | ❽ | 세부품명 트리거 판정 |
+| `slots.item_name` | ❽ | Item Resolver 결과 해석 보조 |
+| `slots.detail_item_code` | ❽ | 세부품명 확정 여부 확인 보조 |
 | `slots.location` | ❻ | 지역제한 적용 범위 |
+
+> **[Item Eligibility 판정 원칙]**  
+> Item Eligibility 트리거 판정은 Gateway의 Item Resolver가 수행합니다.  
+> Rule Engine은 `item_eligibility_result.resolver_status`와 `context.trigger_grade`를 해석할 뿐, T1/T2/T3/T5를 재판정하지 않습니다.
 
 ### 2.2 필수 소비 필드 — gateway_response
 
@@ -69,7 +73,7 @@ class RuleEngineInput:
 | `metadata` | 전체 | 요약 정보 |
 | `error` | 전체 | 에러 시 fallback |
 
-### 2.2 조건부 소비 필드
+### 2.3 조건부 소비 필드
 
 | GatewayResponse 필드 | 소비 조건 | 용도 |
 |---------------------|----------|------|
@@ -77,7 +81,7 @@ class RuleEngineInput:
 | `item_eligibility_result.context.trigger_grade` | context ≠ null | Answer Builder 노출 수준 결정 |
 | `company_candidate_context` | ≠ null | 업체 후보 처리 |
 
-### 2.3 소비하지 않는 필드
+### 2.4 소비하지 않는 필드
 
 | GatewayResponse 필드 | Rule Engine | 사유 |
 |---------------------|:-:|------|
@@ -250,9 +254,14 @@ Answer Builder는 `DecisionContext` + `GatewayResponse`의 일부를 소비합�
 | 소스 | 필드 | 용도 |
 |------|------|------|
 | DecisionContext | 전체 | 판단 결과 기반 답변 생성 |
+| DecisionContext | `item_eligibility_grade` | 노출 수준 1차 결정 (우선 참조) |
 | GatewayResponse | `procedure_context` | 절차 안내 섹션 (judgment_eligible=false) |
 | GatewayResponse | `company_candidate_context` | 후보 업체 표 |
-| GatewayResponse | `item_eligibility_result.context.trigger_grade` | 노출 수준 결정 |
+| GatewayResponse | `item_eligibility_result.context` | 상세 상태 표시 (context ≠ null일 때만) |
+
+> **[trigger_grade 참조 원칙]**  
+> Answer Builder는 노출 수준 결정 시 `DecisionContext.item_eligibility_grade`를 **우선 사용**합니다.  
+> `GatewayResponse.item_eligibility_result.context`는 `context`가 `null`이 아닐 때만 세부 상태 표시에 활용하며, `not_triggered`나 `data_unavailable` 상태에서 `context.trigger_grade`를 직접 참조하지 않습니다.
 
 ### trigger_grade별 Answer Builder 동작
 
