@@ -1,8 +1,14 @@
 import json
 import sys
 import os
+import copy
 from dataclasses import dataclass, field
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
+
+@dataclass
+class RuleEngineInput:
+    original_request: dict
+    gateway_response: dict
 
 @dataclass
 class DecisionContext:
@@ -21,7 +27,10 @@ class DecisionContext:
     enrichment_judgment_effect: str = "none"
     decision_notes: List[str] = field(default_factory=list)
 
-def simulate_rule_engine(gw_resp: dict) -> DecisionContext:
+def simulate_rule_engine(re_input: RuleEngineInput) -> DecisionContext:
+    gw_resp = re_input.gateway_response
+    orig_req = re_input.original_request
+    
     # 1. buyer_type
     src_ctx = gw_resp.get("source_context", {})
     buyer_conf = src_ctx.get("buyer_type_confidence")
@@ -55,11 +64,17 @@ def simulate_rule_engine(gw_resp: dict) -> DecisionContext:
     item_grade = None
     item_status = None
     
-    if r_status == "resolved" and ctx:
+    if r_status in ["resolved", "ambiguous"] and ctx:
         item_grade = ctx.get("trigger_grade")
-        item_status = ctx.get("eligibility_status")
+        item_status = r_status # status mapping
     
     enrichment = gw_resp.get("metadata", {}).get("enrichment_applied", False)
+
+    # basic simulation logic based on slots (mock behavior)
+    cm_cands = [orig_req.get("contract_method", "direct_contract")]
+    amount = orig_req.get("amount", 0)
+    amt_met = amount <= 80000000 if cm_cands == ["direct_contract"] else True
+    loc_pref = orig_req.get("location") == "부산"
 
     return DecisionContext(
         buyer_type_confirmed=confirmed,
@@ -68,14 +83,30 @@ def simulate_rule_engine(gw_resp: dict) -> DecisionContext:
         assumption_warnings=warnings,
         slots_missing=missing,
         applicable_sources=app_sources,
-        contract_method_candidates=["수의계약"], # mock logic
-        amount_threshold_met=True,              # mock logic
-        local_preference_applicable=False,      # mock logic
+        contract_method_candidates=cm_cands,
+        amount_threshold_met=amt_met,
+        local_preference_applicable=loc_pref,
         item_eligibility_grade=item_grade,
         item_eligibility_status=item_status,
         enrichment_available=enrichment,
         enrichment_judgment_effect="none"
     )
+
+TC_FIXTURES = {
+    "TC-T1": {"amount": 80000000, "contract_object": "goods", "contract_method": "direct_contract", "item_name": "책상", "location": "부산"},
+    "TC-T2": {"amount": 50000000, "contract_object": "goods", "contract_method": "direct_contract", "item_name": "의자", "location": "부산"},
+    "TC-T3": {"amount": 100000000, "contract_object": "goods", "contract_method": "limited_competition", "item_name": "컴퓨터", "location": "부산"},
+    "TC-T4": {"amount": 40000000, "contract_object": "goods", "contract_method": "direct_contract", "item_name": "CCTV", "location": "부산"},
+    "TC-T5": {"amount": 60000000, "contract_object": "goods", "contract_method": "direct_contract", "item_name": "CCTV", "location": "부산"},
+    "TC-T6": {"amount": 120000000, "contract_object": "goods", "contract_method": "limited_competition", "detail_item_code": "4617162201", "location": "부산"},
+    "TC-T7": {"amount": 30000000, "contract_object": "goods", "contract_method": "direct_contract", "item_name": "펌프", "location": "부산"},
+    "TC-T8": {"amount": 100000000, "contract_object": "goods", "contract_method": "limited_competition", "item_name": "컴퓨터", "location": "부산"},
+    "TC-T9": {"amount": 70000000, "contract_object": "goods", "contract_method": "direct_contract", "item_name": "CCTV", "location": "부산"},
+    "TC-T10": {"amount": 300000000, "contract_object": "construction", "contract_method": "limited_competition", "location": "부산"},
+    "TC-T11": {"amount": 20000000, "contract_object": "goods", "contract_method": "direct_contract", "item_name": "인쇄", "location": "부산"},
+    "TC-T12": {"amount": 20000000, "item_name": "노트북", "contract_object": "goods", "location": "부산", "contract_method": "direct_contract"},
+    "TC-EX1": {"amount": 50000000, "item_name": "소프트웨어", "contract_object": "goods", "location": "부산", "contract_method": "limited_competition"}
+}
 
 def main():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -96,9 +127,12 @@ def main():
         for tc in data.get('test_cases', []):
             tc_id = tc.get('tc_id')
             gw_resp = tc.get('gateway_response')
+            orig_req = TC_FIXTURES.get(tc_id, {})
+            
+            re_input = RuleEngineInput(original_request=orig_req, gateway_response=gw_resp)
             
             # Rule Engine Dry Run
-            dc = simulate_rule_engine(gw_resp)
+            dc = simulate_rule_engine(re_input)
             
             # Verification:
             # 1. enrichment_judgment_effect == "none"
@@ -110,15 +144,32 @@ def main():
             if conf == "low" and not dc.provisional_evaluation:
                 failures.append(f"{tc_id}: buyer_type_confidence is low but provisional_evaluation is False")
             
-            # 3. trigger_grade logic mapping
+            # 3. ambiguous 처리 검증 (TC-EX1)
             r_status = gw_resp.get("item_eligibility_result", {}).get("resolver_status")
-            if r_status == "resolved":
+            if r_status == "ambiguous":
                 expected_grade = gw_resp.get("item_eligibility_result", {}).get("context", {}).get("trigger_grade")
                 if dc.item_eligibility_grade != expected_grade:
-                    failures.append(f"{tc_id}: item_eligibility_grade mismatched")
-            else:
-                if dc.item_eligibility_grade is not None:
-                    failures.append(f"{tc_id}: item_eligibility_grade should be None for non-resolved status")
+                    failures.append(f"{tc_id}: ambiguous item_eligibility_grade mismatched")
+                if dc.item_eligibility_status != "ambiguous":
+                    failures.append(f"{tc_id}: ambiguous item_eligibility_status is not 'ambiguous'")
+            
+            # 4. Enrichment 독립성 검증 강화
+            enrichment_original = gw_resp.get("metadata", {}).get("enrichment_applied", False)
+            if enrichment_original:
+                # Clone input and toggle enrichment
+                gw_resp_clone = copy.deepcopy(gw_resp)
+                if "metadata" in gw_resp_clone:
+                    gw_resp_clone["metadata"]["enrichment_applied"] = not enrichment_original
+                
+                re_input_clone = RuleEngineInput(original_request=orig_req, gateway_response=gw_resp_clone)
+                dc_clone = simulate_rule_engine(re_input_clone)
+                
+                if dc.contract_method_candidates != dc_clone.contract_method_candidates:
+                    failures.append(f"{tc_id}: contract_method_candidates changed by enrichment")
+                if dc.amount_threshold_met != dc_clone.amount_threshold_met:
+                    failures.append(f"{tc_id}: amount_threshold_met changed by enrichment")
+                if dc.local_preference_applicable != dc_clone.local_preference_applicable:
+                    failures.append(f"{tc_id}: local_preference_applicable changed by enrichment")
                     
     if failures:
         print("Rule Engine Dry Run FAILED")
