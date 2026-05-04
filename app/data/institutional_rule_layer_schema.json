@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Institutional Rule Layer Schema",
+  "description": "Schema for specific institutional internal rules, separated from the general legal master registry.",
+  "type": "object",
+  "properties": {
+    "rule_id": {
+      "type": "string",
+      "description": "Unique identifier for the institutional rule."
+    },
+    "institution_id": {
+      "type": "string",
+      "description": "Unique identifier for the institution (e.g., 'busan_metro_transit')."
+    },
+    "institution_name": {
+      "type": "string",
+      "description": "Full name of the institution."
+    },
+    "rule_name": {
+      "type": "string",
+      "description": "Official name of the internal rule (e.g., '계약사무처리규정')."
+    },
+    "base_jurisdiction": {
+      "type": "string",
+      "enum": [
+        "national_contract",
+        "local_contract",
+        "public_institution_contract"
+      ],
+      "description": "The primary master jurisdiction this institution falls back to."
+    },
+    "review_status": {
+      "type": "string",
+      "enum": [
+        "needs_review",
+        "verified",
+        "out_of_date"
+      ],
+      "default": "needs_review",
+      "description": "Verification status of the rule. Defaults to needs_review upon ingestion."
+    },
+    "active_for_rule": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this rule is active and can be referenced by the Rule Engine. False until verified."
+    },
+    "articles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "article_number": {
+            "type": "string"
+          },
+          "article_title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "rule_id",
+    "institution_id",
+    "institution_name",
+    "rule_name",
+    "base_jurisdiction",
+    "review_status",
+    "active_for_rule"
+  ]
+}

@@ -1,0 +1,42 @@
+[
+  {
+    "node_name": "정부 입찰ㆍ계약 집행기준",
+    "raw_cell_value": "(계약예규) 정부 입찰·계약 집행기준 [시행 2026. 4. 30.] [계약예규 제148호, 2026. 4. 1., 일부개정]",
+    "source_type": "admrul_regulation",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 17,
+    "col_no": 5,
+    "match_status": "already_collected",
+    "matched_seed_id": "gov_bid_execution"
+  },
+  {
+    "node_name": "국가종합전자조달시스템 종합쇼핑몰 운영규정",
+    "raw_cell_value": "국가종합전자조달시스템 종합쇼핑몰 운영규정 [시행 2025. 1. 6.] [고시 제2024-31호, 2024. 12. 26., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 207,
+    "col_no": 3,
+    "match_status": "already_collected",
+    "matched_seed_id": "shopping_mall_ops"
+  },
+  {
+    "node_name": "지방자치단체 입찰 및 계약집행기준",
+    "raw_cell_value": "지방자치단체 입찰 및 계약집행기준 [시행 2025. 7. 8.] [예규 제332호, 2025. 7. 7., 일부개정]",
+    "source_type": "admrul_regulation",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 6,
+    "col_no": 5,
+    "match_status": "already_collected",
+    "matched_seed_id": "local_bid_execution"
+  },
+  {
+    "node_name": "지방자치단체 입찰시 낙찰자 결정기준",
+    "raw_cell_value": "지방자치단체 입찰시 낙찰자 결정기준 [시행 2025. 12. 1.] [예규 제344호, 2025. 11. 24., 일부개정]",
+    "source_type": "admrul_regulation",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 13,
+    "col_no": 4,
+    "match_status": "already_collected",
+    "matched_seed_id": "local_bid_winner"
+  }
+]

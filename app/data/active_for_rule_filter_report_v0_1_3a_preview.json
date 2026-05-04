@@ -1,0 +1,9 @@
+{
+  "title": "Active For Rule Filter Preview (v0.1.3a Refinement)",
+  "baseline_active_true": 31,
+  "matched_patch_count": 51,
+  "already_active_in_patch": 4,
+  "net_new_active": 32,
+  "projected_active_true": 63,
+  "projected_active_for_procedure_only": 15
+}

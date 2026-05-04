@@ -1,0 +1,17 @@
+{
+  "run_at": "2026-05-04T11:09:58.760822+09:00",
+  "excel_files": [
+    "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls"
+  ],
+  "total_nodes": 297,
+  "total_relations": 293,
+  "already_collected": 4,
+  "missing_primary": 219,
+  "ambiguous_candidate": 9,
+  "out_of_scope": 4,
+  "newly_collected": 198,
+  "candidate_added": 19,
+  "failed": 11
+}

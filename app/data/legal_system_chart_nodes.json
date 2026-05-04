@@ -1,0 +1,2627 @@
+[
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률",
+    "raw_cell_value": "국가를 당사자로 하는 계약에 관한 법률 [시행 2026. 1. 2.] [법률 제21065호, 2025. 10. 1., 타법개정]",
+    "source_type": "law",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 2,
+    "col_no": 1,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률 시행령",
+    "raw_cell_value": "국가를 당사자로 하는 계약에 관한 법률 시행령 [시행 2026. 1. 2.] [대통령령 제35947호, 2025. 12. 30., 타법개정]",
+    "source_type": "law_decree",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 3,
+    "col_no": 2,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률 시행규칙",
+    "raw_cell_value": "국가를 당사자로 하는 계약에 관한 법률 시행규칙 [시행 2026. 1. 2.] [재정경제부령 제1호, 2026. 1. 2., 타법개정]",
+    "source_type": "law_rule",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 4,
+    "col_no": 3,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "건설공사 검사업무규정",
+    "raw_cell_value": "건설공사 검사업무규정 [시행 2021. 10. 1.] [훈령 제618호, 2021. 10. 1., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 6,
+    "col_no": 5,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "계약업무처리훈령",
+    "raw_cell_value": "계약업무처리훈령 [시행 2024. 10. 24.] [훈령 제2981호, 2024. 10. 24., 일부개정]",
+    "source_type": "admrul_instruction",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 7,
+    "col_no": 5,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가계약분쟁조정위원회 운영규정",
+    "raw_cell_value": "국가계약분쟁조정위원회 운영규정 [시행 2026. 1. 2.] [훈령 제63호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 8,
+    "col_no": 5,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국방전자조달시스템 관리규정",
+    "raw_cell_value": "국방전자조달시스템 관리규정 [시행 2023. 7. 3.] [훈령 제801호, 2023. 7. 3., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 9,
+    "col_no": 5,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국토지리정보원 용역사업 검사업무 규정",
+    "raw_cell_value": "국토지리정보원 용역사업 검사업무 규정 [시행 2021. 9. 30.] [예규 제174호, 2021. 9. 30., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 10,
+    "col_no": 5,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "소방청 계약업무에 관한 감독 및 검사 규칙",
+    "raw_cell_value": "소방청 계약업무에 관한 감독 및 검사 규칙 [시행 2018. 9. 5.] [예규 제19호, 2018. 9. 5., 제정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 11,
+    "col_no": 5,
+    "match_status": "out_of_scope"
+  },
+  {
+    "node_name": "조달원 등록정보 관리지침",
+    "raw_cell_value": "조달원 등록정보 관리지침 [시행 2025. 4. 16.] [예규 제983호, 2025. 4. 16., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 12,
+    "col_no": 5,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "해양경찰청 검사업무규칙",
+    "raw_cell_value": "해양경찰청 검사업무규칙 [시행 2021. 10. 12.] [예규 제77호, 2021. 10. 12., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 13,
+    "col_no": 5,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "공사입찰유의서",
+    "raw_cell_value": "(계약예규) 공사입찰유의서 [시행 2025. 12. 31.] [계약예규 제821호, 2025. 12. 31., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 14,
+    "col_no": 5,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "물품구매(제조)계약일반조건",
+    "raw_cell_value": "(계약예규) 물품구매(제조)계약일반조건 [시행 2026. 4. 30.] [계약예규 제146호, 2026. 4. 1., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 15,
+    "col_no": 5,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "예정가격 작성기준",
+    "raw_cell_value": "(계약예규) 예정가격 작성기준 [시행 2026. 1. 2.] [계약예규 제34호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 16,
+    "col_no": 5,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "정부 입찰ㆍ계약 집행기준",
+    "raw_cell_value": "(계약예규) 정부 입찰·계약 집행기준 [시행 2026. 4. 30.] [계약예규 제148호, 2026. 4. 1., 일부개정]",
+    "source_type": "admrul_regulation",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 17,
+    "col_no": 5,
+    "match_status": "already_collected",
+    "matched_seed_id": "gov_bid_execution"
+  },
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률 등의 재정경제부장관이 정하는 고시금액",
+    "raw_cell_value": "국가를 당사자로 하는 계약에 관한 법률 등의 재정경제부장관이 정하는 고시금액 [시행 2026. 1. 8.] [고시 제2026-439호, 2026. 1. 2., 일부개정]",
+    "source_type": "law",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 18,
+    "col_no": 5,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률 시행령 제39조 제1항 단서의 규정에 의한 정보처리장치의 지정에 관한 고시",
+    "raw_cell_value": "국가를 당사자로 하는 계약에 관한 법률 시행령 제39조 제1항 단서의 규정에 의한 정보처리장치의 지정에 관한 고시 [시행 2023. 4. 17.] [고시 제2023-16호, 202",
+    "source_type": "law_decree",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 19,
+    "col_no": 5,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률 시행령 제39조제1항 단서의 규정에 의한 정보처리장치의 지정에 관한 고시",
+    "raw_cell_value": "국가를 당사자로 하는 계약에 관한 법률 시행령 제39조제1항 단서의 규정에 의한 정보처리장치의 지정에 관한 고시 [시행 2025. 4. 16.] [고시 제2025-2호, 2025.",
+    "source_type": "law_decree",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 20,
+    "col_no": 5,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가종합전자조달시스템 입찰참가자격등록규정",
+    "raw_cell_value": "국가종합전자조달시스템 입찰참가자격등록규정 [시행 2026. 1. 23.] [고시 제2026-6호, 2026. 1. 23., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 21,
+    "col_no": 5,
+    "match_status": "ambiguous_candidate",
+    "similar_to": "국가종합전자조달시스템 종합쇼핑몰 운영규정"
+  },
+  {
+    "node_name": "외자입찰유의서",
+    "raw_cell_value": "외자입찰유의서 [시행 2023. 7. 1.] [지침 제10551호, 2023. 6. 29., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 22,
+    "col_no": 5,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "물품 적격심사기준에 관한 훈령",
+    "raw_cell_value": "(국방부) 물품 적격심사기준에 관한 훈령 [시행 2025. 4. 1.] [훈령 제3035호, 2025. 4. 1., 일부개정]",
+    "source_type": "admrul_instruction",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 24,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "일반용역 적격심사기준에 관한 훈령",
+    "raw_cell_value": "(국방부) 일반용역 적격심사기준에 관한 훈령 [시행 2025. 1. 1.] [훈령 제2992호, 2024. 12. 20., 일부개정]",
+    "source_type": "admrul_instruction",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 25,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "감가규정",
+    "raw_cell_value": "감가규정 [시행 2019. 10. 1.] [훈령 제1885호, 2019. 9. 25., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 26,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "건설기술진흥업무 운영규정",
+    "raw_cell_value": "건설기술진흥업무 운영규정 [시행 2025. 12. 29.] [훈령 제1918호, 2025. 12. 29., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 27,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준",
+    "raw_cell_value": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준 [시행 2023. 12. 28.] [훈령 제1690호, 2023. 12. 28., 일부개정]",
+    "source_type": "admrul_regulation",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 28,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "계약업무처리훈령",
+    "raw_cell_value": "계약업무처리훈령 [시행 2024. 10. 24.] [훈령 제2981호, 2024. 10. 24., 일부개정]",
+    "source_type": "admrul_instruction",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 29,
+    "col_no": 4
+  },
+  {
+    "node_name": "관세청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "raw_cell_value": "관세청 협상에 의한 계약 제안서 평가 업무처리 규정 [시행 2026. 4. 13.] [훈령 제2462호, 2026. 4. 10., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 30,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "교육부 계약심의위원회 운영 규정",
+    "raw_cell_value": "교육부 계약심의위원회 운영 규정 [시행 2025. 11. 7.] [훈령 제536호, 2025. 11. 7., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 31,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가계약분쟁조정위원회 운영규정",
+    "raw_cell_value": "국가계약분쟁조정위원회 운영규정 [시행 2026. 1. 2.] [훈령 제63호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 32,
+    "col_no": 4
+  },
+  {
+    "node_name": "국가기록원 계약심의위원회 운영지침",
+    "raw_cell_value": "국가기록원 계약심의위원회 운영지침 [시행 2020. 1. 13.] [훈령 제166호, 2020. 1. 13., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 33,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가데이터처 계약심의위원회 규정",
+    "raw_cell_value": "국가데이터처 계약심의위원회 규정 [시행 2025. 12. 5.] [훈령 제5호, 2025. 12. 5., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 34,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가보훈부 계약심의위원회 운영 규정",
+    "raw_cell_value": "국가보훈부 계약심의위원회 운영 규정 [시행 2025. 9. 16.] [훈령 제119호, 2025. 9. 16., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 35,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가보훈부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "raw_cell_value": "국가보훈부 협상에 의한 계약 제안서 평가 업무처리 규정 [시행 2026. 1. 28.] [훈령 제138호, 2026. 1. 28., 타법개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 36,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가유산청 계약심의위원회 운영 규정",
+    "raw_cell_value": "국가유산청 계약심의위원회 운영 규정 [시행 2024. 5. 17.] [훈령 제2호, 2024. 5. 17., 타법개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 37,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가인권위원회 계약심의위원회 운영 규정",
+    "raw_cell_value": "국가인권위원회 계약심의위원회 운영 규정 [시행 2025. 6. 25.] [훈령 제416호, 2025. 6. 25., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 38,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국민권익위원회 계약심의위원회 규정",
+    "raw_cell_value": "국민권익위원회 계약심의위원회 규정 [시행 2022. 2. 21.] [훈령 제280호, 2022. 2. 21., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 39,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국방부 건설엔지니어링 종합심사낙찰제 세부 심사기준에 관한 훈령",
+    "raw_cell_value": "국방부 건설엔지니어링 종합심사낙찰제 세부 심사기준에 관한 훈령 [시행 2026. 4. 23.] [훈령 제3158호, 2026. 4. 23., 일부개정]",
+    "source_type": "admrul_instruction",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 40,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국방부 계약심의위원회 운영 훈령",
+    "raw_cell_value": "국방부 계약심의위원회 운영 훈령 [시행 2024. 8. 19.] [훈령 제2961호, 2024. 8. 19., 제정]",
+    "source_type": "admrul_instruction",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 41,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국방부 공사계약 종합심사낙찰제 세부 심사기준에 관한 훈령",
+    "raw_cell_value": "국방부 공사계약 종합심사낙찰제 세부 심사기준에 관한 훈령 [시행 2025. 11. 10.] [훈령 제3103호, 2025. 11. 10., 일부개정]",
+    "source_type": "admrul_instruction",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 42,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국방전자조달시스템 관리규정",
+    "raw_cell_value": "국방전자조달시스템 관리규정 [시행 2023. 7. 3.] [훈령 제801호, 2023. 7. 3., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 43,
+    "col_no": 4
+  },
+  {
+    "node_name": "군수품조달관리규정",
+    "raw_cell_value": "군수품조달관리규정 [시행 2026. 4. 13.] [훈령 제964호, 2026. 4. 13., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 44,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "군시설공사 입찰참가자격 사전심사 세부운영기준에 관한 훈령",
+    "raw_cell_value": "군시설공사 입찰참가자격 사전심사 세부운영기준에 관한 훈령 [시행 2022. 8. 1.] [훈령 제2694호, 2022. 8. 1., 일부개정]",
+    "source_type": "admrul_instruction",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 45,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "군시설공사 적격심사기준에 관한 훈령",
+    "raw_cell_value": "군시설공사 적격심사기준에 관한 훈령 [시행 2026. 1. 19.] [훈령 제3126호, 2026. 1. 19., 일부개정]",
+    "source_type": "admrul_instruction",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 46,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "기술용역 적격심사 및 협상에 의한 낙찰자 결정기준",
+    "raw_cell_value": "기술용역 적격심사 및 협상에 의한 낙찰자 결정기준 [시행 2025. 11. 11.] [훈령 제4호, 2025. 11. 5., 일부개정]",
+    "source_type": "admrul_regulation",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 47,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "기술용역 적격심사기준에 관한 훈령",
+    "raw_cell_value": "기술용역 적격심사기준에 관한 훈령 [시행 2024. 12. 3.] [훈령 제2987호, 2024. 12. 3., 일부개정]",
+    "source_type": "admrul_instruction",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 48,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "기술용역적격심사 세부기준",
+    "raw_cell_value": "기술용역적격심사 세부기준 [시행 2007. 1. 1.] [훈령 제405호, 2007. 1. 1., 폐지제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 49,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "기획예산처 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "raw_cell_value": "기획예산처 협상에 의한 계약 제안서 평가 업무처리 규정 [시행 2026. 1. 2.] [훈령 제39호, 2026. 1. 2., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 50,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "농림축산식품부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "raw_cell_value": "농림축산식품부 협상에 의한 계약 제안서 평가 업무처리 규정 [시행 2026. 2. 9.] [훈령 제581호, 2026. 2. 9., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 51,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "대통령기록관 계약심의위원회 규정",
+    "raw_cell_value": "대통령기록관 계약심의위원회 규정 [시행 2021. 4. 28.] [훈령 제34호, 2021. 4. 28., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 52,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "방위사업청 계약심의위원회 운영 규정",
+    "raw_cell_value": "방위사업청 계약심의위원회 운영 규정 [시행 2025. 12. 12.] [훈령 제928호, 2025. 12. 12., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 53,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "법제처 계약심의위원회 운영 규정",
+    "raw_cell_value": "법제처 계약심의위원회 운영 규정 [시행 2024. 5. 30.] [훈령 제477호, 2024. 5. 30., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 54,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "병무청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "raw_cell_value": "병무청 협상에 의한 계약 제안서 평가 업무처리 규정 [시행 2025. 2. 13.] [훈령 제2128호, 2025. 2. 13., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 55,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "보건복지부 계약심의위원회 운영 규정",
+    "raw_cell_value": "보건복지부 계약심의위원회 운영 규정 [시행 2024. 5. 17.] [훈령 제242호, 2024. 4. 3., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 56,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "보건복지부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "raw_cell_value": "보건복지부 협상에 의한 계약 제안서 평가 업무처리 규정 [시행 2025. 1. 17.] [훈령 제275호, 2025. 1. 17., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 57,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "복수견적 업무처리규정",
+    "raw_cell_value": "복수견적 업무처리규정 [시행 2025. 8. 1.] [훈령 제2287호, 2025. 7. 28., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 58,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "성평등가족부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "raw_cell_value": "성평등가족부 협상에 의한 계약 제안서 평가 업무처리 규정 [시행 2025. 12. 1.] [훈령 제4호, 2025. 12. 1., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 59,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "세월호 선체조사위원회 협상에 의한 계약 제안서의 평가 업무처리 규정",
+    "raw_cell_value": "세월호 선체조사위원회 협상에 의한 계약 제안서의 평가 업무처리 규정 [시행 2017. 9. 25.] [훈령 제3호, 2017. 9. 25., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 60,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "식품의약품안전처 계약심의위원회 규정",
+    "raw_cell_value": "식품의약품안전처 계약심의위원회 규정 [시행 2021. 10. 22.] [훈령 제189호, 2021. 10. 22., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 61,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "우주항공청 계약심의위원회 운영규정",
+    "raw_cell_value": "우주항공청 계약심의위원회 운영규정 [시행 2026. 4. 21.] [훈령 제68호, 2026. 4. 21., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 62,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "인사혁신처 계약심의위원회 규정",
+    "raw_cell_value": "인사혁신처 계약심의위원회 규정 [시행 2023. 12. 11.] [훈령 제158호, 2023. 12. 11., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 63,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "재외공관 간이형 공사계약 종합심사낙찰제 세부심사기준",
+    "raw_cell_value": "재외공관 간이형 공사계약 종합심사낙찰제 세부심사기준 [시행 2025. 7. 21.] [훈령 제246호, 2025. 7. 21., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 64,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "재정경제부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "raw_cell_value": "재정경제부 협상에 의한 계약 제안서 평가 업무처리 규정 [시행 2026. 1. 2.] [훈령 제83호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 65,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "재정경제부 회계관계공무원 재정보증규정",
+    "raw_cell_value": "재정경제부 회계관계공무원 재정보증규정 [시행 2026. 1. 2.] [훈령 제27호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 66,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "전기공사 표준시장단가 관리규정",
+    "raw_cell_value": "전기공사 표준시장단가 관리규정 [시행 2025. 12. 15.] [훈령 제13호, 2025. 12. 15., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 67,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "정부청사관리본부 계약심의위원회 운영 규정",
+    "raw_cell_value": "정부청사관리본부 계약심의위원회 운영 규정 [시행 2024. 6. 19.] [훈령 제31호, 2024. 6. 19., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 68,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "제안서평가위원회 구성 및 운영에 관한 규정",
+    "raw_cell_value": "제안서평가위원회 구성 및 운영에 관한 규정 [시행 2017. 4. 17.] [훈령 제451호, 2017. 4. 17., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 69,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 공공주택 건설사업관리용역 종합심사낙찰제 세부심사기준",
+    "raw_cell_value": "조달청 공공주택 건설사업관리용역 종합심사낙찰제 세부심사기준 [시행 2026. 1. 23.] [훈령 제2339호, 2026. 1. 23., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 70,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 공공주택 공사계약 종합심사낙찰제 심사세부기준",
+    "raw_cell_value": "조달청 공공주택 공사계약 종합심사낙찰제 심사세부기준 [시행 2026. 3. 31.] [훈령 제2379호, 2026. 3. 31., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 71,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 공공주택 공사입찰특별유의서",
+    "raw_cell_value": "조달청 공공주택 공사입찰특별유의서 [시행 2026. 1. 23.] [훈령 제2337호, 2026. 1. 23., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 72,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 공공주택 입찰참가자격사전심사기준",
+    "raw_cell_value": "조달청 공공주택 입찰참가자격사전심사기준 [시행 2026. 3. 31.] [훈령 제2378호, 2026. 3. 31., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 73,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 공공주택 적격심사세부기준",
+    "raw_cell_value": "조달청 공공주택 적격심사세부기준 [시행 2026. 3. 31.] [훈령 제2380호, 2026. 3. 30., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 74,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 기술용역 계약업무 처리규정",
+    "raw_cell_value": "조달청 기술용역 계약업무 처리규정 [시행 2026. 1. 23.] [훈령 제2330호, 2026. 1. 23., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 75,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 시설분야 물가변동 사전검토 처리규정",
+    "raw_cell_value": "조달청 시설분야 물가변동 사전검토 처리규정 [시행 2026. 1. 23.] [훈령 제2331호, 2026. 1. 23., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 76,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 종합심사낙찰제 물량ㆍ시공계획 심사위원회 설치 및 운영규정",
+    "raw_cell_value": "조달청 종합심사낙찰제 물량·시공계획 심사위원회 설치 및 운영규정 [시행 2026. 1. 23.] [훈령 제2332호, 2026. 1. 23., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 77,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "종합낙찰제 세부운용기준",
+    "raw_cell_value": "종합낙찰제 세부운용기준 [시행 2022. 5. 1.] [훈령 제2042호, 2022. 4. 18., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 78,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "중소벤처기업부 계약심의위원회 규정",
+    "raw_cell_value": "중소벤처기업부 계약심의위원회 규정 [시행 2024. 9. 3.] [훈령 제172호, 2024. 9. 3., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 79,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "중앙선거관리위원회 계약심의위원회 운영 규정",
+    "raw_cell_value": "중앙선거관리위원회 계약심의위원회 운영 규정 [시행 2024. 1. 1.] [훈령 제530호, 2023. 12. 26., 타법개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 80,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "질병관리청 계약심의위원회 규정",
+    "raw_cell_value": "질병관리청 계약심의위원회 규정 [시행 2020. 11. 4.] [훈령 제17호, 2020. 11. 4., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 81,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "질병관리청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "raw_cell_value": "질병관리청 협상에 의한 계약 제안서 평가 업무처리 규정 [시행 2023. 6. 19.] [훈령 제59호, 2023. 6. 19., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 82,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "통일부 계약심의위원회 운영 규정",
+    "raw_cell_value": "통일부 계약심의위원회 운영 규정 [시행 2025. 11. 4.] [훈령 제726호, 2025. 11. 4., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 83,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "통일부 협상에 의한 계약 제안서평가 업무처리 규정",
+    "raw_cell_value": "통일부 협상에 의한 계약 제안서평가 업무처리 규정 [시행 2025. 10. 14.] [훈령 제724호, 2025. 10. 14., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 84,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "항만시설 등의 표준시장단가 및 설계실무요령 관리규정",
+    "raw_cell_value": "항만시설 등의 표준시장단가 및 설계실무요령 관리규정 [시행 2025. 6. 13.] [훈령 제799호, 2025. 6. 13., 전부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 85,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "해양경찰청 계약심의위원회 운영규칙",
+    "raw_cell_value": "해양경찰청 계약심의위원회 운영규칙 [시행 2023. 1. 25.] [훈령 제320호, 2023. 1. 25., 제정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 86,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "해양경찰청 협상에 의한 계약 제안서 평가 업무처리 규칙",
+    "raw_cell_value": "해양경찰청 협상에 의한 계약 제안서 평가 업무처리 규칙 [시행 2026. 1. 15.] [훈령 제477호, 2026. 1. 15., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 87,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "해양수산부 건설엔지니어링 종합심사낙찰제 세부심사기준",
+    "raw_cell_value": "해양수산부 건설엔지니어링 종합심사낙찰제 세부심사기준 [시행 2025. 3. 10.] [훈령 제787호, 2025. 3. 10., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 88,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "행정안전부 계약심의위원회 규정",
+    "raw_cell_value": "행정안전부 계약심의위원회 규정 [시행 2024. 9. 26.] [훈령 제363호, 2024. 9. 26., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 89,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "행정안전부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "raw_cell_value": "행정안전부 협상에 의한 계약 제안서 평가 업무처리 규정 [시행 2020. 8. 5.] [훈령 제154호, 2020. 8. 5., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 90,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "건설엔지니어링 종합심사낙찰제 심사기준",
+    "raw_cell_value": "(국토교통부) 건설엔지니어링 종합심사낙찰제 심사기준 [시행 2025. 6. 20.] [예규 제427호, 2025. 6. 20., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 91,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "용역적격심사기준",
+    "raw_cell_value": "(국토지리정보원) 용역적격심사기준 [시행 2024. 1. 1.] [예규 제194호, 2024. 1. 1., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 92,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "물품 적격심사 기준",
+    "raw_cell_value": "(방위사업청) 물품 적격심사 기준 [시행 2025. 9. 29.] [예규 제1005호, 2025. 9. 29., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 93,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "공정거래위원회 수의계약 운용지침",
+    "raw_cell_value": "공정거래위원회 수의계약 운용지침 [시행 2015. 5. 1.] [예규 제220호, 2015. 5. 1., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 94,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가계약 시범특례 운영 지침",
+    "raw_cell_value": "국가계약 시범특례 운영 지침 [시행 2026. 1. 2.] [예규 제107호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 95,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가유산수리 종합심사낙찰제 심사기준",
+    "raw_cell_value": "국가유산수리 종합심사낙찰제 심사기준 [시행 2026. 4. 6.] [예규 제28호, 2026. 4. 6., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 96,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가유산청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "raw_cell_value": "국가유산청 협상에 의한 계약 제안서 평가 업무처리 규정 [시행 2025. 10. 2.] [예규 제40호, 2025. 10. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 97,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가인권위원회 수의계약 운용ㆍ집행 지침",
+    "raw_cell_value": "국가인권위원회 수의계약 운용·집행 지침 [시행 2023. 1. 2.] [예규 제117호, 2022. 12. 30., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 98,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가인권위원회 협상에 의한 계약 제안서 평가 업무처리 지침",
+    "raw_cell_value": "국가인권위원회 협상에 의한 계약 제안서 평가 업무처리 지침 [시행 2023. 9. 20.] [예규 제119호, 2023. 9. 20., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 99,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국립과학수사연구원 계약심의위원회 운영 규정",
+    "raw_cell_value": "국립과학수사연구원 계약심의위원회 운영 규정 [시행 2025. 8. 18.] [예규 제570호, 2025. 8. 13., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 100,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국립나주병원 계약심의위원회 운영 규정",
+    "raw_cell_value": "국립나주병원 계약심의위원회 운영 규정 [시행 2024. 8. 5.] [예규 제429호, 2024. 8. 5., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 101,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국방전자조달시스템 이용에 관한 약관",
+    "raw_cell_value": "국방전자조달시스템 이용에 관한 약관 [시행 2025. 11. 14.] [예규 제1010호, 2025. 11. 14., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 102,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국방전자조달시스템 전자입찰 특별유의서",
+    "raw_cell_value": "국방전자조달시스템 전자입찰 특별유의서 [시행 2025. 11. 14.] [예규 제1011호, 2025. 11. 14., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 103,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국외조달 적격심사 기준",
+    "raw_cell_value": "국외조달 적격심사 기준 [시행 2023. 12. 15.] [예규 제888호, 2023. 12. 15., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 104,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국제운송 적격심사 기준",
+    "raw_cell_value": "국제운송 적격심사 기준 [시행 2025. 4. 16.] [예규 제981호, 2025. 4. 16., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 105,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "기성제도 운영지침",
+    "raw_cell_value": "기성제도 운영지침 [시행 2025. 4. 16.] [예규 제985호, 2025. 4. 16., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 106,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "방위력개선사업 협상에 의한 계약체결기준",
+    "raw_cell_value": "방위력개선사업 협상에 의한 계약체결기준 [시행 2026. 2. 2.] [예규 제1039호, 2026. 2. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 107,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "보훈ㆍ복지단체 수의계약업무 처리지침",
+    "raw_cell_value": "보훈·복지단체 수의계약업무 처리지침 [시행 2022. 12. 12.] [예규 제820호, 2022. 12. 12., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 108,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "산림청 산림사업 적격심사 세부기준",
+    "raw_cell_value": "산림청 산림사업 적격심사 세부기준 [시행 2025. 12. 1.] [예규 제728호, 2025. 12. 1., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 109,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "새만금개발청 협상에 의한 계약 제안서평가 세부기준",
+    "raw_cell_value": "새만금개발청 협상에 의한 계약 제안서평가 세부기준 [시행 2026. 1. 1.] [예규 제231호, 2025. 11. 27., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 110,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "소방청 계약심의위원회 규정",
+    "raw_cell_value": "소방청 계약심의위원회 규정 [시행 2023. 2. 3.] [예규 제75호, 2023. 2. 3., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 111,
+    "col_no": 4,
+    "match_status": "out_of_scope"
+  },
+  {
+    "node_name": "소방청 협상에 의한 계약 제안서 평가 세부기준",
+    "raw_cell_value": "소방청 협상에 의한 계약 제안서 평가 세부기준 [시행 2023. 12. 31.] [예규 제93호, 2023. 12. 31., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 112,
+    "col_no": 4,
+    "match_status": "out_of_scope"
+  },
+  {
+    "node_name": "역경매 업무처리지침",
+    "raw_cell_value": "역경매 업무처리지침 [시행 2021. 4. 1.] [예규 제711호, 2021. 4. 1., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 113,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "역경매입찰 특별유의서",
+    "raw_cell_value": "역경매입찰 특별유의서 [시행 2021. 4. 1.] [예규 제710호, 2021. 4. 1., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 114,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "용역 적격심사 기준",
+    "raw_cell_value": "용역 적격심사 기준 [시행 2025. 9. 29.] [예규 제1006호, 2025. 9. 29., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 115,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "우정사업조달센터 계약심의위원회 운영지침",
+    "raw_cell_value": "우정사업조달센터 계약심의위원회 운영지침 [시행 2025. 7. 1.] [예규 제60호, 2025. 7. 1., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 116,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "우정사업조달센터 보훈ㆍ복지단체와의 계약업무처리지침",
+    "raw_cell_value": "우정사업조달센터 보훈·복지단체와의 계약업무처리지침 [시행 2025. 2. 6.] [예규 제59호, 2025. 2. 6., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 117,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "우정사업조달센터 협상에 의한 계약 제안서 평가 업무처리 지침",
+    "raw_cell_value": "우정사업조달센터 협상에 의한 계약 제안서 평가 업무처리 지침 [시행 2024. 6. 24.] [예규 제55호, 2024. 6. 24., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 118,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "우편기계 유지보수 위탁용역에 관한 적격심사 지침",
+    "raw_cell_value": "우편기계 유지보수 위탁용역에 관한 적격심사 지침 [시행 2025. 9. 15.] [예규 제372호, 2025. 9. 15., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 119,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "일반용역적격심사 세부기준",
+    "raw_cell_value": "일반용역적격심사 세부기준 [시행 2007. 5. 28.] [예규 제406호, 2007. 5. 28., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 120,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "장비정비용역 적격심사 기준",
+    "raw_cell_value": "장비정비용역 적격심사 기준 [시행 2025. 9. 29.] [예규 제1007호, 2025. 9. 29., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 121,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "전투근무지원정 적격심사 기준",
+    "raw_cell_value": "전투근무지원정 적격심사 기준 [시행 2025. 4. 16.] [예규 제982호, 2025. 4. 16., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 122,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "진실ㆍ화해를위한과거사정리위원회 유해발굴사업 제안서 평가 업무처리 지침",
+    "raw_cell_value": "진실·화해를위한과거사정리위원회 유해발굴사업 제안서 평가 업무처리 지침 [시행 2025. 3. 10.] [예규 제3호, 2025. 3. 10., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 123,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "해양수산부 계약심의위원회 규정",
+    "raw_cell_value": "해양수산부 계약심의위원회 규정 [시행 2024. 6. 19.] [예규 제210호, 2024. 6. 19., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 124,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "해양수산부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "raw_cell_value": "해양수산부 협상에 의한 계약 제안서 평가 업무처리 규정 [시행 2024. 10. 31.] [예규 제218호, 2024. 10. 31., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 125,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "협상에 의한 계약 및 제안서평가 세부기준",
+    "raw_cell_value": "협상에 의한 계약 및 제안서평가 세부기준 [시행 2025. 7. 1.] [예규 제205호, 2025. 7. 1., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 126,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "협상에 의한 계약 제안서 평가위원회 구성 및 운영기준",
+    "raw_cell_value": "협상에 의한 계약 제안서 평가위원회 구성 및 운영기준 [시행 2020. 9. 18.] [예규 제159호, 2020. 9. 18., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 127,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "경쟁적대화에 의한 계약체결기준",
+    "raw_cell_value": "(계약예규) 경쟁적대화에 의한 계약체결기준 [시행 2026. 1. 2.] [계약예규 제28호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 128,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "공동계약운용요령",
+    "raw_cell_value": "(계약예규) 공동계약운용요령 [시행 2026. 1. 2.] [계약예규 제29호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 129,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "공사계약 종합심사낙찰제 심사기준",
+    "raw_cell_value": "(계약예규) 공사계약 종합심사낙찰제 심사기준 [시행 2026. 1. 2.] [계약예규 제30호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 130,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "공사계약일반조건",
+    "raw_cell_value": "(계약예규) 공사계약일반조건 [시행 2026. 4. 30.] [계약예규 제147호, 2026. 4. 1., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 131,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "공사입찰유의서",
+    "raw_cell_value": "(계약예규) 공사입찰유의서 [시행 2025. 12. 31.] [계약예규 제821호, 2025. 12. 31., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 132,
+    "col_no": 4
+  },
+  {
+    "node_name": "물품구매(제조)계약일반조건",
+    "raw_cell_value": "(계약예규) 물품구매(제조)계약일반조건 [시행 2026. 4. 30.] [계약예규 제146호, 2026. 4. 1., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 133,
+    "col_no": 4
+  },
+  {
+    "node_name": "물품구매(제조)입찰유의서",
+    "raw_cell_value": "(계약예규) 물품구매(제조)입찰유의서 [시행 2026. 1. 2.] [계약예규 제31호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 134,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "예정가격 작성기준",
+    "raw_cell_value": "(계약예규) 예정가격 작성기준 [시행 2026. 1. 2.] [계약예규 제34호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 135,
+    "col_no": 4
+  },
+  {
+    "node_name": "용역계약 종합심사낙찰제 심사기준",
+    "raw_cell_value": "(계약예규) 용역계약 종합심사낙찰제 심사기준 [시행 2026. 1. 2.] [계약예규 제33호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 136,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "용역계약일반조건",
+    "raw_cell_value": "(계약예규) 용역계약일반조건 [시행 2026. 4. 30.] [계약예규 제149호, 2026. 4. 1., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 137,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "용역입찰유의서",
+    "raw_cell_value": "(계약예규) 용역입찰유의서 [시행 2025. 12. 31.] [계약예규 제820호, 2025. 12. 31., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 138,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "일괄입찰 등에 의한 낙찰자 결정기준",
+    "raw_cell_value": "(계약예규) 일괄입찰 등에 의한 낙찰자 결정기준 [시행 2024. 7. 16.] [계약예규 제703호, 2024. 7. 16., 일부개정]",
+    "source_type": "admrul_regulation",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 139,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "입찰참가자격사전심사요령",
+    "raw_cell_value": "(계약예규) 입찰참가자격사전심사요령 [시행 2026. 1. 2.] [계약예규 제36호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 140,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "적격심사기준",
+    "raw_cell_value": "(계약예규) 적격심사기준 [시행 2026. 1. 2.] [계약예규 제37호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 141,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "정부 입찰ㆍ계약 집행기준",
+    "raw_cell_value": "(계약예규) 정부 입찰·계약 집행기준 [시행 2026. 4. 30.] [계약예규 제148호, 2026. 4. 1., 일부개정]",
+    "source_type": "admrul_regulation",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 142,
+    "col_no": 4
+  },
+  {
+    "node_name": "종합계약집행요령",
+    "raw_cell_value": "(계약예규) 종합계약집행요령 [시행 2026. 1. 2.] [계약예규 제39호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 143,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "협상에 의한 계약체결기준",
+    "raw_cell_value": "(계약예규) 협상에 의한 계약체결기준 [시행 2026. 1. 2.] [계약예규 제40호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 144,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "2017년도 「문화재수리 종합심사낙찰제 심사기준」 적용대상 문화재수리",
+    "raw_cell_value": "2017년도 「문화재수리 종합심사낙찰제 심사기준」 적용대상 문화재수리 [시행 2017. 2. 14.] [고시 제2017-22호, 2017. 2. 14., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 145,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "2017년도 「문화재수리 종합평가 낙찰자 결정기준」 적용대상 문화재수리(추가)",
+    "raw_cell_value": "2017년도 「문화재수리 종합평가 낙찰자 결정기준」 적용대상 문화재수리(추가) [시행 2017. 8. 14.] [고시 제2017-97호, 2017. 8. 14., 일부개정]",
+    "source_type": "admrul_regulation",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 146,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률 등의 재정경제부장관이 정하는 고시금액",
+    "raw_cell_value": "국가를 당사자로 하는 계약에 관한 법률 등의 재정경제부장관이 정하는 고시금액 [시행 2026. 1. 8.] [고시 제2026-439호, 2026. 1. 2., 일부개정]",
+    "source_type": "law",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 147,
+    "col_no": 4
+  },
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률 시행령 제39조 제1항 단서의 규정에 의한 정보처리장치의 지정에 관한 고시",
+    "raw_cell_value": "국가를 당사자로 하는 계약에 관한 법률 시행령 제39조 제1항 단서의 규정에 의한 정보처리장치의 지정에 관한 고시 [시행 2023. 4. 17.] [고시 제2023-16호, 202",
+    "source_type": "law_decree",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 148,
+    "col_no": 4
+  },
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률 시행령 제39조제1항 단서의 규정에 의한 정보처리장치의 지정에 관한 고시",
+    "raw_cell_value": "국가를 당사자로 하는 계약에 관한 법률 시행령 제39조제1항 단서의 규정에 의한 정보처리장치의 지정에 관한 고시 [시행 2025. 4. 16.] [고시 제2025-2호, 2025.",
+    "source_type": "law_decree",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 149,
+    "col_no": 4
+  },
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률 시행령 제72조제3항제2호에 따른 공동계약 대상사업",
+    "raw_cell_value": "국가를 당사자로 하는 계약에 관한 법률 시행령 제72조제3항제2호에 따른 공동계약 대상사업 [시행 2020. 7. 1.] [고시 제2020-20호, 2020. 6. 30., 일부개",
+    "source_type": "law_decree",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 150,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가유산수리 종합심사(종합평가) 적용대상 국가유산수리",
+    "raw_cell_value": "국가유산수리 종합심사(종합평가) 적용대상 국가유산수리 [시행 2025. 2. 5.] [고시 제2025-21호, 2025. 2. 5., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 151,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가종합전자조달시스템 전자복수견적 특별유의서",
+    "raw_cell_value": "국가종합전자조달시스템 전자복수견적 특별유의서 [시행 2022. 5. 1.] [고시 제2022-9호, 2022. 4. 18., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 152,
+    "col_no": 4,
+    "match_status": "ambiguous_candidate",
+    "similar_to": "국가종합전자조달시스템 종합쇼핑몰 운영규정"
+  },
+  {
+    "node_name": "국유재산법 제31조제2항의 규정에 의한 정보처리장치 지정에 관한 고시",
+    "raw_cell_value": "국유재산법 제31조제2항의 규정에 의한 정보처리장치 지정에 관한 고시 [시행 2026. 1. 2.] [고시 제2026-34호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 153,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "매장유산 조사용역 적격심사 세부기준",
+    "raw_cell_value": "매장유산 조사용역 적격심사 세부기준 [시행 2024. 5. 17.] [고시 제2024-6호, 2024. 5. 17., 타법개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 154,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "전력기술관리법운영요령",
+    "raw_cell_value": "전력기술관리법운영요령 [시행 2025. 12. 18.] [고시 제2025-61호, 2025. 12. 18., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 155,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "중소기업자간 경쟁제품 및 공사용자재 직접구매 대상 품목 지정 내역",
+    "raw_cell_value": "중소기업자간 경쟁제품 및 공사용자재 직접구매 대상 품목 지정 내역 [시행 2025. 8. 29.] [고시 제2025-96호, 2025. 8. 29., 폐지제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 156,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "품질보증조달물품 지정 및 관리규정",
+    "raw_cell_value": "품질보증조달물품 지정 및 관리규정 [시행 2025. 6. 20.] [고시 제2025-18호, 2025. 6. 20., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 157,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "혁신도전형 연구개발사업군의 지정 및 분류 기준 등에 관한 고시",
+    "raw_cell_value": "혁신도전형 연구개발사업군의 지정 및 분류 기준 등에 관한 고시 [시행 2025. 2. 3.] [고시 제2025-4호, 2025. 2. 3., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 158,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "2014년 하반기 항만공사 실적공사비 적용 공종 및 단가",
+    "raw_cell_value": "2014년 하반기 항만공사 실적공사비 적용 공종 및 단가 [시행 2014. 9. 22.] [공고 제2014-575호, 2014. 9. 22., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 159,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달물자 납품검사 면제 처리기준",
+    "raw_cell_value": "조달물자 납품검사 면제 처리기준 [시행 2026. 1. 1.] [공고 제2025-18호, 2025. 11. 13., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 160,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 공공주택 등급별 유자격자명부 등록 및 운용기준",
+    "raw_cell_value": "조달청 공공주택 등급별 유자격자명부 등록 및 운용기준 [시행 2024. 4. 1.] [공고 제2024-108호, 2024. 4. 1., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 161,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 일반용역 적격심사 세부기준",
+    "raw_cell_value": "조달청 일반용역 적격심사 세부기준 [시행 2026. 3. 1.] [공고 제2026-15호, 2026. 1. 8., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 162,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "경쟁촉진을 위한 공사의 수의계약사유 평가기준",
+    "raw_cell_value": "경쟁촉진을 위한 공사의 수의계약사유 평가기준 [시행 2026. 1. 26.] [지침 제393호, 2026. 1. 26., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 163,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "공사입찰특별유의서",
+    "raw_cell_value": "공사입찰특별유의서 [시행 2026. 2. 2.] [지침 제832호, 2026. 1. 29., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 164,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "기술용역 입찰 특별유의서",
+    "raw_cell_value": "기술용역 입찰 특별유의서 [시행 2026. 1. 26.] [지침 제654호, 2026. 1. 26., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 165,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "기술제안입찰 등에 의한 낙찰자 결정 세부기준",
+    "raw_cell_value": "기술제안입찰 등에 의한 낙찰자 결정 세부기준 [시행 2026. 2. 2.] [지침 제824호, 2026. 1. 29., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 166,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "보훈ㆍ복지단체와의 계약업무처리기준",
+    "raw_cell_value": "보훈·복지단체와의 계약업무처리기준 [시행 2026. 1. 1.] [지침 제7231호, 2025. 12. 23., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 167,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "소방방재청 수의계약 운용지침",
+    "raw_cell_value": "소방방재청 수의계약 운용지침 [시행 2007. 3. 27.] [지침 제2007-01호, 2007. 3. 27., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 168,
+    "col_no": 4,
+    "match_status": "out_of_scope"
+  },
+  {
+    "node_name": "외자입찰유의서",
+    "raw_cell_value": "외자입찰유의서 [시행 2023. 7. 1.] [지침 제10551호, 2023. 6. 29., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 169,
+    "col_no": 4
+  },
+  {
+    "node_name": "일괄입찰 등의 공사입찰특별유의서",
+    "raw_cell_value": "일괄입찰 등의 공사입찰특별유의서 [시행 2026. 2. 2.] [지침 제833호, 2026. 1. 29., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 170,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 건설엔지니어링 종합심사낙찰제 세부심사기준",
+    "raw_cell_value": "조달청 건설엔지니어링 종합심사낙찰제 세부심사기준 [시행 2026. 2. 1.] [지침 제654호, 2026. 1. 26., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 171,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 경쟁적 대화에 의한 계약체결 세부기준",
+    "raw_cell_value": "조달청 경쟁적 대화에 의한 계약체결 세부기준 [시행 2020. 4. 1.] [지침 제403호, 2020. 2. 24., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 172,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 공사계약 종합심사낙찰제 심사세부기준",
+    "raw_cell_value": "조달청 공사계약 종합심사낙찰제 심사세부기준 [시행 2026. 3. 31.] [지침 제1345호, 2026. 3. 30., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 173,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 군수품 구매 적격심사 세부기준",
+    "raw_cell_value": "조달청 군수품 구매 적격심사 세부기준 [시행 2026. 2. 2.] [지침 제1047호, 2026. 2. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 174,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 군수품 보훈ㆍ복지단체 수의계약업무 처리지침",
+    "raw_cell_value": "조달청 군수품 보훈·복지단체 수의계약업무 처리지침 [시행 2025. 10. 31.] [지침 제14039호, 2025. 10. 31., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 175,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 기술용역 적격심사 세부기준",
+    "raw_cell_value": "조달청 기술용역 적격심사 세부기준 [시행 2026. 1. 26.] [지침 제654호, 2026. 1. 26., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 176,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 물품구매적격심사 세부기준",
+    "raw_cell_value": "조달청 물품구매적격심사 세부기준 [시행 2026. 1. 26.] [지침 제524호, 2026. 1. 26., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 177,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 시설공사 실적에 의한 경쟁입찰 집행기준",
+    "raw_cell_value": "조달청 시설공사 실적에 의한 경쟁입찰 집행기준 [시행 2024. 9. 9.] [지침 제8147호, 2024. 9. 5., 폐지제정]",
+    "source_type": "admrul_regulation",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 178,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 시설공사 적격심사세부기준",
+    "raw_cell_value": "조달청 시설공사 적격심사세부기준 [시행 2026. 4. 30.] [지침 제3621호, 2026. 4. 23., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 179,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 일괄입찰 등에 의한 낙찰자 결정 세부기준",
+    "raw_cell_value": "조달청 일괄입찰 등에 의한 낙찰자 결정 세부기준 [시행 2024. 10. 2.] [지침 제8744호, 2024. 9. 30., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 180,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 입찰참가자격사전심사기준",
+    "raw_cell_value": "조달청 입찰참가자격사전심사기준 [시행 2026. 3. 31.] [지침 제2565호, 2026. 3. 30., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 181,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 협상에 의한 계약 제안서평가 세부기준",
+    "raw_cell_value": "조달청 협상에 의한 계약 제안서평가 세부기준 [시행 2026. 1. 26.] [지침 제379호, 2026. 1. 26., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 182,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "특정물품등의조달에관한국가를당사자로하는계약에관한법률시행령특례규정",
+    "raw_cell_value": "특정물품등의조달에관한국가를당사자로하는계약에관한법률시행령특례규정 [시행 2026. 1. 2.] [대통령령 제35947호, 2025. 12. 30., 타법개정]",
+    "source_type": "law_decree",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 183,
+    "col_no": 2,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "특정물품등의조달에관한국가를당사자로하는계약에관한법률시행특례규칙",
+    "raw_cell_value": "특정물품등의조달에관한국가를당사자로하는계약에관한법률시행특례규칙 [시행 2026. 1. 2.] [재정경제부령 제1호, 2026. 1. 2., 타법개정]",
+    "source_type": "law",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 184,
+    "col_no": 3,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률 등의 재정경제부장관이 정하는 고시금액",
+    "raw_cell_value": "국가를 당사자로 하는 계약에 관한 법률 등의 재정경제부장관이 정하는 고시금액 [시행 2026. 1. 8.] [고시 제2026-439호, 2026. 1. 2., 일부개정]",
+    "source_type": "law",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 186,
+    "col_no": 4
+  },
+  {
+    "node_name": "특정조달을 위한 국가를 당사자로 하는 계약에 관한 법률 시행령 특례규정",
+    "raw_cell_value": "특정조달을 위한 국가를 당사자로 하는 계약에 관한 법률 시행령 특례규정 [시행 2026. 1. 2.] [대통령령 제35947호, 2025. 12. 30., 타법개정]",
+    "source_type": "law_decree",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 187,
+    "col_no": 2,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "특정조달을 위한 국가를 당사자로 하는 계약에 관한 법률 시행 특례규칙",
+    "raw_cell_value": "특정조달을 위한 국가를 당사자로 하는 계약에 관한 법률 시행 특례규칙 [시행 2026. 1. 2.] [재정경제부령 제1호, 2026. 1. 2., 타법개정]",
+    "source_type": "law",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 188,
+    "col_no": 3,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "계약업무처리훈령",
+    "raw_cell_value": "계약업무처리훈령 [시행 2024. 10. 24.] [훈령 제2981호, 2024. 10. 24., 일부개정]",
+    "source_type": "admrul_instruction",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 190,
+    "col_no": 5
+  },
+  {
+    "node_name": "계약업무처리훈령",
+    "raw_cell_value": "계약업무처리훈령 [시행 2024. 10. 24.] [훈령 제2981호, 2024. 10. 24., 일부개정]",
+    "source_type": "admrul_instruction",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 192,
+    "col_no": 4
+  },
+  {
+    "node_name": "역경매 업무처리지침",
+    "raw_cell_value": "역경매 업무처리지침 [시행 2021. 4. 1.] [예규 제711호, 2021. 4. 1., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 193,
+    "col_no": 4
+  },
+  {
+    "node_name": "역경매입찰 특별유의서",
+    "raw_cell_value": "역경매입찰 특별유의서 [시행 2021. 4. 1.] [예규 제710호, 2021. 4. 1., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 194,
+    "col_no": 4
+  },
+  {
+    "node_name": "물품구매(제조)계약일반조건",
+    "raw_cell_value": "(계약예규) 물품구매(제조)계약일반조건 [시행 2026. 4. 30.] [계약예규 제146호, 2026. 4. 1., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 195,
+    "col_no": 4
+  },
+  {
+    "node_name": "국제입찰에 의하는 지방자치단체의 공사 및 물품ㆍ용역의 범위에 관한 고시",
+    "raw_cell_value": "국제입찰에 의하는 지방자치단체의 공사 및 물품·용역의 범위에 관한 고시 [시행 2025. 1. 1.] [고시 제2024-95호, 2024. 12. 13., 폐지제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 196,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "건설공사 시행ㆍ관리규정",
+    "raw_cell_value": "건설공사 시행·관리규정 [시행 2021. 10. 1.] [훈령 제617호, 2021. 10. 1., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 198,
+    "col_no": 3,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "계약업무처리훈령",
+    "raw_cell_value": "계약업무처리훈령 [시행 2024. 10. 24.] [훈령 제2981호, 2024. 10. 24., 일부개정]",
+    "source_type": "admrul_instruction",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 199,
+    "col_no": 3
+  },
+  {
+    "node_name": "국방전자조달시스템 관리규정",
+    "raw_cell_value": "국방전자조달시스템 관리규정 [시행 2023. 7. 3.] [훈령 제801호, 2023. 7. 3., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 200,
+    "col_no": 3
+  },
+  {
+    "node_name": "공정거래위원회 수의계약 운용지침",
+    "raw_cell_value": "공정거래위원회 수의계약 운용지침 [시행 2015. 5. 1.] [예규 제220호, 2015. 5. 1., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 201,
+    "col_no": 3
+  },
+  {
+    "node_name": "국가인권위원회 수의계약 운용ㆍ집행 지침",
+    "raw_cell_value": "국가인권위원회 수의계약 운용·집행 지침 [시행 2023. 1. 2.] [예규 제117호, 2022. 12. 30., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 202,
+    "col_no": 3
+  },
+  {
+    "node_name": "기성제도 운영지침",
+    "raw_cell_value": "기성제도 운영지침 [시행 2025. 4. 16.] [예규 제985호, 2025. 4. 16., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 203,
+    "col_no": 3
+  },
+  {
+    "node_name": "보훈ㆍ복지단체 수의계약업무 처리지침",
+    "raw_cell_value": "보훈·복지단체 수의계약업무 처리지침 [시행 2022. 12. 12.] [예규 제820호, 2022. 12. 12., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 204,
+    "col_no": 3
+  },
+  {
+    "node_name": "물품구매(제조)계약일반조건",
+    "raw_cell_value": "(계약예규) 물품구매(제조)계약일반조건 [시행 2026. 4. 30.] [계약예규 제146호, 2026. 4. 1., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 205,
+    "col_no": 3
+  },
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률 등의 재정경제부장관이 정하는 고시금액",
+    "raw_cell_value": "국가를 당사자로 하는 계약에 관한 법률 등의 재정경제부장관이 정하는 고시금액 [시행 2026. 1. 8.] [고시 제2026-439호, 2026. 1. 2., 일부개정]",
+    "source_type": "law",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 206,
+    "col_no": 3
+  },
+  {
+    "node_name": "국가종합전자조달시스템 종합쇼핑몰 운영규정",
+    "raw_cell_value": "국가종합전자조달시스템 종합쇼핑몰 운영규정 [시행 2025. 1. 6.] [고시 제2024-31호, 2024. 12. 26., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 207,
+    "col_no": 3,
+    "match_status": "already_collected",
+    "matched_seed_id": "shopping_mall_ops"
+  },
+  {
+    "node_name": "네트워크 장비 구축ㆍ운영사업 추가특수조건",
+    "raw_cell_value": "네트워크 장비 구축·운영사업 추가특수조건 [시행 2021. 6. 15.] [지침 제8258호, 2021. 6. 15., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 208,
+    "col_no": 3,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "소방방재청 수의계약 운용지침",
+    "raw_cell_value": "소방방재청 수의계약 운용지침 [시행 2007. 3. 27.] [지침 제2007-01호, 2007. 3. 27., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 209,
+    "col_no": 3
+  },
+  {
+    "node_name": "외자입찰유의서",
+    "raw_cell_value": "외자입찰유의서 [시행 2023. 7. 1.] [지침 제10551호, 2023. 6. 29., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 210,
+    "col_no": 3
+  },
+  {
+    "node_name": "▼ 관계법령 및 유사법령",
+    "raw_cell_value": "▼ 관계법령 및 유사법령",
+    "source_type": "admrul",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 212,
+    "col_no": 0,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가를 당사자로 하는 소송에 관한 법률",
+    "raw_cell_value": "국가를 당사자로 하는 소송에 관한 법률 [시행 2009. 1. 30.] [법률 제9359호, 2009. 1. 30., 타법개정]",
+    "source_type": "law",
+    "source_file": "법령체계도_국가를_당사자로_하는_계약에_관한_법률.xls",
+    "row_no": 213,
+    "col_no": 1,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "공공기관의 운영에 관한 법률",
+    "raw_cell_value": "공공기관의 운영에 관한 법률 [시행 2026. 1. 2.] [법률 제21065호, 2025. 10. 1., 타법개정]",
+    "source_type": "law",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 2,
+    "col_no": 1,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "공공기관의 운영에 관한 법률 시행령",
+    "raw_cell_value": "공공기관의 운영에 관한 법률 시행령 [시행 2026. 1. 2.] [대통령령 제35947호, 2025. 12. 30., 타법개정]",
+    "source_type": "law_decree",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 3,
+    "col_no": 2,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "공기업ㆍ준정부기관 사업 예비타당성조사 운용지침",
+    "raw_cell_value": "공기업·준정부기관 사업 예비타당성조사 운용지침 [시행 2026. 1. 8.] [훈령 제8호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 5,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "공공기관의 회계감사 및 결산감사에 관한 규칙",
+    "raw_cell_value": "공공기관의 회계감사 및 결산감사에 관한 규칙 [시행 2025. 12. 23.] [감사원규칙 제385호, 2025. 12. 23., 일부개정]",
+    "source_type": "law_rule",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 6,
+    "col_no": 2,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "공기업ㆍ준정부기관 계약사무규칙",
+    "raw_cell_value": "공기업ㆍ준정부기관 계약사무규칙 [시행 2026. 4. 20.] [재정경제부령 제28호, 2026. 4. 20., 일부개정]",
+    "source_type": "law_rule",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 7,
+    "col_no": 2,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "적격심사기준",
+    "raw_cell_value": "(계약예규) 적격심사기준 [시행 2026. 1. 2.] [계약예규 제37호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 9,
+    "col_no": 4
+  },
+  {
+    "node_name": "공공기관의 개발선정품 지정 및 운영에 관한 기준",
+    "raw_cell_value": "공공기관의 개발선정품 지정 및 운영에 관한 기준 [시행 2026. 1. 2.] [고시 제2026-51호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 10,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "공공기관이 자회사 등과 수의계약을 할 수 있는 고용 기준에 관한 고시",
+    "raw_cell_value": "공공기관이 자회사 등과 수의계약을 할 수 있는 고용 기준에 관한 고시 [시행 2023. 11. 10.] [고시 제2023-58호, 2023. 11. 10., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 11,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률 등의 재정경제부장관이 정하는 고시금액",
+    "raw_cell_value": "국가를 당사자로 하는 계약에 관한 법률 등의 재정경제부장관이 정하는 고시금액 [시행 2026. 1. 8.] [고시 제2026-439호, 2026. 1. 2., 일부개정]",
+    "source_type": "law",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 12,
+    "col_no": 4
+  },
+  {
+    "node_name": "공공기관 구매위탁 예외에 관한 처리지침",
+    "raw_cell_value": "공공기관 구매위탁 예외에 관한 처리지침 [시행 2020. 10. 1.] [지침 제5901호, 2020. 9. 29., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 13,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "공기업ㆍ준정부기관 회계사무규칙",
+    "raw_cell_value": "공기업ㆍ준정부기관 회계사무규칙 [시행 2026. 1. 2.] [재정경제부령 제1호, 2026. 1. 2., 타법개정]",
+    "source_type": "law_rule",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 14,
+    "col_no": 2,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "공기업ㆍ준정부기관 회계기준",
+    "raw_cell_value": "공기업·준정부기관 회계기준 [시행 2026. 1. 2.] [고시 제2026-5호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 16,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "공기업ㆍ준정부기관 총사업비관리지침",
+    "raw_cell_value": "공기업·준정부기관 총사업비관리지침 [시행 2026. 1. 8.] [훈령 제7호, 2026. 1. 2., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 18,
+    "col_no": 3,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "기타공공기관 계약사무 운영규정",
+    "raw_cell_value": "기타공공기관 계약사무 운영규정 [시행 2026. 4. 20.] [훈령 제152호, 2026. 4. 20., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 19,
+    "col_no": 3,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "문화체육관광부 소관 기타공공기관 등의 경영평가에 관한 규정",
+    "raw_cell_value": "문화체육관광부 소관 기타공공기관 등의 경영평가에 관한 규정 [시행 2024. 4. 1.] [훈령 제517호, 2024. 4. 1., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 20,
+    "col_no": 3,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "2020년 공공기관 지정 고시",
+    "raw_cell_value": "2020년 공공기관 지정 고시 [시행 2020. 2. 5.] [고시 제2020-2호, 2020. 2. 5., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 21,
+    "col_no": 3,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "공공기관 구분회계 운영 지침",
+    "raw_cell_value": "공공기관 구분회계 운영 지침 [시행 2015. 12. 29.] [고시 제2015-30호, 2015. 12. 29., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 22,
+    "col_no": 3,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률 등의 재정경제부장관이 정하는 고시금액",
+    "raw_cell_value": "국가를 당사자로 하는 계약에 관한 법률 등의 재정경제부장관이 정하는 고시금액 [시행 2026. 1. 8.] [고시 제2026-439호, 2026. 1. 2., 일부개정]",
+    "source_type": "law",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 23,
+    "col_no": 3
+  },
+  {
+    "node_name": "한국보건복지정보개발원 공공기관 변경지정",
+    "raw_cell_value": "한국보건복지정보개발원 공공기관 변경지정 [시행 2011. 5. 31.] [고시 제2011-11호, 2011. 5. 31., 제정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 24,
+    "col_no": 3,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "한국청소년활동진흥원 공공기관 변경지정",
+    "raw_cell_value": "한국청소년활동진흥원 공공기관 변경지정 [시행 2010. 10. 1.] [고시 제2010-25호, 2010. 10. 1., 제정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_공기업ㆍ준정부기관_계약사무규칙.xls",
+    "row_no": 25,
+    "col_no": 3,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "지방자치단체를 당사자로 하는 계약에 관한 법률",
+    "raw_cell_value": "지방자치단체를 당사자로 하는 계약에 관한 법률 [시행 2024. 2. 17.] [법률 제19634호, 2023. 8. 16., 타법개정]",
+    "source_type": "law",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 2,
+    "col_no": 1,
+    "match_status": "ambiguous_candidate",
+    "similar_to": "지방자치단체 입찰 및 계약집행기준"
+  },
+  {
+    "node_name": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령",
+    "raw_cell_value": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령 [시행 2026. 1. 2.] [대통령령 제35947호, 2025. 12. 30., 타법개정]",
+    "source_type": "law_decree",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 3,
+    "col_no": 2,
+    "match_status": "ambiguous_candidate",
+    "similar_to": "지방자치단체 입찰 및 계약집행기준"
+  },
+  {
+    "node_name": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행규칙",
+    "raw_cell_value": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행규칙 [시행 2026. 4. 24.] [행정안전부령 제620호, 2026. 4. 24., 일부개정]",
+    "source_type": "law_rule",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 4,
+    "col_no": 3,
+    "match_status": "ambiguous_candidate",
+    "similar_to": "지방자치단체 입찰 및 계약집행기준"
+  },
+  {
+    "node_name": "지방자치단체 입찰 및 계약집행기준",
+    "raw_cell_value": "지방자치단체 입찰 및 계약집행기준 [시행 2025. 7. 8.] [예규 제332호, 2025. 7. 7., 일부개정]",
+    "source_type": "admrul_regulation",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 6,
+    "col_no": 5,
+    "match_status": "already_collected",
+    "matched_seed_id": "local_bid_execution"
+  },
+  {
+    "node_name": "3D콘텐츠 등 제작관련 분리발주 기준",
+    "raw_cell_value": "3D콘텐츠 등 제작관련 분리발주 기준 [시행 2012. 1. 5.] [고시 제2012-3호, 2012. 1. 5., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 7,
+    "col_no": 5,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국제입찰에 의하는 지방자치단체의 공사 및 물품ㆍ용역의 범위에 관한 고시",
+    "raw_cell_value": "국제입찰에 의하는 지방자치단체의 공사 및 물품·용역의 범위에 관한 고시 [시행 2025. 1. 1.] [고시 제2024-95호, 2024. 12. 13., 폐지제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 8,
+    "col_no": 5
+  },
+  {
+    "node_name": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령 제6조의2 및 공유재산 및 물품 관리법 시행령 제13조, 제26조, 제78조에 따른 정보처리장치의 지정에 관한 고시",
+    "raw_cell_value": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령 제6조의2 및 공유재산 및 물품 관리법 시행령 제13조, 제26조, 제78조에 따른 정보처리장치의 지정에 관한 고시 [시행 2",
+    "source_type": "law_decree",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 9,
+    "col_no": 5,
+    "match_status": "ambiguous_candidate",
+    "similar_to": "지방자치단체 입찰 및 계약집행기준"
+  },
+  {
+    "node_name": "종합낙찰제 세부운용기준",
+    "raw_cell_value": "종합낙찰제 세부운용기준 [시행 2022. 5. 1.] [훈령 제2042호, 2022. 4. 18., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 11,
+    "col_no": 4
+  },
+  {
+    "node_name": "지방자치단체 입찰 및 계약집행기준",
+    "raw_cell_value": "지방자치단체 입찰 및 계약집행기준 [시행 2025. 7. 8.] [예규 제332호, 2025. 7. 7., 일부개정]",
+    "source_type": "admrul_regulation",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 12,
+    "col_no": 4
+  },
+  {
+    "node_name": "지방자치단체 입찰시 낙찰자 결정기준",
+    "raw_cell_value": "지방자치단체 입찰시 낙찰자 결정기준 [시행 2025. 12. 1.] [예규 제344호, 2025. 11. 24., 일부개정]",
+    "source_type": "admrul_regulation",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 13,
+    "col_no": 4,
+    "match_status": "already_collected",
+    "matched_seed_id": "local_bid_winner"
+  },
+  {
+    "node_name": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령 제6조의2에 따른 지정정보처리장치 관리ㆍ운영지침",
+    "raw_cell_value": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령 제6조의2에 따른 지정정보처리장치 관리·운영지침 [시행 2021. 2. 10.] [예규 제151호, 2021. 2. 10., ",
+    "source_type": "law_decree",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 14,
+    "col_no": 4,
+    "match_status": "ambiguous_candidate",
+    "similar_to": "지방자치단체 입찰 및 계약집행기준"
+  },
+  {
+    "node_name": "계약상대자의 통제범위를 벗어난 사유에 관한 고시",
+    "raw_cell_value": "계약상대자의 통제범위를 벗어난 사유에 관한 고시 [시행 2019. 6. 25.] [고시 제2019-54호, 2019. 6. 25., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 15,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률 등의 재정경제부장관이 정하는 고시금액",
+    "raw_cell_value": "국가를 당사자로 하는 계약에 관한 법률 등의 재정경제부장관이 정하는 고시금액 [시행 2026. 1. 8.] [고시 제2026-439호, 2026. 1. 2., 일부개정]",
+    "source_type": "law",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 16,
+    "col_no": 4
+  },
+  {
+    "node_name": "국가유산수리 종합심사(종합평가) 적용대상 국가유산수리",
+    "raw_cell_value": "국가유산수리 종합심사(종합평가) 적용대상 국가유산수리 [시행 2025. 2. 5.] [고시 제2025-21호, 2025. 2. 5., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 17,
+    "col_no": 4
+  },
+  {
+    "node_name": "국제입찰에 의하는 지방자치단체의 공사 및 물품ㆍ용역의 범위에 관한 고시",
+    "raw_cell_value": "국제입찰에 의하는 지방자치단체의 공사 및 물품·용역의 범위에 관한 고시 [시행 2025. 1. 1.] [고시 제2024-95호, 2024. 12. 13., 폐지제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 18,
+    "col_no": 4
+  },
+  {
+    "node_name": "수요기관 자체조달 물품ㆍ용역에 대한 납품검사 대행 기준",
+    "raw_cell_value": "수요기관 자체조달 물품·용역에 대한 납품검사 대행 기준 [시행 2023. 7. 1.] [고시 제2023-23호, 2023. 6. 29., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 19,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달물자 품질점검 업무규정",
+    "raw_cell_value": "조달물자 품질점검 업무규정 [시행 2026. 4. 6.] [고시 제2026-27호, 2026. 4. 3., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 20,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달물자의 하자처리 등 사후관리에 관한 규정",
+    "raw_cell_value": "조달물자의 하자처리 등 사후관리에 관한 규정 [시행 2023. 11. 27.] [고시 제2023-385호, 2023. 11. 23., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 21,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 제조물품 직접생산확인 기준",
+    "raw_cell_value": "조달청 제조물품 직접생산확인 기준 [시행 2024. 2. 1.] [고시 제2023-420호, 2023. 12. 15., 전부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 22,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "중소기업자간 경쟁제품 및 공사용자재 직접구매 대상 품목 지정 내역",
+    "raw_cell_value": "중소기업자간 경쟁제품 및 공사용자재 직접구매 대상 품목 지정 내역 [시행 2025. 8. 29.] [고시 제2025-96호, 2025. 8. 29., 폐지제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 23,
+    "col_no": 4
+  },
+  {
+    "node_name": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령 제25조 및 제30조에 따른 기업 및 조합의 취약계층 고용비율에 관한 고시",
+    "raw_cell_value": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령 제25조 및 제30조에 따른 기업 및 조합의 취약계층 고용비율에 관한 고시 [시행 2018. 7. 24.] [고시 제2018-",
+    "source_type": "law_decree",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 24,
+    "col_no": 4,
+    "match_status": "ambiguous_candidate",
+    "similar_to": "지방자치단체 입찰 및 계약집행기준"
+  },
+  {
+    "node_name": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령 제6조의2 및 공유재산 및 물품 관리법 시행령 제13조, 제26조, 제78조에 따른 정보처리장치의 지정에 관한 고시",
+    "raw_cell_value": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령 제6조의2 및 공유재산 및 물품 관리법 시행령 제13조, 제26조, 제78조에 따른 정보처리장치의 지정에 관한 고시 [시행 2",
+    "source_type": "law_decree",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 25,
+    "col_no": 4
+  },
+  {
+    "node_name": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령의 수의계약 등 한시적 특례 적용기간에 관한 고시",
+    "raw_cell_value": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령의 수의계약 등 한시적 특례 적용기간에 관한 고시 [시행 2026. 1. 1.] [고시 제2025-72호, 2025. 12. 2",
+    "source_type": "law_decree",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 26,
+    "col_no": 4,
+    "match_status": "ambiguous_candidate",
+    "similar_to": "지방자치단체 입찰 및 계약집행기준"
+  },
+  {
+    "node_name": "품질보증조달물품 지정 및 관리규정",
+    "raw_cell_value": "품질보증조달물품 지정 및 관리규정 [시행 2025. 6. 20.] [고시 제2025-18호, 2025. 6. 20., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 27,
+    "col_no": 4
+  },
+  {
+    "node_name": "물품구매계약 품질관리 특수조건",
+    "raw_cell_value": "물품구매계약 품질관리 특수조건 [시행 2026. 3. 16.] [지침 제1635호, 2026. 3. 16., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 28,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "산불진화용 항공기 임대서비스 품질관리 특수조건",
+    "raw_cell_value": "산불진화용 항공기 임대서비스 품질관리 특수조건 [시행 2025. 9. 15.] [지침 제4258호, 2025. 8. 28., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 29,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "수학여행ㆍ수련활동ㆍ체험활동 서비스 품질관리 특수조건",
+    "raw_cell_value": "수학여행·수련활동·체험활동 서비스 품질관리 특수조건 [시행 2025. 9. 15.] [지침 제4259호, 2025. 8. 28., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 30,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "자동차 임대서비스 품질관리 특수조건",
+    "raw_cell_value": "자동차 임대서비스 품질관리 특수조건 [시행 2025. 9. 15.] [지침 제4260호, 2025. 8. 28., 일부개정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 31,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "조달청 경쟁적 대화에 의한 계약체결 세부기준",
+    "raw_cell_value": "조달청 경쟁적 대화에 의한 계약체결 세부기준 [시행 2020. 4. 1.] [지침 제403호, 2020. 2. 24., 제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 32,
+    "col_no": 4
+  },
+  {
+    "node_name": "자치법규",
+    "raw_cell_value": "자치법규",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 33,
+    "col_no": 3,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시 강서구 계약심의위원회의 구성ㆍ운영 및 주민참여감독대상공사 범위 등에 관한 조례",
+    "raw_cell_value": "부산광역시 강서구 계약심의위원회의 구성·운영 및 주민참여감독대상공사 범위 등에 관한 조례 [시행 2017. 3. 31.] [조례 제995호, 2017. 3. 31., 일부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 34,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시 계약심의위원회 및 주민참여감독대상공사 등에 관한 조례",
+    "raw_cell_value": "부산광역시 계약심의위원회 및 주민참여감독대상공사 등에 관한 조례 [시행 2024. 8. 7.] [조례 제7363호, 2024. 8. 7., 일부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 35,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시 금정구 계약심의위원회의 구성ㆍ운영 및 주민참여감독대상공사 등에 관한 조례",
+    "raw_cell_value": "부산광역시 금정구 계약심의위원회의 구성·운영 및 주민참여감독대상공사 등에 관한 조례 [시행 2017. 5. 8.] [조례 제1209호, 2017. 5. 8., 일부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 36,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시 기장군 계약심의위원회의 구성.운영 및 주민참여 감독대상 공사범위 등에 관한 조례",
+    "raw_cell_value": "부산광역시 기장군 계약심의위원회의 구성.운영 및 주민참여 감독대상 공사범위 등에 관한 조례 [시행 2017. 4. 3.] [조례 제940호, 2017. 4. 3., 전부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 37,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시 남구 계약심의위원회의 구성ㆍ운영 및 주민참여 감독대상 공사 범위 등에 관한 조례",
+    "raw_cell_value": "부산광역시 남구 계약심의위원회의 구성·운영 및 주민참여 감독대상 공사 범위 등에 관한 조례 [시행 2020. 2. 10.] [조례 제1306호, 2020. 2. 10., 일부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 38,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시 동구 계약심의위원회 구성ㆍ운영 및 주민참여감독자 실비 지급기준에 관한 조례",
+    "raw_cell_value": "부산광역시 동구 계약심의위원회 구성·운영 및 주민참여감독자 실비 지급기준에 관한 조례 [시행 2017. 8. 3.] [조례 제1087호, 2017. 8. 3., 전부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 39,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시 부산진구 계약심의위원회의 구성ㆍ운영 및 주민참여감독대상공사 범위 등에 관한 조례",
+    "raw_cell_value": "부산광역시 부산진구 계약심의위원회의 구성·운영 및 주민참여감독대상공사 범위 등에 관한 조례 [시행 2018. 6. 5.] [조례 제1215호, 2018. 6. 5., 일부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 40,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시 북구 계약심의위원회의 구성ㆍ운영 등에 관한 조례",
+    "raw_cell_value": "부산광역시 북구 계약심의위원회의 구성·운영 등에 관한 조례 [시행 2025. 1. 31.] [조례 제1747호, 2025. 1. 31., 일부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 41,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시 북구 주민참여감독자 운영에 관한 조례",
+    "raw_cell_value": "부산광역시 북구 주민참여감독자 운영에 관한 조례 [시행 2025. 1. 31.] [조례 제1747호, 2025. 1. 31., 제정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 42,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시 사상구 계약심의위원회 구성ㆍ운영 등에 관한 조례",
+    "raw_cell_value": "부산광역시 사상구 계약심의위원회 구성·운영 등에 관한 조례 [시행 2017. 3. 23.] [조례 제839호, 2017. 3. 23., 일부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 43,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시 사하구 계약심의위원회 및 주민참여감독 대상공사 등에 관한 조례",
+    "raw_cell_value": "부산광역시 사하구 계약심의위원회 및 주민참여감독 대상공사 등에 관한 조례 [시행 2016. 12. 23.] [조례 제1102호, 2016. 12. 23., 전부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 44,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시 서구 계약심의위원회의 구성ㆍ운영 및 주민참여 감독 등에 관한 조례",
+    "raw_cell_value": "부산광역시 서구 계약심의위원회의 구성ㆍ운영 및 주민참여 감독 등에 관한 조례[제명개정 2016.12.27] [시행 2016. 12. 27.] [조례 제1098호, 2016. 12.",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 45,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시 수영구 계약심의위원회 및 주민참여감독자의 실비 지급 기준 등에 관한 조례",
+    "raw_cell_value": "부산광역시 수영구 계약심의위원회 및 주민참여감독자의 실비 지급 기준 등에 관한 조례 [시행 2022. 8. 1.] [조례 제1134호, 2022. 8. 1., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 46,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시 연제구 계약심의위원회의 구성ㆍ운영 및 주민참여 감독대상 공사 범위에 관한 조례",
+    "raw_cell_value": "부산광역시 연제구 계약심의위원회의 구성·운영 및 주민참여 감독대상 공사 범위에 관한 조례 [시행 2023. 8. 10.] [조례 제1172호, 2023. 8. 10., 일부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 47,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시 영도구 계약심의위원회의 구성ㆍ운영 및 주민참여 감독대상 공사 범위 등에 관한 조례",
+    "raw_cell_value": "부산광역시 영도구 계약심의위원회의 구성·운영 및 주민참여 감독대상 공사 범위 등에 관한 조례 [시행 2022. 11. 4.] [조례 제1542호, 2022. 11. 4., 일부개정",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 48,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시 중구 계약심의위원회의 구성ㆍ운영 및 주민참여감독자 실비 지급 등에 관한 조례",
+    "raw_cell_value": "부산광역시 중구 계약심의위원회의 구성ㆍ운영 및 주민참여감독자 실비 지급 등에 관한 조례 [시행 2023. 6. 30.] [조례 제1407호, 2023. 6. 30., 일부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 49,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시 해운대구 계약심의위원회의 구성ㆍ운영 및 주민참여 감독대상공사 범위 등에 관한 조례",
+    "raw_cell_value": "부산광역시 해운대구 계약심의위원회의 구성·운영 및 주민참여 감독대상공사 범위 등에 관한 조례 [시행 2021. 12. 15.] [조례 제1536호, 2021. 12. 15., 전부",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 50,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시교육청 계약심의위원회 구성 및 운영에 관한 조례",
+    "raw_cell_value": "부산광역시교육청 계약심의위원회 구성 및 운영에 관한 조례 [시행 2017. 7. 19.] [조례 제5613호, 2017. 7. 19., 타법개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 51,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시동래구 계약심의위원회 구성 및 운영에 관한 조례",
+    "raw_cell_value": "부산광역시동래구 계약심의위원회 구성 및 운영에 관한 조례 [시행 2024. 5. 17.] [조례 제1695호, 2024. 5. 17., 전부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 52,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "부산광역시동래구 주민참여감독자 운영에 관한 조례",
+    "raw_cell_value": "부산광역시동래구 주민참여감독자 운영에 관한 조례 [시행 2024. 5. 17.] [조례 제1696호, 2024. 5. 17., 제정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 53,
+    "col_no": 4,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "지방자치단체 입찰 및 계약집행기준",
+    "raw_cell_value": "지방자치단체 입찰 및 계약집행기준 [시행 2025. 7. 8.] [예규 제332호, 2025. 7. 7., 일부개정]",
+    "source_type": "admrul_regulation",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 55,
+    "col_no": 3
+  },
+  {
+    "node_name": "국제입찰에 의하는 지방자치단체의 공사 및 물품ㆍ용역의 범위에 관한 고시",
+    "raw_cell_value": "국제입찰에 의하는 지방자치단체의 공사 및 물품·용역의 범위에 관한 고시 [시행 2025. 1. 1.] [고시 제2024-95호, 2024. 12. 13., 폐지제정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 56,
+    "col_no": 3
+  },
+  {
+    "node_name": "지방계약 전문기관 지정",
+    "raw_cell_value": "지방계약 전문기관 지정 [시행 2019. 5. 29.] [고시 제2019-45호, 2019. 5. 23., 제정]",
+    "source_type": "admrul",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 57,
+    "col_no": 3,
+    "match_status": "missing_primary"
+  },
+  {
+    "node_name": "자치법규",
+    "raw_cell_value": "자치법규",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 58,
+    "col_no": 2
+  },
+  {
+    "node_name": "부산광역시 강서구 계약심의위원회의 구성ㆍ운영 및 주민참여감독대상공사 범위 등에 관한 조례",
+    "raw_cell_value": "부산광역시 강서구 계약심의위원회의 구성·운영 및 주민참여감독대상공사 범위 등에 관한 조례 [시행 2017. 3. 31.] [조례 제995호, 2017. 3. 31., 일부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 59,
+    "col_no": 3
+  },
+  {
+    "node_name": "부산광역시 계약심의위원회 및 주민참여감독대상공사 등에 관한 조례",
+    "raw_cell_value": "부산광역시 계약심의위원회 및 주민참여감독대상공사 등에 관한 조례 [시행 2024. 8. 7.] [조례 제7363호, 2024. 8. 7., 일부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 60,
+    "col_no": 3
+  },
+  {
+    "node_name": "부산광역시 금정구 계약심의위원회의 구성ㆍ운영 및 주민참여감독대상공사 등에 관한 조례",
+    "raw_cell_value": "부산광역시 금정구 계약심의위원회의 구성·운영 및 주민참여감독대상공사 등에 관한 조례 [시행 2017. 5. 8.] [조례 제1209호, 2017. 5. 8., 일부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 61,
+    "col_no": 3
+  },
+  {
+    "node_name": "부산광역시 기장군 계약심의위원회의 구성.운영 및 주민참여 감독대상 공사범위 등에 관한 조례",
+    "raw_cell_value": "부산광역시 기장군 계약심의위원회의 구성.운영 및 주민참여 감독대상 공사범위 등에 관한 조례 [시행 2017. 4. 3.] [조례 제940호, 2017. 4. 3., 전부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 62,
+    "col_no": 3
+  },
+  {
+    "node_name": "부산광역시 남구 계약심의위원회의 구성ㆍ운영 및 주민참여 감독대상 공사 범위 등에 관한 조례",
+    "raw_cell_value": "부산광역시 남구 계약심의위원회의 구성·운영 및 주민참여 감독대상 공사 범위 등에 관한 조례 [시행 2020. 2. 10.] [조례 제1306호, 2020. 2. 10., 일부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 63,
+    "col_no": 3
+  },
+  {
+    "node_name": "부산광역시 동구 계약심의위원회 구성ㆍ운영 및 주민참여감독자 실비 지급기준에 관한 조례",
+    "raw_cell_value": "부산광역시 동구 계약심의위원회 구성·운영 및 주민참여감독자 실비 지급기준에 관한 조례 [시행 2017. 8. 3.] [조례 제1087호, 2017. 8. 3., 전부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 64,
+    "col_no": 3
+  },
+  {
+    "node_name": "부산광역시 부산진구 계약심의위원회의 구성ㆍ운영 및 주민참여감독대상공사 범위 등에 관한 조례",
+    "raw_cell_value": "부산광역시 부산진구 계약심의위원회의 구성·운영 및 주민참여감독대상공사 범위 등에 관한 조례 [시행 2018. 6. 5.] [조례 제1215호, 2018. 6. 5., 일부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 65,
+    "col_no": 3
+  },
+  {
+    "node_name": "부산광역시 북구 계약심의위원회의 구성ㆍ운영 등에 관한 조례",
+    "raw_cell_value": "부산광역시 북구 계약심의위원회의 구성·운영 등에 관한 조례 [시행 2025. 1. 31.] [조례 제1747호, 2025. 1. 31., 일부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 66,
+    "col_no": 3
+  },
+  {
+    "node_name": "부산광역시 사상구 계약심의위원회 구성ㆍ운영 등에 관한 조례",
+    "raw_cell_value": "부산광역시 사상구 계약심의위원회 구성·운영 등에 관한 조례 [시행 2017. 3. 23.] [조례 제839호, 2017. 3. 23., 일부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 67,
+    "col_no": 3
+  },
+  {
+    "node_name": "부산광역시 사하구 계약심의위원회 및 주민참여감독 대상공사 등에 관한 조례",
+    "raw_cell_value": "부산광역시 사하구 계약심의위원회 및 주민참여감독 대상공사 등에 관한 조례 [시행 2016. 12. 23.] [조례 제1102호, 2016. 12. 23., 전부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 68,
+    "col_no": 3
+  },
+  {
+    "node_name": "부산광역시 서구 계약심의위원회의 구성ㆍ운영 및 주민참여 감독 등에 관한 조례",
+    "raw_cell_value": "부산광역시 서구 계약심의위원회의 구성ㆍ운영 및 주민참여 감독 등에 관한 조례[제명개정 2016.12.27] [시행 2016. 12. 27.] [조례 제1098호, 2016. 12.",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 69,
+    "col_no": 3
+  },
+  {
+    "node_name": "부산광역시 수영구 계약심의위원회 및 주민참여감독자의 실비 지급 기준 등에 관한 조례",
+    "raw_cell_value": "부산광역시 수영구 계약심의위원회 및 주민참여감독자의 실비 지급 기준 등에 관한 조례 [시행 2022. 8. 1.] [조례 제1134호, 2022. 8. 1., 일부개정]",
+    "source_type": "admrul_notice",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 70,
+    "col_no": 3
+  },
+  {
+    "node_name": "부산광역시 연제구 계약심의위원회의 구성ㆍ운영 및 주민참여 감독대상 공사 범위에 관한 조례",
+    "raw_cell_value": "부산광역시 연제구 계약심의위원회의 구성·운영 및 주민참여 감독대상 공사 범위에 관한 조례 [시행 2023. 8. 10.] [조례 제1172호, 2023. 8. 10., 일부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 71,
+    "col_no": 3
+  },
+  {
+    "node_name": "부산광역시 영도구 계약심의위원회의 구성ㆍ운영 및 주민참여 감독대상 공사 범위 등에 관한 조례",
+    "raw_cell_value": "부산광역시 영도구 계약심의위원회의 구성·운영 및 주민참여 감독대상 공사 범위 등에 관한 조례 [시행 2022. 11. 4.] [조례 제1542호, 2022. 11. 4., 일부개정",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 72,
+    "col_no": 3
+  },
+  {
+    "node_name": "부산광역시 중구 계약심의위원회의 구성ㆍ운영 및 주민참여감독자 실비 지급 등에 관한 조례",
+    "raw_cell_value": "부산광역시 중구 계약심의위원회의 구성ㆍ운영 및 주민참여감독자 실비 지급 등에 관한 조례 [시행 2023. 6. 30.] [조례 제1407호, 2023. 6. 30., 일부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 73,
+    "col_no": 3
+  },
+  {
+    "node_name": "부산광역시 해운대구 계약심의위원회의 구성ㆍ운영 및 주민참여 감독대상공사 범위 등에 관한 조례",
+    "raw_cell_value": "부산광역시 해운대구 계약심의위원회의 구성·운영 및 주민참여 감독대상공사 범위 등에 관한 조례 [시행 2021. 12. 15.] [조례 제1536호, 2021. 12. 15., 전부",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 74,
+    "col_no": 3
+  },
+  {
+    "node_name": "부산광역시교육청 계약심의위원회 구성 및 운영에 관한 조례",
+    "raw_cell_value": "부산광역시교육청 계약심의위원회 구성 및 운영에 관한 조례 [시행 2017. 7. 19.] [조례 제5613호, 2017. 7. 19., 타법개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 75,
+    "col_no": 3
+  },
+  {
+    "node_name": "부산광역시동래구 계약심의위원회 구성 및 운영에 관한 조례",
+    "raw_cell_value": "부산광역시동래구 계약심의위원회 구성 및 운영에 관한 조례 [시행 2024. 5. 17.] [조례 제1695호, 2024. 5. 17., 전부개정]",
+    "source_type": "ordinance",
+    "source_file": "법령체계도_지방자치단체를_당사자로_하는_계약에_관한_법률_시행규칙.xls",
+    "row_no": 76,
+    "col_no": 3
+  }
+]

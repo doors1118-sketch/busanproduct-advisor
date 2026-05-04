@@ -1,0 +1,42 @@
+{
+  "title": "Direct Production Requirement Import Report",
+  "import_date": "2026-05-04T15:56:55.478717",
+  "mode": "dry_run",
+  "summary": {
+    "new": 2,
+    "updated": 0,
+    "needs_review": 0
+  },
+  "details": {
+    "new": [
+      {
+        "detail_item_code": "4617162201",
+        "detail_item_name": "영상감시장치",
+        "direct_production_required": true,
+        "required_facility_summary": "조립 공정 및 검사 설비 보유 필수",
+        "required_process_summary": "PCB 조립, 렌즈 조립, 기능검사",
+        "standard_article_ref": "제3조",
+        "effective_from": "2024-01-01",
+        "effective_to": "2026-12-31",
+        "requirement_id": "req_2e606011",
+        "version_hash": "9c5633bc104a5b66",
+        "review_status": "verified"
+      },
+      {
+        "detail_item_code": "4016020801",
+        "detail_item_name": "데스크톱컴퓨터",
+        "direct_production_required": true,
+        "required_facility_summary": "조립라인, 검사장비 보유",
+        "required_process_summary": "본체 조립, OS 설치, 기능검사",
+        "standard_article_ref": "제4조",
+        "effective_from": "2024-01-01",
+        "effective_to": "2026-12-31",
+        "requirement_id": "req_363b76d8",
+        "version_hash": "883f983835de8d8e",
+        "review_status": "verified"
+      }
+    ],
+    "updated": [],
+    "needs_review": []
+  }
+}

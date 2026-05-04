@@ -1,0 +1,66 @@
+{
+  "title": "None Target Reason Report v0.1.2",
+  "total_none_targets": 5,
+  "items": [
+    {
+      "source_id": "c7a7cb3f-ec36-4b29-8a4e-4ed9e8fc5763",
+      "normalized_title": "지방자치단체 입찰 및 계약집행기준",
+      "source_type": "pdf_manual",
+      "review_status": "verified",
+      "update_priority": "monthly",
+      "none_reason": "pdf_manual_no_api_available",
+      "manual_review_required": false,
+      "recommended_update_action": "metadata_watch_via_official_url_weekly",
+      "metadata_watch_enabled": true,
+      "official_url": "https://www.law.go.kr/행정규칙/%EC%A7%80%EB%B0%A9%EC%9E%90%EC%B9%98%EB%8B%A8%EC%B2%B4%20%EC%9E%85%EC%B0%B0%20%EB%B0%8F%20%EA%B3%84%EC%95%BD%EC%A7%91%ED%96%89%EA%B8%B0%EC%A4%80"
+    },
+    {
+      "source_id": "234d9d61-0d1f-441c-ab51-5afdba652a14",
+      "normalized_title": "지방자치단체 입찰시 낙찰자 결정기준",
+      "source_type": "pdf_manual",
+      "review_status": "verified",
+      "update_priority": "monthly",
+      "none_reason": "pdf_manual_no_api_available",
+      "manual_review_required": false,
+      "recommended_update_action": "metadata_watch_via_official_url_weekly",
+      "metadata_watch_enabled": true,
+      "official_url": "https://www.law.go.kr/행정규칙/%EC%A7%80%EB%B0%A9%EC%9E%90%EC%B9%98%EB%8B%A8%EC%B2%B4%20%EC%9E%85%EC%B0%B0%EC%8B%9C%20%EB%82%99%EC%B0%B0%EC%9E%90%20%EA%B2%B0%EC%A0%95%EA%B8%B0%EC%A4%80"
+    },
+    {
+      "source_id": "283972be-df69-4d6b-988a-164f22324a36",
+      "normalized_title": "계약내용과 상이한 물품의 반송 또는 수출 신고수리에 관한 예규",
+      "source_type": "admrul",
+      "review_status": "wrong_match",
+      "update_priority": "disabled",
+      "none_reason": "wrong_match_excluded",
+      "manual_review_required": true,
+      "recommended_update_action": "manual_review_required",
+      "metadata_watch_enabled": false,
+      "official_url": "https://www.law.go.kr/행정규칙/%EA%B3%84%EC%95%BD%EB%82%B4%EC%9A%A9%EA%B3%BC%20%EC%83%81%EC%9D%B4%ED%95%9C%20%EB%AC%BC%ED%92%88%EC%9D%98%20%EB%B0%98%EC%86%A1%20%EB%98%90%EB%8A%94%20%EC%88%98%EC%B6%9C%20%EC%8B%A0%EA%B3%A0%EC%88%98%EB%A6%AC%EC%97%90%20%EA%B4%80%ED%95%9C%20%EC%98%88%EA%B7%9C"
+    },
+    {
+      "source_id": "156ba894-6d53-47a5-b4d6-193b1aa3614c",
+      "normalized_title": "부산광역시 지역상품 우선구매 관련 조례",
+      "source_type": "skip_api",
+      "review_status": "needs_manual_source",
+      "update_priority": "disabled",
+      "none_reason": "needs_manual_source_excluded",
+      "manual_review_required": true,
+      "recommended_update_action": "manual_review_required",
+      "metadata_watch_enabled": false,
+      "official_url": "https://www.law.go.kr/자치법규/%EB%B6%80%EC%82%B0%EA%B4%91%EC%97%AD%EC%8B%9C%20%EC%A7%80%EC%97%AD%EC%83%81%ED%92%88%20%EC%9A%B0%EC%84%A0%EA%B5%AC%EB%A7%A4%20%EA%B4%80%EB%A0%A8%20%EC%A1%B0%EB%A1%80"
+    },
+    {
+      "source_id": "604dc7b6-ea64-4a67-b58b-296359fd6762",
+      "normalized_title": "부산광역시 지역업체ㆍ지역상품 우대 관련 자치법규",
+      "source_type": "skip_api",
+      "review_status": "needs_manual_source",
+      "update_priority": "disabled",
+      "none_reason": "needs_manual_source_excluded",
+      "manual_review_required": true,
+      "recommended_update_action": "manual_review_required",
+      "metadata_watch_enabled": false,
+      "official_url": "https://www.law.go.kr/행정규칙/%EB%B6%80%EC%82%B0%EA%B4%91%EC%97%AD%EC%8B%9C%20%EC%A7%80%EC%97%AD%EC%97%85%EC%B2%B4%C2%B7%EC%A7%80%EC%97%AD%EC%83%81%ED%92%88%20%EC%9A%B0%EB%8C%80%20%EA%B4%80%EB%A0%A8%20%EC%9E%90%EC%B9%98%EB%B2%95%EA%B7%9C"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "pipeline_run_date": "2026-05-04T15:15:35.613529",
+  "step_1_lightweight_check": {
+    "check_date": "2026-05-04",
+    "total_checked": 78,
+    "results": {
+      "changed": [
+        {
+          "source_id": "src_1",
+          "title": "지방자치단체 입찰 및 계약집행기준",
+          "reason": "full_text_hash mismatch"
+        }
+      ],
+      "unchanged": 77,
+      "failed": 0,
+      "manual_required": 0
+    }
+  },
+  "step_2_diff_and_classification": [
+    {
+      "source_id": "src_1",
+      "source_title": "지방자치단체 입찰 및 계약집행기준",
+      "impact_level": "high",
+      "requires_interpretation_review": true,
+      "recommended_action": "fail_closed_until_review"
+    }
+  ],
+  "step_3_review_queue_routing": [
+    {
+      "queue_id": "q_src_1_20260504",
+      "source_title": "지방자치단체 입찰 및 계약집행기준",
+      "status": "pending_review",
+      "active_for_rule_policy": "hold_answers_temporarily"
+    }
+  ]
+}

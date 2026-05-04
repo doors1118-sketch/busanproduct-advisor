@@ -1,0 +1,8 @@
+[
+  {
+    "source": "public_institution_contract",
+    "target": "national_contract",
+    "relation_type": "fallback_reference_to_national_contract",
+    "application_condition": "계약사무규칙에 규정되지 아니한 사항"
+  }
+]

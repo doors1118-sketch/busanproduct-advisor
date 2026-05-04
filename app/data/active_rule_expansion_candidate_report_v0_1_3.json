@@ -1,0 +1,1028 @@
+[
+  {
+    "title": "지방자치단체 입찰 및 계약집행기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "core_common",
+    "required_slots": [
+      "buyer_type",
+      "contract_method",
+      "contract_object"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for core_common"
+  },
+  {
+    "title": "지방자치단체 입찰시 낙찰자 결정기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "core_common",
+    "required_slots": [
+      "buyer_type",
+      "contract_method",
+      "contract_object"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for core_common"
+  },
+  {
+    "title": "물품 다수공급자계약 업무처리규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [
+      "national_government",
+      "local_government",
+      "public_institution",
+      "local_public_company",
+      "local_public_corporation",
+      "local_invested_institution",
+      "local_affiliated_institution"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_central_procurement",
+      "pps_shopping_mall",
+      "mas",
+      "third_party_unit_price_contract",
+      "catalog_contract",
+      "pps_facility_work",
+      "pps_technical_service"
+    ],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procurement_route_required"
+  },
+  {
+    "title": "국가종합전자조달시스템 종합쇼핑몰 운영규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [
+      "national_government",
+      "local_government",
+      "public_institution",
+      "local_public_company",
+      "local_public_corporation",
+      "local_invested_institution",
+      "local_affiliated_institution"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_central_procurement",
+      "pps_shopping_mall",
+      "mas",
+      "third_party_unit_price_contract",
+      "catalog_contract",
+      "pps_facility_work",
+      "pps_technical_service"
+    ],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procurement_route_required"
+  },
+  {
+    "title": "물품 다수공급자계약 업무처리규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [
+      "national_government",
+      "local_government",
+      "public_institution",
+      "local_public_company",
+      "local_public_corporation",
+      "local_invested_institution",
+      "local_affiliated_institution"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_central_procurement",
+      "pps_shopping_mall",
+      "mas",
+      "third_party_unit_price_contract",
+      "catalog_contract",
+      "pps_facility_work",
+      "pps_technical_service"
+    ],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procurement_route_required"
+  },
+  {
+    "title": "관세청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procedure_only"
+  },
+  {
+    "title": "국가보훈부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procedure_only"
+  },
+  {
+    "title": "기술용역 적격심사 및 협상에 의한 낙찰자 결정기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "project_subtype"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [
+      "public_housing",
+      "technical_service",
+      "construction_engineering",
+      "technical_proposal"
+    ],
+    "upgrade_reason": "Matched logic for procurement_route_and_subtype_required"
+  },
+  {
+    "title": "기술용역 적격심사기준에 관한 훈령",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "project_subtype"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [
+      "public_housing",
+      "technical_service",
+      "construction_engineering",
+      "technical_proposal"
+    ],
+    "upgrade_reason": "Matched logic for procurement_route_and_subtype_required"
+  },
+  {
+    "title": "기술용역적격심사 세부기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "project_subtype"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [
+      "public_housing",
+      "technical_service",
+      "construction_engineering",
+      "technical_proposal"
+    ],
+    "upgrade_reason": "Matched logic for procurement_route_and_subtype_required"
+  },
+  {
+    "title": "기획예산처 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procedure_only"
+  },
+  {
+    "title": "농림축산식품부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procedure_only"
+  },
+  {
+    "title": "병무청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procedure_only"
+  },
+  {
+    "title": "보건복지부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procedure_only"
+  },
+  {
+    "title": "성평등가족부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procedure_only"
+  },
+  {
+    "title": "우주항공청 계약심의위원회 운영규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procedure_only"
+  },
+  {
+    "title": "재정경제부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procedure_only"
+  },
+  {
+    "title": "국가유산청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procedure_only"
+  },
+  {
+    "title": "조달청 공공주택 건설사업관리용역 종합심사낙찰제 세부심사기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "project_subtype"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [
+      "public_housing",
+      "technical_service",
+      "construction_engineering",
+      "technical_proposal"
+    ],
+    "upgrade_reason": "Matched logic for procurement_route_and_subtype_required"
+  },
+  {
+    "title": "조달청 공공주택 공사계약 종합심사낙찰제 심사세부기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "project_subtype"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [
+      "public_housing",
+      "technical_service",
+      "construction_engineering",
+      "technical_proposal"
+    ],
+    "upgrade_reason": "Matched logic for procurement_route_and_subtype_required"
+  },
+  {
+    "title": "조달청 공공주택 공사입찰특별유의서",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "project_subtype"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [
+      "public_housing",
+      "technical_service",
+      "construction_engineering",
+      "technical_proposal"
+    ],
+    "upgrade_reason": "Matched logic for procurement_route_and_subtype_required"
+  },
+  {
+    "title": "조달청 공공주택 입찰참가자격사전심사기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "project_subtype"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [
+      "public_housing",
+      "technical_service",
+      "construction_engineering",
+      "technical_proposal"
+    ],
+    "upgrade_reason": "Matched logic for procurement_route_and_subtype_required"
+  },
+  {
+    "title": "조달청 공공주택 적격심사세부기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "project_subtype"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [
+      "public_housing",
+      "technical_service",
+      "construction_engineering",
+      "technical_proposal"
+    ],
+    "upgrade_reason": "Matched logic for procurement_route_and_subtype_required"
+  },
+  {
+    "title": "조달청 기술용역 계약업무 처리규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [
+      "national_government",
+      "local_government",
+      "public_institution",
+      "local_public_company",
+      "local_public_corporation",
+      "local_invested_institution",
+      "local_affiliated_institution"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_central_procurement",
+      "pps_shopping_mall",
+      "mas",
+      "third_party_unit_price_contract",
+      "catalog_contract",
+      "pps_facility_work",
+      "pps_technical_service"
+    ],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procurement_route_required"
+  },
+  {
+    "title": "조달청 시설분야 물가변동 사전검토 처리규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procedure_only"
+  },
+  {
+    "title": "조달청 종합심사낙찰제 물량ㆍ시공계획 심사위원회 설치 및 운영규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procedure_only"
+  },
+  {
+    "title": "질병관리청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procedure_only"
+  },
+  {
+    "title": "행정안전부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procedure_only"
+  },
+  {
+    "title": "국가유산청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procedure_only"
+  },
+  {
+    "title": "해양수산부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procedure_only"
+  },
+  {
+    "title": "공동계약운용요령",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "conditional_common",
+    "required_slots": [
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for conditional_common"
+  },
+  {
+    "title": "공사계약 종합심사낙찰제 심사기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "conditional_common",
+    "required_slots": [
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for conditional_common"
+  },
+  {
+    "title": "공사계약일반조건",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "conditional_common",
+    "required_slots": [
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for conditional_common"
+  },
+  {
+    "title": "용역계약 종합심사낙찰제 심사기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "conditional_common",
+    "required_slots": [
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for conditional_common"
+  },
+  {
+    "title": "용역계약일반조건",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "conditional_common",
+    "required_slots": [
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for conditional_common"
+  },
+  {
+    "title": "용역입찰유의서",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "conditional_common",
+    "required_slots": [
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for conditional_common"
+  },
+  {
+    "title": "종합계약집행요령",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "conditional_common",
+    "required_slots": [
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for conditional_common"
+  },
+  {
+    "title": "조달청 공공주택 등급별 유자격자명부 등록 및 운용기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "project_subtype"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [
+      "public_housing",
+      "technical_service",
+      "construction_engineering",
+      "technical_proposal"
+    ],
+    "upgrade_reason": "Matched logic for procurement_route_and_subtype_required"
+  },
+  {
+    "title": "조달청 일반용역 적격심사 세부기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [
+      "national_government",
+      "local_government",
+      "public_institution",
+      "local_public_company",
+      "local_public_corporation",
+      "local_invested_institution",
+      "local_affiliated_institution"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_central_procurement",
+      "pps_shopping_mall",
+      "mas",
+      "third_party_unit_price_contract",
+      "catalog_contract",
+      "pps_facility_work",
+      "pps_technical_service"
+    ],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procurement_route_required"
+  },
+  {
+    "title": "기술제안입찰 등에 의한 낙찰자 결정 세부기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "project_subtype"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [
+      "public_housing",
+      "technical_service",
+      "construction_engineering",
+      "technical_proposal"
+    ],
+    "upgrade_reason": "Matched logic for procurement_route_and_subtype_required"
+  },
+  {
+    "title": "조달청 건설엔지니어링 종합심사낙찰제 세부심사기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [
+      "national_government",
+      "local_government",
+      "public_institution",
+      "local_public_company",
+      "local_public_corporation",
+      "local_invested_institution",
+      "local_affiliated_institution"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_central_procurement",
+      "pps_shopping_mall",
+      "mas",
+      "third_party_unit_price_contract",
+      "catalog_contract",
+      "pps_facility_work",
+      "pps_technical_service"
+    ],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procurement_route_required"
+  },
+  {
+    "title": "조달청 경쟁적 대화에 의한 계약체결 세부기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [
+      "national_government",
+      "local_government",
+      "public_institution",
+      "local_public_company",
+      "local_public_corporation",
+      "local_invested_institution",
+      "local_affiliated_institution"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_central_procurement",
+      "pps_shopping_mall",
+      "mas",
+      "third_party_unit_price_contract",
+      "catalog_contract",
+      "pps_facility_work",
+      "pps_technical_service"
+    ],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procurement_route_required"
+  },
+  {
+    "title": "조달청 공공주택 공사계약 종합심사낙찰제 심사세부기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "project_subtype"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [
+      "public_housing",
+      "technical_service",
+      "construction_engineering",
+      "technical_proposal"
+    ],
+    "upgrade_reason": "Matched logic for procurement_route_and_subtype_required"
+  },
+  {
+    "title": "조달청 기술용역 적격심사 세부기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [
+      "national_government",
+      "local_government",
+      "public_institution",
+      "local_public_company",
+      "local_public_corporation",
+      "local_invested_institution",
+      "local_affiliated_institution"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_central_procurement",
+      "pps_shopping_mall",
+      "mas",
+      "third_party_unit_price_contract",
+      "catalog_contract",
+      "pps_facility_work",
+      "pps_technical_service"
+    ],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procurement_route_required"
+  },
+  {
+    "title": "조달청 물품구매적격심사 세부기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [
+      "national_government",
+      "local_government",
+      "public_institution",
+      "local_public_company",
+      "local_public_corporation",
+      "local_invested_institution",
+      "local_affiliated_institution"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_central_procurement",
+      "pps_shopping_mall",
+      "mas",
+      "third_party_unit_price_contract",
+      "catalog_contract",
+      "pps_facility_work",
+      "pps_technical_service"
+    ],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procurement_route_required"
+  },
+  {
+    "title": "조달청 시설공사 실적에 의한 경쟁입찰 집행기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [
+      "national_government",
+      "local_government",
+      "public_institution",
+      "local_public_company",
+      "local_public_corporation",
+      "local_invested_institution",
+      "local_affiliated_institution"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_central_procurement",
+      "pps_shopping_mall",
+      "mas",
+      "third_party_unit_price_contract",
+      "catalog_contract",
+      "pps_facility_work",
+      "pps_technical_service"
+    ],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procurement_route_required"
+  },
+  {
+    "title": "조달청 시설공사 적격심사세부기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [
+      "national_government",
+      "local_government",
+      "public_institution",
+      "local_public_company",
+      "local_public_corporation",
+      "local_invested_institution",
+      "local_affiliated_institution"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_central_procurement",
+      "pps_shopping_mall",
+      "mas",
+      "third_party_unit_price_contract",
+      "catalog_contract",
+      "pps_facility_work",
+      "pps_technical_service"
+    ],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procurement_route_required"
+  },
+  {
+    "title": "조달청 일괄입찰 등에 의한 낙찰자 결정 세부기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [
+      "national_government",
+      "local_government",
+      "public_institution",
+      "local_public_company",
+      "local_public_corporation",
+      "local_invested_institution",
+      "local_affiliated_institution"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_central_procurement",
+      "pps_shopping_mall",
+      "mas",
+      "third_party_unit_price_contract",
+      "catalog_contract",
+      "pps_facility_work",
+      "pps_technical_service"
+    ],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procurement_route_required"
+  },
+  {
+    "title": "조달청 공공주택 입찰참가자격사전심사기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "project_subtype"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [
+      "public_housing",
+      "technical_service",
+      "construction_engineering",
+      "technical_proposal"
+    ],
+    "upgrade_reason": "Matched logic for procurement_route_and_subtype_required"
+  },
+  {
+    "title": "조달청 협상에 의한 계약 제안서평가 세부기준",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object",
+      "contract_method"
+    ],
+    "buyer_type_scope": [
+      "national_government",
+      "local_government",
+      "public_institution",
+      "local_public_company",
+      "local_public_corporation",
+      "local_invested_institution",
+      "local_affiliated_institution"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_central_procurement",
+      "pps_shopping_mall",
+      "mas",
+      "third_party_unit_price_contract",
+      "catalog_contract",
+      "pps_facility_work",
+      "pps_technical_service"
+    ],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procurement_route_required"
+  },
+  {
+    "title": "기타공공기관 계약사무 운영규정",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "institution_type_based",
+    "required_slots": [
+      "buyer_type"
+    ],
+    "buyer_type_scope": [
+      "other_public_institution"
+    ],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for institution_type_based"
+  },
+  {
+    "title": "국가를 당사자로 하는 계약에 관한 법률 시행령 제39조제1항 단서의 규정에 의한 정보처리장치의 지정에 관한 고시",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_channel_evidence",
+    "required_slots": [],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procurement_channel_evidence"
+  },
+  {
+    "title": "국가를 당사자로 하는 계약에 관한 법률 시행령 제72조제3항제2호에 따른 공동계약 대상사업",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "conditional_common",
+    "required_slots": [
+      "contract_object",
+      "joint_contract_question"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for conditional_common"
+  },
+  {
+    "title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령의 수의계약 등 한시적 특례 적용기간에 관한 고시",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "time_bounded",
+    "required_slots": [
+      "contract_date",
+      "effective_from",
+      "effective_to"
+    ],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for time_bounded"
+  },
+  {
+    "title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령 제6조의2 및 공유재산 및 물품 관리법 시행령 제13조, 제26조, 제78조에 따른 정보처리장치의 지정에 관한 고시",
+    "current_active": false,
+    "proposed_active": true,
+    "activation_mode": "procurement_channel_evidence",
+    "required_slots": [],
+    "buyer_type_scope": [],
+    "procurement_route_scope": [],
+    "contract_object_scope": [],
+    "upgrade_reason": "Matched logic for procurement_channel_evidence"
+  }
+]

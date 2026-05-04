@@ -1,0 +1,81 @@
+{
+  "title": "Procedure Only Filter Report v0.1.3",
+  "procedure_only_count": 15,
+  "items": [
+    {
+      "title": "관세청 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "active_for_rule": false,
+      "judgment_eligible": false
+    },
+    {
+      "title": "국가보훈부 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "active_for_rule": false,
+      "judgment_eligible": false
+    },
+    {
+      "title": "기획예산처 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "active_for_rule": false,
+      "judgment_eligible": false
+    },
+    {
+      "title": "농림축산식품부 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "active_for_rule": false,
+      "judgment_eligible": false
+    },
+    {
+      "title": "병무청 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "active_for_rule": false,
+      "judgment_eligible": false
+    },
+    {
+      "title": "보건복지부 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "active_for_rule": false,
+      "judgment_eligible": false
+    },
+    {
+      "title": "성평등가족부 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "active_for_rule": false,
+      "judgment_eligible": false
+    },
+    {
+      "title": "우주항공청 계약심의위원회 운영규정",
+      "active_for_rule": false,
+      "judgment_eligible": false
+    },
+    {
+      "title": "재정경제부 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "active_for_rule": false,
+      "judgment_eligible": false
+    },
+    {
+      "title": "국가유산청 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "active_for_rule": false,
+      "judgment_eligible": false
+    },
+    {
+      "title": "조달청 시설분야 물가변동 사전검토 처리규정",
+      "active_for_rule": false,
+      "judgment_eligible": false
+    },
+    {
+      "title": "조달청 종합심사낙찰제 물량ㆍ시공계획 심사위원회 설치 및 운영규정",
+      "active_for_rule": false,
+      "judgment_eligible": false
+    },
+    {
+      "title": "질병관리청 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "active_for_rule": false,
+      "judgment_eligible": false
+    },
+    {
+      "title": "행정안전부 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "active_for_rule": false,
+      "judgment_eligible": false
+    },
+    {
+      "title": "해양수산부 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "active_for_rule": false,
+      "judgment_eligible": false
+    }
+  ]
+}

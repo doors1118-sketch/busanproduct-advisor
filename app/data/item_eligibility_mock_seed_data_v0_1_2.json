@@ -1,0 +1,31 @@
+{
+  "version": "v0.1.2",
+  "procurement_item_master": [
+    {"item_id": "item_001", "detail_item_code": "4617162201", "detail_item_name": "영상감시장치", "item_name": "영상감시장치", "item_group_name": "보안감시장비", "g2b_category_code": "461716", "g2b_category_name": "감시장비", "source": "smpp", "source_version": "2024-01", "review_status": "verified"},
+    {"item_id": "item_002", "detail_item_code": "4617162202", "detail_item_name": "차량번호인식카메라", "item_name": "차량번호인식카메라", "item_group_name": "보안감시장비", "g2b_category_code": "461716", "g2b_category_name": "감시장비", "source": "smpp", "source_version": "2024-01", "review_status": "verified"},
+    {"item_id": "item_003", "detail_item_code": "4016020801", "detail_item_name": "데스크톱컴퓨터", "item_name": "데스크톱컴퓨터", "item_group_name": "컴퓨터", "g2b_category_code": "401602", "g2b_category_name": "컴퓨터", "source": "smpp", "source_version": "2024-01", "review_status": "verified"},
+    {"item_id": "item_004", "detail_item_code": "4016020802", "detail_item_name": "노트북컴퓨터", "item_name": "노트북컴퓨터", "item_group_name": "컴퓨터", "g2b_category_code": "401602", "g2b_category_name": "컴퓨터", "source": "smpp", "source_version": "2024-01", "review_status": "verified"},
+    {"item_id": "item_005", "detail_item_code": "4019010301", "detail_item_name": "수중펌프", "item_name": "수중펌프", "item_group_name": "펌프", "g2b_category_code": "401901", "g2b_category_name": "펌프류", "source": "smpp", "source_version": "2024-01", "review_status": "verified"}
+  ],
+  "item_alias_map": [
+    {"alias_id": "a_001", "alias_name": "CCTV", "alias_normalized": "cctv", "alias_type": "common_name", "detail_item_code": "4617162201", "detail_item_name": "영상감시장치", "match_confidence": 0.85, "display_rank": 1, "review_status": "verified"},
+    {"alias_id": "a_002", "alias_name": "CCTV", "alias_normalized": "cctv", "alias_type": "common_name", "detail_item_code": "4617162202", "detail_item_name": "차량번호인식카메라", "match_confidence": 0.6, "display_rank": 2, "review_status": "verified"},
+    {"alias_id": "a_003", "alias_name": "컴퓨터", "alias_normalized": "컴퓨터", "alias_type": "common_name", "detail_item_code": "4016020801", "detail_item_name": "데스크톱컴퓨터", "match_confidence": 0.8, "display_rank": 1, "review_status": "verified"},
+    {"alias_id": "a_004", "alias_name": "컴퓨터", "alias_normalized": "컴퓨터", "alias_type": "common_name", "detail_item_code": "4016020802", "detail_item_name": "노트북컴퓨터", "match_confidence": 0.7, "display_rank": 2, "review_status": "verified"},
+    {"alias_id": "a_005", "alias_name": "펌프", "alias_normalized": "펌프", "alias_type": "common_name", "detail_item_code": "4019010301", "detail_item_name": "수중펌프", "match_confidence": 0.7, "display_rank": 1, "review_status": "verified"}
+  ],
+  "sme_competition_product_item": [
+    {"designation_id": "desig_001", "detail_item_code": "4617162201", "detail_item_name": "영상감시장치", "is_sme_competition_product": true, "source_document_name": "중기경쟁제품 고시", "effective_from": "2024-01-01", "effective_to": "2026-12-31", "review_status": "verified"},
+    {"designation_id": "desig_002", "detail_item_code": "4016020801", "detail_item_name": "데스크톱컴퓨터", "is_sme_competition_product": true, "source_document_name": "중기경쟁제품 고시", "effective_from": "2024-01-01", "effective_to": "2026-12-31", "review_status": "verified"}
+  ],
+  "direct_production_requirement": [
+    {"requirement_id": "req_001", "detail_item_code": "4617162201", "detail_item_name": "영상감시장치", "direct_production_required": true, "standard_article_ref": "제3조", "required_facility_summary": "조립공정 및 검사설비 보유 필수", "required_process_summary": "PCB 조립, 렌즈 조립, 기능검사", "effective_from": "2024-01-01", "effective_to": "2026-12-31", "review_status": "verified"},
+    {"requirement_id": "req_002", "detail_item_code": "4016020801", "detail_item_name": "데스크톱컴퓨터", "direct_production_required": true, "standard_article_ref": "제4조", "required_facility_summary": "조립라인 및 검사장비 보유", "required_process_summary": "본체 조립, OS 설치, 기능검사", "effective_from": "2024-01-01", "effective_to": "2026-12-31", "review_status": "verified"}
+  ],
+  "company_direct_production_cert_mapping": [
+    {"cert_mapping_id": "cert_001", "company_id": "comp_abc", "detail_item_code": "4617162201", "detail_item_name": "영상감시장치", "cert_status": "valid", "valid_from": "2024-01-01", "valid_to": "2026-12-31", "source": "company_db", "pii_sanitized": true, "cert_hash": "a1b2c3d4"},
+    {"cert_mapping_id": "cert_002", "company_id": "comp_def", "detail_item_code": "4617162201", "detail_item_name": "영상감시장치", "cert_status": "expired", "valid_from": "2022-01-01", "valid_to": "2023-12-31", "source": "company_db", "pii_sanitized": true, "cert_hash": "e5f6g7h8"},
+    {"cert_mapping_id": "cert_003", "company_id": "comp_ghi", "detail_item_code": "4016020801", "detail_item_name": "데스크톱컴퓨터", "cert_status": "valid", "valid_from": "2025-06-01", "valid_to": "2027-05-31", "source": "company_db", "pii_sanitized": true, "cert_hash": "i9j0k1l2"},
+    {"cert_mapping_id": "cert_004", "company_id": "comp_jkl", "detail_item_code": "4617162201", "detail_item_name": "영상감시장치", "cert_status": "unknown", "valid_from": null, "valid_to": null, "source": "company_db", "pii_sanitized": true, "cert_hash": null}
+  ]
+}

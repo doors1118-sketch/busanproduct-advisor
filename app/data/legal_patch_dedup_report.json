@@ -1,0 +1,1017 @@
+[
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률",
+    "normalized_title": "국가를 당사자로 하는 계약에 관한 법률",
+    "dedup_status": "already_in_master"
+  },
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률 시행령",
+    "normalized_title": "국가를 당사자로 하는 계약에 관한 법률 시행령",
+    "dedup_status": "already_in_master"
+  },
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률 시행규칙",
+    "normalized_title": "국가를 당사자로 하는 계약에 관한 법률 시행규칙",
+    "dedup_status": "already_in_master"
+  },
+  {
+    "node_name": "건설공사 검사업무규정",
+    "normalized_title": "건설공사 검사업무규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "계약업무처리훈령",
+    "normalized_title": "계약업무처리훈령",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국가계약분쟁조정위원회 운영규정",
+    "normalized_title": "국가계약분쟁조정위원회 운영규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국방전자조달시스템 관리규정",
+    "normalized_title": "국방전자조달시스템 관리규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국토지리정보원 용역사업 검사업무 규정",
+    "normalized_title": "국토지리정보원 용역사업 검사업무 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달원 등록정보 관리지침",
+    "normalized_title": "조달원 등록정보 관리지침",
+    "dedup_status": "candidate_needs_review"
+  },
+  {
+    "node_name": "해양경찰청 검사업무규칙",
+    "normalized_title": "해양경찰청 검사업무규칙",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "공사입찰유의서",
+    "normalized_title": "공사입찰유의서",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "물품구매(제조)계약일반조건",
+    "normalized_title": "물품구매(제조)계약일반조건",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "예정가격 작성기준",
+    "normalized_title": "예정가격 작성기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "외자입찰유의서",
+    "normalized_title": "외자입찰유의서",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "물품 적격심사기준에 관한 훈령",
+    "normalized_title": "물품 적격심사기준에 관한 훈령",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "일반용역 적격심사기준에 관한 훈령",
+    "normalized_title": "일반용역 적격심사기준에 관한 훈령",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "감가규정",
+    "normalized_title": "감가규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "건설기술진흥업무 운영규정",
+    "normalized_title": "건설기술진흥업무 운영규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준",
+    "normalized_title": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "관세청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "normalized_title": "관세청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "교육부 계약심의위원회 운영 규정",
+    "normalized_title": "교육부 계약심의위원회 운영 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국가기록원 계약심의위원회 운영지침",
+    "normalized_title": "국가기록원 계약심의위원회 운영지침",
+    "dedup_status": "candidate_needs_review"
+  },
+  {
+    "node_name": "국가데이터처 계약심의위원회 규정",
+    "normalized_title": "국가데이터처 계약심의위원회 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국가보훈부 계약심의위원회 운영 규정",
+    "normalized_title": "국가보훈부 계약심의위원회 운영 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국가보훈부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "normalized_title": "국가보훈부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국가유산청 계약심의위원회 운영 규정",
+    "normalized_title": "국가유산청 계약심의위원회 운영 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국가인권위원회 계약심의위원회 운영 규정",
+    "normalized_title": "국가인권위원회 계약심의위원회 운영 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국민권익위원회 계약심의위원회 규정",
+    "normalized_title": "국민권익위원회 계약심의위원회 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국방부 건설엔지니어링 종합심사낙찰제 세부 심사기준에 관한 훈령",
+    "normalized_title": "국방부 건설엔지니어링 종합심사낙찰제 세부 심사기준에 관한 훈령",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국방부 계약심의위원회 운영 훈령",
+    "normalized_title": "국방부 계약심의위원회 운영 훈령",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국방부 공사계약 종합심사낙찰제 세부 심사기준에 관한 훈령",
+    "normalized_title": "국방부 공사계약 종합심사낙찰제 세부 심사기준에 관한 훈령",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "군수품조달관리규정",
+    "normalized_title": "군수품조달관리규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "군시설공사 입찰참가자격 사전심사 세부운영기준에 관한 훈령",
+    "normalized_title": "군시설공사 입찰참가자격 사전심사 세부운영기준에 관한 훈령",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "군시설공사 적격심사기준에 관한 훈령",
+    "normalized_title": "군시설공사 적격심사기준에 관한 훈령",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "기술용역 적격심사 및 협상에 의한 낙찰자 결정기준",
+    "normalized_title": "기술용역 적격심사 및 협상에 의한 낙찰자 결정기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "기술용역 적격심사기준에 관한 훈령",
+    "normalized_title": "기술용역 적격심사기준에 관한 훈령",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "기술용역적격심사 세부기준",
+    "normalized_title": "기술용역적격심사 세부기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "기획예산처 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "normalized_title": "기획예산처 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "농림축산식품부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "normalized_title": "농림축산식품부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "대통령기록관 계약심의위원회 규정",
+    "normalized_title": "대통령기록관 계약심의위원회 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "방위사업청 계약심의위원회 운영 규정",
+    "normalized_title": "방위사업청 계약심의위원회 운영 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "법제처 계약심의위원회 운영 규정",
+    "normalized_title": "법제처 계약심의위원회 운영 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "병무청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "normalized_title": "병무청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "보건복지부 계약심의위원회 운영 규정",
+    "normalized_title": "보건복지부 계약심의위원회 운영 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "보건복지부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "normalized_title": "보건복지부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "복수견적 업무처리규정",
+    "normalized_title": "복수견적 업무처리규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "성평등가족부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "normalized_title": "성평등가족부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "세월호 선체조사위원회 협상에 의한 계약 제안서의 평가 업무처리 규정",
+    "normalized_title": "세월호 선체조사위원회 협상에 의한 계약 제안서의 평가 업무처리 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "식품의약품안전처 계약심의위원회 규정",
+    "normalized_title": "식품의약품안전처 계약심의위원회 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "우주항공청 계약심의위원회 운영규정",
+    "normalized_title": "우주항공청 계약심의위원회 운영규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "인사혁신처 계약심의위원회 규정",
+    "normalized_title": "인사혁신처 계약심의위원회 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "재외공관 간이형 공사계약 종합심사낙찰제 세부심사기준",
+    "normalized_title": "재외공관 간이형 공사계약 종합심사낙찰제 세부심사기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "재정경제부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "normalized_title": "재정경제부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "재정경제부 회계관계공무원 재정보증규정",
+    "normalized_title": "산업통상자원부와 그 소속기관의 회계관계 공무원지정 및 재정보증 등에 관한 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "전기공사 표준시장단가 관리규정",
+    "normalized_title": "전기공사 표준시장단가 관리규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "정부청사관리본부 계약심의위원회 운영 규정",
+    "normalized_title": "정부청사관리본부 계약심의위원회 운영 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "제안서평가위원회 구성 및 운영에 관한 규정",
+    "normalized_title": "국가유산청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 공공주택 건설사업관리용역 종합심사낙찰제 세부심사기준",
+    "normalized_title": "조달청 공공주택 건설사업관리용역 종합심사낙찰제 세부심사기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 공공주택 공사계약 종합심사낙찰제 심사세부기준",
+    "normalized_title": "조달청 공공주택 공사계약 종합심사낙찰제 심사세부기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 공공주택 공사입찰특별유의서",
+    "normalized_title": "조달청 공공주택 공사입찰특별유의서",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 공공주택 입찰참가자격사전심사기준",
+    "normalized_title": "조달청 공공주택 입찰참가자격사전심사기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 공공주택 적격심사세부기준",
+    "normalized_title": "조달청 공공주택 적격심사세부기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 기술용역 계약업무 처리규정",
+    "normalized_title": "조달청 기술용역 계약업무 처리규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 시설분야 물가변동 사전검토 처리규정",
+    "normalized_title": "조달청 시설분야 물가변동 사전검토 처리규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 종합심사낙찰제 물량ㆍ시공계획 심사위원회 설치 및 운영규정",
+    "normalized_title": "조달청 종합심사낙찰제 물량ㆍ시공계획 심사위원회 설치 및 운영규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "종합낙찰제 세부운용기준",
+    "normalized_title": "종합낙찰제 세부운용기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "중소벤처기업부 계약심의위원회 규정",
+    "normalized_title": "중소벤처기업부 계약심의위원회 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "중앙선거관리위원회 계약심의위원회 운영 규정",
+    "normalized_title": "중앙선거관리위원회 계약심의위원회 운영 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "질병관리청 계약심의위원회 규정",
+    "normalized_title": "질병관리청 계약심의위원회 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "질병관리청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "normalized_title": "질병관리청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "통일부 계약심의위원회 운영 규정",
+    "normalized_title": "통일부 계약심의위원회 운영 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "통일부 협상에 의한 계약 제안서평가 업무처리 규정",
+    "normalized_title": "통일부 협상에 의한 계약 제안서평가 업무처리 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "항만시설 등의 표준시장단가 및 설계실무요령 관리규정",
+    "normalized_title": "항만시설 등의 표준시장단가 및 설계실무요령 관리규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "해양경찰청 계약심의위원회 운영규칙",
+    "normalized_title": "해양경찰청 계약심의위원회 운영규칙",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "해양경찰청 협상에 의한 계약 제안서 평가 업무처리 규칙",
+    "normalized_title": "해양경찰청 협상에 의한 계약 제안서 평가 업무처리 규칙",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "해양수산부 건설엔지니어링 종합심사낙찰제 세부심사기준",
+    "normalized_title": "해양수산부 건설엔지니어링 종합심사낙찰제 세부심사기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "행정안전부 계약심의위원회 규정",
+    "normalized_title": "행정안전부 계약심의위원회 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "행정안전부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "normalized_title": "행정안전부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "건설엔지니어링 종합심사낙찰제 심사기준",
+    "normalized_title": "국방부 건설엔지니어링 종합심사낙찰제 세부 심사기준에 관한 훈령",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "용역적격심사기준",
+    "normalized_title": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "물품 적격심사 기준",
+    "normalized_title": "물품 적격심사기준에 관한 훈령",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "공정거래위원회 수의계약 운용지침",
+    "normalized_title": "공정거래위원회 수의계약 운용지침",
+    "dedup_status": "candidate_needs_review"
+  },
+  {
+    "node_name": "국가계약 시범특례 운영 지침",
+    "normalized_title": "국가계약 시범특례 운영 지침",
+    "dedup_status": "candidate_needs_review"
+  },
+  {
+    "node_name": "국가유산수리 종합심사낙찰제 심사기준",
+    "normalized_title": "국가유산수리 종합심사낙찰제 심사기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국가유산청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "normalized_title": "국가유산청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국가인권위원회 수의계약 운용ㆍ집행 지침",
+    "normalized_title": "국가인권위원회 수의계약 운용ㆍ집행 지침",
+    "dedup_status": "candidate_needs_review"
+  },
+  {
+    "node_name": "국가인권위원회 협상에 의한 계약 제안서 평가 업무처리 지침",
+    "normalized_title": "국가인권위원회 협상에 의한 계약 제안서 평가 업무처리 지침",
+    "dedup_status": "candidate_needs_review"
+  },
+  {
+    "node_name": "국립과학수사연구원 계약심의위원회 운영 규정",
+    "normalized_title": "국립과학수사연구원 계약심의위원회 운영 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국립나주병원 계약심의위원회 운영 규정",
+    "normalized_title": "국립나주병원 계약심의위원회 운영 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국방전자조달시스템 이용에 관한 약관",
+    "normalized_title": "국방전자조달시스템 이용에 관한 약관",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국방전자조달시스템 전자입찰 특별유의서",
+    "normalized_title": "국방전자조달시스템 전자입찰 특별유의서",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국외조달 적격심사 기준",
+    "normalized_title": "국외조달 적격심사 기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국제운송 적격심사 기준",
+    "normalized_title": "국제운송 적격심사 기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "기성제도 운영지침",
+    "normalized_title": "기성제도 운영지침",
+    "dedup_status": "candidate_needs_review"
+  },
+  {
+    "node_name": "방위력개선사업 협상에 의한 계약체결기준",
+    "normalized_title": "방위력개선사업 협상에 의한 계약체결기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "보훈ㆍ복지단체 수의계약업무 처리지침",
+    "normalized_title": "보훈ㆍ복지단체 수의계약업무 처리지침",
+    "dedup_status": "candidate_needs_review"
+  },
+  {
+    "node_name": "산림청 산림사업 적격심사 세부기준",
+    "normalized_title": "산림청 산림사업 적격심사 세부기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "새만금개발청 협상에 의한 계약 제안서평가 세부기준",
+    "normalized_title": "새만금개발청 협상에 의한 계약 제안서평가 세부기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "역경매 업무처리지침",
+    "normalized_title": "역경매 업무처리지침",
+    "dedup_status": "candidate_needs_review"
+  },
+  {
+    "node_name": "역경매입찰 특별유의서",
+    "normalized_title": "역경매입찰 특별유의서",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "용역 적격심사 기준",
+    "normalized_title": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "우정사업조달센터 계약심의위원회 운영지침",
+    "normalized_title": "우정사업조달센터 계약심의위원회 운영지침",
+    "dedup_status": "candidate_needs_review"
+  },
+  {
+    "node_name": "우정사업조달센터 보훈ㆍ복지단체와의 계약업무처리지침",
+    "normalized_title": "우정사업조달센터 보훈ㆍ복지단체와의 계약업무처리지침",
+    "dedup_status": "candidate_needs_review"
+  },
+  {
+    "node_name": "우정사업조달센터 협상에 의한 계약 제안서 평가 업무처리 지침",
+    "normalized_title": "우정사업조달센터 협상에 의한 계약 제안서 평가 업무처리 지침",
+    "dedup_status": "candidate_needs_review"
+  },
+  {
+    "node_name": "우편기계 유지보수 위탁용역에 관한 적격심사 지침",
+    "normalized_title": "우편기계 유지보수 위탁용역에 관한 적격심사 지침",
+    "dedup_status": "candidate_needs_review"
+  },
+  {
+    "node_name": "일반용역적격심사 세부기준",
+    "normalized_title": "일반용역적격심사 세부기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "장비정비용역 적격심사 기준",
+    "normalized_title": "장비정비용역 적격심사 기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "전투근무지원정 적격심사 기준",
+    "normalized_title": "전투근무지원정 적격심사 기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "진실ㆍ화해를위한과거사정리위원회 유해발굴사업 제안서 평가 업무처리 지침",
+    "normalized_title": "진실ㆍ화해를위한과거사정리위원회 유해발굴사업 제안서 평가 업무처리 지침",
+    "dedup_status": "candidate_needs_review"
+  },
+  {
+    "node_name": "해양수산부 계약심의위원회 규정",
+    "normalized_title": "해양수산부 계약심의위원회 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "해양수산부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "normalized_title": "해양수산부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "협상에 의한 계약 및 제안서평가 세부기준",
+    "normalized_title": "협상에 의한 계약 및 제안서평가 세부기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "협상에 의한 계약 제안서 평가위원회 구성 및 운영기준",
+    "normalized_title": "협상에 의한 계약 제안서 평가위원회 구성 및 운영기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "경쟁적대화에 의한 계약체결기준",
+    "normalized_title": "경쟁적대화에 의한 계약체결기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "공동계약운용요령",
+    "normalized_title": "공동계약운용요령",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "공사계약 종합심사낙찰제 심사기준",
+    "normalized_title": "공사계약 종합심사낙찰제 심사기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "공사계약일반조건",
+    "normalized_title": "공사계약일반조건",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "물품구매(제조)입찰유의서",
+    "normalized_title": "물품구매(제조)입찰유의서",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "용역계약 종합심사낙찰제 심사기준",
+    "normalized_title": "용역계약 종합심사낙찰제 심사기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "용역계약일반조건",
+    "normalized_title": "용역계약일반조건",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "용역입찰유의서",
+    "normalized_title": "용역입찰유의서",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "일괄입찰 등에 의한 낙찰자 결정기준",
+    "normalized_title": "일괄입찰 등에 의한 낙찰자 결정기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "입찰참가자격사전심사요령",
+    "normalized_title": "입찰참가자격사전심사요령",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "적격심사기준",
+    "normalized_title": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "종합계약집행요령",
+    "normalized_title": "종합계약집행요령",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "협상에 의한 계약체결기준",
+    "normalized_title": "협상에 의한 계약체결기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "2017년도 「문화재수리 종합심사낙찰제 심사기준」 적용대상 문화재수리",
+    "normalized_title": "2017년도 「문화재수리 종합심사낙찰제 심사기준」 적용대상 문화재수리",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "2017년도 「문화재수리 종합평가 낙찰자 결정기준」 적용대상 문화재수리(추가)",
+    "normalized_title": "2017년도 「문화재수리 종합평가 낙찰자 결정기준」 적용대상 문화재수리(추가)",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국가유산수리 종합심사(종합평가) 적용대상 국가유산수리",
+    "normalized_title": "국가유산수리 종합심사(종합평가) 적용대상 국가유산수리",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국유재산법 제31조제2항의 규정에 의한 정보처리장치 지정에 관한 고시",
+    "normalized_title": "국유재산법 제31조제2항의 규정에 의한 정보처리장치 지정에 관한 고시",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "매장유산 조사용역 적격심사 세부기준",
+    "normalized_title": "매장유산 조사용역 적격심사 세부기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "전력기술관리법운영요령",
+    "normalized_title": "전력기술관리법운영요령",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "중소기업자간 경쟁제품 및 공사용자재 직접구매 대상 품목 지정 내역",
+    "normalized_title": "중소기업자간 경쟁제품 및 공사용자재 직접구매 대상 품목 지정 내역",
+    "dedup_status": "already_in_master"
+  },
+  {
+    "node_name": "품질보증조달물품 지정 및 관리규정",
+    "normalized_title": "품질보증조달물품 지정 및 관리규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "혁신도전형 연구개발사업군의 지정 및 분류 기준 등에 관한 고시",
+    "normalized_title": "혁신도전형 연구개발사업군의 지정 및 분류 기준 등에 관한 고시",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "2014년 하반기 항만공사 실적공사비 적용 공종 및 단가",
+    "normalized_title": "2014년 하반기 항만공사 실적공사비 적용 공종 및 단가",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달물자 납품검사 면제 처리기준",
+    "normalized_title": "조달물자 납품검사 면제 처리기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 공공주택 등급별 유자격자명부 등록 및 운용기준",
+    "normalized_title": "조달청 공공주택 등급별 유자격자명부 등록 및 운용기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 일반용역 적격심사 세부기준",
+    "normalized_title": "조달청 일반용역 적격심사 세부기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "경쟁촉진을 위한 공사의 수의계약사유 평가기준",
+    "normalized_title": "경쟁촉진을 위한 공사의 수의계약사유 평가기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "공사입찰특별유의서",
+    "normalized_title": "공사입찰특별유의서",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "기술용역 입찰 특별유의서",
+    "normalized_title": "기술용역 입찰 특별유의서",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "기술제안입찰 등에 의한 낙찰자 결정 세부기준",
+    "normalized_title": "기술제안입찰 등에 의한 낙찰자 결정 세부기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "보훈ㆍ복지단체와의 계약업무처리기준",
+    "normalized_title": "보훈ㆍ복지단체와의 계약업무처리기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "일괄입찰 등의 공사입찰특별유의서",
+    "normalized_title": "일괄입찰 등의 공사입찰특별유의서",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 건설엔지니어링 종합심사낙찰제 세부심사기준",
+    "normalized_title": "조달청 건설엔지니어링 종합심사낙찰제 세부심사기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 경쟁적 대화에 의한 계약체결 세부기준",
+    "normalized_title": "조달청 경쟁적 대화에 의한 계약체결 세부기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 공사계약 종합심사낙찰제 심사세부기준",
+    "normalized_title": "조달청 공공주택 공사계약 종합심사낙찰제 심사세부기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 군수품 구매 적격심사 세부기준",
+    "normalized_title": "조달청 군수품 구매 적격심사 세부기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 군수품 보훈ㆍ복지단체 수의계약업무 처리지침",
+    "normalized_title": "조달청 군수품 보훈ㆍ복지단체 수의계약업무 처리지침",
+    "dedup_status": "candidate_needs_review"
+  },
+  {
+    "node_name": "조달청 기술용역 적격심사 세부기준",
+    "normalized_title": "조달청 기술용역 적격심사 세부기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 물품구매적격심사 세부기준",
+    "normalized_title": "조달청 물품구매적격심사 세부기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 시설공사 실적에 의한 경쟁입찰 집행기준",
+    "normalized_title": "조달청 시설공사 실적에 의한 경쟁입찰 집행기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 시설공사 적격심사세부기준",
+    "normalized_title": "조달청 시설공사 적격심사세부기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 일괄입찰 등에 의한 낙찰자 결정 세부기준",
+    "normalized_title": "조달청 일괄입찰 등에 의한 낙찰자 결정 세부기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 입찰참가자격사전심사기준",
+    "normalized_title": "조달청 공공주택 입찰참가자격사전심사기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 협상에 의한 계약 제안서평가 세부기준",
+    "normalized_title": "조달청 협상에 의한 계약 제안서평가 세부기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "특정물품등의조달에관한국가를당사자로하는계약에관한법률시행령특례규정",
+    "normalized_title": "특정물품등의조달에관한국가를당사자로하는계약에관한법률시행령특례규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "특정물품등의조달에관한국가를당사자로하는계약에관한법률시행특례규칙",
+    "normalized_title": "특정물품등의조달에관한국가를당사자로하는계약에관한법률시행특례규칙",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "특정조달을 위한 국가를 당사자로 하는 계약에 관한 법률 시행령 특례규정",
+    "normalized_title": "특정조달을 위한 국가를 당사자로 하는 계약에 관한 법률 시행령 특례규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "특정조달을 위한 국가를 당사자로 하는 계약에 관한 법률 시행 특례규칙",
+    "normalized_title": "특정조달을 위한 국가를 당사자로 하는 계약에 관한 법률 시행 특례규칙",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국제입찰에 의하는 지방자치단체의 공사 및 물품ㆍ용역의 범위에 관한 고시",
+    "normalized_title": "국제입찰에 의하는 지방자치단체의 공사 및 물품ㆍ용역의 범위에 관한 고시",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "건설공사 시행ㆍ관리규정",
+    "normalized_title": "건설공사 시행ㆍ관리규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "네트워크 장비 구축ㆍ운영사업 추가특수조건",
+    "normalized_title": "네트워크 장비 구축ㆍ운영사업 추가특수조건",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국가를 당사자로 하는 소송에 관한 법률",
+    "normalized_title": "국가를 당사자로 하는 소송에 관한 법률",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "공공기관의 운영에 관한 법률",
+    "normalized_title": "공공기관의 운영에 관한 법률",
+    "dedup_status": "already_in_master"
+  },
+  {
+    "node_name": "공공기관의 운영에 관한 법률 시행령",
+    "normalized_title": "공공기관의 운영에 관한 법률 시행령",
+    "dedup_status": "already_in_master"
+  },
+  {
+    "node_name": "공기업ㆍ준정부기관 사업 예비타당성조사 운용지침",
+    "normalized_title": "공기업ㆍ준정부기관 사업 예비타당성조사 운용지침",
+    "dedup_status": "candidate_needs_review"
+  },
+  {
+    "node_name": "공공기관의 회계감사 및 결산감사에 관한 규칙",
+    "normalized_title": "공공기관의 회계감사 및 결산감사에 관한 규칙",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "공기업ㆍ준정부기관 계약사무규칙",
+    "normalized_title": "공기업ㆍ준정부기관 계약사무규칙",
+    "dedup_status": "already_in_master"
+  },
+  {
+    "node_name": "공공기관의 개발선정품 지정 및 운영에 관한 기준",
+    "normalized_title": "공공기관의 개발선정품 지정 및 운영에 관한 기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "공공기관이 자회사 등과 수의계약을 할 수 있는 고용 기준에 관한 고시",
+    "normalized_title": "공공기관이 자회사 등과 수의계약을 할 수 있는 고용 기준에 관한 고시",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "공공기관 구매위탁 예외에 관한 처리지침",
+    "normalized_title": "공공기관 구매위탁 예외에 관한 처리지침",
+    "dedup_status": "candidate_needs_review"
+  },
+  {
+    "node_name": "공기업ㆍ준정부기관 회계사무규칙",
+    "normalized_title": "공기업ㆍ준정부기관 회계사무규칙",
+    "dedup_status": "already_in_master"
+  },
+  {
+    "node_name": "공기업ㆍ준정부기관 회계기준",
+    "normalized_title": "공기업ㆍ준정부기관 회계기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "공기업ㆍ준정부기관 총사업비관리지침",
+    "normalized_title": "공기업ㆍ준정부기관 총사업비관리지침",
+    "dedup_status": "candidate_needs_review"
+  },
+  {
+    "node_name": "기타공공기관 계약사무 운영규정",
+    "normalized_title": "기타공공기관 계약사무 운영규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "문화체육관광부 소관 기타공공기관 등의 경영평가에 관한 규정",
+    "normalized_title": "문화체육관광부 소관 기타공공기관 등의 경영평가에 관한 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "2020년 공공기관 지정 고시",
+    "normalized_title": "2020년 공공기관 지정 고시",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "공공기관 구분회계 운영 지침",
+    "normalized_title": "공공기관 구분회계 운영 지침",
+    "dedup_status": "candidate_needs_review"
+  },
+  {
+    "node_name": "한국보건복지정보개발원 공공기관 변경지정",
+    "normalized_title": "한국보건복지정보개발원 공공기관 변경지정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "한국청소년활동진흥원 공공기관 변경지정",
+    "normalized_title": "한국청소년활동진흥원 공공기관 변경지정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "3D콘텐츠 등 제작관련 분리발주 기준",
+    "normalized_title": "3D콘텐츠 등 제작관련 분리발주 기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "계약상대자의 통제범위를 벗어난 사유에 관한 고시",
+    "normalized_title": "계약상대자의 통제범위를 벗어난 사유에 관한 고시",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "수요기관 자체조달 물품ㆍ용역에 대한 납품검사 대행 기준",
+    "normalized_title": "수요기관 자체조달 물품ㆍ용역에 대한 납품검사 대행 기준",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달물자 품질점검 업무규정",
+    "normalized_title": "조달물자 품질점검 업무규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달물자의 하자처리 등 사후관리에 관한 규정",
+    "normalized_title": "조달물자의 하자처리 등 사후관리에 관한 규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "조달청 제조물품 직접생산확인 기준",
+    "normalized_title": "조달청 제조물품 직접생산확인 기준",
+    "dedup_status": "already_in_master"
+  },
+  {
+    "node_name": "물품구매계약 품질관리 특수조건",
+    "normalized_title": "물품구매계약 품질관리 특수조건",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "산불진화용 항공기 임대서비스 품질관리 특수조건",
+    "normalized_title": "산불진화용 항공기 임대서비스 품질관리 특수조건",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "수학여행ㆍ수련활동ㆍ체험활동 서비스 품질관리 특수조건",
+    "normalized_title": "수학여행ㆍ수련활동ㆍ체험활동 서비스 품질관리 특수조건",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "자동차 임대서비스 품질관리 특수조건",
+    "normalized_title": "자동차 임대서비스 품질관리 특수조건",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "지방계약 전문기관 지정",
+    "normalized_title": "지방계약 전문기관 지정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국가종합전자조달시스템 입찰참가자격등록규정",
+    "normalized_title": "국가종합전자조달시스템 입찰참가자격등록규정",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국가종합전자조달시스템 전자복수견적 특별유의서",
+    "normalized_title": "국가종합전자조달시스템 전자복수견적 특별유의서",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "지방자치단체를 당사자로 하는 계약에 관한 법률",
+    "normalized_title": "지방자치단체를 당사자로 하는 계약에 관한 법률",
+    "dedup_status": "already_in_master"
+  },
+  {
+    "node_name": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령",
+    "normalized_title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령",
+    "dedup_status": "already_in_master"
+  },
+  {
+    "node_name": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행규칙",
+    "normalized_title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행규칙",
+    "dedup_status": "already_in_master"
+  },
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률 등의 재정경제부장관이 정하는 고시금액",
+    "normalized_title": "국가를 당사자로 하는 계약에 관한 법률 등의 재정경제부장관이 정하는 고시금액",
+    "dedup_status": "out_of_scope"
+  },
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률 시행령 제39조제1항 단서의 규정에 의한 정보처리장치의 지정에 관한 고시",
+    "normalized_title": "국가를 당사자로 하는 계약에 관한 법률 시행령 제39조제1항 단서의 규정에 의한 정보처리장치의 지정에 관한 고시",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "국가를 당사자로 하는 계약에 관한 법률 시행령 제72조제3항제2호에 따른 공동계약 대상사업",
+    "normalized_title": "국가를 당사자로 하는 계약에 관한 법률 시행령 제72조제3항제2호에 따른 공동계약 대상사업",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령의 수의계약 등 한시적 특례 적용기간에 관한 고시",
+    "normalized_title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령의 수의계약 등 한시적 특례 적용기간에 관한 고시",
+    "dedup_status": "new_verified_source"
+  },
+  {
+    "node_name": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령 제6조의2 및 공유재산 및 물품 관리법 시행령 제13조, 제26조, 제78조에 따른 정보처리장치의 지정에 관한 고시",
+    "normalized_title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령 제6조의2 및 공유재산 및 물품 관리법 시행령 제13조, 제26조, 제78조에 따른 정보처리장치의 지정에 관한 고시",
+    "dedup_status": "new_verified_source"
+  }
+]

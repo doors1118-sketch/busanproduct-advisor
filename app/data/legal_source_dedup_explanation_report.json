@@ -1,0 +1,88 @@
+{
+  "title": "Legal Source Deduplication Explanation",
+  "total_candidates": 227,
+  "total_canonical": 217,
+  "merged_duplicates_count": 10,
+  "details": [
+    {
+      "normalized_title": "물품 다수공급자계약 업무처리규정",
+      "canonical_source_id": "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+      "canonical_seed_id": "pps_mas_standard",
+      "merged_alias_seed_id": "mas_processing",
+      "merged_source_name": "물품 다수공급자계약 업무처리규정",
+      "reason": "Exact match on normalized_title"
+    },
+    {
+      "normalized_title": "혁신제품 구매 운영 규정",
+      "canonical_source_id": "6d2f8a64-e7ff-4933-8293-fb970bfe75e6",
+      "canonical_seed_id": "innovation_product",
+      "merged_alias_seed_id": "innovation_prototype",
+      "merged_source_name": "혁신제품 구매 운영 규정",
+      "reason": "Exact match on normalized_title"
+    },
+    {
+      "normalized_title": "국방부 건설엔지니어링 종합심사낙찰제 세부 심사기준에 관한 훈령",
+      "canonical_source_id": "af9703cb-ab2f-4f98-8534-331d187f78dd",
+      "canonical_seed_id": null,
+      "merged_alias_seed_id": null,
+      "merged_source_name": "국방부 건설엔지니어링 종합심사낙찰제 세부 심사기준에 관한 훈령",
+      "reason": "Exact match on normalized_title"
+    },
+    {
+      "normalized_title": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준",
+      "canonical_source_id": "cf171376-9772-4dfa-b5ca-956ae10450f8",
+      "canonical_seed_id": null,
+      "merged_alias_seed_id": null,
+      "merged_source_name": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준",
+      "reason": "Exact match on normalized_title"
+    },
+    {
+      "normalized_title": "물품 적격심사기준에 관한 훈령",
+      "canonical_source_id": "605bac29-20a4-4505-a2ff-a4f26964d2a7",
+      "canonical_seed_id": null,
+      "merged_alias_seed_id": null,
+      "merged_source_name": "(국방부) 물품 적격심사기준에 관한 훈령",
+      "reason": "Exact match on normalized_title"
+    },
+    {
+      "normalized_title": "국가유산청 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "canonical_source_id": "0d9c7f82-5947-476d-8957-726f0ac3f9c5",
+      "canonical_seed_id": null,
+      "merged_alias_seed_id": null,
+      "merged_source_name": "국가유산청 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "reason": "Exact match on normalized_title"
+    },
+    {
+      "normalized_title": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준",
+      "canonical_source_id": "cf171376-9772-4dfa-b5ca-956ae10450f8",
+      "canonical_seed_id": null,
+      "merged_alias_seed_id": null,
+      "merged_source_name": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준",
+      "reason": "Exact match on normalized_title"
+    },
+    {
+      "normalized_title": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준",
+      "canonical_source_id": "cf171376-9772-4dfa-b5ca-956ae10450f8",
+      "canonical_seed_id": null,
+      "merged_alias_seed_id": null,
+      "merged_source_name": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준",
+      "reason": "Exact match on normalized_title"
+    },
+    {
+      "normalized_title": "조달청 공공주택 공사계약 종합심사낙찰제 심사세부기준",
+      "canonical_source_id": "6e0c3dcf-f4bd-4091-ba85-f02d20f16624",
+      "canonical_seed_id": null,
+      "merged_alias_seed_id": null,
+      "merged_source_name": "조달청 공공주택 공사계약 종합심사낙찰제 심사세부기준",
+      "reason": "Exact match on normalized_title"
+    },
+    {
+      "normalized_title": "조달청 공공주택 입찰참가자격사전심사기준",
+      "canonical_source_id": "8c360a33-4219-434c-b90f-6bcabb175a21",
+      "canonical_seed_id": null,
+      "merged_alias_seed_id": null,
+      "merged_source_name": "조달청 공공주택 입찰참가자격사전심사기준",
+      "reason": "Exact match on normalized_title"
+    }
+  ]
+}

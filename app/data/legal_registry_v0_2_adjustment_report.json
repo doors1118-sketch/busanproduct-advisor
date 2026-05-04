@@ -1,0 +1,26 @@
+{
+  "title": "Phase 7-B v0.2 Architecture Adjustment Report",
+  "description": "Summary of adjustments made to transition local public institutions from an independent jurisdiction to the local_contract jurisdiction with an auxiliary Institutional Rule Layer.",
+  "adjustments": [
+    {
+      "target": "Buyer Type Scope Map",
+      "change": "Reassigned 4 local public institution buyer types (local_public_company, local_public_corporation, local_invested_institution, local_affiliated_institution) from 'local_public_institution_contract' to 'local_contract'.",
+      "impact": "Queries regarding these buyer types will now naturally route to local_contract laws without needing artificial fallback relations."
+    },
+    {
+      "target": "Master Registry Jurisdiction Scope",
+      "change": "Abolished the conceptual 'local_public_institution_contract' jurisdiction for future rule ingestions.",
+      "impact": "Simplifies the top-level jurisdiction tree to 3 pillars: national_contract, local_contract, public_institution_contract."
+    },
+    {
+      "target": "Institutional Rule Layer",
+      "change": "Created a dedicated JSON schema ('institutional_rule_layer_schema.json') to isolate specific internal rules of individual organizations from the master registry.",
+      "impact": "Prevents Master Registry pollution. Internal rules are quarantined with 'needs_review' and 'active_for_rule=false' upon ingestion."
+    },
+    {
+      "target": "Routing Policy",
+      "change": "Drafted 'local_public_institution_routing_policy.md' to strictly define conditional routing based on the presence of 'institution_id' in user queries.",
+      "impact": "Ensures the chatbot safely falls back to local_contract when specific institutional rules are unavailable or unverified."
+    }
+  ]
+}

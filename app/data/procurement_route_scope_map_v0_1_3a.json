@@ -1,0 +1,34 @@
+{
+  "pps_delegated_contract": {
+    "label": "조달청 계약요청",
+    "description": "조달청에 계약체결을 위탁하는 경로"
+  },
+  "pps_central_procurement": {
+    "label": "중앙조달",
+    "description": "조달청 물품/용역 중앙집중조달"
+  },
+  "pps_shopping_mall": {
+    "label": "종합쇼핑몰",
+    "description": "나라장터 종합쇼핑몰 상품 제3자단가계약 등"
+  },
+  "mas": {
+    "label": "다수공급자계약(MAS)",
+    "description": "조달청 MAS 2단계경쟁 등"
+  },
+  "third_party_unit_price_contract": {
+    "label": "제3자단가계약",
+    "description": "조달청 제3자 단가계약"
+  },
+  "catalog_contract": {
+    "label": "카탈로그계약",
+    "description": "조달청 카탈로그 기반 조달"
+  },
+  "pps_facility_work": {
+    "label": "조달청 시설공사",
+    "description": "조달청 맞춤형 서비스, 시설공사 계약위탁"
+  },
+  "pps_technical_service": {
+    "label": "조달청 기술용역",
+    "description": "건설엔지니어링, 설계 등 조달청 기술용역 위탁"
+  }
+}

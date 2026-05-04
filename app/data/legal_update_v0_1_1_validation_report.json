@@ -1,0 +1,50 @@
+{
+  "title": "Legal Update v0.1.1 Validation Report",
+  "validation_date": "2026-05-04T15:49:03.328323",
+  "overall_status": "PASS",
+  "checks": [
+    {
+      "check": "manifest_total_sources == 217",
+      "value": 217,
+      "pass": true
+    },
+    {
+      "check": "no mock_id in manifest",
+      "value": "found_mock=False",
+      "pass": true
+    },
+    {
+      "check": "no mock_db_path in outputs",
+      "value": "verified_manually",
+      "pass": true
+    },
+    {
+      "check": "wrong_match/needs_manual_source are disabled",
+      "count": 3,
+      "pass": true
+    },
+    {
+      "check": "law_api_target is enum (law/admrul/ordinance/none)",
+      "values": [
+        "none",
+        "law",
+        "admrul"
+      ],
+      "pass": true
+    },
+    {
+      "check": "impact_classifier_action_map correct",
+      "pass": true
+    },
+    {
+      "check": "diff_engine all skipped (no fake changes)",
+      "skipped": 76,
+      "changed": 0,
+      "pass": true
+    },
+    {
+      "check": "dry_run_overall_status == PASS",
+      "pass": true
+    }
+  ]
+}

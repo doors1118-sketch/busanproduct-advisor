@@ -1,0 +1,47 @@
+{
+  "title": "Legal Update Pipeline Dry-Run Report v0.1.3",
+  "run_date": "2026-05-04T16:17:26.484595",
+  "mode": "dry_run",
+  "v0_1_3_enhancement": "metadata_watch_enabled=true 대상 2건을 별도 weekly 실행 큐로 분리",
+  "metadata_watch_queue": {
+    "target_count": 2,
+    "frequency": "weekly",
+    "url_accessed": false,
+    "note": "update_priority=monthly여도 metadata_watch queue에 포함"
+  },
+  "validation_checks": [
+    {
+      "check": "metadata_watch_targets == 2",
+      "value": 2,
+      "pass": true
+    },
+    {
+      "check": "all targets active_for_rule=true",
+      "pass": true
+    },
+    {
+      "check": "metadata_watch_frequency == weekly for all",
+      "pass": true
+    },
+    {
+      "check": "full_text_refresh_frequency == monthly for all",
+      "pass": true
+    },
+    {
+      "check": "monthly priority targets included in metadata watch queue",
+      "pass": true
+    },
+    {
+      "check": "blocked_operations enforced (>=5)",
+      "pass": true
+    }
+  ],
+  "overall_status": "PASS",
+  "blocked_operations": [
+    "실제 URL 접속",
+    "실제 원문 재수집",
+    "DB patch 적용",
+    "scheduler 등록",
+    "Production 배포"
+  ]
+}

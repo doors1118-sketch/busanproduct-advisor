@@ -1,0 +1,62 @@
+{
+  "national_government": {
+    "jurisdiction_scope": "national_contract",
+    "label": "국가기관"
+  },
+  "central_government_agency": {
+    "jurisdiction_scope": "national_contract",
+    "label": "중앙행정기관"
+  },
+  "national_agency": {
+    "jurisdiction_scope": "national_contract",
+    "label": "국가기관 소속기관"
+  },
+  "local_government": {
+    "jurisdiction_scope": "local_contract",
+    "label": "지방자치단체"
+  },
+  "metropolitan_city": {
+    "jurisdiction_scope": "local_contract",
+    "label": "광역자치단체"
+  },
+  "city_county_district": {
+    "jurisdiction_scope": "local_contract",
+    "label": "시·군·구"
+  },
+  "education_office": {
+    "jurisdiction_scope": "local_contract",
+    "label": "교육청"
+  },
+  "public_institution": {
+    "jurisdiction_scope": "public_institution_contract",
+    "label": "공공기관"
+  },
+  "public_enterprise": {
+    "jurisdiction_scope": "public_institution_contract",
+    "label": "공기업"
+  },
+  "quasi_government_institution": {
+    "jurisdiction_scope": "public_institution_contract",
+    "label": "준정부기관"
+  },
+  "other_public_institution": {
+    "jurisdiction_scope": "public_institution_contract",
+    "label": "기타공공기관"
+  },
+  "local_public_company": {
+    "jurisdiction_scope": "local_public_institution_contract",
+    "label": "지방공기업"
+  },
+  "local_public_corporation": {
+    "jurisdiction_scope": "local_public_institution_contract",
+    "label": "지방공사·공단"
+  },
+  "local_invested_institution": {
+    "jurisdiction_scope": "local_public_institution_contract",
+    "label": "지방출자기관"
+  },
+  "local_affiliated_institution": {
+    "jurisdiction_scope": "local_public_institution_contract",
+    "label": "지방출연기관"
+  }
+}

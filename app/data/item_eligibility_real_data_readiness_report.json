@@ -1,0 +1,76 @@
+{
+  "title": "Item Eligibility Real Data Readiness Report",
+  "report_date": "2026-05-04T16:12:00",
+  "overall_readiness": "design_complete_awaiting_real_data",
+
+  "data_status": {
+    "procurement_item_master": {
+      "current_data": "mock",
+      "mock_count": 5,
+      "real_data_available": false,
+      "import_script_ready": false,
+      "note": "실제 나라장터 세부품명 마스터 데이터 입력 대기"
+    },
+    "item_alias_map": {
+      "current_data": "mock",
+      "mock_count": 5,
+      "real_data_available": false,
+      "import_script_ready": false,
+      "note": "사용자 질의 로그 기반 보강 필요. 초기 alias는 수동 구축 예정"
+    },
+    "sme_competition_product_list": {
+      "current_data": "mock",
+      "mock_count": 2,
+      "real_data_available": true,
+      "real_data_format": "사용자 보유 엑셀/CSV (미입력 상태)",
+      "import_script_ready": true,
+      "import_script": "scratch/import_sme_competition_product_items.py",
+      "next_step": "사용자가 보유한 실제 중기경쟁제품 목록 파일을 입력으로 받아 import dry-run 수행",
+      "note": "사용자가 이미 보유하고 있다고 확인. 다음 단계에서 별도 입력으로 수신 예정"
+    },
+    "direct_production_requirement": {
+      "current_data": "mock",
+      "mock_count": 2,
+      "real_data_available": false,
+      "real_data_source_candidates": ["조달청 직접생산확인 기준 엑셀", "SMPP 다운로드", "공식 API"],
+      "import_script_ready": true,
+      "import_script": "scratch/import_direct_production_requirements.py",
+      "next_step": "직접생산확인 기준 원천 파일 확보 후 import dry-run",
+      "note": "공식 원천 미확보. 조달청 또는 SMPP에서 기준 문서 다운로드 필요"
+    },
+    "company_direct_production_cert": {
+      "current_data": "mock",
+      "mock_count": 4,
+      "real_data_available": "partial",
+      "real_data_source": "기존 업체DB (monitoring company DB)",
+      "sync_script_ready": true,
+      "sync_script": "scratch/sync_company_direct_production_certs.py",
+      "mapping_key": "company_id + detail_item_code + valid_from + valid_to + cert_status",
+      "pii_policy": "사업자등록번호/인증번호 원문 저장 금지. cert_hash만 저장",
+      "next_step": "업체DB에서 직접생산확인 관련 필드 추출 → detail_item_code 매핑 → sync dry-run",
+      "note": "업체DB에 직접생산확인 자료 존재 확인됨. detail_item_code 기준 매핑은 미완료"
+    }
+  },
+
+  "readiness_checklist": [
+    {"item": "스키마 v0.1.2 설계 완료", "ready": true},
+    {"item": "Import/Sync 스크립트 작성 완료", "ready": true},
+    {"item": "Update Pipeline 설계 완료", "ready": true},
+    {"item": "답변 정책(Fail-Closed + Action-Open) 수립 완료", "ready": true},
+    {"item": "7건 회귀 테스트 시나리오 작성 완료", "ready": true},
+    {"item": "실제 중기경쟁제품 목록 파일 수신", "ready": false, "blocker": "사용자 입력 대기"},
+    {"item": "직접생산확인 기준 원천 확보", "ready": false, "blocker": "조달청/SMPP 원천 미확보"},
+    {"item": "업체DB 직생 자료 detail_item_code 매핑", "ready": false, "blocker": "매핑 로직 미구현"},
+    {"item": "실제 데이터 기반 import dry-run 검증", "ready": false, "blocker": "실데이터 미투입"}
+  ],
+
+  "constraints_enforced": {
+    "mock_data_used_for_judgment": false,
+    "detail_item_code_missing_verified_as_needs_review": true,
+    "cert_judgment_keys": ["company_id", "detail_item_code", "valid_from", "valid_to", "cert_status"],
+    "unconfirmed_cert_treated_as": "증빙 확인 후보 (자동 배제 아님)",
+    "valid_cert_treated_as": "우선 검토 후보 (계약 가능 단정 아님)",
+    "pii_stored": false,
+    "pii_in_llm_context": false
+  }
+}

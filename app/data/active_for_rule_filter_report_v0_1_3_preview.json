@@ -1,0 +1,19 @@
+{
+  "title": "Active For Rule Filter Preview (v0.1.3)",
+  "baseline_active_true": 31,
+  "new_upgrades": 55,
+  "projected_active_true": 84,
+  "mode_distribution": {
+    "core_common": 2,
+    "procurement_route_required": 13,
+    "procedure_only": 16,
+    "procurement_route_and_subtype_required": 12,
+    "conditional_common": 8,
+    "institution_type_based": 1,
+    "procurement_channel_evidence": 2,
+    "time_bounded": 1
+  },
+  "pps_route_layer_count": 13,
+  "subtype_based_count": 12,
+  "procedure_only_count": 16
+}

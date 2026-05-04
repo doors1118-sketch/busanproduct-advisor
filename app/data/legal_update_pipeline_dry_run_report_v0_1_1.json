@@ -1,0 +1,63 @@
+{
+  "title": "Legal Update Pipeline Dry-Run Report v0.1.1",
+  "run_date": "2026-05-04T15:48:29.932861",
+  "mode": "dry_run",
+  "step_1_manifest_load": {
+    "total_sources": 217,
+    "status": "PASS"
+  },
+  "step_2_target_classification": {
+    "summary": {
+      "daily_count": 76,
+      "weekly_count": 136,
+      "monthly_count": 2,
+      "manual_count": 0,
+      "disabled_count": 3
+    },
+    "status": "PASS"
+  },
+  "step_3_adapter_readiness": {
+    "adapters": {
+      "law": {
+        "adapter_available": true,
+        "mode": "dry_run_only"
+      },
+      "admrul": {
+        "adapter_available": true,
+        "mode": "dry_run_only"
+      },
+      "ordinance": {
+        "adapter_available": false,
+        "mode": "manual_only"
+      },
+      "none": {
+        "adapter_available": false,
+        "mode": "not_applicable"
+      }
+    },
+    "diff_engine": {
+      "total_targets": 76,
+      "skipped": 76,
+      "changed": 0,
+      "note": "원문 재수집이 수행되지 않았으므로 모든 diff가 skipped 처리되었습니다."
+    },
+    "impact_classifier": {
+      "action_map": {
+        "low": "auto_update_source",
+        "medium": "update_source_but_hold_interpretation",
+        "high": "hold_rule_until_review",
+        "critical": "fail_closed_until_review"
+      },
+      "status": "PASS"
+    },
+    "status": "PASS"
+  },
+  "overall_status": "PASS",
+  "blocked_operations": [
+    "실제 법제처 API 호출",
+    "원문 재수집 (refresh)",
+    "DB patch 적용",
+    "scheduler 등록",
+    "Production 배포"
+  ]
+}

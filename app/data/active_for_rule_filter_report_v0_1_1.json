@@ -1,0 +1,801 @@
+{
+  "title": "Active For Rule Filter Report v0.1.1",
+  "active_true_count": 29,
+  "active_false_count": 188,
+  "active_true_samples": [
+    {
+      "title": "지방자치단체를 당사자로 하는 계약에 관한 법률",
+      "trust_level": "core_verified"
+    },
+    {
+      "title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령",
+      "trust_level": "core_verified"
+    },
+    {
+      "title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행규칙",
+      "trust_level": "core_verified"
+    },
+    {
+      "title": "국가를 당사자로 하는 계약에 관한 법률",
+      "trust_level": "core_verified"
+    },
+    {
+      "title": "국가를 당사자로 하는 계약에 관한 법률 시행령",
+      "trust_level": "core_verified"
+    },
+    {
+      "title": "국가를 당사자로 하는 계약에 관한 법률 시행규칙",
+      "trust_level": "core_verified"
+    },
+    {
+      "title": "조달사업에 관한 법률",
+      "trust_level": "core_verified"
+    },
+    {
+      "title": "조달사업에 관한 법률 시행령",
+      "trust_level": "core_verified"
+    },
+    {
+      "title": "조달사업에 관한 법률 시행규칙",
+      "trust_level": "core_verified"
+    },
+    {
+      "title": "정부 입찰ㆍ계약 집행기준",
+      "trust_level": "verified"
+    }
+  ],
+  "active_false_details": [
+    {
+      "title": "지방자치단체 입찰 및 계약집행기준",
+      "reason": "review_status=needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "지방자치단체 입찰시 낙찰자 결정기준",
+      "reason": "review_status=needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "계약내용과 상이한 물품의 반송 또는 수출 신고수리에 관한 예규",
+      "reason": "review_status=wrong_match, trust_level=wrong_match"
+    },
+    {
+      "title": "낙동강유역환경청 레미콘ㆍ아스콘 다수공급자계약 2단계경쟁 업무처리기준",
+      "reason": "review_status=candidate_needs_review, trust_level=conditional_verified"
+    },
+    {
+      "title": "부산광역시 지역상품 우선구매 관련 조례",
+      "reason": "review_status=needs_manual_source, trust_level=needs_manual_source"
+    },
+    {
+      "title": "부산광역시 지역업체ㆍ지역상품 우대 관련 자치법규",
+      "reason": "review_status=needs_manual_source, trust_level=needs_manual_source"
+    },
+    {
+      "title": "건설공사 검사업무규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "계약업무처리훈령",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국가계약분쟁조정위원회 운영규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국방전자조달시스템 관리규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국토지리정보원 용역사업 검사업무 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달원 등록정보 관리지침",
+      "reason": "review_status=candidate_needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "해양경찰청 검사업무규칙",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "공사입찰유의서",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "물품구매(제조)계약일반조건",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "예정가격 작성기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "외자입찰유의서",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "물품 적격심사기준에 관한 훈령",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "일반용역 적격심사기준에 관한 훈령",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "감가규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "건설기술진흥업무 운영규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "관세청 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "교육부 계약심의위원회 운영 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국가기록원 계약심의위원회 운영지침",
+      "reason": "review_status=candidate_needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "국가데이터처 계약심의위원회 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국가보훈부 계약심의위원회 운영 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국가보훈부 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국가유산청 계약심의위원회 운영 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국가인권위원회 계약심의위원회 운영 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국민권익위원회 계약심의위원회 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국방부 건설엔지니어링 종합심사낙찰제 세부 심사기준에 관한 훈령",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국방부 계약심의위원회 운영 훈령",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국방부 공사계약 종합심사낙찰제 세부 심사기준에 관한 훈령",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "군수품조달관리규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "군시설공사 입찰참가자격 사전심사 세부운영기준에 관한 훈령",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "군시설공사 적격심사기준에 관한 훈령",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "기술용역 적격심사 및 협상에 의한 낙찰자 결정기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "기술용역 적격심사기준에 관한 훈령",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "기술용역적격심사 세부기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "기획예산처 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "농림축산식품부 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "대통령기록관 계약심의위원회 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "방위사업청 계약심의위원회 운영 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "법제처 계약심의위원회 운영 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "병무청 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "보건복지부 계약심의위원회 운영 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "보건복지부 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "복수견적 업무처리규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "성평등가족부 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "세월호 선체조사위원회 협상에 의한 계약 제안서의 평가 업무처리 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "식품의약품안전처 계약심의위원회 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "우주항공청 계약심의위원회 운영규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "인사혁신처 계약심의위원회 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "재외공관 간이형 공사계약 종합심사낙찰제 세부심사기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "재정경제부 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "산업통상자원부와 그 소속기관의 회계관계 공무원지정 및 재정보증 등에 관한 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "전기공사 표준시장단가 관리규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "정부청사관리본부 계약심의위원회 운영 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국가유산청 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달청 공공주택 건설사업관리용역 종합심사낙찰제 세부심사기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달청 공공주택 공사계약 종합심사낙찰제 심사세부기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달청 공공주택 공사입찰특별유의서",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달청 공공주택 입찰참가자격사전심사기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달청 공공주택 적격심사세부기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달청 기술용역 계약업무 처리규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달청 시설분야 물가변동 사전검토 처리규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달청 종합심사낙찰제 물량ㆍ시공계획 심사위원회 설치 및 운영규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "종합낙찰제 세부운용기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "중소벤처기업부 계약심의위원회 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "중앙선거관리위원회 계약심의위원회 운영 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "질병관리청 계약심의위원회 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "질병관리청 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "통일부 계약심의위원회 운영 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "통일부 협상에 의한 계약 제안서평가 업무처리 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "항만시설 등의 표준시장단가 및 설계실무요령 관리규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "해양경찰청 계약심의위원회 운영규칙",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "해양경찰청 협상에 의한 계약 제안서 평가 업무처리 규칙",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "해양수산부 건설엔지니어링 종합심사낙찰제 세부심사기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "행정안전부 계약심의위원회 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "행정안전부 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "공정거래위원회 수의계약 운용지침",
+      "reason": "review_status=candidate_needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "국가계약 시범특례 운영 지침",
+      "reason": "review_status=candidate_needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "국가유산수리 종합심사낙찰제 심사기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국가인권위원회 수의계약 운용ㆍ집행 지침",
+      "reason": "review_status=candidate_needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "국가인권위원회 협상에 의한 계약 제안서 평가 업무처리 지침",
+      "reason": "review_status=candidate_needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "국립과학수사연구원 계약심의위원회 운영 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국립나주병원 계약심의위원회 운영 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국방전자조달시스템 이용에 관한 약관",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국방전자조달시스템 전자입찰 특별유의서",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국외조달 적격심사 기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국제운송 적격심사 기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "기성제도 운영지침",
+      "reason": "review_status=candidate_needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "방위력개선사업 협상에 의한 계약체결기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "보훈ㆍ복지단체 수의계약업무 처리지침",
+      "reason": "review_status=candidate_needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "산림청 산림사업 적격심사 세부기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "새만금개발청 협상에 의한 계약 제안서평가 세부기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "역경매 업무처리지침",
+      "reason": "review_status=candidate_needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "역경매입찰 특별유의서",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "우정사업조달센터 계약심의위원회 운영지침",
+      "reason": "review_status=candidate_needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "우정사업조달센터 보훈ㆍ복지단체와의 계약업무처리지침",
+      "reason": "review_status=candidate_needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "우정사업조달센터 협상에 의한 계약 제안서 평가 업무처리 지침",
+      "reason": "review_status=candidate_needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "우편기계 유지보수 위탁용역에 관한 적격심사 지침",
+      "reason": "review_status=candidate_needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "일반용역적격심사 세부기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "장비정비용역 적격심사 기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "전투근무지원정 적격심사 기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "진실ㆍ화해를위한과거사정리위원회 유해발굴사업 제안서 평가 업무처리 지침",
+      "reason": "review_status=candidate_needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "해양수산부 계약심의위원회 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "해양수산부 협상에 의한 계약 제안서 평가 업무처리 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "협상에 의한 계약 및 제안서평가 세부기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "협상에 의한 계약 제안서 평가위원회 구성 및 운영기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "경쟁적대화에 의한 계약체결기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "공동계약운용요령",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "공사계약 종합심사낙찰제 심사기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "공사계약일반조건",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "물품구매(제조)입찰유의서",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "용역계약 종합심사낙찰제 심사기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "용역계약일반조건",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "용역입찰유의서",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "일괄입찰 등에 의한 낙찰자 결정기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "입찰참가자격사전심사요령",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "종합계약집행요령",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "협상에 의한 계약체결기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "2017년도 「문화재수리 종합심사낙찰제 심사기준」 적용대상 문화재수리",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "2017년도 「문화재수리 종합평가 낙찰자 결정기준」 적용대상 문화재수리(추가)",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국가유산수리 종합심사(종합평가) 적용대상 국가유산수리",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국유재산법 제31조제2항의 규정에 의한 정보처리장치 지정에 관한 고시",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "매장유산 조사용역 적격심사 세부기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "전력기술관리법운영요령",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "품질보증조달물품 지정 및 관리규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "혁신도전형 연구개발사업군의 지정 및 분류 기준 등에 관한 고시",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "2014년 하반기 항만공사 실적공사비 적용 공종 및 단가",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달물자 납품검사 면제 처리기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달청 공공주택 등급별 유자격자명부 등록 및 운용기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달청 일반용역 적격심사 세부기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "경쟁촉진을 위한 공사의 수의계약사유 평가기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "공사입찰특별유의서",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "기술용역 입찰 특별유의서",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "기술제안입찰 등에 의한 낙찰자 결정 세부기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "보훈ㆍ복지단체와의 계약업무처리기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "일괄입찰 등의 공사입찰특별유의서",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달청 건설엔지니어링 종합심사낙찰제 세부심사기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달청 경쟁적 대화에 의한 계약체결 세부기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달청 군수품 구매 적격심사 세부기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달청 군수품 보훈ㆍ복지단체 수의계약업무 처리지침",
+      "reason": "review_status=candidate_needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "조달청 기술용역 적격심사 세부기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달청 물품구매적격심사 세부기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달청 시설공사 실적에 의한 경쟁입찰 집행기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달청 시설공사 적격심사세부기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달청 일괄입찰 등에 의한 낙찰자 결정 세부기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달청 협상에 의한 계약 제안서평가 세부기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "특정물품등의조달에관한국가를당사자로하는계약에관한법률시행령특례규정",
+      "reason": "review_status=candidate_needs_review, trust_level=core_verified"
+    },
+    {
+      "title": "특정물품등의조달에관한국가를당사자로하는계약에관한법률시행특례규칙",
+      "reason": "review_status=candidate_needs_review, trust_level=core_verified"
+    },
+    {
+      "title": "특정조달을 위한 국가를 당사자로 하는 계약에 관한 법률 시행령 특례규정",
+      "reason": "review_status=candidate_needs_review, trust_level=core_verified"
+    },
+    {
+      "title": "특정조달을 위한 국가를 당사자로 하는 계약에 관한 법률 시행 특례규칙",
+      "reason": "review_status=candidate_needs_review, trust_level=core_verified"
+    },
+    {
+      "title": "국제입찰에 의하는 지방자치단체의 공사 및 물품ㆍ용역의 범위에 관한 고시",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "건설공사 시행ㆍ관리규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "네트워크 장비 구축ㆍ운영사업 추가특수조건",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국가를 당사자로 하는 소송에 관한 법률",
+      "reason": "review_status=candidate_needs_review, trust_level=core_verified"
+    },
+    {
+      "title": "공기업ㆍ준정부기관 사업 예비타당성조사 운용지침",
+      "reason": "review_status=candidate_needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "공공기관의 회계감사 및 결산감사에 관한 규칙",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "공공기관의 개발선정품 지정 및 운영에 관한 기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "공공기관이 자회사 등과 수의계약을 할 수 있는 고용 기준에 관한 고시",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "공공기관 구매위탁 예외에 관한 처리지침",
+      "reason": "review_status=candidate_needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "공기업ㆍ준정부기관 회계기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "공기업ㆍ준정부기관 총사업비관리지침",
+      "reason": "review_status=candidate_needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "기타공공기관 계약사무 운영규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "문화체육관광부 소관 기타공공기관 등의 경영평가에 관한 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "2020년 공공기관 지정 고시",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "공공기관 구분회계 운영 지침",
+      "reason": "review_status=candidate_needs_review, trust_level=candidate_needs_review"
+    },
+    {
+      "title": "한국보건복지정보개발원 공공기관 변경지정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "한국청소년활동진흥원 공공기관 변경지정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "3D콘텐츠 등 제작관련 분리발주 기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "계약상대자의 통제범위를 벗어난 사유에 관한 고시",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "수요기관 자체조달 물품ㆍ용역에 대한 납품검사 대행 기준",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달물자 품질점검 업무규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "조달물자의 하자처리 등 사후관리에 관한 규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "물품구매계약 품질관리 특수조건",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "산불진화용 항공기 임대서비스 품질관리 특수조건",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "수학여행ㆍ수련활동ㆍ체험활동 서비스 품질관리 특수조건",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "자동차 임대서비스 품질관리 특수조건",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "지방계약 전문기관 지정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국가종합전자조달시스템 입찰참가자격등록규정",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국가종합전자조달시스템 전자복수견적 특별유의서",
+      "reason": "review_status=candidate_needs_review, trust_level=verified"
+    },
+    {
+      "title": "국가를 당사자로 하는 계약에 관한 법률 시행령 제39조제1항 단서의 규정에 의한 정보처리장치의 지정에 관한 고시",
+      "reason": "review_status=candidate_needs_review, trust_level=core_verified"
+    },
+    {
+      "title": "국가를 당사자로 하는 계약에 관한 법률 시행령 제72조제3항제2호에 따른 공동계약 대상사업",
+      "reason": "review_status=candidate_needs_review, trust_level=core_verified"
+    },
+    {
+      "title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령의 수의계약 등 한시적 특례 적용기간에 관한 고시",
+      "reason": "review_status=candidate_needs_review, trust_level=core_verified"
+    },
+    {
+      "title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령 제6조의2 및 공유재산 및 물품 관리법 시행령 제13조, 제26조, 제78조에 따른 정보처리장치의 지정에 관한 고시",
+      "reason": "review_status=candidate_needs_review, trust_level=core_verified"
+    }
+  ]
+}

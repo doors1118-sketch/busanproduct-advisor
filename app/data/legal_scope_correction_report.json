@@ -1,0 +1,36 @@
+{
+  "jurisdictions": {
+    "local_contract": 7,
+    "national_contract": 216,
+    "local_policy": 2,
+    "public_institution_contract": 4
+  },
+  "buyer_types": {
+    "local_government": 7,
+    "education_office": 5,
+    "metropolitan_city": 5,
+    "city_county_district": 5,
+    "national_government": 216,
+    "national_agency": 216,
+    "central_government_agency": 216,
+    "local_public_company": 2,
+    "local_public_corporation": 2,
+    "local_affiliated_institution": 2,
+    "local_invested_institution": 2,
+    "quasi_government_institution": 4,
+    "public_enterprise": 4,
+    "public_institution": 4,
+    "other_public_institution": 4
+  },
+  "overlays": {
+    "mas_shopping_mall": 4,
+    "sme_purchase": 4,
+    "sme_competition_product": 1,
+    "direct_production": 1,
+    "policy_company": 6,
+    "innovation_product": 4,
+    "excellent_procurement": 1,
+    "technology_development_product": 1,
+    "local_product_preference": 2
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "title": "Legal Diff Skipped Report v0.1.1",
+  "run_date": "2026-05-04T15:48:29.932861",
+  "total_targets": 76,
+  "skipped": 76,
+  "unchanged": 0,
+  "changed": 0,
+  "note": "원문 재수집이 수행되지 않았으므로 모든 diff가 skipped 처리되었습니다."
+}

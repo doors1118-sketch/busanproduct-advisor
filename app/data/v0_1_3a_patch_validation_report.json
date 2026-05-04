@@ -1,0 +1,10 @@
+{
+  "title": "v0.1.3a Patch Validation Report",
+  "checks": {
+    "activation_mode_missing_in_patch": 0,
+    "duplicate_alias_source_id_patched": 0,
+    "pps_route_scope_over_provisioned": 0,
+    "procedure_only_judgment_eligible": 0
+  },
+  "status": "PASS"
+}

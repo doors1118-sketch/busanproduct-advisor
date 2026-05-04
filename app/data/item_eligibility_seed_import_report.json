@@ -1,0 +1,64 @@
+{
+  "title": "SME Competition Product Seed Import Report",
+  "import_date": "2026-05-04T15:56:47.198854",
+  "mode": "dry_run",
+  "summary": {
+    "new": 3,
+    "duplicate": 1,
+    "needs_review": 1,
+    "expired": 0
+  },
+  "details": {
+    "new": [
+      {
+        "detail_item_code": "4617162201",
+        "detail_item_name": "영상감시장치",
+        "source_document_name": "중기경쟁제품 고시",
+        "effective_from": "2024-01-01",
+        "effective_to": "2026-12-31",
+        "review_status": "verified",
+        "designation_id": "desig_f1152faf",
+        "version_hash": "00c08e5ac23c0109"
+      },
+      {
+        "detail_item_code": "4617162202",
+        "detail_item_name": "차량번호인식카메라",
+        "source_document_name": "중기경쟁제품 고시",
+        "effective_from": "2024-01-01",
+        "effective_to": "2026-12-31",
+        "review_status": "verified",
+        "designation_id": "desig_061c9356",
+        "version_hash": "61d7d5294d579719"
+      },
+      {
+        "detail_item_code": "4016020801",
+        "detail_item_name": "데스크톱컴퓨터",
+        "source_document_name": "중기경쟁제품 고시",
+        "effective_from": "2024-01-01",
+        "effective_to": "2026-12-31",
+        "review_status": "verified",
+        "designation_id": "desig_9d3cb02e",
+        "version_hash": "730d4df42acf714a"
+      }
+    ],
+    "duplicate": [
+      {
+        "detail_item_code": "4617162201",
+        "detail_item_name": "영상감시장치(중복)",
+        "source_document_name": "중기경쟁제품 고시",
+        "effective_from": "2024-01-01",
+        "effective_to": "2026-12-31",
+        "reason": "duplicate_in_batch"
+      }
+    ],
+    "needs_review": [
+      {
+        "detail_item_name": "미분류 펌프",
+        "source_document_name": "미확인",
+        "review_status": "needs_review",
+        "reason": "detail_item_code_missing"
+      }
+    ],
+    "expired": []
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "title": "Company Direct Production Cert Validation Report",
+  "checks": [
+    {
+      "check": "no raw cert_number stored",
+      "pass": true
+    },
+    {
+      "check": "pii_sanitized=true for all",
+      "pass": true
+    },
+    {
+      "check": "expired certs flagged",
+      "pass": true
+    },
+    {
+      "check": "skipped items without detail_item_code",
+      "pass": true
+    }
+  ],
+  "overall": "PASS"
+}

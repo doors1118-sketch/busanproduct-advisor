@@ -1,0 +1,41 @@
+{
+  "title": "Activation Mode Distribution Report v0.1.3",
+  "distribution": [
+    {
+      "activation_mode": "conditional_common",
+      "count": 8
+    },
+    {
+      "activation_mode": "core_common",
+      "count": 29
+    },
+    {
+      "activation_mode": "institution_type_based",
+      "count": 1
+    },
+    {
+      "activation_mode": "procedure_only",
+      "count": 15
+    },
+    {
+      "activation_mode": "procurement_channel_evidence",
+      "count": 2
+    },
+    {
+      "activation_mode": "procurement_route_and_object_required",
+      "count": 3
+    },
+    {
+      "activation_mode": "procurement_route_and_subtype_required",
+      "count": 7
+    },
+    {
+      "activation_mode": "procurement_route_required",
+      "count": 12
+    },
+    {
+      "activation_mode": "time_bounded",
+      "count": 1
+    }
+  ]
+}

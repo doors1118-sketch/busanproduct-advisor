@@ -1,0 +1,15 @@
+{
+  "title": "Item Eligibility Action-Open Validation Report",
+  "validation_date": "2026-05-04T15:57:30",
+  "principle": "Fail-Closed (법적 판단) + Action-Open (실무 지원)",
+  "checks": [
+    {"check": "직생 미확인 업체를 자동 배제하지 않음", "pass": true, "evidence": "Test 5: auto_exclude=false"},
+    {"check": "직생 만료 업체를 증빙 확인 후보로 분류", "pass": true, "evidence": "Test 3: candidate_action=request_updated_certificate"},
+    {"check": "세부품명 미확정 시 지역업체 검색 차단하지 않음", "pass": true, "evidence": "Test 7: local_company_search_allowed=true"},
+    {"check": "직생 유효만으로 계약 가능 단정 안 함", "pass": true, "evidence": "Test 6: legal_conclusion_allowed=false"},
+    {"check": "일반 품목명으로 경쟁제품 단정 안 함", "pass": true, "evidence": "Test 1: engine_action=hold_judgment"},
+    {"check": "PII 원문 저장 안 함", "pass": true, "evidence": "cert sync: pii_sanitized=true for all"},
+    {"check": "후보표에 eligibility 상태 열 포함", "pass": true, "evidence": "candidate_table_policy.md 참조"}
+  ],
+  "overall_status": "PASS"
+}

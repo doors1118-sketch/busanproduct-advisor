@@ -1,0 +1,35 @@
+{
+  "title": "Local Contract Manual PDF Ingest Report",
+  "inspection_date": "2026-05-04",
+  "targets": [
+    "지방자치단체 입찰 및 계약집행기준",
+    "지방자치단체 입찰시 낙찰자 결정기준"
+  ],
+  "inspection_results": {
+    "지방자치단체 입찰 및 계약집행기준": {
+      "pdf_manual_exists": false,
+      "source_file_path_recorded": false,
+      "source_file_hash_recorded": false,
+      "text_extracted": false,
+      "article_annex_separated": false,
+      "matched_with_existing_source": true,
+      "current_review_status": "needs_review",
+      "current_trust_level": "candidate_needs_review"
+    },
+    "지방자치단체 입찰시 낙찰자 결정기준": {
+      "pdf_manual_exists": false,
+      "source_file_path_recorded": false,
+      "source_file_hash_recorded": false,
+      "text_extracted": false,
+      "article_annex_separated": false,
+      "matched_with_existing_source": true,
+      "current_review_status": "needs_review",
+      "current_trust_level": "candidate_needs_review"
+    }
+  },
+  "remaining_issues": [
+    "지방자치단체 입찰 및 계약집행기준 원문(PDF/HWPX) 파일 부재. 자동 API 수집으로는 별표/서식이 정상 추출되지 않는 특성이 있으므로 수동 파일 기반 Ingest 파이프라인 개발이 선행되어야 함.",
+    "지방자치단체 입찰시 낙찰자 결정기준 원문 파일 부재. 마찬가지로 별표/서식 등 상세 판단 기준이 포함된 원문 파일을 확보한 후 텍스트 추출 및 조문/별표 분리 적재가 필요함."
+  ],
+  "action_taken": "보강 및 현행성 확인이 불충분하므로 v0.1.2 재import를 보류하고, 두 기준에 대해 active_for_rule=false (차단 상태)를 유지함."
+}

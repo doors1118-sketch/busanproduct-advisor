@@ -1,0 +1,224 @@
+[
+  {
+    "seed_id": "local_contract_act",
+    "seed_name": "지방계약법",
+    "normalized_title": "지방자치단체를 당사자로 하는 계약에 관한 법률",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "local_contract_decree",
+    "seed_name": "지방계약법 시행령",
+    "normalized_title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "local_contract_rule",
+    "seed_name": "지방계약법 시행규칙",
+    "normalized_title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행규칙",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "national_contract_act",
+    "seed_name": "국가계약법",
+    "normalized_title": "국가를 당사자로 하는 계약에 관한 법률",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "national_contract_decree",
+    "seed_name": "국가계약법 시행령",
+    "normalized_title": "국가를 당사자로 하는 계약에 관한 법률 시행령",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "national_contract_rule",
+    "seed_name": "국가계약법 시행규칙",
+    "normalized_title": "국가를 당사자로 하는 계약에 관한 법률 시행규칙",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "procurement_act",
+    "seed_name": "조달사업법",
+    "normalized_title": "조달사업에 관한 법률",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "procurement_decree",
+    "seed_name": "조달사업법 시행령",
+    "normalized_title": "조달사업에 관한 법률 시행령",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "procurement_rule",
+    "seed_name": "조달사업법 시행규칙",
+    "normalized_title": "조달사업에 관한 법률 시행규칙",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "local_bid_execution",
+    "seed_name": "지방자치단체 입찰 및 계약집행기준",
+    "normalized_title": "지방자치단체 입찰 및 계약집행기준",
+    "match_status": "needs_manual_source"
+  },
+  {
+    "seed_id": "local_bid_winner",
+    "seed_name": "지방자치단체 입찰시 낙찰자 결정기준",
+    "normalized_title": "지방자치단체 입찰시 낙찰자 결정기준",
+    "match_status": "needs_manual_source"
+  },
+  {
+    "seed_id": "gov_bid_execution",
+    "seed_name": "정부 입찰·계약 집행기준",
+    "normalized_title": "정부 입찰ㆍ계약 집행기준",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "contract_regulation",
+    "seed_name": "계약예규",
+    "normalized_title": "계약내용과 상이한 물품의 반송 또는 수출 신고수리에 관한 예규",
+    "match_status": "wrong_match"
+  },
+  {
+    "seed_id": "pps_mas_standard",
+    "seed_name": "조달청 다수공급자계약 관련 기준",
+    "normalized_title": "낙동강유역환경청 레미콘ㆍ아스콘 다수공급자계약 2단계경쟁 업무처리기준",
+    "match_status": "wrong_match"
+  },
+  {
+    "seed_id": "shopping_mall_ops",
+    "seed_name": "나라장터 종합쇼핑몰 운영 관련 기준",
+    "normalized_title": "국가종합전자조달시스템 종합쇼핑몰 운영규정",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "mas_processing",
+    "seed_name": "물품 다수공급자계약 업무처리규정",
+    "normalized_title": "물품 다수공급자계약 업무처리규정",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "mas_2step",
+    "seed_name": "MAS 2단계경쟁 관련 기준",
+    "normalized_title": "낙동강유역환경청 레미콘ㆍ아스콘 다수공급자계약 2단계경쟁 업무처리기준",
+    "match_status": "wrong_match"
+  },
+  {
+    "seed_id": "sme_purchase_act",
+    "seed_name": "중소기업제품 구매촉진 및 판로지원법",
+    "normalized_title": "중소기업제품 구매촉진 및 판로지원에 관한 법률",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "sme_purchase_decree",
+    "seed_name": "중소기업제품 구매촉진법 시행령",
+    "normalized_title": "중소기업제품 구매촉진 및 판로지원에 관한 법률 시행령",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "sme_competition_items",
+    "seed_name": "중소기업자간 경쟁제품 지정내역",
+    "normalized_title": "중소기업자간 경쟁제품 및 공사용자재 직접구매 대상 품목 지정 내역",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "direct_production",
+    "seed_name": "직접생산확인 관련 기준",
+    "normalized_title": "조달청 제조물품 직접생산확인 기준",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "women_enterprise_act",
+    "seed_name": "여성기업지원법",
+    "normalized_title": "여성기업지원에 관한 법률",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "women_enterprise_decree",
+    "seed_name": "여성기업지원법 시행령",
+    "normalized_title": "여성기업지원에 관한 법률 시행령",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "disabled_enterprise_act",
+    "seed_name": "장애인기업활동 촉진법",
+    "normalized_title": "장애인기업활동 촉진법",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "disabled_enterprise_decree",
+    "seed_name": "장애인기업활동 촉진법 시행령",
+    "normalized_title": "장애인기업활동 촉진법 시행령",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "social_enterprise_act",
+    "seed_name": "사회적기업 육성법",
+    "normalized_title": "사회적기업 육성법",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "social_enterprise_decree",
+    "seed_name": "사회적기업 육성법 시행령",
+    "normalized_title": "사회적기업 육성법 시행령",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "innovation_product",
+    "seed_name": "혁신제품 관련 조달청 고시·지침",
+    "normalized_title": "혁신제품 구매 운영 규정",
+    "match_status": "acceptable_broader_match"
+  },
+  {
+    "seed_id": "innovation_prototype",
+    "seed_name": "혁신시제품 지정 및 구매 관련 기준",
+    "normalized_title": "혁신제품 시범구매계약 추가특수조건",
+    "match_status": "wrong_match"
+  },
+  {
+    "seed_id": "excellent_procurement",
+    "seed_name": "우수조달물품 지정관리 규정",
+    "normalized_title": "우수조달공동상표 물품 지정 관리규정",
+    "match_status": "wrong_match"
+  },
+  {
+    "seed_id": "tech_priority_purchase",
+    "seed_name": "기술개발제품 우선구매 관련 기준",
+    "normalized_title": "중소기업기술개발제품 우선구매제도 운영 등에 관한 시행세칙",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "busan_local_product",
+    "seed_name": "부산광역시 지역상품 우선구매 관련 조례",
+    "normalized_title": "부산광역시 지역상품 우선구매 관련 조례",
+    "match_status": "needs_manual_source"
+  },
+  {
+    "seed_id": "busan_local_company",
+    "seed_name": "부산광역시 지역업체·지역상품 우대 관련 자치법규",
+    "normalized_title": "부산광역시 지역업체ㆍ지역상품 우대 관련 자치법규",
+    "match_status": "needs_manual_source"
+  },
+  {
+    "seed_id": "public_institution_act",
+    "seed_name": "공공기관의 운영에 관한 법률",
+    "normalized_title": "공공기관의 운영에 관한 법률",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "public_institution_decree",
+    "seed_name": "공공기관의 운영에 관한 법률 시행령",
+    "normalized_title": "공공기관의 운영에 관한 법률 시행령",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "public_corp_contract_rule",
+    "seed_name": "공기업ㆍ준정부기관 계약사무규칙",
+    "normalized_title": "공기업ㆍ준정부기관 계약사무규칙",
+    "match_status": "exact_match"
+  },
+  {
+    "seed_id": "public_corp_accounting_rule",
+    "seed_name": "공기업ㆍ준정부기관 회계사무규칙",
+    "normalized_title": "공기업ㆍ준정부기관 회계사무규칙",
+    "match_status": "exact_match"
+  }
+]

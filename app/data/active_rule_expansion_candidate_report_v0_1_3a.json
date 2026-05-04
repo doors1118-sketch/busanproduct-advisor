@@ -1,0 +1,827 @@
+[
+  {
+    "source_id": "c7a7cb3f-ec36-4b29-8a4e-4ed9e8fc5763",
+    "title": "지방자치단체 입찰 및 계약집행기준",
+    "current_active_for_rule": true,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "core_common",
+    "required_slots": [
+      "buyer_type",
+      "contract_method",
+      "contract_object"
+    ],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "234d9d61-0d1f-441c-ab51-5afdba652a14",
+    "title": "지방자치단체 입찰시 낙찰자 결정기준",
+    "current_active_for_rule": true,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "core_common",
+    "required_slots": [
+      "buyer_type",
+      "contract_method",
+      "contract_object"
+    ],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+    "title": "물품 다수공급자계약 업무처리규정",
+    "current_active_for_rule": true,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object"
+    ],
+    "procurement_route_scope": [
+      "mas",
+      "pps_shopping_mall",
+      "third_party_unit_price_contract"
+    ],
+    "project_subtype_scope": [],
+    "contract_object_scope": [
+      "goods"
+    ]
+  },
+  {
+    "source_id": "ba2d1909-5bf4-4c70-92f3-5dd41001a201",
+    "title": "국가종합전자조달시스템 종합쇼핑몰 운영규정",
+    "current_active_for_rule": true,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object"
+    ],
+    "procurement_route_scope": [
+      "pps_shopping_mall",
+      "mas",
+      "third_party_unit_price_contract",
+      "catalog_contract"
+    ],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "9178f222-f6ce-40df-8a73-25a2f9640f28",
+    "title": "관세청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": false,
+    "proposed_active_for_procedure": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "83f03a91-bd30-4ddb-8423-7d99a7bd9085",
+    "title": "국가보훈부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": false,
+    "proposed_active_for_procedure": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "c1e08761-4a30-4f0f-927b-24cecf272b46",
+    "title": "기술용역 적격심사 및 협상에 의한 낙찰자 결정기준",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_technical_service"
+    ],
+    "project_subtype_scope": [],
+    "contract_object_scope": [
+      "technical_service"
+    ]
+  },
+  {
+    "source_id": "74afa4fe-885b-49cc-ab04-a387a464f7b6",
+    "title": "기술용역 적격심사기준에 관한 훈령",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_technical_service"
+    ],
+    "project_subtype_scope": [],
+    "contract_object_scope": [
+      "technical_service"
+    ]
+  },
+  {
+    "source_id": "0d0fec83-6fc5-4783-91c7-b8f4710c03f9",
+    "title": "기술용역적격심사 세부기준",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_technical_service"
+    ],
+    "project_subtype_scope": [],
+    "contract_object_scope": [
+      "technical_service"
+    ]
+  },
+  {
+    "source_id": "11b62e8c-0aad-49d0-8628-015b71640522",
+    "title": "기획예산처 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": false,
+    "proposed_active_for_procedure": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "372640d6-dd0b-4c71-be1d-d5b8e9dcec2a",
+    "title": "농림축산식품부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": false,
+    "proposed_active_for_procedure": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "d6bfd0de-a8f1-4b72-a77b-0f2995cfef8c",
+    "title": "병무청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": false,
+    "proposed_active_for_procedure": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "14f56ea3-aea6-40f1-95d2-b83574c0ce0e",
+    "title": "보건복지부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": false,
+    "proposed_active_for_procedure": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "2a53bfd7-8e7b-4554-ad73-99bb9ccf9b20",
+    "title": "성평등가족부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": false,
+    "proposed_active_for_procedure": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "67569d47-ab32-476f-a082-30e9eea5be5d",
+    "title": "우주항공청 계약심의위원회 운영규정",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": false,
+    "proposed_active_for_procedure": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "614acae5-2ffe-4f0c-9fb9-0eb0b9d78b75",
+    "title": "재정경제부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": false,
+    "proposed_active_for_procedure": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "0d9c7f82-5947-476d-8957-726f0ac3f9c5",
+    "title": "국가유산청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": false,
+    "proposed_active_for_procedure": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "bd3f2e26-bcd2-4f2b-b018-ed6b9cc622c5",
+    "title": "조달청 공공주택 건설사업관리용역 종합심사낙찰제 세부심사기준",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "project_subtype"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_technical_service"
+    ],
+    "project_subtype_scope": [
+      "public_housing",
+      "construction_management_service"
+    ],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "6e0c3dcf-f4bd-4091-ba85-f02d20f16624",
+    "title": "조달청 공공주택 공사계약 종합심사낙찰제 심사세부기준",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "project_subtype"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_facility_work"
+    ],
+    "project_subtype_scope": [
+      "public_housing"
+    ],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "3a69e2c7-14d1-47ab-a659-8a4b91ea5ab2",
+    "title": "조달청 공공주택 공사입찰특별유의서",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "project_subtype"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_facility_work"
+    ],
+    "project_subtype_scope": [
+      "public_housing"
+    ],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "8c360a33-4219-434c-b90f-6bcabb175a21",
+    "title": "조달청 공공주택 입찰참가자격사전심사기준",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "project_subtype"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_facility_work"
+    ],
+    "project_subtype_scope": [
+      "public_housing"
+    ],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "39a1decb-7f34-4821-8afc-2a69e313d470",
+    "title": "조달청 공공주택 적격심사세부기준",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "project_subtype"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_facility_work"
+    ],
+    "project_subtype_scope": [
+      "public_housing"
+    ],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "e678469c-2b89-41fd-9c83-6867ea210fbe",
+    "title": "조달청 기술용역 계약업무 처리규정",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_technical_service"
+    ],
+    "project_subtype_scope": [],
+    "contract_object_scope": [
+      "technical_service"
+    ]
+  },
+  {
+    "source_id": "8195fa3f-b888-4440-8c52-49838d8c1e7c",
+    "title": "조달청 시설분야 물가변동 사전검토 처리규정",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": false,
+    "proposed_active_for_procedure": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "c66987ff-0de3-4339-950e-ca3d29630c99",
+    "title": "조달청 종합심사낙찰제 물량ㆍ시공계획 심사위원회 설치 및 운영규정",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": false,
+    "proposed_active_for_procedure": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "ec14846a-843f-4f4a-a1c3-33d6f2247e68",
+    "title": "질병관리청 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": false,
+    "proposed_active_for_procedure": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "d6e98a12-d013-40fa-80d2-fdf4041813b0",
+    "title": "행정안전부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": false,
+    "proposed_active_for_procedure": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "6e18dbb9-0bb7-4c2f-80fa-dbbec17304eb",
+    "title": "해양수산부 협상에 의한 계약 제안서 평가 업무처리 규정",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": false,
+    "proposed_active_for_procedure": true,
+    "activation_mode": "procedure_only",
+    "required_slots": [],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "2ded3873-f12d-4516-b5e8-d6b995d2e85f",
+    "title": "공동계약운용요령",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "conditional_common",
+    "required_slots": [
+      "contract_object",
+      "contract_method"
+    ],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "0ccd6e6c-4de5-4655-8569-3957302300af",
+    "title": "공사계약 종합심사낙찰제 심사기준",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "conditional_common",
+    "required_slots": [
+      "contract_object",
+      "contract_method"
+    ],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "62dea80e-c933-46f7-b8da-8d5f6b4858af",
+    "title": "공사계약일반조건",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "conditional_common",
+    "required_slots": [
+      "contract_object",
+      "contract_method"
+    ],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "81e1774e-f71c-4c0f-b1cb-8142a6657a5d",
+    "title": "용역계약 종합심사낙찰제 심사기준",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "conditional_common",
+    "required_slots": [
+      "contract_object",
+      "contract_method"
+    ],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "ec655bcb-4bc0-4520-b563-f56b491749ab",
+    "title": "용역계약일반조건",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "conditional_common",
+    "required_slots": [
+      "contract_object",
+      "contract_method"
+    ],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "5c765b9b-f773-42dd-ae5f-6fb877ec6e13",
+    "title": "용역입찰유의서",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "conditional_common",
+    "required_slots": [
+      "contract_object",
+      "contract_method"
+    ],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "0c608949-b9f0-4f1b-9b61-a5ea509dec51",
+    "title": "종합계약집행요령",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "conditional_common",
+    "required_slots": [
+      "contract_object",
+      "contract_method"
+    ],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "0efced89-380f-4f77-b7df-efee1730b3b1",
+    "title": "조달청 공공주택 등급별 유자격자명부 등록 및 운용기준",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "project_subtype"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_facility_work"
+    ],
+    "project_subtype_scope": [
+      "public_housing"
+    ],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "c43d2b56-45aa-4b73-bdeb-c96200cc5be7",
+    "title": "조달청 일반용역 적격심사 세부기준",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_central_procurement"
+    ],
+    "project_subtype_scope": [],
+    "contract_object_scope": [
+      "service"
+    ]
+  },
+  {
+    "source_id": "a96f7e24-5168-4285-975c-1e144dfb4794",
+    "title": "기술제안입찰 등에 의한 낙찰자 결정 세부기준",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_and_subtype_required",
+    "required_slots": [
+      "procurement_route",
+      "project_subtype"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract"
+    ],
+    "project_subtype_scope": [
+      "technical_proposal"
+    ],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "4d645a13-4047-4e8d-8eca-b7e60d16e448",
+    "title": "조달청 건설엔지니어링 종합심사낙찰제 세부심사기준",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "project_subtype"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_technical_service"
+    ],
+    "project_subtype_scope": [
+      "construction_engineering"
+    ],
+    "contract_object_scope": [
+      "technical_service"
+    ]
+  },
+  {
+    "source_id": "c12da914-6189-43d8-9e47-e9e201a4a054",
+    "title": "조달청 경쟁적 대화에 의한 계약체결 세부기준",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_central_procurement"
+    ],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "4029a250-fc93-4446-a36a-bc624941d23e",
+    "title": "조달청 기술용역 적격심사 세부기준",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object"
+    ],
+    "procurement_route_scope": [
+      "pps_technical_service",
+      "pps_delegated_contract"
+    ],
+    "project_subtype_scope": [],
+    "contract_object_scope": [
+      "technical_service"
+    ]
+  },
+  {
+    "source_id": "f231f288-21d9-4f95-b6df-9457d9ddccb0",
+    "title": "조달청 물품구매적격심사 세부기준",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_central_procurement"
+    ],
+    "project_subtype_scope": [],
+    "contract_object_scope": [
+      "goods"
+    ]
+  },
+  {
+    "source_id": "e9924e35-6f60-4bea-930a-96a3656df71e",
+    "title": "조달청 시설공사 실적에 의한 경쟁입찰 집행기준",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_facility_work"
+    ],
+    "project_subtype_scope": [],
+    "contract_object_scope": [
+      "construction"
+    ]
+  },
+  {
+    "source_id": "8db21c63-e0ae-43d8-9b55-9091852951eb",
+    "title": "조달청 시설공사 적격심사세부기준",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object"
+    ],
+    "procurement_route_scope": [
+      "pps_facility_work",
+      "pps_delegated_contract"
+    ],
+    "project_subtype_scope": [],
+    "contract_object_scope": [
+      "construction"
+    ]
+  },
+  {
+    "source_id": "3539aa0a-f055-4726-934e-cb867fa7c677",
+    "title": "조달청 일괄입찰 등에 의한 낙찰자 결정 세부기준",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_facility_work"
+    ],
+    "project_subtype_scope": [],
+    "contract_object_scope": [
+      "construction"
+    ]
+  },
+  {
+    "source_id": "20aae559-93dc-43c0-ad3f-63a7bf04e6df",
+    "title": "조달청 협상에 의한 계약 제안서평가 세부기준",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_route_required",
+    "required_slots": [
+      "procurement_route",
+      "contract_object"
+    ],
+    "procurement_route_scope": [
+      "pps_delegated_contract",
+      "pps_central_procurement"
+    ],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "6eedb5be-2d28-499f-98b3-b338985c1afd",
+    "title": "기타공공기관 계약사무 운영규정",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "institution_type_based",
+    "required_slots": [
+      "buyer_type"
+    ],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "a658f089-3541-41ec-9c80-b3e0dcdee754",
+    "title": "국가를 당사자로 하는 계약에 관한 법률 시행령 제39조제1항 단서의 규정에 의한 정보처리장치의 지정에 관한 고시",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_channel_evidence",
+    "required_slots": [],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "34ce45fb-5924-4e68-b9a1-b95782af2948",
+    "title": "국가를 당사자로 하는 계약에 관한 법률 시행령 제72조제3항제2호에 따른 공동계약 대상사업",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "conditional_common",
+    "required_slots": [
+      "contract_object",
+      "joint_contract_question"
+    ],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "04af1467-aac3-4c52-9b74-631b6deb0927",
+    "title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령의 수의계약 등 한시적 특례 적용기간에 관한 고시",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "time_bounded",
+    "required_slots": [
+      "contract_date",
+      "effective_from",
+      "effective_to"
+    ],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  },
+  {
+    "source_id": "2200b9ef-0d2e-4d6b-ab84-edf6aacbd483",
+    "title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령 제6조의2 및 공유재산 및 물품 관리법 시행령 제13조, 제26조, 제78조에 따른 정보처리장치의 지정에 관한 고시",
+    "current_active_for_rule": false,
+    "proposed_active_for_rule": true,
+    "proposed_active_for_procedure": false,
+    "activation_mode": "procurement_channel_evidence",
+    "required_slots": [],
+    "procurement_route_scope": [],
+    "project_subtype_scope": [],
+    "contract_object_scope": []
+  }
+]

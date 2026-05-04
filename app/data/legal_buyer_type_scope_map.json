@@ -1,0 +1,5 @@
+{
+  "local_government": "local_contract",
+  "national_government": "national_contract",
+  "public_institution": "public_institution_contract"
+}

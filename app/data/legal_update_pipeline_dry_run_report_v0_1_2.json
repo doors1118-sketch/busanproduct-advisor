@@ -1,0 +1,68 @@
+{
+  "title": "Legal Update Pipeline Dry-Run Report v0.1.2",
+  "run_date": "2026-05-04T16:05:06.032880",
+  "mode": "dry_run",
+  "v0_1_2_enhancements": {
+    "pdf_metadata_watch_policy": "2건 지방계약 핵심 PDF에 weekly 메타데이터 감시 분리 적용",
+    "none_target_reason_report": "5건 none 대상에 사유·권장조치 필드 추가",
+    "source_refresh_method_field": "원문 refresh와 메타데이터 watch를 분리하는 필드 신설"
+  },
+  "validation_checks": [
+    {
+      "check": "manifest_total_sources == 217",
+      "value": 217,
+      "pass": true
+    },
+    {
+      "check": "metadata_watch_enabled == 2",
+      "value": 2,
+      "pass": true
+    },
+    {
+      "check": "pdf_watch_targets are active_for_rule=true",
+      "pass": true
+    },
+    {
+      "check": "pdf_watch_frequency == weekly",
+      "pass": true
+    },
+    {
+      "check": "full_text_refresh_frequency == monthly",
+      "pass": true
+    },
+    {
+      "check": "none_targets == 5",
+      "value": 5,
+      "pass": true
+    },
+    {
+      "check": "all none targets have none_reason",
+      "pass": true
+    },
+    {
+      "check": "all none targets have recommended_update_action",
+      "pass": true
+    },
+    {
+      "check": "no mock_id in manifest",
+      "pass": true
+    },
+    {
+      "check": "law_api_target is enum",
+      "values": [
+        "law",
+        "none",
+        "admrul"
+      ],
+      "pass": true
+    }
+  ],
+  "overall_status": "PASS",
+  "blocked_operations": [
+    "실제 법제처 API 호출",
+    "실제 원문 재수집",
+    "DB patch 적용",
+    "scheduler 등록",
+    "Production 배포"
+  ]
+}

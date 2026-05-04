@@ -1,0 +1,37 @@
+{
+  "test_date": "2026-05-04T15:43:00",
+  "scenario_1": {
+    "description": "다중 매핑 일반 품목명 입력 시 판단 보류 (Fail-Closed)",
+    "input_query": "CCTV 수의계약 되나요?",
+    "alias_resolution": {
+      "input": "CCTV",
+      "matched_candidates": [
+        {"detail_item_code": "4617162201", "name": "영상감시장치", "confidence": 0.8},
+        {"detail_item_code": "4617162202", "name": "차량번호인식카메라", "confidence": 0.6}
+      ],
+      "resolved": false
+    },
+    "engine_action": "hold_judgment",
+    "system_response": "CCTV는 여러 세부품명(영상감시장치, 차량번호인식카메라 등)으로 분류됩니다. 정확한 세부품명을 확인해 주셔야 중소기업자간 경쟁제품 여부 및 직접생산확인 요건을 안내해 드릴 수 있습니다.",
+    "status": "PASS"
+  },
+  "scenario_2": {
+    "description": "단일 세부품명 특정 및 만료된 업체 인증 조회",
+    "input_query": "세부품명 4617162201을 업체 comp_abc123과 수의계약 할 수 있나요?",
+    "alias_resolution": {
+      "input": "4617162201",
+      "matched_candidates": [
+        {"detail_item_code": "4617162201", "name": "영상감시장치"}
+      ],
+      "resolved": true
+    },
+    "eligibility_check": {
+      "is_sme_competition_product": true,
+      "direct_production_required": true,
+      "company_cert_status": "expired"
+    },
+    "engine_action": "alert_invalid_cert",
+    "system_response": "세부품명 4617162201(영상감시장치)는 중소기업자간 경쟁제품이며 직접생산확인이 필수입니다. 그러나 문의하신 업체의 인증은 만료(expired)된 것으로 확인됩니다. 인증 유효 여부를 다시 확인하시기 바랍니다. 아울러 직접생산확인 보유 여부는 사전 요건일 뿐 수의계약 가능 여부를 최종 보장하지 않습니다.",
+    "status": "PASS"
+  }
+}

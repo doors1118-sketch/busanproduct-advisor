@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Legal Update Manifest Schema",
+  "type": "object",
+  "required": ["source_id", "normalized_title", "update_priority", "update_method"],
+  "properties": {
+    "source_id": {
+      "type": "string",
+      "description": "Unique identifier of the legal source"
+    },
+    "normalized_title": {
+      "type": "string"
+    },
+    "update_priority": {
+      "type": "string",
+      "enum": ["daily", "weekly", "monthly", "manual"],
+      "description": "Frequency of lightweight check"
+    },
+    "update_method": {
+      "type": "string",
+      "enum": ["law_api", "pdf_manual", "ordinance_manual", "institution_file"],
+      "description": "Origin method of fetching the source"
+    },
+    "active_for_rule": {
+      "type": "boolean"
+    },
+    "activation_mode": {
+      "type": "string"
+    },
+    "last_checked_at": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "last_verified_at": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "current_version_hash": {
+      "type": "string"
+    },
+    "watch_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": ["effective_date", "amended_date", "promulgation_no", "full_text_hash"]
+    }
+  }
+}

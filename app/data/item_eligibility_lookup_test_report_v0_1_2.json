@@ -1,0 +1,71 @@
+{
+  "title": "Item Eligibility Lookup Test Report v0.1.2",
+  "test_date": "2026-05-04T15:57:00",
+  "test_count": 7,
+  "results": [
+    {
+      "test_id": 1,
+      "description": "일반 품목명 다중 후보 (CCTV)",
+      "input_query": "CCTV를 조달청에서 수의계약으로 사고 싶습니다.",
+      "alias_resolution": {"input": "CCTV", "candidates": ["4617162201 영상감시장치", "4617162202 차량번호인식카메라"], "resolved": false},
+      "engine_action": "hold_judgment",
+      "candidate_action": "show_detail_item_candidates",
+      "local_company_search_allowed": true,
+      "status": "PASS"
+    },
+    {
+      "test_id": 2,
+      "description": "세부품명 확정 후 경쟁제품 확인",
+      "input_query": "세부품명번호 4617162201 영상감시장치 수의계약 시 유의사항",
+      "eligibility": {"is_sme_competition_product": true, "direct_production_required": true},
+      "engine_action": "proceed_to_macro_contract_review",
+      "status": "PASS"
+    },
+    {
+      "test_id": 3,
+      "description": "인증 만료 업체 (comp_def)",
+      "input_query": "세부품명 4617162201에 대해 comp_def와 계약",
+      "cert_status": "expired",
+      "eligibility_status": "needs_certificate_update_check",
+      "candidate_action": "request_updated_certificate",
+      "status": "PASS"
+    },
+    {
+      "test_id": 4,
+      "description": "직생 보유 오버라이드 방지",
+      "input_query": "업체 B가 펌프 직생 있으면 수의계약?",
+      "engine_action": "proceed_to_macro_contract_review",
+      "legal_conclusion_allowed": false,
+      "status": "PASS"
+    },
+    {
+      "test_id": 5,
+      "description": "직생 미확인 업체 — 자동 배제하지 않음",
+      "input_query": "직생이 안 보이는 업체는 제외?",
+      "eligibility_status": "needs_direct_production_check",
+      "candidate_action": "request_direct_production_certificate",
+      "auto_exclude": false,
+      "status": "PASS"
+    },
+    {
+      "test_id": 6,
+      "description": "직생 유효 업체 — 단정 금지",
+      "input_query": "직생 유효한 부산업체 수의계약 가능?",
+      "eligibility_status": "eligible_candidate",
+      "candidate_action": "priority_review_candidate",
+      "legal_conclusion_allowed": false,
+      "status": "PASS"
+    },
+    {
+      "test_id": 7,
+      "description": "세부품명 미확정 상태의 지역업체 후보 검색",
+      "input_query": "CCTV 부산업체 찾아줘. 직생도 봐줘.",
+      "alias_resolved": false,
+      "local_company_search_allowed": true,
+      "direct_production_conclusion_allowed": false,
+      "candidate_table_note": "세부품명 확인 필요",
+      "status": "PASS"
+    }
+  ],
+  "overall_status": "PASS"
+}

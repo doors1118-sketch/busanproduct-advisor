@@ -1,0 +1,23 @@
+{
+  "title": "Legal Update Manifest Build Report v0.1.2",
+  "build_date": "2026-05-04T16:04:04.635956",
+  "total_sources": 217,
+  "distribution": {
+    "total": 217,
+    "daily": 76,
+    "weekly": 136,
+    "monthly": 2,
+    "manual": 0,
+    "disabled": 3
+  },
+  "law_api_target_distribution": {
+    "law": 27,
+    "none": 5,
+    "admrul": 185
+  },
+  "metadata_watch_enabled_count": 2,
+  "pdf_metadata_watch_targets": [
+    "지방자치단체 입찰 및 계약집행기준",
+    "지방자치단체 입찰시 낙찰자 결정기준"
+  ]
+}

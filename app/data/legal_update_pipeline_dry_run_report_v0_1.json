@@ -1,0 +1,52 @@
+{
+  "pipeline_run_date": "2026-05-04T15:39:12.733075",
+  "step_1_lightweight_check": {
+    "check_date": "2026-05-04",
+    "total_checked": 76,
+    "results": {
+      "changed": [
+        {
+          "source_id": "7df9356d-2c69-4313-9bc7-7e86674203b9",
+          "title": "지방자치단체를 당사자로 하는 계약에 관한 법률",
+          "reason": "full_text_hash mismatch",
+          "old_version_hash": "c2497f96d212bcd7",
+          "new_version_hash": "simulated_new_hash_123"
+        }
+      ],
+      "unchanged": 75,
+      "failed": 0,
+      "manual_required": 3
+    }
+  },
+  "step_2_diff_and_classification": [
+    {
+      "source_id": "7df9356d-2c69-4313-9bc7-7e86674203b9",
+      "source_title": "지방자치단체를 당사자로 하는 계약에 관한 법률",
+      "active_for_rule": true,
+      "activation_mode": "core_common",
+      "changed_articles": [
+        "제5장 (수의계약 한도액 개정)",
+        "제7장"
+      ],
+      "matched_sensitive_keywords": [
+        "수의계약",
+        "한도"
+      ],
+      "impact_level": "high",
+      "requires_interpretation_review": true,
+      "recommended_action": "hold_rule_until_review"
+    }
+  ],
+  "step_3_review_queue_routing": [
+    {
+      "queue_id": "q_7df9356d-2c69-4313-9bc7-7e86674203b9_20260504",
+      "source_title": "지방자치단체를 당사자로 하는 계약에 관한 법률",
+      "status": "pending_review",
+      "active_for_rule_policy": "hold_rule_until_review",
+      "matched_sensitive_keywords": [
+        "수의계약",
+        "한도"
+      ]
+    }
+  ]
+}

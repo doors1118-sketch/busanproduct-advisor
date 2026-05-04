@@ -1,0 +1,13 @@
+{
+  "title": "Legal DB Import Validation Report",
+  "total_sources": 217,
+  "total_jurisdiction_mappings": 219,
+  "total_buyer_type_mappings": 664,
+  "total_overlay_mappings": 24,
+  "total_relations": 27,
+  "integrity_checks": {
+    "orphan_jurisdictions": 0,
+    "orphan_buyers": 0,
+    "orphan_overlays": 0
+  }
+}

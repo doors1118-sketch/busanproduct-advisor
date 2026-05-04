@@ -1,0 +1,21 @@
+{
+  "title": "Item Eligibility Update Dry-Run Report",
+  "run_date": "2026-05-04T15:58:00",
+  "mode": "dry_run",
+  "step_1_manifest_load": {"data_sources_count": 4, "status": "PASS"},
+  "step_2_target_check": {
+    "sme_competition_product_list": {"adapter_available": false, "check_result": "skipped_dry_run"},
+    "direct_production_requirement_standards": {"adapter_available": false, "check_result": "skipped_dry_run"},
+    "company_direct_production_certs": {"adapter_available": false, "check_result": "skipped_dry_run"},
+    "item_alias_map": {"adapter_available": false, "check_result": "skipped_dry_run"},
+    "status": "PASS"
+  },
+  "step_3_import_dry_run": {
+    "sme_import": {"new": 3, "duplicate": 1, "needs_review": 1, "expired": 0},
+    "direct_production_import": {"new": 2, "needs_review": 0},
+    "cert_sync": {"valid": 2, "expired": 1, "invalid": 0, "skipped": 1},
+    "status": "PASS"
+  },
+  "blocked_operations": ["실제 API 호출", "운영 DB 반영", "Rule Engine 구현", "Production 배포"],
+  "overall_status": "PASS"
+}

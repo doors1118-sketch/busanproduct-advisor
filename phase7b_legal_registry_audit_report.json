@@ -1,0 +1,883 @@
+{
+  "report_title": "Phase 7-B Legal Source Registry 적재 결과 분석 보고서",
+  "report_date": "2026-05-04T09:40:00+09:00",
+  "backup_source": "C:\\Users\\COMTREE\\Desktop\\메뉴얼_제작_백업.zip",
+  "section_1_registry_pipeline_result": {
+    "description": "build_legal_source_registry.py 실행 결과 (37건 Seed × 7단계 MCP 수집 파이프라인)",
+    "total_seeds": 37,
+    "status_verified": 0,
+    "status_partial": 0,
+    "status_failed": 37,
+    "data_collected_count": 0,
+    "conclusion": "NCP MCP 서버(49.50.133.160) Read Timeout으로 인해 37건 전건 failed. legal_source_registry.json에 법령 원문 데이터 0건 적재.",
+    "seeds_by_group": {
+      "A": [
+        {
+          "seed_id": "local_contract_act",
+          "name": "지방계약법",
+          "group": "A",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "local_contract_decree",
+          "name": "지방계약법 시행령",
+          "group": "A",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "local_contract_rule",
+          "name": "지방계약법 시행규칙",
+          "group": "A",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "national_contract_act",
+          "name": "국가계약법",
+          "group": "A",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "national_contract_decree",
+          "name": "국가계약법 시행령",
+          "group": "A",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "national_contract_rule",
+          "name": "국가계약법 시행규칙",
+          "group": "A",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "procurement_act",
+          "name": "조달사업법",
+          "group": "A",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "procurement_decree",
+          "name": "조달사업법 시행령",
+          "group": "A",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "procurement_rule",
+          "name": "조달사업법 시행규칙",
+          "group": "A",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        }
+      ],
+      "B": [
+        {
+          "seed_id": "local_bid_execution",
+          "name": "지방자치단체 입찰 및 계약집행기준",
+          "group": "B",
+          "status": "failed",
+          "tool": "search_admin_rule",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "local_bid_winner",
+          "name": "지방자치단체 입찰시 낙찰자 결정기준",
+          "group": "B",
+          "status": "failed",
+          "tool": "search_admin_rule",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "gov_bid_execution",
+          "name": "정부 입찰·계약 집행기준",
+          "group": "B",
+          "status": "failed",
+          "tool": "search_admin_rule",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "contract_regulation",
+          "name": "계약예규",
+          "group": "B",
+          "status": "failed",
+          "tool": "search_admin_rule",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "pps_mas_standard",
+          "name": "조달청 다수공급자계약 관련 기준",
+          "group": "B",
+          "status": "failed",
+          "tool": "search_admin_rule",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "shopping_mall_ops",
+          "name": "나라장터 종합쇼핑몰 운영 관련 기준",
+          "group": "B",
+          "status": "failed",
+          "tool": "search_admin_rule",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "mas_processing",
+          "name": "물품 다수공급자계약 업무처리규정",
+          "group": "B",
+          "status": "failed",
+          "tool": "search_admin_rule",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "mas_2step",
+          "name": "MAS 2단계경쟁 관련 기준",
+          "group": "B",
+          "status": "failed",
+          "tool": "search_admin_rule",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        }
+      ],
+      "C": [
+        {
+          "seed_id": "sme_purchase_act",
+          "name": "중소기업제품 구매촉진 및 판로지원법",
+          "group": "C",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "sme_purchase_decree",
+          "name": "중소기업제품 구매촉진법 시행령",
+          "group": "C",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "sme_competition_items",
+          "name": "중소기업자간 경쟁제품 지정내역",
+          "group": "C",
+          "status": "failed",
+          "tool": "search_admin_rule",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "direct_production",
+          "name": "직접생산확인 관련 기준",
+          "group": "C",
+          "status": "failed",
+          "tool": "search_admin_rule",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "women_enterprise_act",
+          "name": "여성기업지원법",
+          "group": "C",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "women_enterprise_decree",
+          "name": "여성기업지원법 시행령",
+          "group": "C",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "disabled_enterprise_act",
+          "name": "장애인기업활동 촉진법",
+          "group": "C",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "disabled_enterprise_decree",
+          "name": "장애인기업활동 촉진법 시행령",
+          "group": "C",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "social_enterprise_act",
+          "name": "사회적기업 육성법",
+          "group": "C",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "social_enterprise_decree",
+          "name": "사회적기업 육성법 시행령",
+          "group": "C",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        }
+      ],
+      "D": [
+        {
+          "seed_id": "innovation_product",
+          "name": "혁신제품 관련 조달청 고시·지침",
+          "group": "D",
+          "status": "failed",
+          "tool": "search_admin_rule",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "innovation_prototype",
+          "name": "혁신시제품 지정 및 구매 관련 기준",
+          "group": "D",
+          "status": "failed",
+          "tool": "search_admin_rule",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "excellent_procurement",
+          "name": "우수조달물품 지정관리 규정",
+          "group": "D",
+          "status": "failed",
+          "tool": "search_admin_rule",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "tech_priority_purchase",
+          "name": "기술개발제품 우선구매 관련 기준",
+          "group": "D",
+          "status": "failed",
+          "tool": "search_admin_rule",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        }
+      ],
+      "E": [
+        {
+          "seed_id": "busan_local_product",
+          "name": "부산광역시 지역상품 우선구매 관련 조례",
+          "group": "E",
+          "status": "failed",
+          "tool": "chain_ordinance_compare",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "busan_local_company",
+          "name": "부산광역시 지역업체·지역상품 우대 관련 자치법규",
+          "group": "E",
+          "status": "failed",
+          "tool": "chain_ordinance_compare",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        }
+      ],
+      "F": [
+        {
+          "seed_id": "public_institution_act",
+          "name": "공공기관의 운영에 관한 법률",
+          "group": "F",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "public_institution_decree",
+          "name": "공공기관의 운영에 관한 법률 시행령",
+          "group": "F",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "public_corp_contract_rule",
+          "name": "공기업ㆍ준정부기관 계약사무규칙",
+          "group": "F",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        },
+        {
+          "seed_id": "public_corp_accounting_rule",
+          "name": "공기업ㆍ준정부기관 회계사무규칙",
+          "group": "F",
+          "status": "failed",
+          "tool": "search_law",
+          "steps_completed": 0,
+          "steps_failed": 5,
+          "has_data": false
+        }
+      ]
+    }
+  },
+  "section_2_existing_mcp_data": {
+    "description": "기존 MCP chain_law_system으로 수집된 법체계 데이터 (law_hierarchy_2.json)",
+    "file": "app/law_hierarchy_2.json",
+    "file_size_bytes": 52915,
+    "total_laws_with_content": 3,
+    "laws": [
+      {
+        "name": "국가계약법",
+        "text_length": 11784,
+        "has_content": true,
+        "preview": "═══ 법체계 확인: 국가를 당사자로 하는 계약에 관한 법률 ═══\n법령ID: 000695 | MST: 277151 | 구분: 법률\n\n▶ 3단 비교 (법률·시행령·시행규칙)\n법령명: 국가를 당사자로 하는 계약에 관한 법률\n\n---\n제4조 제4조(국제입찰에 따른 정부조달계약의 범위)\n---\n\n[시행령] 특정조달을 위한 국가를 당사자로 하는 계약에 관한 법률 ..."
+      },
+      {
+        "name": "조달사업법",
+        "text_length": 5329,
+        "has_content": true,
+        "preview": "═══ 법체계 확인: 조달사업에 관한 법률 ═══\n법령ID: 000705 | MST: 277155 | 구분: 법률\n\n▶ 3단 비교 (법률·시행령·시행규칙)\n법령명: 조달사업에 관한 법률\n\n---\n제2조 제2조(정의)\n---\n\n[시행령] 조달사업에 관한 법률 시행령 제2조 (수요물자의 범위)\n「조달사업에 관한 법률」(이하 “법”이라 한다) 제2조제2호에서 “..."
+      },
+      {
+        "name": "공기업 준정부기관 계약사무규칙",
+        "text_length": 5040,
+        "has_content": true,
+        "preview": "═══ 법체계 확인: 공기업ㆍ준정부기관 계약사무규칙 ═══\n법령ID: 010568 | MST: 285569 | 구분: 재정경제부령\n\n▶ 3단 비교 (법률·시행령·시행규칙)\n법령명: 공기업ㆍ준정부기관 계약사무규칙\n\n---\n제4조 제4조(공공기관)\n---\n\n[시행령] 공공기관의 운영에 관한 법률 시행령 제2조 (총수입액)\n「공공기관의 운영에 관한 법률」(이하 ..."
+      }
+    ],
+    "conclusion": "3건의 법체계 데이터가 기존에 수집 완료됨 (조문+시행령+시행규칙 3단 비교 포함)"
+  },
+  "section_3_local_law_text_files": {
+    "description": "로컬에 텍스트로 보관 중인 법령 원문 파일",
+    "total_files": 27,
+    "total_size_kb": 3126.4,
+    "files": [
+      {
+        "filename": "낙찰자결정기준_텍스트.txt",
+        "size_bytes": 1301458,
+        "size_kb": 1271.0
+      },
+      {
+        "filename": "계약집행기준_텍스트.txt",
+        "size_bytes": 906338,
+        "size_kb": 885.1
+      },
+      {
+        "filename": "지방계약법시행령_텍스트.txt",
+        "size_bytes": 259697,
+        "size_kb": 253.6
+      },
+      {
+        "filename": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령.txt",
+        "size_bytes": 259697,
+        "size_kb": 253.6
+      },
+      {
+        "filename": "물품 다수공급자계약 업무처리규정.txt",
+        "size_bytes": 155831,
+        "size_kb": 152.2
+      },
+      {
+        "filename": "조달사업법시행령_텍스트.txt",
+        "size_bytes": 86763,
+        "size_kb": 84.7
+      },
+      {
+        "filename": "조달사업법_텍스트.txt",
+        "size_bytes": 42778,
+        "size_kb": 41.8
+      },
+      {
+        "filename": "조달관련_검색.txt",
+        "size_bytes": 34276,
+        "size_kb": 33.5
+      },
+      {
+        "filename": "시행령13조.txt",
+        "size_bytes": 30075,
+        "size_kb": 29.4
+      },
+      {
+        "filename": "시행령15_20.txt",
+        "size_bytes": 21271,
+        "size_kb": 20.8
+      },
+      {
+        "filename": "시행령_조달검색.txt",
+        "size_bytes": 20740,
+        "size_kb": 20.3
+      },
+      {
+        "filename": "별표5_검색.txt",
+        "size_bytes": 18862,
+        "size_kb": 18.4
+      },
+      {
+        "filename": "조달사업법_핵심.txt",
+        "size_bytes": 18846,
+        "size_kb": 18.4
+      },
+      {
+        "filename": "조달시행령_기준.txt",
+        "size_bytes": 11150,
+        "size_kb": 10.9
+      },
+      {
+        "filename": "집행기준_지역제한검색.txt",
+        "size_bytes": 9235,
+        "size_kb": 9.0
+      },
+      {
+        "filename": "조달법_확인.txt",
+        "size_bytes": 6124,
+        "size_kb": 6.0
+      },
+      {
+        "filename": "부산시조례_텍스트.txt",
+        "size_bytes": 4836,
+        "size_kb": 4.7
+      },
+      {
+        "filename": "지방계약법_조달청의무.txt",
+        "size_bytes": 3198,
+        "size_kb": 3.1
+      },
+      {
+        "filename": "지역제한_시행령.txt",
+        "size_bytes": 2849,
+        "size_kb": 2.8
+      },
+      {
+        "filename": "질의요청_텍스트.txt",
+        "size_bytes": 2386,
+        "size_kb": 2.3
+      },
+      {
+        "filename": "지역제한_집행기준.txt",
+        "size_bytes": 2107,
+        "size_kb": 2.1
+      },
+      {
+        "filename": "지방계약법_준용확인.txt",
+        "size_bytes": 992,
+        "size_kb": 1.0
+      },
+      {
+        "filename": "조달사업법_수요기관.txt",
+        "size_bytes": 676,
+        "size_kb": 0.7
+      },
+      {
+        "filename": "집행기준_지역.txt",
+        "size_bytes": 501,
+        "size_kb": 0.5
+      },
+      {
+        "filename": "지방자치단체 입찰시 낙찰자 결정기준.txt",
+        "size_bytes": 399,
+        "size_kb": 0.4
+      },
+      {
+        "filename": "지방자치단체 입찰 및 계약집행기준.txt",
+        "size_bytes": 390,
+        "size_kb": 0.4
+      },
+      {
+        "filename": "지방계약법_준용.txt",
+        "size_bytes": 0,
+        "size_kb": 0.0
+      }
+    ]
+  },
+  "section_4_pdf_law_files": {
+    "description": "법령/예규/고시/지침 PDF 원본 파일",
+    "total_files": 48,
+    "total_size_mb": 75.1,
+    "files": [
+      {
+        "filename": "(세계유산위원회 개최지원)제안서_Y260209(포유).pdf",
+        "size_bytes": 31654251,
+        "size_kb": 30912.4
+      },
+      {
+        "filename": "2024년 지방규제혁신 우수사례집.pdf",
+        "size_bytes": 16690653,
+        "size_kb": 16299.5
+      },
+      {
+        "filename": "「우수조달물품+지정+및+3자단가계약+실무매뉴얼」 (1).pdf",
+        "size_bytes": 10691701,
+        "size_kb": 10441.1
+      },
+      {
+        "filename": "생성형 AI를 활용한 감사사례 질의응답 방법 연구.pdf",
+        "size_bytes": 8157611,
+        "size_kb": 7966.4
+      },
+      {
+        "filename": "물품 다수공급자계약 업무처리규정(조달청훈령)(제2373호)(20260227).pdf",
+        "size_bytes": 1762585,
+        "size_kb": 1721.3
+      },
+      {
+        "filename": "지역상품 구매확대를 위한 지능형 업무메뉴얼 개발 계획.pdf",
+        "size_bytes": 1227629,
+        "size_kb": 1198.9
+      },
+      {
+        "filename": "중소기업자간 경쟁제품 및 공사용자재 직접구매 대상 품목 지정 내역(중소벤처기업부고시)(제2025-96호)(20250829).pdf",
+        "size_bytes": 1123248,
+        "size_kb": 1096.9
+      },
+      {
+        "filename": "용역 다수공급자계약 업무처리규정(조달청고시)(제2026-1호)(20260201).pdf",
+        "size_bytes": 775339,
+        "size_kb": 757.2
+      },
+      {
+        "filename": "사업자등록번호 multi_swagger_guide.pdf",
+        "size_bytes": 674027,
+        "size_kb": 658.2
+      },
+      {
+        "filename": "용역 카탈로그 계약 업무처리규정(조달청고시)(제2026-2호)(20260201).pdf",
+        "size_bytes": 575171,
+        "size_kb": 561.7
+      },
+      {
+        "filename": "(붙임1) 중소벤처기업부 시범구매제도 안내.pdf",
+        "size_bytes": 387576,
+        "size_kb": 378.5
+      },
+      {
+        "filename": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령(대통령령)(제35947호)(20260102).pdf",
+        "size_bytes": 323321,
+        "size_kb": 315.7
+      },
+      {
+        "filename": "업무용 컴퓨터 구매를 위한 관련법령 적용기준 등 질의 요청.pdf",
+        "size_bytes": 281545,
+        "size_kb": 274.9
+      },
+      {
+        "filename": "상용소프트웨어 다수공급자계약 업무처리규정(조달청훈령)(제2290호)(20250901).pdf",
+        "size_bytes": 233539,
+        "size_kb": 228.1
+      },
+      {
+        "filename": "혁신제품 구매 운영 규정(조달청고시)(제2026-19호)(20260203).pdf",
+        "size_bytes": 208988,
+        "size_kb": 204.1
+      },
+      {
+        "filename": "상용소프트웨어 다수공급자계약 특수조건(조달청공고)(제2025-532호)(20260101).pdf",
+        "size_bytes": 202892,
+        "size_kb": 198.1
+      },
+      {
+        "filename": "지방공기업법(법률)(제21065호)(20260102).pdf",
+        "size_bytes": 197247,
+        "size_kb": 192.6
+      },
+      {
+        "filename": "조달청 내자구매업무 처리규정(조달청훈령)(제2328호)(20260123).pdf",
+        "size_bytes": 195060,
+        "size_kb": 190.5
+      },
+      {
+        "filename": "지방공기업법 시행령(대통령령)(제36228호)(20260331).pdf",
+        "size_bytes": 186897,
+        "size_kb": 182.5
+      },
+      {
+        "filename": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행규칙(행정안전부령)(제00599호)(20260102).pdf",
+        "size_bytes": 177686,
+        "size_kb": 173.5
+      },
+      {
+        "filename": "조달사업에 관한 법률 시행령(대통령령)(제35947호)(20260102).pdf",
+        "size_bytes": 176486,
+        "size_kb": 172.3
+      },
+      {
+        "filename": "부산교통공사 물품 구매 질의에 대한 의견서.pdf",
+        "size_bytes": 173476,
+        "size_kb": 169.4
+      },
+      {
+        "filename": "조달청 경쟁적 대화에 의한 계약체결 세부기준(조달청지침)(제403호)(20200401).pdf",
+        "size_bytes": 157252,
+        "size_kb": 153.6
+      },
+      {
+        "filename": "물품구매(제조)계약 특수조건(조달청지침)(제7356호)(20260101).pdf",
+        "size_bytes": 154144,
+        "size_kb": 150.5
+      },
+      {
+        "filename": "지방자치단체를 당사자로 하는 계약에 관한 법률(법률)(제19634호)(20240217).pdf",
+        "size_bytes": 153126,
+        "size_kb": 149.5
+      },
+      {
+        "filename": "우수조달물품 지정·관리 규정 (조달청고시)(제2025-41호)(20251222).pdf",
+        "size_bytes": 148854,
+        "size_kb": 145.4
+      },
+      {
+        "filename": "벤처나라 등록 물품·서비스 지정 관리 규정(조달청고시)(제2026-23호)(20260227).pdf",
+        "size_bytes": 148852,
+        "size_kb": 145.4
+      },
+      {
+        "filename": "디지털서비스 카탈로그계약 특수조건(조달청공고)(제2025-531호)(20260101).pdf",
+        "size_bytes": 144599,
+        "size_kb": 141.2
+      },
+      {
+        "filename": "물품구매계약 품질관리 특수조건(조달청지침)(제1635호)(20260316).pdf",
+        "size_bytes": 137093,
+        "size_kb": 133.9
+      },
+      {
+        "filename": "조달사업에 관한 법률(법률)(제21420호)(20260911).pdf",
+        "size_bytes": 123945,
+        "size_kb": 121.0
+      },
+      {
+        "filename": "혁신제품 제3자단가계약 추가특수조건(조달청공고)(제2026-90호)(20260227).pdf",
+        "size_bytes": 120155,
+        "size_kb": 117.3
+      },
+      {
+        "filename": "중소벤처기업부 혁신제품 지정 지침(중소벤처기업부고시)(제2026-11호)(20260209).pdf",
+        "size_bytes": 114752,
+        "size_kb": 112.1
+      },
+      {
+        "filename": "품질보증조달물품 지정 및 관리규정(조달청고시)(제2025-18호)(20250620).pdf",
+        "size_bytes": 110910,
+        "size_kb": 108.3
+      },
+      {
+        "filename": "우수특허기반 혁신제품 지정지침(지식재산처고시)(제2025-4호)(20251030).pdf",
+        "size_bytes": 104028,
+        "size_kb": 101.6
+      },
+      {
+        "filename": "조달청 제조물품 직접생산확인 기준(조달청고시)(제2023-420호)(20240201).pdf",
+        "size_bytes": 101729,
+        "size_kb": 99.3
+      },
+      {
+        "filename": "지방공기업법 시행규칙(행정안전부령)(제00274호)(20210907).pdf",
+        "size_bytes": 98596,
+        "size_kb": 96.3
+      },
+      {
+        "filename": "복수물품 공급계약업무 처리규정(조달청훈령)(제2329호)(20260123).pdf",
+        "size_bytes": 94462,
+        "size_kb": 92.2
+      },
+      {
+        "filename": "혁신제품 지정 및 구매촉진 등에 관한 규정(재정경제부훈령)(제68호)(20260102).pdf",
+        "size_bytes": 91399,
+        "size_kb": 89.3
+      },
+      {
+        "filename": "조달사업에 관한 법률 시행규칙(재정경제부령)(제00001호)(20260102).pdf",
+        "size_bytes": 89943,
+        "size_kb": 87.8
+      },
+      {
+        "filename": "종합낙찰제 세부운용기준(조달청훈령)(제2042호)(20220501).pdf",
+        "size_bytes": 86090,
+        "size_kb": 84.1
+      },
+      {
+        "filename": "중소기업자로 구성된 공동수급체간 경쟁입찰 운영요령(조달청고시)(제2026-7호)(20260123).pdf",
+        "size_bytes": 76090,
+        "size_kb": 74.3
+      },
+      {
+        "filename": "수요기관 자체조달 물품·용역에 대한 납품검사 대행 기준(조달청고시)(제2023-23호)(20230701).pdf",
+        "size_bytes": 74268,
+        "size_kb": 72.5
+      },
+      {
+        "filename": "다수공급자계약 추가특수조건(조달청공고)(제2016-22호)(20160301).pdf",
+        "size_bytes": 68786,
+        "size_kb": 67.2
+      },
+      {
+        "filename": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령 제6조의2 및 공유재산 및 물품 관리법 시행령 제13조, 제26조, 제78조에 따른 정보처리장치의 지정에 관한 고시(행정안전부고시)(제2023-16호)(20230421).pdf",
+        "size_bytes": 62081,
+        "size_kb": 60.6
+      },
+      {
+        "filename": "부산광역시 지역상품 우선구매에 관한 조례.pdf",
+        "size_bytes": 61865,
+        "size_kb": 60.4
+      },
+      {
+        "filename": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령의 수의계약 등 한시적 특례 적용기간에 관한 고시(행정안전부고시)(제2025-72호)(20260101).pdf",
+        "size_bytes": 50124,
+        "size_kb": 48.9
+      },
+      {
+        "filename": "지방자치단체 입찰 및 계약집행기준(행정안전부예규)(제332호)(20250708).pdf",
+        "size_bytes": 35747,
+        "size_kb": 34.9
+      },
+      {
+        "filename": "지방자치단체 입찰시 낙찰자 결정기준(행정안전부예규)(제344호)(20251201).pdf",
+        "size_bytes": 35743,
+        "size_kb": 34.9
+      }
+    ]
+  },
+  "section_5_hwpx_law_files": {
+    "description": "법령/계획서 HWPX 원본 파일",
+    "total_files": 7,
+    "files": [
+      {
+        "filename": "[개정전문] 지방자치단체 입찰시 낙찰자 결정기준.hwpx",
+        "size_bytes": 1477579,
+        "size_kb": 1442.9
+      },
+      {
+        "filename": "[개정전문]지방자치단체 입찰 및 계약집행기준.hwpx",
+        "size_bytes": 795234,
+        "size_kb": 776.6
+      },
+      {
+        "filename": "답변서_부산교통공사.hwpx",
+        "size_bytes": 84720,
+        "size_kb": 82.7
+      },
+      {
+        "filename": "부산교통공사 질의에 대한 의견서(역사 무인경비용역 지역제한 적용 여부).hwpx",
+        "size_bytes": 71616,
+        "size_kb": 69.9
+      },
+      {
+        "filename": "지역상품 구매확대 업무 메뉴얼 개발계획서(가칭 지역상품 상생어드바이저).hwpx",
+        "size_bytes": 826752,
+        "size_kb": 807.4
+      },
+      {
+        "filename": "지역상품_구매지원_개발계획서.hwpx",
+        "size_bytes": 826704,
+        "size_kb": 807.3
+      },
+      {
+        "filename": "지역상품_구매지원_개발계획서_v2.hwpx",
+        "size_bytes": 12423,
+        "size_kb": 12.1
+      }
+    ]
+  },
+  "section_6_chromadb_backup": {
+    "description": "ChromaDB 벡터DB 백업 (RAG 인덱스)",
+    "backup_exists": true,
+    "backup_path": ".chroma_backup_20260423",
+    "file_count": 7
+  },
+  "section_7_candidate_auto_discovery": {
+    "description": "자동 발견 후보 법령/행정규칙 (legal_source_candidate.json)",
+    "total_candidates": 0,
+    "conclusion": "Seed 수집이 전건 실패하여 자동 발견 후보도 0건"
+  },
+  "overall_conclusion": {
+    "phase7b_registry_status": "FAILED - 전건 수집 실패 (37/37 failed)",
+    "failure_reason": "NCP MCP 서버(49.50.133.160:3000)의 Read Timeout (15초). TCP 연결은 성공하나 내부 법제처(www.law.go.kr) 연동 지연으로 응답 불가.",
+    "existing_data_available": true,
+    "existing_data_summary": {
+      "law_hierarchy_json": "3건 법체계 데이터 (조문 포함, 52KB)",
+      "law_text_files": "27건 텍스트 파일 (3126.4KB)",
+      "pdf_files": "48건 PDF 법령/규정 원본 (75.1MB)",
+      "chromadb_backup": "존재"
+    },
+    "next_action": [
+      "1. NCP MCP 서버(49.50.133.160) 재기동 및 법제처 연결 점검",
+      "2. app/data/_checkpoint.json 삭제",
+      "3. python build_legal_source_registry.py --group all 재실행",
+      "4. 수집 완료 후 ChromaDB 적재 (ingest_laws.py 연동)"
+    ]
+  }
+}

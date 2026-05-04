@@ -1,0 +1,83 @@
+{
+  "procurement_item_master": [
+    {
+      "item_id": "item_001",
+      "item_name": "영상감시장치",
+      "item_aliases": ["CCTV", "감시카메라", "방범용카메라"],
+      "g2b_category_code": "461716",
+      "detail_item_code": "4617162201",
+      "detail_item_name": "영상감시장치",
+      "review_status": "verified"
+    },
+    {
+      "item_id": "item_002",
+      "item_name": "차량번호인식카메라",
+      "item_aliases": ["CCTV", "차량용CCTV", "주차관제카메라"],
+      "g2b_category_code": "461716",
+      "detail_item_code": "4617162202",
+      "detail_item_name": "차량번호인식카메라",
+      "review_status": "verified"
+    }
+  ],
+  "item_alias_map": [
+    {
+      "alias_id": "alias_001",
+      "alias_name": "CCTV",
+      "detail_item_code": "4617162201",
+      "alias_normalized": "cctv",
+      "alias_type": "common_name",
+      "match_confidence": 0.8,
+      "display_rank": 1,
+      "review_status": "verified"
+    },
+    {
+      "alias_id": "alias_002",
+      "alias_name": "CCTV",
+      "detail_item_code": "4617162202",
+      "alias_normalized": "cctv",
+      "alias_type": "common_name",
+      "match_confidence": 0.6,
+      "display_rank": 2,
+      "review_status": "verified"
+    }
+  ],
+  "sme_competition_product_item": [
+    {
+      "designation_id": "desig_001",
+      "detail_item_code": "4617162201",
+      "detail_item_name": "영상감시장치",
+      "is_sme_competition_product": true,
+      "designation_source_id": "legal_src_sme_01",
+      "effective_from": "2024-01-01",
+      "effective_to": "2026-12-31",
+      "review_status": "verified"
+    }
+  ],
+  "direct_production_requirement": [
+    {
+      "requirement_id": "req_001",
+      "detail_item_code": "4617162201",
+      "direct_production_required": true,
+      "direct_production_standard_source_id": "legal_src_dp_01",
+      "standard_article_ref": "제3조",
+      "required_facility_or_process_summary": "조립 공정 및 검사 설비 보유 필수",
+      "effective_from": "2024-01-01",
+      "effective_to": "2026-12-31",
+      "review_status": "verified"
+    }
+  ],
+  "company_direct_production_cert_mapping": [
+    {
+      "cert_mapping_id": "cert_001",
+      "company_id": "comp_abc123",
+      "detail_item_code": "4617162201",
+      "cert_status": "expired",
+      "valid_from": "2022-01-01",
+      "valid_to": "2023-12-31",
+      "source": "smp_api",
+      "pii_sanitized": true,
+      "cert_number_hash": "a1b2c3d4e5",
+      "business_number_hash": "f6g7h8i9j0"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "title": "Company Direct Production Cert Sync Report",
+  "sync_date": "2026-05-04T15:56:59.593913",
+  "mode": "dry_run",
+  "summary": {
+    "synced": 2,
+    "expired": 1,
+    "invalid": 0,
+    "skipped": 1
+  },
+  "pii_policy": "cert_number and business_number are stored as hash only. No PII in LLM context."
+}

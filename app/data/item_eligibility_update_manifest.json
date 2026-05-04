@@ -1,0 +1,10 @@
+{
+  "title": "Item Eligibility Update Manifest",
+  "version": "v0.1.2",
+  "data_sources": [
+    {"source_name": "sme_competition_product_list", "update_priority": "weekly", "update_method": "smpp_excel_or_api", "last_checked_at": null, "adapter_available": false, "adapter_mode": "dry_run_only"},
+    {"source_name": "direct_production_requirement_standards", "update_priority": "monthly", "update_method": "official_document_or_api", "last_checked_at": null, "adapter_available": false, "adapter_mode": "dry_run_only"},
+    {"source_name": "company_direct_production_certs", "update_priority": "daily_validity_check", "update_method": "company_db_sync", "last_checked_at": null, "adapter_available": false, "adapter_mode": "dry_run_only"},
+    {"source_name": "item_alias_map", "update_priority": "monthly", "update_method": "manual_enrichment_from_query_logs", "last_checked_at": null, "adapter_available": false, "adapter_mode": "manual"}
+  ]
+}
