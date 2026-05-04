@@ -9,7 +9,7 @@
       "user_query": "8천만원 물품 수의계약 가능한가?",
       "expected_trigger": "not_triggered",
       "gateway_response": {
-        "request_id": "tc01-0001-0001-0001-000000000001",
+        "request_id": "00000000-0000-4000-8000-000000000001",
         "gateway_version": "v0.1.1",
         "baseline_db": "legal_db_v0_1_3.sqlite",
         "source_context": {
@@ -60,7 +60,7 @@
       "user_query": "부산업체 쓸 수 있는 방법 알려줘",
       "expected_trigger": "not_triggered",
       "gateway_response": {
-        "request_id": "tc02-0001-0001-0001-000000000002",
+        "request_id": "00000000-0000-4000-8000-000000000002",
         "gateway_version": "v0.1.1",
         "baseline_db": "legal_db_v0_1_3.sqlite",
         "source_context": {
@@ -111,7 +111,7 @@
       "user_query": "컴퓨터 구매 방법 알려줘",
       "expected_trigger": "silent",
       "gateway_response": {
-        "request_id": "tc03-0001-0001-0001-000000000003",
+        "request_id": "00000000-0000-4000-8000-000000000003",
         "gateway_version": "v0.1.1",
         "baseline_db": "legal_db_v0_1_3.sqlite",
         "source_context": {
@@ -177,7 +177,7 @@
       "user_query": "CCTV 업체 추천",
       "expected_trigger": "silent",
       "gateway_response": {
-        "request_id": "tc04-0001-0001-0001-000000000004",
+        "request_id": "00000000-0000-4000-8000-000000000004",
         "gateway_version": "v0.1.1",
         "baseline_db": "legal_db_v0_1_3.sqlite",
         "source_context": {
@@ -272,7 +272,7 @@
       "user_query": "CCTV 직생도 봐줘",
       "expected_trigger": "explicit",
       "gateway_response": {
-        "request_id": "tc05-0001-0001-0001-000000000005",
+        "request_id": "00000000-0000-4000-8000-000000000005",
         "gateway_version": "v0.1.1",
         "baseline_db": "legal_db_v0_1_3.sqlite",
         "source_context": {
@@ -337,7 +337,7 @@
       "user_query": "세부품명번호 4617162201 영상감시장치",
       "expected_trigger": "explicit",
       "gateway_response": {
-        "request_id": "tc06-0001-0001-0001-000000000006",
+        "request_id": "00000000-0000-4000-8000-000000000006",
         "gateway_version": "v0.1.1",
         "baseline_db": "legal_db_v0_1_3.sqlite",
         "source_context": {

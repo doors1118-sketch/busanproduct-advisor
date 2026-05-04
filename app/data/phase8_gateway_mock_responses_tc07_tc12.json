@@ -9,7 +9,7 @@
       "user_query": "부산 펌프 업체 추천해줘",
       "expected_trigger": "not_triggered",
       "gateway_response": {
-        "request_id": "tc07-0001-0001-0001-000000000007",
+        "request_id": "00000000-0000-4000-8000-000000000007",
         "gateway_version": "v0.1.1",
         "baseline_db": "legal_db_v0_1_3.sqlite",
         "source_context": {
@@ -80,7 +80,7 @@
       "user_query": "아까 컴퓨터 직생확인 해줘",
       "expected_trigger": "explicit",
       "gateway_response": {
-        "request_id": "tc08-0001-0001-0001-000000000008",
+        "request_id": "00000000-0000-4000-8000-000000000008",
         "gateway_version": "v0.1.1",
         "baseline_db": "legal_db_v0_1_3.sqlite",
         "source_context": {
@@ -146,7 +146,7 @@
       "user_query": "CCTV 부산업체 찾아줘. 직생도 봐줘.",
       "expected_trigger": "explicit",
       "gateway_response": {
-        "request_id": "tc09-0001-0001-0001-000000000009",
+        "request_id": "00000000-0000-4000-8000-000000000009",
         "gateway_version": "v0.1.1",
         "baseline_db": "legal_db_v0_1_3.sqlite",
         "source_context": {
@@ -243,7 +243,7 @@
       "user_query": "3억 공사 지역제한 가능?",
       "expected_trigger": "not_triggered",
       "gateway_response": {
-        "request_id": "tc10-0001-0001-0001-000000000010",
+        "request_id": "00000000-0000-4000-8000-000000000010",
         "gateway_version": "v0.1.1",
         "baseline_db": "legal_db_v0_1_3.sqlite",
         "source_context": {
@@ -295,7 +295,7 @@
       "user_query": "부산 인쇄업체 추천",
       "expected_trigger": "not_triggered",
       "gateway_response": {
-        "request_id": "tc11-0001-0001-0001-000000000011",
+        "request_id": "00000000-0000-4000-8000-000000000011",
         "gateway_version": "v0.1.1",
         "baseline_db": "legal_db_v0_1_3.sqlite",
         "source_context": {
@@ -369,7 +369,7 @@
       "user_query": "노트북 부산업체 찾아줘",
       "expected_trigger": "silent",
       "gateway_response": {
-        "request_id": "tc12-0001-0001-0001-000000000012",
+        "request_id": "00000000-0000-4000-8000-000000000012",
         "gateway_version": "v0.1.1",
         "baseline_db": "legal_db_v0_1_3.sqlite",
         "source_context": {

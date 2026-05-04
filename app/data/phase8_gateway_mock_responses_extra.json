@@ -9,7 +9,7 @@
       "user_query": "소프트웨어 중기경쟁 확인해줘",
       "expected_trigger": "ambiguous",
       "gateway_response": {
-        "request_id": "tcex1-0001-0001-0001-000000000099",
+        "request_id": "00000000-0000-4000-8000-000000000099",
         "gateway_version": "v0.1.1",
         "baseline_db": "legal_db_v0_1_3.sqlite",
         "source_context": {
