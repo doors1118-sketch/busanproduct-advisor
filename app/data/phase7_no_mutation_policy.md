@@ -58,6 +58,23 @@
 | A6 | **코드 리뷰** | 기존 코드 분석, 개선점 문서화. 코드 변경 금지 |
 | A7 | **아키텍처 문서 작성** | Phase 8 설계 문서, 시퀀스 다이어그램 등 |
 | A8 | **대화맥락 기록** | 세션 종료 시 대화맥락 파일 작성 |
+| A9 | **Phase 8 Gateway 신규 코드 작성** | 아래 허용 조건 **모두** 충족 시에만 허용 |
+
+### A9 상세 조건
+
+**허용 조건** (7개 모두 충족):
+1. 기준 DB schema 변경 없음
+2. 기준 DB INSERT / UPDATE / DELETE 없음
+3. 외부 API 호출 없음
+4. scheduler 등록 없음
+5. Production 배포 없음
+6. read-only local DB query 또는 mock response 기반
+7. 별도 branch 또는 별도 module에서 구현
+
+**금지**:
+- baseline asset 직접 수정
+- 운영 서비스 재시작
+- 실제 외부 API 연동
 
 ---
 
