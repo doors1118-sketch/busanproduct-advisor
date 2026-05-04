@@ -1,62 +1,232 @@
-# 지역업체 구매지원 제도 법적 근거 및 디스커버리 (Local Purchase Support Source Discovery)
+# Phase 9.2 Evidence-Based Source Discovery
 
-본 문서는 Answer Builder 및 Rule Engine이 "지역업체 구매지원 제도 검토"를 수행할 때 기준이 되는 8대 필수 제도의 법적/정책적 근거와 적용 조건, 활용 한계를 명세합니다.
+본 문서는 Rule Catalog v0.2의 각 항목에 대한 법적 근거 매핑(Source Chain Mapping) 명세입니다.
 
-## 1. 지역제한 경쟁입찰 (R_LOCAL_RESTRICT)
-- **적용 대상**: 물품(goods), 용역(service), 공사(construction)
-- **제도 개요**: 일정 금액 미만의 계약에 대해 주된 영업소의 소재지를 기준으로 입찰 참가자격을 제한하여 지역업체를 보호하는 제도입니다.
-- **주요 법적 근거**:
-  - 지방계약법 시행령 제20조 제1항 제6호
-  - 국가계약법 시행령 제21조 제1항 제6호
-- **주의사항**: 고시 금액(추정가격 기준)을 초과하는 경우 원칙적으로 지역제한이 불가하므로 반드시 금액 기준을 확인해야 합니다.
+## R_DIRECT_GENERAL_SMALL_AMOUNT: 일반 소액수의계약 금액 기준 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+- **견적 방식**: direct_contract_general
 
-## 2. 지역의무공동도급 (R_JOINT_CONTRACT)
-- **적용 대상**: 공사(construction)
-- **제도 개요**: 지역업체의 기술 참여와 성장을 도모하기 위해 특정 금액 미만의 공사에 대해 지역업체의 시공 참여 비율(통상 49%)을 의무화하는 제도입니다.
-- **주요 법적 근거**:
-  - 지방계약법 시행령 제88조
-- **주의사항**: 기술적 난이도가 높거나 지역 내 해당 면허를 보유한 업체가 부족할 경우 예외가 인정될 수 있습니다.
+## R_DIRECT_GENERAL_SMALL_AMOUNT_NOT_PRIMARY: 일반 소액수의계약 우선 경로 배제 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: not_primary_route
+- **금액 기준**: min=50000000, max=없음
 
-## 3. 지역업체 참여도 가점 (R_PARTICIPATION_POINTS)
-- **적용 대상**: 용역(service), 공사(construction)
-- **제도 개요**: 적격심사 등 낙찰자 결정 시 지역업체 참여 비율에 따라 가산점을 부여하여 지역업체와의 공동수급체 구성을 유도합니다.
-- **주요 법적 근거**:
-  - 지방자치단체 입찰시 낙찰자 결정기준 (행정안전부 예규)
-- **주의사항**: 입찰 공고문에 명시된 가점 부여 기준과 배제 대상 여부를 사전에 확인해야 합니다.
+## R_DIRECT_ONE_PERSON_QUOTE: 1인 견적 수의계약 사유 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+- **견적 방식**: one_person_quote
 
-## 4. 지역상품 우선구매 조례·시책 (R_LOCAL_PRIORITY)
-- **적용 대상**: 물품(goods)
-- **제도 개요**: 지자체별로 지역 내 생산품 및 우수 제품의 구매를 촉진하기 위해 제정된 자체 조례 및 시책입니다.
-- **주요 법적 근거**:
-  - 각 지자체별 "지역상품 우선구매에 관한 조례"
-- **주의사항**: 지자체별로 적용 한도액이나 우선 대상(사회적경제기업 등)이 상이하므로 해당 지역의 자치법규를 필수적으로 대조해야 합니다.
+## R_DIRECT_TWO_OR_MORE_QUOTES: 2인 이상 견적 수의계약 절차 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+- **견적 방식**: two_or_more_quotes
 
-## 5. 수의계약 활용 (R_DIRECT_CONTRACT)
-- **적용 대상**: 수의계약(direct_contract)
-- **제도 개요**: 신속한 사업 추진 및 지역 소상공인 보호를 위해 법령이 정한 한도 금액 내에서 경쟁입찰 없이 지역업체와 직접 계약을 체결합니다.
-- **주요 법적 근거**:
-  - 지방계약법 시행령 제25조
-  - 국가계약법 시행령 제26조
-- **주의사항**: 한도 금액 초과 및 수의계약 배제 사유(부정당업자, 수의계약 결격사유 등)에 해당하지 않는지 철저한 확인이 필요합니다.
+## R_DIRECT_POLICY_COMPANY: 정책기업 특례 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
 
-## 6. 정책기업 우대·우선구매 (R_POLICY_COMPANY)
-- **적용 대상**: 전체 범용
-- **제도 개요**: 여성기업, 장애인기업, 사회적기업, 중증장애인생산품 등 국가 정책적으로 보호가 필요한 기업의 제품을 일정 비율 이상 의무적으로 구매하도록 하는 제도입니다. (수의계약 한도 상향 등 우대 혜택 포함)
-- **주요 법적 근거**:
-  - 여성기업지원에 관한 법률
-  - 장애인기업활동 촉진법 등
-- **주의사항**: 반드시 유효한 인증서를 보유해야 혜택이 적용됩니다.
+## R_DIRECT_TECH_PRODUCT: 기술개발제품·인증제품 특례 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
 
-## 7. MAS·종합쇼핑몰 내 지역업체 후보 활용 (R_MAS_CANDIDATE)
-- **적용 대상**: MAS, 쇼핑몰, 제3자단가계약 (mas, pps_shopping_mall, third_party_unit_price_contract)
-- **제도 개요**: 조달청 종합쇼핑몰을 통한 구매 시 지역업체 상품을 우선 검색하거나, 다수공급자계약 2단계 경쟁 시 지역업체에 가점을 부여하여 구매를 촉진합니다.
-- **주요 법적 근거**:
-  - 다수공급자계약 2단계경쟁 업무처리기준 (조달청 고시)
-- **주의사항**: 해당 지역 내 쇼핑몰 등록 업체가 있는지 사전에 검색하여 확인해야 합니다.
+## R_REGIONAL_RESTRICTION_GOODS: 물품 지역제한 경쟁입찰 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
 
-## 8. 품목별 중기경쟁제품·직접생산확인 추가 검토 (R_EXPLICIT_ITEM)
-- **적용 대상**: 중소기업자간 경쟁제품으로 확정된 품목 (item_trigger_grade="explicit")
-- **제도 개요**: 중소기업자간 경쟁제품으로 지정된 품목을 구매할 경우, 반드시 직접생산확인증명서를 보유한 중소기업과 계약해야 하는 의무 제도입니다.
-- **주요 법적 근거**:
-  - 중소기업제품 구매촉진 및 판로지원에 관한 법률 (판로지원법) 제9조
-- **주의사항**: 판로지원법 예외 적용 사유에 해당하지 않는 한 증명서 유효기간과 품목코드 일치 여부를 엄격히 확인해야 합니다.
+## R_REGIONAL_RESTRICTION_SERVICE: 용역 지역제한 경쟁입찰 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_REGIONAL_RESTRICTION_CONSTRUCTION: 공사 지역제한 경쟁입찰 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_LIMITED_COMPETITION_REVIEW: 제한경쟁입찰 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_EVALUATION_CRITERIA_REVIEW: 적격심사·종합평가·기술평가 기준 확인
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_LOCAL_REGIONAL_JOINT_CONTRACT: 지방계약 기준 지역의무공동도급 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+- **지역업체 참여비율**: 최소 49.0% ~ 최대 100.0%
+
+## R_NATIONAL_REGIONAL_JOINT_CONTRACT: 국가계약 기준 지역의무공동도급 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+- **지역업체 참여비율**: 최소 30.0% ~ 최대 100.0%
+
+## R_PUBLIC_INSTITUTION_REGIONAL_JOINT_CONTRACT_CHECK: 공공기관 내부규정상 지역공동도급 기준 확인
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_JOINT_CONTRACT_NOT_PRIMARY_GOODS: 물품 지역의무공동도급 우선 경로 배제
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: not_primary_route
+- **금액 기준**: min=없음, max=없음
+
+## R_JOINT_CONTRACT_NOT_PRIMARY_SERVICE: 일반용역 지역의무공동도급 우선 경로 배제
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: not_primary_route
+- **금액 기준**: min=없음, max=없음
+
+## R_GOODS_REGIONAL_POINTS_NOT_PRIMARY: 물품 지역업체 가점 우선 경로 배제
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: not_primary_route
+- **금액 기준**: min=없음, max=없음
+
+## R_SERVICE_REGIONAL_POINTS_EVALUATION_CHECK: 용역 평가기준상 지역업체 참여도·가점 확인
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_CONSTRUCTION_REGIONAL_POINTS_QUALIFICATION_CHECK: 공사 적격심사·종합평가·기술평가상 지역업체 참여도 확인
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_MAS_SECOND_STAGE_REGIONAL_EVALUATION_REVIEW: MAS 2단계경쟁 지역업체 평가항목 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: evaluation_criteria_check_required
+- **금액 기준**: min=없음, max=없음
+- **가점·배점 기준**: 최대 7.5 점 (다수공급자계약 2단계경쟁 종합평가방식 선택 평가항목)
+
+## R_LOCAL_PRODUCT_PRIORITY: 지역상품 우선구매 조례·시책 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_POLICY_COMPANY_PREFERENCE: 정책기업 우대·우선구매 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_SOCIAL_VALUE_PURCHASE_REVIEW: 사회적경제기업·중증장애인생산품 등 우선구매 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_SHOPPING_MALL_ROUTE_CLASSIFICATION: 종합쇼핑몰 등록 물품 경로 구분
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_THIRD_PARTY_UNIT_PRICE_DIRECT_ORDER_REVIEW: 제3자단가계약 직접 납품요구 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_MAS_SECOND_STAGE_THRESHOLD_GENERAL_PRODUCT: MAS 일반제품 5천만원 이상 기준 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=50000000, max=없음
+
+## R_MAS_SECOND_STAGE_THRESHOLD_SME_COMPETITION: MAS 중소기업자간 경쟁제품 1억원 이상 기준 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=100000000, max=없음
+
+## R_MAS_SECOND_STAGE_THRESHOLD_SME_MANUFACTURED_OPTIONAL: 중소기업 제조품목 5천만원 이상 1억원 미만 선택 적용 구간 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=50000000, max=100000000
+
+## R_MAS_BELOW_SECOND_STAGE_LOCAL_SUPPLIER_REVIEW: 2단계경쟁 대상 금액 미만 지역업체 후보 조회
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_MAS_SECOND_STAGE_EVALUATION_METHOD_REVIEW: MAS 2단계경쟁 종합평가·표준평가 방식 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_MAS_LOCAL_SUPPLIER_CANDIDATE_LOOKUP: MAS·종합쇼핑몰 내 지역업체 후보 조회
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_EXPLICIT_ITEM_ELIGIBILITY: 중기경쟁제품·직접생산확인 추가 검토
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_TECH_DEVELOPMENT_PRODUCT_REVIEW: 기술개발제품·성능인증·혁신제품 확인
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_COMPANY_CANDIDATE_LOOKUP_GOODS: 물품 후보업체 조회
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_COMPANY_CANDIDATE_LOOKUP_SERVICE: 용역 후보업체 조회
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_COMPANY_CANDIDATE_LOOKUP_CONSTRUCTION: 공사 면허업체 후보 조회
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
+## R_BUYER_TYPE_LOW_CONFIDENCE: 기관유형 확인 필요
+- **관련 법령·시행령·기준**: 
+- **DB source_id 후보**: 미정
+- **source_id 확정 여부**: source_mapping_required
+- **금액 기준**: min=없음, max=없음
+
