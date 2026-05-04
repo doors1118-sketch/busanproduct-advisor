@@ -3,7 +3,7 @@
   "title": "Phase 8 Gateway Response Schema",
   "description": "Internal Legal MCP Gateway의 출력 JSON 스키마. v0.1.1.",
   "type": "object",
-  "required": ["request_id", "gateway_version", "baseline_db", "source_context", "route_context", "procedure_context", "metadata"],
+  "required": ["request_id", "gateway_version", "baseline_db", "source_context", "route_context", "procedure_context", "item_eligibility_result", "company_candidate_context", "metadata", "error"],
   "properties": {
     "request_id": {
       "type": "string",
@@ -126,14 +126,14 @@
             "detail_item_code_ambiguous",
             null
           ],
-          "description": "data_unavailable 또는 ambiguous 시 상세 사유"
+          "description": "data_unavailable 또는 ambiguous 시 상세 사유. ambiguous 상태에서도 detail_item_code_ambiguous 사용 가능."
         },
         "context": {
           "oneOf": [
             { "$ref": "#/definitions/item_eligibility_context" },
             { "type": "null" }
           ],
-          "description": "resolved 시에만 채워짐. not_triggered/data_unavailable이면 null."
+          "description": "resolved: full context. ambiguous: partial context (detail_item_candidates 포함). not_triggered/data_unavailable: null."
         }
       }
     },

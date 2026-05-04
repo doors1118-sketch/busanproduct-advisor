@@ -90,10 +90,10 @@ class GatewayResponse:
     source_context: SourceContext
     route_context: RouteContext
     procedure_context: ProcedureContext
-    item_eligibility_context: Optional[ItemEligibilityContext]
-    company_candidate_context: Optional[CompanyCandidateContext]
+    item_eligibility_result: ItemEligibilityResult    # 항상 존재. resolver_status로 상태 구분
+    company_candidate_context: Optional[CompanyCandidateContext]  # 검색 조건 없으면 null
     metadata: GatewayMetadata
-    error: Optional[str] = None
+    error: Optional[str] = None              # 정상이면 null
 ```
 
 ---
@@ -402,8 +402,9 @@ response = resolve_context(request)
 # response.source_context.assumed_buyer_type = "local_government"
 # response.source_context.buyer_type_confidence = "low"
 # response.source_context.required_slots_missing = ["buyer_type"]
-# response.item_eligibility_context = None  (트리거 미발동)
-# response.company_candidate_context = None (업체 검색 없음)
+# response.item_eligibility_result.resolver_status == "not_triggered"  (트리거 미발동)
+# response.item_eligibility_result.context is None
+# response.company_candidate_context is None (업체 검색 없음)
 ```
 
 ### 예시 2: 직생 명시 + 업체 검색
@@ -419,10 +420,11 @@ request = GatewayRequest(
 )
 
 response = resolve_context(request)
-# response.item_eligibility_context.trigger_grade = "explicit"
-# response.item_eligibility_context.triggered_by = ["T1_keyword"]
+# response.item_eligibility_result.resolver_status == "resolved"
+# response.item_eligibility_result.context.trigger_grade == "explicit"
+# response.item_eligibility_result.context.triggered_by == ["T1_keyword"]
 # response.company_candidate_context.candidates = [...]
-# response.company_candidate_context.enrichment_applied = True
+# response.company_candidate_context.enrichment_applied == True
 ```
 
 ### 예시 3: 일반 품목명 (Silent)
@@ -438,8 +440,9 @@ request = GatewayRequest(
 )
 
 response = resolve_context(request)
-# response.item_eligibility_context.trigger_grade = "silent"
-# response.item_eligibility_context.triggered_by = ["T3_alias_map_sme_candidate"]
+# response.item_eligibility_result.resolver_status == "resolved"
+# response.item_eligibility_result.context.trigger_grade == "silent"
+# response.item_eligibility_result.context.triggered_by == ["T3_alias_map_sme_candidate"]
 # → Rule Engine: 내부 분류만
 # → Answer Builder: 보조 문구 1줄만
 ```
