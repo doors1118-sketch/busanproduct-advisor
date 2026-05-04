@@ -1,0 +1,128 @@
+{
+  "tables": {
+    "legal_source": [
+      "source_id",
+      "seed_id",
+      "source_name",
+      "normalized_title",
+      "law_category",
+      "source_type",
+      "relation_type",
+      "applicability_scope",
+      "review_status",
+      "registry_trust_level",
+      "confidence",
+      "effective_date",
+      "official_url",
+      "version_hash",
+      "active_for_rule",
+      "article_count",
+      "full_text_length",
+      "created_at",
+      "activation_mode",
+      "required_slots",
+      "procurement_route_scope",
+      "project_subtype_scope",
+      "contract_object_scope",
+      "active_for_procedure",
+      "judgment_eligible"
+    ],
+    "legal_jurisdiction_mapping": [
+      "source_id",
+      "jurisdiction_scope"
+    ],
+    "legal_buyer_type_mapping": [
+      "source_id",
+      "buyer_type_scope"
+    ],
+    "legal_overlay_mapping": [
+      "source_id",
+      "overlay_scope"
+    ],
+    "legal_relation": [
+      "id",
+      "source_title",
+      "target_title",
+      "relation_type",
+      "application_condition",
+      "confidence",
+      "review_status"
+    ],
+    "sqlite_sequence": [
+      "name",
+      "seq"
+    ],
+    "legal_source_seed_mapping": [
+      "id",
+      "seed_id",
+      "original_query",
+      "original_node_name",
+      "canonical_source_id",
+      "mapping_type",
+      "review_status",
+      "created_at"
+    ]
+  },
+  "target_column_checks": {
+    "source_id_name_title_mapping": {
+      "legal_source": {
+        "source_id": true,
+        "source_name": true,
+        "normalized_title": true
+      },
+      "legal_jurisdiction_mapping": {
+        "source_id": true,
+        "source_name": false,
+        "normalized_title": false
+      },
+      "legal_buyer_type_mapping": {
+        "source_id": true,
+        "source_name": false,
+        "normalized_title": false
+      },
+      "legal_overlay_mapping": {
+        "source_id": true,
+        "source_name": false,
+        "normalized_title": false
+      }
+    },
+    "active_for_rule": [
+      "legal_source"
+    ],
+    "active_for_procedure": [
+      "legal_source"
+    ],
+    "judgment_eligible": [
+      "legal_source"
+    ],
+    "activation_mode": [
+      "legal_source"
+    ]
+  },
+  "review_status_distribution": {
+    "legal_source": {
+      "candidate_needs_review": 183,
+      "needs_manual_source": 2,
+      "verified": 31,
+      "wrong_match": 1
+    },
+    "legal_relation": {
+      "verified": 27
+    },
+    "legal_source_seed_mapping": {
+      "candidate_needs_review": 9,
+      "needs_manual_source": 2,
+      "verified": 33,
+      "wrong_match": 1
+    }
+  },
+  "mapping_tables": {
+    "buyer_type_to_jurisdiction": [],
+    "procurement_route_overlay": [
+      "legal_overlay_mapping"
+    ],
+    "procedure_only_flag": [
+      "legal_source"
+    ]
+  }
+}
