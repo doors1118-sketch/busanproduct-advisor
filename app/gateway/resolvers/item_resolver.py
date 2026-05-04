@@ -12,7 +12,7 @@ def resolve_item_eligibility(
 ) -> ItemEligibilityResult:
     
     # 1. Ambiguous Trigger (소프트웨어)
-    if "소프트웨어" in user_query:
+    if "소프트웨어" in user_query and not detail_item_code:
          return ItemEligibilityResult(
             resolver_status="ambiguous",
             unavailable_reason="detail_item_code_ambiguous",
