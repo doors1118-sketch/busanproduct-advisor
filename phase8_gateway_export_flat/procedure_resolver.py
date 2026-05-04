@@ -21,17 +21,25 @@ def resolve_procedures(
         db_reader = ReadOnlyDatabase(db_path)
 
     query = """
-        SELECT source_id, source_name, normalized_title, law_category, source_type, applicability_scope
+        SELECT source_id, source_name, source_type, applicability_scope
         FROM legal_source
         WHERE active_for_procedure = 1
         AND active_for_rule = 0
         AND COALESCE(judgment_eligible, 0) = 0
         AND review_status NOT IN ('wrong_match', 'needs_manual_source')
     """
+    params = []
     
-    cursor = db_reader.conn.cursor()
-    cursor.execute(query)
-    rows = cursor.fetchall()
+    if contract_object:
+        query += " AND (contract_object_scope IS NULL OR contract_object_scope = '' OR contract_object_scope = ? OR contract_object_scope LIKE ?)"
+        params.extend([contract_object, f"%{contract_object}%"])
+        
+    # procedure_topic 필터는 Taxonomy 확정 전까지 보류 (Pending)
+    # if procedure_topic:
+    #     query += " AND procedure_topic_scope = ?"
+    #     params.append(procedure_topic)
+    
+    rows = db_reader.execute(query, tuple(params))
     
     sources = []
     for r in rows:

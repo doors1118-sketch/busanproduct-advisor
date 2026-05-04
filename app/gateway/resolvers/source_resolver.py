@@ -33,12 +33,10 @@ def resolve_sources(
     params = [bt]
     
     if contract_object:
-        query += " AND (ls.contract_object_scope IS NULL OR ls.contract_object_scope LIKE ?)"
-        params.append(f"%{contract_object}%")
+        query += " AND (ls.contract_object_scope IS NULL OR ls.contract_object_scope = '' OR ls.contract_object_scope = ? OR ls.contract_object_scope LIKE ?)"
+        params.extend([contract_object, f"%{contract_object}%"])
         
-    cursor = db_reader.conn.cursor()
-    cursor.execute(query, params)
-    rows = cursor.fetchall()
+    rows = db_reader.execute(query, tuple(params))
     
     sources = []
     for r in rows:
@@ -56,7 +54,7 @@ def resolve_sources(
     return SourceContext(
         sources=sources,
         assumed_buyer_type="local_government" if not buyer_type else None,
-        assumption_reason="default_fallback" if not buyer_type else None,
+        assumption_reason="부산시 업무 기본 맥락에 따른 임시 추정" if not buyer_type else None,
         buyer_type_confidence="low" if not buyer_type else "high",
-        required_slots_missing=[]
+        required_slots_missing=["buyer_type"] if not buyer_type else []
     )

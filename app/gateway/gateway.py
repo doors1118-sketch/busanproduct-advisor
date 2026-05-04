@@ -3,7 +3,7 @@ from typing import Optional
 from app.gateway.models.slots import GatewayRequest
 from app.gateway.models.context import GatewayResponse, GatewayMetadata
 from app.gateway.resolvers.source_resolver import resolve_sources
-from app.gateway.resolvers.route_resolver import resolve_routes
+from app.gateway.resolvers.route_resolver import resolve_route
 from app.gateway.resolvers.procedure_resolver import resolve_procedures
 from app.gateway.resolvers.item_resolver import resolve_item_eligibility
 from app.gateway.resolvers.company_resolver import resolve_company_candidates
@@ -29,7 +29,7 @@ def resolve_context(request: GatewayRequest, db_reader: Optional['ReadOnlyDataba
     )
     
     # 2. Route
-    route_ctx = resolve_routes(
+    route_ctx = resolve_route(
         procurement_route=request.slots.procurement_route,
         contract_method=request.slots.contract_method,
         item_name=request.slots.item_name,

@@ -3,7 +3,7 @@ from typing import Optional
 from app.gateway.models.context import RouteContext, SourceEntry
 from app.gateway.db.reader import ReadOnlyDatabase
 
-def resolve_routes(
+def resolve_route(
     procurement_route: Optional[str],
     contract_method: Optional[str],
     item_name: Optional[str],
@@ -12,7 +12,7 @@ def resolve_routes(
     
     if not procurement_route:
         return RouteContext(
-            base_jurisdiction="local_government",
+            base_jurisdiction="local_contract",
             overlay_applied=False,
             overlay_scope=None,
             overlay_sources=[],
@@ -35,9 +35,7 @@ def resolve_routes(
         AND ls.review_status NOT IN ('wrong_match', 'needs_manual_source')
     """
     
-    cursor = db_reader.conn.cursor()
-    cursor.execute(query, [procurement_route])
-    rows = cursor.fetchall()
+    rows = db_reader.execute(query, (procurement_route,))
     
     sources = []
     for r in rows:
@@ -53,9 +51,9 @@ def resolve_routes(
         ))
         
     return RouteContext(
-        base_jurisdiction="local_government",
+        base_jurisdiction="local_contract",
         overlay_applied=len(sources) > 0,
-        overlay_scope=procurement_route,
+        overlay_scope=procurement_route if len(sources) > 0 else None,
         overlay_sources=sources,
-        dual_routing=False
+        dual_routing=len(sources) > 0
     )
