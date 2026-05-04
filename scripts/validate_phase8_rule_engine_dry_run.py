@@ -144,14 +144,22 @@ def main():
             if conf == "low" and not dc.provisional_evaluation:
                 failures.append(f"{tc_id}: buyer_type_confidence is low but provisional_evaluation is False")
             
-            # 3. ambiguous 처리 검증 (TC-EX1)
+            # 3. Trigger Grade 및 Status 매핑 검증
             r_status = gw_resp.get("item_eligibility_result", {}).get("resolver_status")
+            
             if r_status == "ambiguous":
                 expected_grade = gw_resp.get("item_eligibility_result", {}).get("context", {}).get("trigger_grade")
                 if dc.item_eligibility_grade != expected_grade:
                     failures.append(f"{tc_id}: ambiguous item_eligibility_grade mismatched")
                 if dc.item_eligibility_status != "ambiguous":
                     failures.append(f"{tc_id}: ambiguous item_eligibility_status is not 'ambiguous'")
+            elif r_status == "resolved":
+                expected_grade = gw_resp.get("item_eligibility_result", {}).get("context", {}).get("trigger_grade")
+                if dc.item_eligibility_grade != expected_grade:
+                    failures.append(f"{tc_id}: resolved item_eligibility_grade mismatched. Expected {expected_grade}, got {dc.item_eligibility_grade}")
+            elif r_status in ["not_triggered", "data_unavailable"]:
+                if dc.item_eligibility_grade is not None:
+                    failures.append(f"{tc_id}: item_eligibility_grade should be None for {r_status} but got {dc.item_eligibility_grade}")
             
             # 4. Enrichment 독립성 검증 강화
             enrichment_original = gw_resp.get("metadata", {}).get("enrichment_applied", False)

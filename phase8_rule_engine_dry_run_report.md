@@ -20,7 +20,10 @@ Gateway가 산출한 13개의 Mock Response(`GatewayResponse`)와 가상의 `ori
 3. **Enrichment 독립성 비교 검증 (강화)**: 
    - `enrichment_applied = true`인 케이스에 대해 해당 값을 강제로 반전(False)시킨 복제 입력을 생성하여 Rule Engine을 재실행한 뒤, `contract_method_candidates`, `amount_threshold_met`, `local_preference_applicable` 값이 변하지 않음을 비교 검증
 4. **Answer Builder 노출 정책 (trigger_grade)**: 
-   - `DecisionContext.item_eligibility_grade`가 Gateway의 원본 `trigger_grade`에 맞게 매핑되는지 확인
+   - `resolver_status`에 따른 `DecisionContext.item_eligibility_grade` 매핑 검증
+     - `resolved`: 원본 `context.trigger_grade`와 정확히 일치하는지 확인
+     - `not_triggered` / `data_unavailable`: 강제로 `None`으로 처리되는지 확인
+     - `ambiguous`: 원본 `trigger_grade`를 유지하는지 확인
 
 ## 3. 검증 결과
 
