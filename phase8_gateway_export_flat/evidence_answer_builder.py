@@ -107,4 +107,10 @@ def apply_evidence_to_answer(
             final_md = final_md.replace(phrase, "[표현 제한]")
     answer_output.rendered_markdown = final_md
 
+    # scan metadata 갱신: route_answer 단독 호출 시에도 정확하게 유지
+    blocked = [p for p in FORBIDDEN_PHRASES if p in answer_output.rendered_markdown]
+    answer_output.blocked_phrases_found = blocked
+    answer_output.forbidden_phrase_scan_passed = len(blocked) == 0
+
     return answer_output
+

@@ -236,3 +236,27 @@ def test_expected_value_hint_never_in_evidence_section():
         # evidence section content에서만 검증
         assert hint not in out.rendered_markdown, f"expected_value_hint '{hint}' leaked into output"
 
+
+def test_scan_metadata_updated_after_evidence():
+    """route_answer 단독 호출 시에도 scan metadata가 정확히 갱신되어야 한다."""
+    rules = [
+        _make_rule("R_CLEAN", "정상 규칙", "source_verified"),
+        _make_rule("R_GAP", "GAP 규칙", "partial_evidence"),
+    ]
+    ctx = _make_context(rules)
+
+    rr = RouterResult(
+        primary_intent="contract_review",
+        routing_decision="contract_review_flow",
+        slots=RouterSlots(item_name="LED", amount=80000000),
+        secondary_intents=["local_purchase_support"],
+    )
+    out = route_answer(rr, evidence_context=ctx)
+
+    # evidence가 적용된 후 scan metadata가 정확
+    assert out.forbidden_phrase_scan_passed is True
+    assert out.blocked_phrases_found == []
+    # evidence section이 있음
+    assert "근거 기반 검토 상태" in out.rendered_markdown
+
+
