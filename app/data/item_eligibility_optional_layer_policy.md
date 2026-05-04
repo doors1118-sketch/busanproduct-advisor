@@ -15,7 +15,8 @@ Item Eligibility는 Rule Engine 8단계 중 **마지막 단계(❽)**에 위치�
 
 ### 2.2 호출 조건
 - `item_eligibility_required = true`인 경우에만 호출됩니다.
-- 트리거 조건은 `item_eligibility_trigger_policy_v0_1_3.md`에 정의됩니다.
+- 트리거 조건은 `item_eligibility_trigger_policy_v0_1_4.md`에 정의됩니다.
+- 트리거는 3등급(Explicit/Silent/Enrichment)으로 분류됩니다. 상세는 `item_eligibility_silent_trigger_policy.md`, `company_candidate_enrichment_policy.md` 참조.
 
 ### 2.3 결과의 성격
 - Item Eligibility 결과는 **최종 결론이 아니라 후보 분류 정보**입니다.
@@ -37,11 +38,13 @@ Item Eligibility는 Rule Engine 8단계 중 **마지막 단계(❽)**에 위치�
 
 | # | 허용 행위 | 조건 |
 |:-:|----------|------|
-| A1 | 사용자가 직생/중기경쟁을 명시적으로 질문한 경우 Item Eligibility 호출 | T1 트리거 |
-| A2 | 세부품명번호가 제공된 경우 중기경쟁 여부 자동 확인 | T2 트리거 |
-| A3 | 지역업체 후보표에 직생 상태 열 포함 (item_eligibility_required=true 시) | 트리거 충족 시 |
+| A1 | 사용자가 직생/중기경쟁을 명시적으로 질문한 경우 Item Eligibility 호출 | T1 Explicit |
+| A2 | 세부품명번호가 제공된 경우 중기경쟁 여부 자동 확인 | T2 Explicit |
+| A3 | 지역업체 후보표에 직생 상태 열 포함 (**Explicit 트리거 시만**) | T1/T2/T5 Explicit |
 | A4 | 직생 유효 업체를 "우선 검토 후보"로 상위 정렬 | 단정이 아닌 후보 분류 |
 | A5 | 직생 미확인 업체를 "증빙 확인 후보"로 표시 | 배제가 아닌 안내 |
+| A6 | T3 Silent 발동 시 보조 문구 1줄만 답변 말미에 표시 | T3 Silent |
+| A7 | T4 Enrichment 시 후보표에 optional column "직생 참고" 추가 | T4 Enrichment |
 
 ## 5. 레이어 간 독립성
 
@@ -88,4 +91,8 @@ Answer Builder (최종 답변 조립)
 | `item_eligibility_candidate_table_policy.md` | 유지 | 후보표 열 구성·정렬 우선순위는 트리거 충족 시 그대로 적용 |
 | `item_eligibility_status_taxonomy.json` | 유지 | 상태 분류 체계는 그대로 적용 |
 | `rule_engine_priority_order_v0_1.md` | 신규 | 8단계 우선순위 정의 (본 문서의 상위 문서) |
-| `item_eligibility_trigger_policy_v0_1_3.md` | 신규 | 트리거 조건 5가지 정의 (본 문서의 호출 조건 문서) |
+| `item_eligibility_trigger_policy_v0_1_3.md` | superseded | v0.1.4로 대체 |
+| `item_eligibility_trigger_policy_v0_1_4.md` | **현행** | 트리거 3등급 체계 정의 (본 문서의 호출 조건 문서) |
+| `item_eligibility_silent_trigger_policy.md` | **현행** | T3 Silent 등급 동작 규칙 |
+| `company_candidate_enrichment_policy.md` | **현행** | T4 Enrichment 단계 정책 |
+| `item_eligibility_trigger_test_cases_v0_1_4.md` | **현행** | 12건 테스트 케이스 |
