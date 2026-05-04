@@ -1,0 +1,1810 @@
+{
+  "R_DIRECT_GENERAL_SMALL_AMOUNT": {
+    "rule_id": "R_DIRECT_GENERAL_SMALL_AMOUNT",
+    "display_name": "일반 소액수의계약 금액 기준 검토",
+    "category": "direct_contract",
+    "primary_source_ids": [],
+    "related_source_ids": [],
+    "matched_query_terms": [],
+    "unmatched_query_terms": [
+      "지방계약법 시행령 제25조",
+      "국가계약법 시행령 제26조",
+      "소액수의계약"
+    ],
+    "numeric_parameters": [
+      {
+        "parameter_ref": "P_GENERAL_SMALL_DIRECT_CONTRACT_THRESHOLD",
+        "candidate_source_ids": [],
+        "expected_value_hint": null,
+        "parameter_status": "candidate_only"
+      }
+    ],
+    "source_chain_status": "pending_resolution",
+    "primary_source_details": []
+  },
+  "R_DIRECT_GENERAL_SMALL_AMOUNT_NOT_PRIMARY": {
+    "rule_id": "R_DIRECT_GENERAL_SMALL_AMOUNT_NOT_PRIMARY",
+    "display_name": "일반 소액수의계약 우선 경로 배제 검토",
+    "category": "direct_contract",
+    "primary_source_ids": [],
+    "related_source_ids": [],
+    "matched_query_terms": [],
+    "unmatched_query_terms": [
+      "금액 초과",
+      "소액수의계약"
+    ],
+    "numeric_parameters": [
+      {
+        "parameter_ref": "P_GENERAL_SMALL_DIRECT_CONTRACT_THRESHOLD",
+        "candidate_source_ids": [],
+        "expected_value_hint": null,
+        "parameter_status": "candidate_only"
+      }
+    ],
+    "source_chain_status": "pending_resolution",
+    "primary_source_details": []
+  },
+  "R_DIRECT_ONE_PERSON_QUOTE": {
+    "rule_id": "R_DIRECT_ONE_PERSON_QUOTE",
+    "display_name": "1인 견적 수의계약 사유 검토",
+    "category": "direct_contract",
+    "primary_source_ids": [
+      "5fe736da-cfe5-47d6-9cc5-9d99d75719e0",
+      "13f4c516-658d-40f4-980d-06c1739ef420",
+      "119e6df4-02d4-4524-bde7-1808fe825040",
+      "cc5f4783-4fd4-4b80-a216-396b45ba0a06",
+      "291b9551-1d5e-41fe-acbb-57f81dbae3e3",
+      "4f1cedc9-d81a-478b-b0d6-2909782ab368",
+      "04af1467-aac3-4c52-9b74-631b6deb0927"
+    ],
+    "related_source_ids": [],
+    "matched_query_terms": [
+      "수의계약"
+    ],
+    "unmatched_query_terms": [
+      "1인 견적"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "5fe736da-cfe5-47d6-9cc5-9d99d75719e0",
+        "title": "공정거래위원회 수의계약 운용지침",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "13f4c516-658d-40f4-980d-06c1739ef420",
+        "title": "국가인권위원회 수의계약 운용ㆍ집행 지침",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "119e6df4-02d4-4524-bde7-1808fe825040",
+        "title": "보훈ㆍ복지단체 수의계약업무 처리지침",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "cc5f4783-4fd4-4b80-a216-396b45ba0a06",
+        "title": "경쟁촉진을 위한 공사의 수의계약사유 평가기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "291b9551-1d5e-41fe-acbb-57f81dbae3e3",
+        "title": "조달청 군수품 보훈ㆍ복지단체 수의계약업무 처리지침",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "4f1cedc9-d81a-478b-b0d6-2909782ab368",
+        "title": "공공기관이 자회사 등과 수의계약을 할 수 있는 고용 기준에 관한 고시",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "04af1467-aac3-4c52-9b74-631b6deb0927",
+        "title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령의 수의계약 등 한시적 특례 적용기간에 관한 고시",
+        "status": "candidate_needs_review"
+      }
+    ]
+  },
+  "R_DIRECT_TWO_OR_MORE_QUOTES": {
+    "rule_id": "R_DIRECT_TWO_OR_MORE_QUOTES",
+    "display_name": "2인 이상 견적 수의계약 절차 검토",
+    "category": "direct_contract",
+    "primary_source_ids": [
+      "5fe736da-cfe5-47d6-9cc5-9d99d75719e0",
+      "13f4c516-658d-40f4-980d-06c1739ef420",
+      "119e6df4-02d4-4524-bde7-1808fe825040",
+      "cc5f4783-4fd4-4b80-a216-396b45ba0a06",
+      "291b9551-1d5e-41fe-acbb-57f81dbae3e3",
+      "4f1cedc9-d81a-478b-b0d6-2909782ab368",
+      "04af1467-aac3-4c52-9b74-631b6deb0927"
+    ],
+    "related_source_ids": [],
+    "matched_query_terms": [
+      "수의계약"
+    ],
+    "unmatched_query_terms": [
+      "2인 이상 견적"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "5fe736da-cfe5-47d6-9cc5-9d99d75719e0",
+        "title": "공정거래위원회 수의계약 운용지침",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "13f4c516-658d-40f4-980d-06c1739ef420",
+        "title": "국가인권위원회 수의계약 운용ㆍ집행 지침",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "119e6df4-02d4-4524-bde7-1808fe825040",
+        "title": "보훈ㆍ복지단체 수의계약업무 처리지침",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "cc5f4783-4fd4-4b80-a216-396b45ba0a06",
+        "title": "경쟁촉진을 위한 공사의 수의계약사유 평가기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "291b9551-1d5e-41fe-acbb-57f81dbae3e3",
+        "title": "조달청 군수품 보훈ㆍ복지단체 수의계약업무 처리지침",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "4f1cedc9-d81a-478b-b0d6-2909782ab368",
+        "title": "공공기관이 자회사 등과 수의계약을 할 수 있는 고용 기준에 관한 고시",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "04af1467-aac3-4c52-9b74-631b6deb0927",
+        "title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령의 수의계약 등 한시적 특례 적용기간에 관한 고시",
+        "status": "candidate_needs_review"
+      }
+    ]
+  },
+  "R_DIRECT_POLICY_COMPANY": {
+    "rule_id": "R_DIRECT_POLICY_COMPANY",
+    "display_name": "정책기업 특례 검토",
+    "category": "direct_contract",
+    "primary_source_ids": [
+      "3fdec1c1-0886-4258-87b0-f77fd90bc359",
+      "088cc30c-24c1-429f-9a7e-5c14255b0a47",
+      "c13b1dc1-e006-42be-a5ec-36fd64836430",
+      "233b60a7-b053-482d-b31c-95886f7f51d2",
+      "e45cf17a-8fd2-4ab3-956a-bd90f8737fe8",
+      "4ed16661-e9df-420d-84b4-02d048161859",
+      "93bc6b1f-eef0-4bc7-a346-72cd3ce39cf6",
+      "fa97298a-583b-40a4-8be3-ac4a60d4add8",
+      "99cc52cb-91b3-45a2-9e52-d4afd81d4b23",
+      "52940b00-5c99-4da3-bbb9-25a3f117c122",
+      "3adac8ba-df19-45c9-a8a0-8fa9a6a673c8",
+      "04af1467-aac3-4c52-9b74-631b6deb0927"
+    ],
+    "related_source_ids": [],
+    "matched_query_terms": [
+      "여성기업",
+      "장애인기업",
+      "특례",
+      "사회적기업"
+    ],
+    "unmatched_query_terms": [],
+    "numeric_parameters": [],
+    "source_chain_status": "resolved",
+    "primary_source_details": [
+      {
+        "id": "3fdec1c1-0886-4258-87b0-f77fd90bc359",
+        "title": "여성기업지원에 관한 법률",
+        "status": "verified"
+      },
+      {
+        "id": "088cc30c-24c1-429f-9a7e-5c14255b0a47",
+        "title": "여성기업지원에 관한 법률 시행령",
+        "status": "verified"
+      },
+      {
+        "id": "c13b1dc1-e006-42be-a5ec-36fd64836430",
+        "title": "장애인기업활동 촉진법",
+        "status": "verified"
+      },
+      {
+        "id": "233b60a7-b053-482d-b31c-95886f7f51d2",
+        "title": "장애인기업활동 촉진법 시행령",
+        "status": "verified"
+      },
+      {
+        "id": "e45cf17a-8fd2-4ab3-956a-bd90f8737fe8",
+        "title": "사회적기업 육성법",
+        "status": "verified"
+      },
+      {
+        "id": "4ed16661-e9df-420d-84b4-02d048161859",
+        "title": "사회적기업 육성법 시행령",
+        "status": "verified"
+      },
+      {
+        "id": "93bc6b1f-eef0-4bc7-a346-72cd3ce39cf6",
+        "title": "국가계약 시범특례 운영 지침",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "fa97298a-583b-40a4-8be3-ac4a60d4add8",
+        "title": "특정물품등의조달에관한국가를당사자로하는계약에관한법률시행령특례규정",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "99cc52cb-91b3-45a2-9e52-d4afd81d4b23",
+        "title": "특정물품등의조달에관한국가를당사자로하는계약에관한법률시행특례규칙",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "52940b00-5c99-4da3-bbb9-25a3f117c122",
+        "title": "특정조달을 위한 국가를 당사자로 하는 계약에 관한 법률 시행령 특례규정",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "3adac8ba-df19-45c9-a8a0-8fa9a6a673c8",
+        "title": "특정조달을 위한 국가를 당사자로 하는 계약에 관한 법률 시행 특례규칙",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "04af1467-aac3-4c52-9b74-631b6deb0927",
+        "title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령의 수의계약 등 한시적 특례 적용기간에 관한 고시",
+        "status": "candidate_needs_review"
+      }
+    ]
+  },
+  "R_DIRECT_TECH_PRODUCT": {
+    "rule_id": "R_DIRECT_TECH_PRODUCT",
+    "display_name": "기술개발제품·인증제품 특례 검토",
+    "category": "direct_contract",
+    "primary_source_ids": [
+      "2fdbed57-ef09-4dcf-b1ec-62f6041c5529",
+      "6d2f8a64-e7ff-4933-8293-fb970bfe75e6",
+      "863f0bf1-76f0-4837-94dd-814acc017ea3"
+    ],
+    "related_source_ids": [
+      "fbda7cb3-6915-4e0e-999d-a07532f4f5d3",
+      "7e5ce552-be23-4f0c-b7f4-3b7808322fe4"
+    ],
+    "matched_query_terms": [
+      "혁신제품",
+      "기술개발제품",
+      "우수조달"
+    ],
+    "unmatched_query_terms": [
+      "성능인증"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "2fdbed57-ef09-4dcf-b1ec-62f6041c5529",
+        "title": "우수조달물품 지정ㆍ관리 규정",
+        "status": "verified"
+      },
+      {
+        "id": "6d2f8a64-e7ff-4933-8293-fb970bfe75e6",
+        "title": "혁신제품 구매 운영 규정",
+        "status": "verified"
+      },
+      {
+        "id": "863f0bf1-76f0-4837-94dd-814acc017ea3",
+        "title": "중소기업기술개발제품 우선구매제도 운영 등에 관한 시행세칙",
+        "status": "verified"
+      }
+    ]
+  },
+  "R_REGIONAL_RESTRICTION_GOODS": {
+    "rule_id": "R_REGIONAL_RESTRICTION_GOODS",
+    "display_name": "물품 지역제한 경쟁입찰 검토",
+    "category": "regional_restriction",
+    "primary_source_ids": [],
+    "related_source_ids": [],
+    "matched_query_terms": [],
+    "unmatched_query_terms": [
+      "지역제한",
+      "제한경쟁",
+      "주된 영업소"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "pending_resolution",
+    "primary_source_details": []
+  },
+  "R_REGIONAL_RESTRICTION_SERVICE": {
+    "rule_id": "R_REGIONAL_RESTRICTION_SERVICE",
+    "display_name": "용역 지역제한 경쟁입찰 검토",
+    "category": "regional_restriction",
+    "primary_source_ids": [],
+    "related_source_ids": [],
+    "matched_query_terms": [],
+    "unmatched_query_terms": [
+      "지역제한",
+      "제한경쟁",
+      "주된 영업소"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "pending_resolution",
+    "primary_source_details": []
+  },
+  "R_REGIONAL_RESTRICTION_CONSTRUCTION": {
+    "rule_id": "R_REGIONAL_RESTRICTION_CONSTRUCTION",
+    "display_name": "공사 지역제한 경쟁입찰 검토",
+    "category": "regional_restriction",
+    "primary_source_ids": [],
+    "related_source_ids": [],
+    "matched_query_terms": [],
+    "unmatched_query_terms": [
+      "지역제한",
+      "제한경쟁",
+      "주된 영업소"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "pending_resolution",
+    "primary_source_details": []
+  },
+  "R_LIMITED_COMPETITION_REVIEW": {
+    "rule_id": "R_LIMITED_COMPETITION_REVIEW",
+    "display_name": "제한경쟁입찰 검토",
+    "category": "regional_restriction",
+    "primary_source_ids": [],
+    "related_source_ids": [],
+    "matched_query_terms": [],
+    "unmatched_query_terms": [
+      "참가자격 제한",
+      "제한경쟁"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "pending_resolution",
+    "primary_source_details": []
+  },
+  "R_EVALUATION_CRITERIA_REVIEW": {
+    "rule_id": "R_EVALUATION_CRITERIA_REVIEW",
+    "display_name": "적격심사·종합평가·기술평가 기준 확인",
+    "category": "evaluation",
+    "primary_source_ids": [
+      "605bac29-20a4-4505-a2ff-a4f26964d2a7",
+      "41dfc53f-0afc-4eb1-9bb2-3a2331202865",
+      "cf171376-9772-4dfa-b5ca-956ae10450f8",
+      "7555e63c-a4cc-4d3f-9e66-31ee90e1010e",
+      "c1e08761-4a30-4f0f-927b-24cecf272b46",
+      "74afa4fe-885b-49cc-ab04-a387a464f7b6",
+      "0d0fec83-6fc5-4783-91c7-b8f4710c03f9",
+      "39a1decb-7f34-4821-8afc-2a69e313d470",
+      "ebb82148-2ed7-44b4-a926-b5e0f0514804",
+      "33ec6b5d-08ff-4e8f-b888-be3615a8a69c",
+      "5034875d-dafd-4dee-a75e-ae412c61f081",
+      "a5d82011-b98c-43f2-b8e6-0be40322f908",
+      "937587f9-9df3-422c-9cc3-c295a5a40f0a",
+      "7c9e455c-f086-473c-86a3-60aa7246ad66",
+      "a204e21d-3343-4741-b571-1f123e36622f",
+      "f4c9465b-3544-413c-93ff-10466d8a4f7a",
+      "c43d2b56-45aa-4b73-bdeb-c96200cc5be7",
+      "2e0fc61e-3e5b-4921-b856-84f8ffa56df6",
+      "4029a250-fc93-4446-a36a-bc624941d23e",
+      "f231f288-21d9-4f95-b6df-9457d9ddccb0",
+      "8db21c63-e0ae-43d8-9b55-9091852951eb",
+      "2a81f262-98ca-46d8-91cf-0de9cf1f20ba",
+      "b8df0768-b615-4bf4-b88f-cf4f4fd4c5fa",
+      "234d9d61-0d1f-441c-ab51-5afdba652a14",
+      "404ff4ab-c331-4679-961d-2755eb72093f"
+    ],
+    "related_source_ids": [
+      "c7a7cb3f-ec36-4b29-8a4e-4ed9e8fc5763"
+    ],
+    "matched_query_terms": [
+      "종합평가",
+      "적격심사",
+      "낙찰자 결정기준"
+    ],
+    "unmatched_query_terms": [
+      "기술평가"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "605bac29-20a4-4505-a2ff-a4f26964d2a7",
+        "title": "물품 적격심사기준에 관한 훈령",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "41dfc53f-0afc-4eb1-9bb2-3a2331202865",
+        "title": "일반용역 적격심사기준에 관한 훈령",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "cf171376-9772-4dfa-b5ca-956ae10450f8",
+        "title": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "7555e63c-a4cc-4d3f-9e66-31ee90e1010e",
+        "title": "군시설공사 적격심사기준에 관한 훈령",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "c1e08761-4a30-4f0f-927b-24cecf272b46",
+        "title": "기술용역 적격심사 및 협상에 의한 낙찰자 결정기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "74afa4fe-885b-49cc-ab04-a387a464f7b6",
+        "title": "기술용역 적격심사기준에 관한 훈령",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "0d0fec83-6fc5-4783-91c7-b8f4710c03f9",
+        "title": "기술용역적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "39a1decb-7f34-4821-8afc-2a69e313d470",
+        "title": "조달청 공공주택 적격심사세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "ebb82148-2ed7-44b4-a926-b5e0f0514804",
+        "title": "국외조달 적격심사 기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "33ec6b5d-08ff-4e8f-b888-be3615a8a69c",
+        "title": "국제운송 적격심사 기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "5034875d-dafd-4dee-a75e-ae412c61f081",
+        "title": "산림청 산림사업 적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "a5d82011-b98c-43f2-b8e6-0be40322f908",
+        "title": "우편기계 유지보수 위탁용역에 관한 적격심사 지침",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "937587f9-9df3-422c-9cc3-c295a5a40f0a",
+        "title": "일반용역적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "7c9e455c-f086-473c-86a3-60aa7246ad66",
+        "title": "장비정비용역 적격심사 기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "a204e21d-3343-4741-b571-1f123e36622f",
+        "title": "전투근무지원정 적격심사 기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "f4c9465b-3544-413c-93ff-10466d8a4f7a",
+        "title": "매장유산 조사용역 적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "c43d2b56-45aa-4b73-bdeb-c96200cc5be7",
+        "title": "조달청 일반용역 적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "2e0fc61e-3e5b-4921-b856-84f8ffa56df6",
+        "title": "조달청 군수품 구매 적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "4029a250-fc93-4446-a36a-bc624941d23e",
+        "title": "조달청 기술용역 적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "f231f288-21d9-4f95-b6df-9457d9ddccb0",
+        "title": "조달청 물품구매적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "8db21c63-e0ae-43d8-9b55-9091852951eb",
+        "title": "조달청 시설공사 적격심사세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "2a81f262-98ca-46d8-91cf-0de9cf1f20ba",
+        "title": "2017년도 「문화재수리 종합평가 낙찰자 결정기준」 적용대상 문화재수리(추가)",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "b8df0768-b615-4bf4-b88f-cf4f4fd4c5fa",
+        "title": "국가유산수리 종합심사(종합평가) 적용대상 국가유산수리",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "234d9d61-0d1f-441c-ab51-5afdba652a14",
+        "title": "지방자치단체 입찰시 낙찰자 결정기준",
+        "status": "verified"
+      },
+      {
+        "id": "404ff4ab-c331-4679-961d-2755eb72093f",
+        "title": "일괄입찰 등에 의한 낙찰자 결정기준",
+        "status": "candidate_needs_review"
+      }
+    ]
+  },
+  "R_LOCAL_REGIONAL_JOINT_CONTRACT": {
+    "rule_id": "R_LOCAL_REGIONAL_JOINT_CONTRACT",
+    "display_name": "지방계약 기준 지역의무공동도급 검토",
+    "category": "joint_contract",
+    "primary_source_ids": [
+      "2ded3873-f12d-4516-b5e8-d6b995d2e85f",
+      "34ce45fb-5924-4e68-b9a1-b95782af2948"
+    ],
+    "related_source_ids": [],
+    "matched_query_terms": [
+      "공동계약"
+    ],
+    "unmatched_query_terms": [
+      "지역의무공동도급",
+      "지방계약법"
+    ],
+    "numeric_parameters": [
+      {
+        "parameter_ref": "P_LOCAL_JOINT_CONTRACT_MIN_SHARE",
+        "candidate_source_ids": [
+          "2ded3873-f12d-4516-b5e8-d6b995d2e85f",
+          "34ce45fb-5924-4e68-b9a1-b95782af2948"
+        ],
+        "expected_value_hint": null,
+        "parameter_status": "candidate_only"
+      },
+      {
+        "parameter_ref": "P_LOCAL_JOINT_CONTRACT_MAX_SHARE",
+        "candidate_source_ids": [
+          "2ded3873-f12d-4516-b5e8-d6b995d2e85f",
+          "34ce45fb-5924-4e68-b9a1-b95782af2948"
+        ],
+        "expected_value_hint": null,
+        "parameter_status": "candidate_only"
+      }
+    ],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "2ded3873-f12d-4516-b5e8-d6b995d2e85f",
+        "title": "공동계약운용요령",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "34ce45fb-5924-4e68-b9a1-b95782af2948",
+        "title": "국가를 당사자로 하는 계약에 관한 법률 시행령 제72조제3항제2호에 따른 공동계약 대상사업",
+        "status": "candidate_needs_review"
+      }
+    ]
+  },
+  "R_NATIONAL_REGIONAL_JOINT_CONTRACT": {
+    "rule_id": "R_NATIONAL_REGIONAL_JOINT_CONTRACT",
+    "display_name": "국가계약 기준 지역의무공동도급 검토",
+    "category": "joint_contract",
+    "primary_source_ids": [
+      "2ded3873-f12d-4516-b5e8-d6b995d2e85f",
+      "34ce45fb-5924-4e68-b9a1-b95782af2948"
+    ],
+    "related_source_ids": [],
+    "matched_query_terms": [
+      "공동계약"
+    ],
+    "unmatched_query_terms": [
+      "국가계약법",
+      "지역의무공동도급"
+    ],
+    "numeric_parameters": [
+      {
+        "parameter_ref": "P_NATIONAL_JOINT_CONTRACT_MIN_SHARE",
+        "candidate_source_ids": [
+          "2ded3873-f12d-4516-b5e8-d6b995d2e85f",
+          "34ce45fb-5924-4e68-b9a1-b95782af2948"
+        ],
+        "expected_value_hint": null,
+        "parameter_status": "candidate_only"
+      }
+    ],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "2ded3873-f12d-4516-b5e8-d6b995d2e85f",
+        "title": "공동계약운용요령",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "34ce45fb-5924-4e68-b9a1-b95782af2948",
+        "title": "국가를 당사자로 하는 계약에 관한 법률 시행령 제72조제3항제2호에 따른 공동계약 대상사업",
+        "status": "candidate_needs_review"
+      }
+    ]
+  },
+  "R_PUBLIC_INSTITUTION_REGIONAL_JOINT_CONTRACT_CHECK": {
+    "rule_id": "R_PUBLIC_INSTITUTION_REGIONAL_JOINT_CONTRACT_CHECK",
+    "display_name": "공공기관 내부규정상 지역공동도급 기준 확인",
+    "category": "joint_contract",
+    "primary_source_ids": [
+      "a0d647ee-13d3-4a7c-8dbe-c2fdd2a47989",
+      "7556e3a8-4b48-46e9-8f47-b0ade25790bd",
+      "db406c12-49cf-4f69-991b-557a6daea8a8",
+      "05a97f43-56e3-4408-9cf3-4e18f4cd592b",
+      "4f1cedc9-d81a-478b-b0d6-2909782ab368",
+      "d4c38c98-5525-41f7-aa2f-191a2a98e53a",
+      "6eedb5be-2d28-499f-98b3-b338985c1afd",
+      "109a9122-1d94-4e13-9c2b-e458737c2250",
+      "fa111940-1306-48dd-b758-cdfaaf58a141",
+      "67908425-a607-408f-b35f-7d9cd60b1c79",
+      "2f17c31d-019b-42a8-ad51-10e7e6c4f72b",
+      "d85ceed2-8fcf-4d56-88d4-6718efc2d852",
+      "2ded3873-f12d-4516-b5e8-d6b995d2e85f",
+      "34ce45fb-5924-4e68-b9a1-b95782af2948"
+    ],
+    "related_source_ids": [
+      "9928250d-c97a-427a-a086-dccbf34ad8c5",
+      "7d7276f2-393d-4060-8623-916453c9eec7"
+    ],
+    "matched_query_terms": [
+      "공공기관",
+      "공동계약"
+    ],
+    "unmatched_query_terms": [
+      "내부규정"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "a0d647ee-13d3-4a7c-8dbe-c2fdd2a47989",
+        "title": "공공기관의 운영에 관한 법률",
+        "status": "verified"
+      },
+      {
+        "id": "7556e3a8-4b48-46e9-8f47-b0ade25790bd",
+        "title": "공공기관의 운영에 관한 법률 시행령",
+        "status": "verified"
+      },
+      {
+        "id": "db406c12-49cf-4f69-991b-557a6daea8a8",
+        "title": "공공기관의 회계감사 및 결산감사에 관한 규칙",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "05a97f43-56e3-4408-9cf3-4e18f4cd592b",
+        "title": "공공기관의 개발선정품 지정 및 운영에 관한 기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "4f1cedc9-d81a-478b-b0d6-2909782ab368",
+        "title": "공공기관이 자회사 등과 수의계약을 할 수 있는 고용 기준에 관한 고시",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "d4c38c98-5525-41f7-aa2f-191a2a98e53a",
+        "title": "공공기관 구매위탁 예외에 관한 처리지침",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "6eedb5be-2d28-499f-98b3-b338985c1afd",
+        "title": "기타공공기관 계약사무 운영규정",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "109a9122-1d94-4e13-9c2b-e458737c2250",
+        "title": "문화체육관광부 소관 기타공공기관 등의 경영평가에 관한 규정",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "fa111940-1306-48dd-b758-cdfaaf58a141",
+        "title": "2020년 공공기관 지정 고시",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "67908425-a607-408f-b35f-7d9cd60b1c79",
+        "title": "공공기관 구분회계 운영 지침",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "2f17c31d-019b-42a8-ad51-10e7e6c4f72b",
+        "title": "한국보건복지정보개발원 공공기관 변경지정",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "d85ceed2-8fcf-4d56-88d4-6718efc2d852",
+        "title": "한국청소년활동진흥원 공공기관 변경지정",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "2ded3873-f12d-4516-b5e8-d6b995d2e85f",
+        "title": "공동계약운용요령",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "34ce45fb-5924-4e68-b9a1-b95782af2948",
+        "title": "국가를 당사자로 하는 계약에 관한 법률 시행령 제72조제3항제2호에 따른 공동계약 대상사업",
+        "status": "candidate_needs_review"
+      }
+    ]
+  },
+  "R_JOINT_CONTRACT_NOT_PRIMARY_GOODS": {
+    "rule_id": "R_JOINT_CONTRACT_NOT_PRIMARY_GOODS",
+    "display_name": "물품 지역의무공동도급 우선 경로 배제",
+    "category": "joint_contract",
+    "primary_source_ids": [
+      "2ded3873-f12d-4516-b5e8-d6b995d2e85f",
+      "34ce45fb-5924-4e68-b9a1-b95782af2948",
+      "6c457cce-0558-40e2-94f1-2ba5623dffcf",
+      "1e08cbe7-84d0-4d87-9f5e-e0144c01f1a2",
+      "f231f288-21d9-4f95-b6df-9457d9ddccb0",
+      "46e79847-c9a8-4890-b6b4-3a239ad3d72d"
+    ],
+    "related_source_ids": [],
+    "matched_query_terms": [
+      "물품구매",
+      "공동계약"
+    ],
+    "unmatched_query_terms": [],
+    "numeric_parameters": [],
+    "source_chain_status": "resolved",
+    "primary_source_details": [
+      {
+        "id": "2ded3873-f12d-4516-b5e8-d6b995d2e85f",
+        "title": "공동계약운용요령",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "34ce45fb-5924-4e68-b9a1-b95782af2948",
+        "title": "국가를 당사자로 하는 계약에 관한 법률 시행령 제72조제3항제2호에 따른 공동계약 대상사업",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "6c457cce-0558-40e2-94f1-2ba5623dffcf",
+        "title": "물품구매(제조)계약일반조건",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "1e08cbe7-84d0-4d87-9f5e-e0144c01f1a2",
+        "title": "물품구매(제조)입찰유의서",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "f231f288-21d9-4f95-b6df-9457d9ddccb0",
+        "title": "조달청 물품구매적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "46e79847-c9a8-4890-b6b4-3a239ad3d72d",
+        "title": "물품구매계약 품질관리 특수조건",
+        "status": "candidate_needs_review"
+      }
+    ]
+  },
+  "R_JOINT_CONTRACT_NOT_PRIMARY_SERVICE": {
+    "rule_id": "R_JOINT_CONTRACT_NOT_PRIMARY_SERVICE",
+    "display_name": "일반용역 지역의무공동도급 우선 경로 배제",
+    "category": "joint_contract",
+    "primary_source_ids": [
+      "2ded3873-f12d-4516-b5e8-d6b995d2e85f",
+      "34ce45fb-5924-4e68-b9a1-b95782af2948",
+      "41dfc53f-0afc-4eb1-9bb2-3a2331202865",
+      "937587f9-9df3-422c-9cc3-c295a5a40f0a",
+      "c43d2b56-45aa-4b73-bdeb-c96200cc5be7"
+    ],
+    "related_source_ids": [],
+    "matched_query_terms": [
+      "일반용역",
+      "공동계약"
+    ],
+    "unmatched_query_terms": [],
+    "numeric_parameters": [],
+    "source_chain_status": "resolved",
+    "primary_source_details": [
+      {
+        "id": "2ded3873-f12d-4516-b5e8-d6b995d2e85f",
+        "title": "공동계약운용요령",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "34ce45fb-5924-4e68-b9a1-b95782af2948",
+        "title": "국가를 당사자로 하는 계약에 관한 법률 시행령 제72조제3항제2호에 따른 공동계약 대상사업",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "41dfc53f-0afc-4eb1-9bb2-3a2331202865",
+        "title": "일반용역 적격심사기준에 관한 훈령",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "937587f9-9df3-422c-9cc3-c295a5a40f0a",
+        "title": "일반용역적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "c43d2b56-45aa-4b73-bdeb-c96200cc5be7",
+        "title": "조달청 일반용역 적격심사 세부기준",
+        "status": "candidate_needs_review"
+      }
+    ]
+  },
+  "R_GOODS_REGIONAL_POINTS_NOT_PRIMARY": {
+    "rule_id": "R_GOODS_REGIONAL_POINTS_NOT_PRIMARY",
+    "display_name": "물품 지역업체 가점 우선 경로 배제",
+    "category": "participation_points",
+    "primary_source_ids": [
+      "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+      "d31c0b7c-471d-4247-8ecc-8bc39843324c",
+      "2fdbed57-ef09-4dcf-b1ec-62f6041c5529",
+      "6c457cce-0558-40e2-94f1-2ba5623dffcf",
+      "605bac29-20a4-4505-a2ff-a4f26964d2a7",
+      "1e08cbe7-84d0-4d87-9f5e-e0144c01f1a2",
+      "5adf69e7-f902-4d60-abb7-3e28e4a85a67",
+      "f231f288-21d9-4f95-b6df-9457d9ddccb0",
+      "fa97298a-583b-40a4-8be3-ac4a60d4add8",
+      "99cc52cb-91b3-45a2-9e52-d4afd81d4b23",
+      "b6d00e39-4a5f-483a-977c-3107679d48c6",
+      "e540f0e9-97a1-40cb-b93c-9d85988bcbb1",
+      "46e79847-c9a8-4890-b6b4-3a239ad3d72d",
+      "2200b9ef-0d2e-4d6b-ab84-edf6aacbd483"
+    ],
+    "related_source_ids": [
+      "7e5ce552-be23-4f0c-b7f4-3b7808322fe4",
+      "fbda7cb3-6915-4e0e-999d-a07532f4f5d3"
+    ],
+    "matched_query_terms": [
+      "물품"
+    ],
+    "unmatched_query_terms": [
+      "지역업체 가점"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+        "title": "물품 다수공급자계약 업무처리규정",
+        "status": "verified"
+      },
+      {
+        "id": "d31c0b7c-471d-4247-8ecc-8bc39843324c",
+        "title": "조달청 제조물품 직접생산확인 기준",
+        "status": "verified"
+      },
+      {
+        "id": "2fdbed57-ef09-4dcf-b1ec-62f6041c5529",
+        "title": "우수조달물품 지정ㆍ관리 규정",
+        "status": "verified"
+      },
+      {
+        "id": "6c457cce-0558-40e2-94f1-2ba5623dffcf",
+        "title": "물품구매(제조)계약일반조건",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "605bac29-20a4-4505-a2ff-a4f26964d2a7",
+        "title": "물품 적격심사기준에 관한 훈령",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "1e08cbe7-84d0-4d87-9f5e-e0144c01f1a2",
+        "title": "물품구매(제조)입찰유의서",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "5adf69e7-f902-4d60-abb7-3e28e4a85a67",
+        "title": "품질보증조달물품 지정 및 관리규정",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "f231f288-21d9-4f95-b6df-9457d9ddccb0",
+        "title": "조달청 물품구매적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "fa97298a-583b-40a4-8be3-ac4a60d4add8",
+        "title": "특정물품등의조달에관한국가를당사자로하는계약에관한법률시행령특례규정",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "99cc52cb-91b3-45a2-9e52-d4afd81d4b23",
+        "title": "특정물품등의조달에관한국가를당사자로하는계약에관한법률시행특례규칙",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "b6d00e39-4a5f-483a-977c-3107679d48c6",
+        "title": "국제입찰에 의하는 지방자치단체의 공사 및 물품ㆍ용역의 범위에 관한 고시",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "e540f0e9-97a1-40cb-b93c-9d85988bcbb1",
+        "title": "수요기관 자체조달 물품ㆍ용역에 대한 납품검사 대행 기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "46e79847-c9a8-4890-b6b4-3a239ad3d72d",
+        "title": "물품구매계약 품질관리 특수조건",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "2200b9ef-0d2e-4d6b-ab84-edf6aacbd483",
+        "title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령 제6조의2 및 공유재산 및 물품 관리법 시행령 제13조, 제26조, 제78조에 따른 정보처리장치의 지정에 관한 고시",
+        "status": "candidate_needs_review"
+      }
+    ]
+  },
+  "R_SERVICE_REGIONAL_POINTS_EVALUATION_CHECK": {
+    "rule_id": "R_SERVICE_REGIONAL_POINTS_EVALUATION_CHECK",
+    "display_name": "용역 평가기준상 지역업체 참여도·가점 확인",
+    "category": "participation_points",
+    "primary_source_ids": [
+      "605bac29-20a4-4505-a2ff-a4f26964d2a7",
+      "41dfc53f-0afc-4eb1-9bb2-3a2331202865",
+      "cf171376-9772-4dfa-b5ca-956ae10450f8",
+      "7555e63c-a4cc-4d3f-9e66-31ee90e1010e",
+      "c1e08761-4a30-4f0f-927b-24cecf272b46",
+      "74afa4fe-885b-49cc-ab04-a387a464f7b6",
+      "0d0fec83-6fc5-4783-91c7-b8f4710c03f9",
+      "39a1decb-7f34-4821-8afc-2a69e313d470",
+      "ebb82148-2ed7-44b4-a926-b5e0f0514804",
+      "33ec6b5d-08ff-4e8f-b888-be3615a8a69c",
+      "5034875d-dafd-4dee-a75e-ae412c61f081",
+      "a5d82011-b98c-43f2-b8e6-0be40322f908",
+      "937587f9-9df3-422c-9cc3-c295a5a40f0a",
+      "7c9e455c-f086-473c-86a3-60aa7246ad66",
+      "a204e21d-3343-4741-b571-1f123e36622f",
+      "f4c9465b-3544-413c-93ff-10466d8a4f7a",
+      "c43d2b56-45aa-4b73-bdeb-c96200cc5be7",
+      "2e0fc61e-3e5b-4921-b856-84f8ffa56df6",
+      "4029a250-fc93-4446-a36a-bc624941d23e",
+      "f231f288-21d9-4f95-b6df-9457d9ddccb0",
+      "8db21c63-e0ae-43d8-9b55-9091852951eb",
+      "18022689-4f0d-4835-b5b2-642539368687",
+      "f7c69d97-68d3-480c-99df-301cc6077ae7",
+      "6b8feca8-1b7b-4ec1-8df4-ddbdf1328f01",
+      "20aae559-93dc-43c0-ad3f-63a7bf04e6df"
+    ],
+    "related_source_ids": [],
+    "matched_query_terms": [
+      "적격심사",
+      "제안서평가"
+    ],
+    "unmatched_query_terms": [
+      "지역업체 참여도"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "605bac29-20a4-4505-a2ff-a4f26964d2a7",
+        "title": "물품 적격심사기준에 관한 훈령",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "41dfc53f-0afc-4eb1-9bb2-3a2331202865",
+        "title": "일반용역 적격심사기준에 관한 훈령",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "cf171376-9772-4dfa-b5ca-956ae10450f8",
+        "title": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "7555e63c-a4cc-4d3f-9e66-31ee90e1010e",
+        "title": "군시설공사 적격심사기준에 관한 훈령",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "c1e08761-4a30-4f0f-927b-24cecf272b46",
+        "title": "기술용역 적격심사 및 협상에 의한 낙찰자 결정기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "74afa4fe-885b-49cc-ab04-a387a464f7b6",
+        "title": "기술용역 적격심사기준에 관한 훈령",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "0d0fec83-6fc5-4783-91c7-b8f4710c03f9",
+        "title": "기술용역적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "39a1decb-7f34-4821-8afc-2a69e313d470",
+        "title": "조달청 공공주택 적격심사세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "ebb82148-2ed7-44b4-a926-b5e0f0514804",
+        "title": "국외조달 적격심사 기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "33ec6b5d-08ff-4e8f-b888-be3615a8a69c",
+        "title": "국제운송 적격심사 기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "5034875d-dafd-4dee-a75e-ae412c61f081",
+        "title": "산림청 산림사업 적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "a5d82011-b98c-43f2-b8e6-0be40322f908",
+        "title": "우편기계 유지보수 위탁용역에 관한 적격심사 지침",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "937587f9-9df3-422c-9cc3-c295a5a40f0a",
+        "title": "일반용역적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "7c9e455c-f086-473c-86a3-60aa7246ad66",
+        "title": "장비정비용역 적격심사 기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "a204e21d-3343-4741-b571-1f123e36622f",
+        "title": "전투근무지원정 적격심사 기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "f4c9465b-3544-413c-93ff-10466d8a4f7a",
+        "title": "매장유산 조사용역 적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "c43d2b56-45aa-4b73-bdeb-c96200cc5be7",
+        "title": "조달청 일반용역 적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "2e0fc61e-3e5b-4921-b856-84f8ffa56df6",
+        "title": "조달청 군수품 구매 적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "4029a250-fc93-4446-a36a-bc624941d23e",
+        "title": "조달청 기술용역 적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "f231f288-21d9-4f95-b6df-9457d9ddccb0",
+        "title": "조달청 물품구매적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "8db21c63-e0ae-43d8-9b55-9091852951eb",
+        "title": "조달청 시설공사 적격심사세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "18022689-4f0d-4835-b5b2-642539368687",
+        "title": "통일부 협상에 의한 계약 제안서평가 업무처리 규정",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "f7c69d97-68d3-480c-99df-301cc6077ae7",
+        "title": "새만금개발청 협상에 의한 계약 제안서평가 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "6b8feca8-1b7b-4ec1-8df4-ddbdf1328f01",
+        "title": "협상에 의한 계약 및 제안서평가 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "20aae559-93dc-43c0-ad3f-63a7bf04e6df",
+        "title": "조달청 협상에 의한 계약 제안서평가 세부기준",
+        "status": "candidate_needs_review"
+      }
+    ]
+  },
+  "R_CONSTRUCTION_REGIONAL_POINTS_QUALIFICATION_CHECK": {
+    "rule_id": "R_CONSTRUCTION_REGIONAL_POINTS_QUALIFICATION_CHECK",
+    "display_name": "공사 적격심사·종합평가·기술평가상 지역업체 참여도 확인",
+    "category": "participation_points",
+    "primary_source_ids": [
+      "605bac29-20a4-4505-a2ff-a4f26964d2a7",
+      "41dfc53f-0afc-4eb1-9bb2-3a2331202865",
+      "cf171376-9772-4dfa-b5ca-956ae10450f8",
+      "7555e63c-a4cc-4d3f-9e66-31ee90e1010e",
+      "c1e08761-4a30-4f0f-927b-24cecf272b46",
+      "74afa4fe-885b-49cc-ab04-a387a464f7b6",
+      "0d0fec83-6fc5-4783-91c7-b8f4710c03f9",
+      "39a1decb-7f34-4821-8afc-2a69e313d470",
+      "ebb82148-2ed7-44b4-a926-b5e0f0514804",
+      "33ec6b5d-08ff-4e8f-b888-be3615a8a69c",
+      "5034875d-dafd-4dee-a75e-ae412c61f081",
+      "a5d82011-b98c-43f2-b8e6-0be40322f908",
+      "937587f9-9df3-422c-9cc3-c295a5a40f0a",
+      "7c9e455c-f086-473c-86a3-60aa7246ad66",
+      "a204e21d-3343-4741-b571-1f123e36622f",
+      "f4c9465b-3544-413c-93ff-10466d8a4f7a",
+      "c43d2b56-45aa-4b73-bdeb-c96200cc5be7",
+      "2e0fc61e-3e5b-4921-b856-84f8ffa56df6",
+      "4029a250-fc93-4446-a36a-bc624941d23e",
+      "f231f288-21d9-4f95-b6df-9457d9ddccb0",
+      "8db21c63-e0ae-43d8-9b55-9091852951eb"
+    ],
+    "related_source_ids": [],
+    "matched_query_terms": [
+      "적격심사"
+    ],
+    "unmatched_query_terms": [
+      "지역업체 배점"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "605bac29-20a4-4505-a2ff-a4f26964d2a7",
+        "title": "물품 적격심사기준에 관한 훈령",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "41dfc53f-0afc-4eb1-9bb2-3a2331202865",
+        "title": "일반용역 적격심사기준에 관한 훈령",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "cf171376-9772-4dfa-b5ca-956ae10450f8",
+        "title": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "7555e63c-a4cc-4d3f-9e66-31ee90e1010e",
+        "title": "군시설공사 적격심사기준에 관한 훈령",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "c1e08761-4a30-4f0f-927b-24cecf272b46",
+        "title": "기술용역 적격심사 및 협상에 의한 낙찰자 결정기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "74afa4fe-885b-49cc-ab04-a387a464f7b6",
+        "title": "기술용역 적격심사기준에 관한 훈령",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "0d0fec83-6fc5-4783-91c7-b8f4710c03f9",
+        "title": "기술용역적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "39a1decb-7f34-4821-8afc-2a69e313d470",
+        "title": "조달청 공공주택 적격심사세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "ebb82148-2ed7-44b4-a926-b5e0f0514804",
+        "title": "국외조달 적격심사 기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "33ec6b5d-08ff-4e8f-b888-be3615a8a69c",
+        "title": "국제운송 적격심사 기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "5034875d-dafd-4dee-a75e-ae412c61f081",
+        "title": "산림청 산림사업 적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "a5d82011-b98c-43f2-b8e6-0be40322f908",
+        "title": "우편기계 유지보수 위탁용역에 관한 적격심사 지침",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "937587f9-9df3-422c-9cc3-c295a5a40f0a",
+        "title": "일반용역적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "7c9e455c-f086-473c-86a3-60aa7246ad66",
+        "title": "장비정비용역 적격심사 기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "a204e21d-3343-4741-b571-1f123e36622f",
+        "title": "전투근무지원정 적격심사 기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "f4c9465b-3544-413c-93ff-10466d8a4f7a",
+        "title": "매장유산 조사용역 적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "c43d2b56-45aa-4b73-bdeb-c96200cc5be7",
+        "title": "조달청 일반용역 적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "2e0fc61e-3e5b-4921-b856-84f8ffa56df6",
+        "title": "조달청 군수품 구매 적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "4029a250-fc93-4446-a36a-bc624941d23e",
+        "title": "조달청 기술용역 적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "f231f288-21d9-4f95-b6df-9457d9ddccb0",
+        "title": "조달청 물품구매적격심사 세부기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "8db21c63-e0ae-43d8-9b55-9091852951eb",
+        "title": "조달청 시설공사 적격심사세부기준",
+        "status": "candidate_needs_review"
+      }
+    ]
+  },
+  "R_MAS_SECOND_STAGE_REGIONAL_EVALUATION_REVIEW": {
+    "rule_id": "R_MAS_SECOND_STAGE_REGIONAL_EVALUATION_REVIEW",
+    "display_name": "MAS 2단계경쟁 지역업체 평가항목 검토",
+    "category": "participation_points",
+    "primary_source_ids": [
+      "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+      "76b54c12-ed16-4b6c-b615-164db74f5692"
+    ],
+    "related_source_ids": [
+      "7e5ce552-be23-4f0c-b7f4-3b7808322fe4"
+    ],
+    "matched_query_terms": [
+      "다수공급자계약",
+      "2단계경쟁"
+    ],
+    "unmatched_query_terms": [
+      "종합평가방식",
+      "지역업체"
+    ],
+    "numeric_parameters": [
+      {
+        "parameter_ref": "P_MAS_SECOND_STAGE_MAX_SCORE",
+        "candidate_source_ids": [
+          "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+          "76b54c12-ed16-4b6c-b615-164db74f5692"
+        ],
+        "expected_value_hint": "7.5",
+        "parameter_status": "candidate_only"
+      }
+    ],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+        "title": "물품 다수공급자계약 업무처리규정",
+        "status": "verified"
+      },
+      {
+        "id": "76b54c12-ed16-4b6c-b615-164db74f5692",
+        "title": "낙동강유역환경청 레미콘ㆍ아스콘 다수공급자계약 2단계경쟁 업무처리기준",
+        "status": "candidate_needs_review"
+      }
+    ]
+  },
+  "R_LOCAL_PRODUCT_PRIORITY": {
+    "rule_id": "R_LOCAL_PRODUCT_PRIORITY",
+    "display_name": "지역상품 우선구매 조례·시책 검토",
+    "category": "local_priority",
+    "primary_source_ids": [
+      "863f0bf1-76f0-4837-94dd-814acc017ea3"
+    ],
+    "related_source_ids": [
+      "fbda7cb3-6915-4e0e-999d-a07532f4f5d3"
+    ],
+    "matched_query_terms": [
+      "우선구매"
+    ],
+    "unmatched_query_terms": [
+      "조례",
+      "지역상품"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "863f0bf1-76f0-4837-94dd-814acc017ea3",
+        "title": "중소기업기술개발제품 우선구매제도 운영 등에 관한 시행세칙",
+        "status": "verified"
+      }
+    ]
+  },
+  "R_POLICY_COMPANY_PREFERENCE": {
+    "rule_id": "R_POLICY_COMPANY_PREFERENCE",
+    "display_name": "정책기업 우대·우선구매 검토",
+    "category": "policy_company",
+    "primary_source_ids": [
+      "3fdec1c1-0886-4258-87b0-f77fd90bc359",
+      "088cc30c-24c1-429f-9a7e-5c14255b0a47",
+      "e45cf17a-8fd2-4ab3-956a-bd90f8737fe8",
+      "4ed16661-e9df-420d-84b4-02d048161859",
+      "c13b1dc1-e006-42be-a5ec-36fd64836430",
+      "233b60a7-b053-482d-b31c-95886f7f51d2",
+      "863f0bf1-76f0-4837-94dd-814acc017ea3"
+    ],
+    "related_source_ids": [
+      "fbda7cb3-6915-4e0e-999d-a07532f4f5d3"
+    ],
+    "matched_query_terms": [
+      "여성기업",
+      "장애인기업",
+      "우선구매",
+      "사회적기업"
+    ],
+    "unmatched_query_terms": [],
+    "numeric_parameters": [],
+    "source_chain_status": "resolved",
+    "primary_source_details": [
+      {
+        "id": "3fdec1c1-0886-4258-87b0-f77fd90bc359",
+        "title": "여성기업지원에 관한 법률",
+        "status": "verified"
+      },
+      {
+        "id": "088cc30c-24c1-429f-9a7e-5c14255b0a47",
+        "title": "여성기업지원에 관한 법률 시행령",
+        "status": "verified"
+      },
+      {
+        "id": "e45cf17a-8fd2-4ab3-956a-bd90f8737fe8",
+        "title": "사회적기업 육성법",
+        "status": "verified"
+      },
+      {
+        "id": "4ed16661-e9df-420d-84b4-02d048161859",
+        "title": "사회적기업 육성법 시행령",
+        "status": "verified"
+      },
+      {
+        "id": "c13b1dc1-e006-42be-a5ec-36fd64836430",
+        "title": "장애인기업활동 촉진법",
+        "status": "verified"
+      },
+      {
+        "id": "233b60a7-b053-482d-b31c-95886f7f51d2",
+        "title": "장애인기업활동 촉진법 시행령",
+        "status": "verified"
+      },
+      {
+        "id": "863f0bf1-76f0-4837-94dd-814acc017ea3",
+        "title": "중소기업기술개발제품 우선구매제도 운영 등에 관한 시행세칙",
+        "status": "verified"
+      }
+    ]
+  },
+  "R_SOCIAL_VALUE_PURCHASE_REVIEW": {
+    "rule_id": "R_SOCIAL_VALUE_PURCHASE_REVIEW",
+    "display_name": "사회적경제기업·중증장애인생산품 등 우선구매 검토",
+    "category": "policy_company",
+    "primary_source_ids": [],
+    "related_source_ids": [],
+    "matched_query_terms": [],
+    "unmatched_query_terms": [
+      "사회적가치",
+      "중증장애인생산품"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "pending_resolution",
+    "primary_source_details": []
+  },
+  "R_SHOPPING_MALL_ROUTE_CLASSIFICATION": {
+    "rule_id": "R_SHOPPING_MALL_ROUTE_CLASSIFICATION",
+    "display_name": "종합쇼핑몰 등록 물품 경로 구분",
+    "category": "shopping_mall",
+    "primary_source_ids": [
+      "ba2d1909-5bf4-4c70-92f3-5dd41001a201"
+    ],
+    "related_source_ids": [
+      "7e5ce552-be23-4f0c-b7f4-3b7808322fe4"
+    ],
+    "matched_query_terms": [
+      "종합쇼핑몰"
+    ],
+    "unmatched_query_terms": [
+      "제3자단가계약",
+      "MAS"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "ba2d1909-5bf4-4c70-92f3-5dd41001a201",
+        "title": "국가종합전자조달시스템 종합쇼핑몰 운영규정",
+        "status": "verified"
+      }
+    ]
+  },
+  "R_THIRD_PARTY_UNIT_PRICE_DIRECT_ORDER_REVIEW": {
+    "rule_id": "R_THIRD_PARTY_UNIT_PRICE_DIRECT_ORDER_REVIEW",
+    "display_name": "제3자단가계약 직접 납품요구 검토",
+    "category": "shopping_mall",
+    "primary_source_ids": [],
+    "related_source_ids": [],
+    "matched_query_terms": [],
+    "unmatched_query_terms": [
+      "제3자를 위한 단가계약",
+      "직접 납품요구"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "pending_resolution",
+    "primary_source_details": []
+  },
+  "R_MAS_SECOND_STAGE_THRESHOLD_GENERAL_PRODUCT": {
+    "rule_id": "R_MAS_SECOND_STAGE_THRESHOLD_GENERAL_PRODUCT",
+    "display_name": "MAS 일반제품 2단계경쟁 기준 검토",
+    "category": "shopping_mall",
+    "primary_source_ids": [
+      "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+      "76b54c12-ed16-4b6c-b615-164db74f5692"
+    ],
+    "related_source_ids": [
+      "7e5ce552-be23-4f0c-b7f4-3b7808322fe4"
+    ],
+    "matched_query_terms": [
+      "다수공급자계약"
+    ],
+    "unmatched_query_terms": [
+      "기준금액",
+      "일반제품"
+    ],
+    "numeric_parameters": [
+      {
+        "parameter_ref": "P_MAS_SECOND_STAGE_GENERAL_PRODUCT_THRESHOLD",
+        "candidate_source_ids": [
+          "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+          "76b54c12-ed16-4b6c-b615-164db74f5692"
+        ],
+        "expected_value_hint": "50000000",
+        "parameter_status": "candidate_only"
+      }
+    ],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+        "title": "물품 다수공급자계약 업무처리규정",
+        "status": "verified"
+      },
+      {
+        "id": "76b54c12-ed16-4b6c-b615-164db74f5692",
+        "title": "낙동강유역환경청 레미콘ㆍ아스콘 다수공급자계약 2단계경쟁 업무처리기준",
+        "status": "candidate_needs_review"
+      }
+    ]
+  },
+  "R_MAS_SECOND_STAGE_THRESHOLD_SME_COMPETITION": {
+    "rule_id": "R_MAS_SECOND_STAGE_THRESHOLD_SME_COMPETITION",
+    "display_name": "MAS 중소기업자간 경쟁제품 2단계경쟁 기준 검토",
+    "category": "shopping_mall",
+    "primary_source_ids": [
+      "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+      "76b54c12-ed16-4b6c-b615-164db74f5692",
+      "e34672de-21f2-4ead-8afd-39b2a0b9e604"
+    ],
+    "related_source_ids": [
+      "7e5ce552-be23-4f0c-b7f4-3b7808322fe4",
+      "fbda7cb3-6915-4e0e-999d-a07532f4f5d3"
+    ],
+    "matched_query_terms": [
+      "중소기업자간 경쟁제품",
+      "다수공급자계약"
+    ],
+    "unmatched_query_terms": [
+      "기준금액"
+    ],
+    "numeric_parameters": [
+      {
+        "parameter_ref": "P_MAS_SECOND_STAGE_SME_COMPETITION_THRESHOLD",
+        "candidate_source_ids": [
+          "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+          "76b54c12-ed16-4b6c-b615-164db74f5692",
+          "e34672de-21f2-4ead-8afd-39b2a0b9e604"
+        ],
+        "expected_value_hint": "100000000",
+        "parameter_status": "candidate_only"
+      }
+    ],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+        "title": "물품 다수공급자계약 업무처리규정",
+        "status": "verified"
+      },
+      {
+        "id": "76b54c12-ed16-4b6c-b615-164db74f5692",
+        "title": "낙동강유역환경청 레미콘ㆍ아스콘 다수공급자계약 2단계경쟁 업무처리기준",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "e34672de-21f2-4ead-8afd-39b2a0b9e604",
+        "title": "중소기업자간 경쟁제품 및 공사용자재 직접구매 대상 품목 지정 내역",
+        "status": "verified"
+      }
+    ]
+  },
+  "R_MAS_SECOND_STAGE_THRESHOLD_SME_MANUFACTURED_OPTIONAL": {
+    "rule_id": "R_MAS_SECOND_STAGE_THRESHOLD_SME_MANUFACTURED_OPTIONAL",
+    "display_name": "중소기업 제조품목 선택 적용 구간 검토",
+    "category": "shopping_mall",
+    "primary_source_ids": [
+      "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+      "76b54c12-ed16-4b6c-b615-164db74f5692"
+    ],
+    "related_source_ids": [
+      "7e5ce552-be23-4f0c-b7f4-3b7808322fe4"
+    ],
+    "matched_query_terms": [
+      "다수공급자계약"
+    ],
+    "unmatched_query_terms": [
+      "중소기업 제조품목"
+    ],
+    "numeric_parameters": [
+      {
+        "parameter_ref": "P_MAS_SECOND_STAGE_SME_MANUFACTURED_OPTIONAL_MIN",
+        "candidate_source_ids": [
+          "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+          "76b54c12-ed16-4b6c-b615-164db74f5692"
+        ],
+        "expected_value_hint": "50000000~100000000",
+        "parameter_status": "candidate_only"
+      },
+      {
+        "parameter_ref": "P_MAS_SECOND_STAGE_SME_MANUFACTURED_OPTIONAL_MAX",
+        "candidate_source_ids": [
+          "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+          "76b54c12-ed16-4b6c-b615-164db74f5692"
+        ],
+        "expected_value_hint": "50000000~100000000",
+        "parameter_status": "candidate_only"
+      }
+    ],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+        "title": "물품 다수공급자계약 업무처리규정",
+        "status": "verified"
+      },
+      {
+        "id": "76b54c12-ed16-4b6c-b615-164db74f5692",
+        "title": "낙동강유역환경청 레미콘ㆍ아스콘 다수공급자계약 2단계경쟁 업무처리기준",
+        "status": "candidate_needs_review"
+      }
+    ]
+  },
+  "R_MAS_BELOW_SECOND_STAGE_LOCAL_SUPPLIER_REVIEW": {
+    "rule_id": "R_MAS_BELOW_SECOND_STAGE_LOCAL_SUPPLIER_REVIEW",
+    "display_name": "2단계경쟁 대상 금액 미만 지역업체 후보 조회",
+    "category": "shopping_mall",
+    "primary_source_ids": [
+      "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+      "76b54c12-ed16-4b6c-b615-164db74f5692"
+    ],
+    "related_source_ids": [
+      "7e5ce552-be23-4f0c-b7f4-3b7808322fe4"
+    ],
+    "matched_query_terms": [
+      "다수공급자계약"
+    ],
+    "unmatched_query_terms": [
+      "2단계경쟁 예외",
+      "직접 납품요구"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+        "title": "물품 다수공급자계약 업무처리규정",
+        "status": "verified"
+      },
+      {
+        "id": "76b54c12-ed16-4b6c-b615-164db74f5692",
+        "title": "낙동강유역환경청 레미콘ㆍ아스콘 다수공급자계약 2단계경쟁 업무처리기준",
+        "status": "candidate_needs_review"
+      }
+    ]
+  },
+  "R_MAS_SECOND_STAGE_EVALUATION_METHOD_REVIEW": {
+    "rule_id": "R_MAS_SECOND_STAGE_EVALUATION_METHOD_REVIEW",
+    "display_name": "MAS 2단계경쟁 종합평가·표준평가 방식 검토",
+    "category": "shopping_mall",
+    "primary_source_ids": [
+      "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+      "76b54c12-ed16-4b6c-b615-164db74f5692"
+    ],
+    "related_source_ids": [
+      "7e5ce552-be23-4f0c-b7f4-3b7808322fe4"
+    ],
+    "matched_query_terms": [
+      "다수공급자계약"
+    ],
+    "unmatched_query_terms": [
+      "표준평가방식",
+      "종합평가방식"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "a75755ca-622d-4f90-a1ce-5787b1ebd929",
+        "title": "물품 다수공급자계약 업무처리규정",
+        "status": "verified"
+      },
+      {
+        "id": "76b54c12-ed16-4b6c-b615-164db74f5692",
+        "title": "낙동강유역환경청 레미콘ㆍ아스콘 다수공급자계약 2단계경쟁 업무처리기준",
+        "status": "candidate_needs_review"
+      }
+    ]
+  },
+  "R_MAS_LOCAL_SUPPLIER_CANDIDATE_LOOKUP": {
+    "rule_id": "R_MAS_LOCAL_SUPPLIER_CANDIDATE_LOOKUP",
+    "display_name": "MAS·종합쇼핑몰 내 지역업체 후보 조회",
+    "category": "shopping_mall",
+    "primary_source_ids": [
+      "ba2d1909-5bf4-4c70-92f3-5dd41001a201"
+    ],
+    "related_source_ids": [
+      "7e5ce552-be23-4f0c-b7f4-3b7808322fe4"
+    ],
+    "matched_query_terms": [
+      "종합쇼핑몰"
+    ],
+    "unmatched_query_terms": [
+      "지역업체 등록현황"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "company_api_mapping_required",
+    "primary_source_details": [
+      {
+        "id": "ba2d1909-5bf4-4c70-92f3-5dd41001a201",
+        "title": "국가종합전자조달시스템 종합쇼핑몰 운영규정",
+        "status": "verified"
+      }
+    ]
+  },
+  "R_EXPLICIT_ITEM_ELIGIBILITY": {
+    "rule_id": "R_EXPLICIT_ITEM_ELIGIBILITY",
+    "display_name": "중기경쟁제품·직접생산확인 추가 검토",
+    "category": "item_eligibility",
+    "primary_source_ids": [
+      "e34672de-21f2-4ead-8afd-39b2a0b9e604"
+    ],
+    "related_source_ids": [
+      "fbda7cb3-6915-4e0e-999d-a07532f4f5d3"
+    ],
+    "matched_query_terms": [
+      "중소기업자간 경쟁제품"
+    ],
+    "unmatched_query_terms": [
+      "직접생산확인증명서"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "e34672de-21f2-4ead-8afd-39b2a0b9e604",
+        "title": "중소기업자간 경쟁제품 및 공사용자재 직접구매 대상 품목 지정 내역",
+        "status": "verified"
+      }
+    ]
+  },
+  "R_TECH_DEVELOPMENT_PRODUCT_REVIEW": {
+    "rule_id": "R_TECH_DEVELOPMENT_PRODUCT_REVIEW",
+    "display_name": "기술개발제품·성능인증·혁신제품 확인",
+    "category": "item_eligibility",
+    "primary_source_ids": [
+      "863f0bf1-76f0-4837-94dd-814acc017ea3",
+      "6d2f8a64-e7ff-4933-8293-fb970bfe75e6"
+    ],
+    "related_source_ids": [
+      "fbda7cb3-6915-4e0e-999d-a07532f4f5d3",
+      "7e5ce552-be23-4f0c-b7f4-3b7808322fe4"
+    ],
+    "matched_query_terms": [
+      "혁신제품",
+      "기술개발제품"
+    ],
+    "unmatched_query_terms": [
+      "성능인증"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "863f0bf1-76f0-4837-94dd-814acc017ea3",
+        "title": "중소기업기술개발제품 우선구매제도 운영 등에 관한 시행세칙",
+        "status": "verified"
+      },
+      {
+        "id": "6d2f8a64-e7ff-4933-8293-fb970bfe75e6",
+        "title": "혁신제품 구매 운영 규정",
+        "status": "verified"
+      }
+    ]
+  },
+  "R_COMPANY_CANDIDATE_LOOKUP_GOODS": {
+    "rule_id": "R_COMPANY_CANDIDATE_LOOKUP_GOODS",
+    "display_name": "물품 후보업체 조회",
+    "category": "candidate_lookup",
+    "primary_source_ids": [],
+    "related_source_ids": [],
+    "matched_query_terms": [],
+    "unmatched_query_terms": [],
+    "numeric_parameters": [],
+    "source_chain_status": "company_api_mapping_required",
+    "primary_source_details": []
+  },
+  "R_COMPANY_CANDIDATE_LOOKUP_SERVICE": {
+    "rule_id": "R_COMPANY_CANDIDATE_LOOKUP_SERVICE",
+    "display_name": "용역 후보업체 조회",
+    "category": "candidate_lookup",
+    "primary_source_ids": [],
+    "related_source_ids": [],
+    "matched_query_terms": [],
+    "unmatched_query_terms": [],
+    "numeric_parameters": [],
+    "source_chain_status": "company_api_mapping_required",
+    "primary_source_details": []
+  },
+  "R_COMPANY_CANDIDATE_LOOKUP_CONSTRUCTION": {
+    "rule_id": "R_COMPANY_CANDIDATE_LOOKUP_CONSTRUCTION",
+    "display_name": "공사 면허업체 후보 조회",
+    "category": "candidate_lookup",
+    "primary_source_ids": [],
+    "related_source_ids": [],
+    "matched_query_terms": [],
+    "unmatched_query_terms": [],
+    "numeric_parameters": [],
+    "source_chain_status": "company_api_mapping_required",
+    "primary_source_details": []
+  },
+  "R_BUYER_TYPE_LOW_CONFIDENCE": {
+    "rule_id": "R_BUYER_TYPE_LOW_CONFIDENCE",
+    "display_name": "기관유형 확인 필요",
+    "category": "validation",
+    "primary_source_ids": [
+      "66b76bdb-6516-4e5d-819f-fba5e4ecd785",
+      "93bc6b1f-eef0-4bc7-a346-72cd3ce39cf6",
+      "2aaf22e3-6105-4b7c-b710-7820095a4c8e"
+    ],
+    "related_source_ids": [],
+    "matched_query_terms": [
+      "지방계약",
+      "국가계약"
+    ],
+    "unmatched_query_terms": [
+      "공공기관운영법"
+    ],
+    "numeric_parameters": [],
+    "source_chain_status": "partial_mapped",
+    "primary_source_details": [
+      {
+        "id": "66b76bdb-6516-4e5d-819f-fba5e4ecd785",
+        "title": "국가계약분쟁조정위원회 운영규정",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "93bc6b1f-eef0-4bc7-a346-72cd3ce39cf6",
+        "title": "국가계약 시범특례 운영 지침",
+        "status": "candidate_needs_review"
+      },
+      {
+        "id": "2aaf22e3-6105-4b7c-b710-7820095a4c8e",
+        "title": "지방계약 전문기관 지정",
+        "status": "candidate_needs_review"
+      }
+    ]
+  }
+}
