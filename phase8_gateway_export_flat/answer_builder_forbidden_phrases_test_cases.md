@@ -20,12 +20,14 @@
 - **Then**: 
   - `forbidden_phrase_scan_passed`는 `True`여야 한다.
   - `blocked_phrases_found`는 빈 배열(`[]`)이어야 한다.
+  - `fallback_applied`는 `False`여야 한다.
   - 생성된 문자열 내부를 Regex로 스캔해도 위 5개 표현이 검출되지 않아야 한다.
 
-## 시나리오 2: 금지 표현 누출(Leak) 케이스 차단
+## 시나리오 2: 금지 표현 누출(Leak) 케이스 차단 및 Fallback 발동
 - **Given**: 후보표 내부의 Enrichment 보조 정보 영역이나, 혹은 면책조항 어딘가에 실수로 `"수의계약 가능합니다"`라는 텍스트가 조립된 상황
 - **When**: Answer Builder가 최종 출력 전후로 스캔 로직을 수행함
 - **Then**:
   - `forbidden_phrase_scan_passed`는 `False`로 변환되어야 한다.
   - `blocked_phrases_found` 배열에 `["수의계약 가능합니다"]`가 포함되어야 한다.
-  - 시스템은 해당 문자열 반환을 멈추고 기본(Fallback) 에러 메시지 객체로 응답을 대체하는 등의 방어 체계를 가동해야 한다.
+  - **`fallback_applied`는 `True`로 설정되어야 한다.**
+  - 시스템은 해당 문자열 반환을 멈추고 기본(Fallback) 에러 메시지 객체로 응답을 철저히 대체해야 한다.
