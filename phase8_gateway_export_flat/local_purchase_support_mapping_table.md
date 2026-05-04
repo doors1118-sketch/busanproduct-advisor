@@ -32,12 +32,12 @@
 | R_MAS_SECOND_STAGE_THRESHOLD_SME_MANUFACTURED_OPTIONAL | shopping_mall | 중소기업 제조품목 선택 적용 구간 검토 |  |  |  |  |  | mas |  | Yes |  | source_mapping_required | 선택적 2단계경쟁 적용 가능 여부 확인 필요 | 중소기업 제조물품 여부 확인<br>선택적 2단계경쟁 구간 여부 확인 |  |
 | R_MAS_BELOW_SECOND_STAGE_LOCAL_SUPPLIER_REVIEW | shopping_mall | 2단계경쟁 대상 금액 미만 지역업체 후보 조회 |  |  |  | below_second_stage_threshold |  | mas |  |  |  | source_mapping_required | 2단계경쟁 대상 금액 미만으로 확인되는 경우 종합쇼핑몰 등록 업체 중 지역업체 후보를 조회하고 납품요구 경로를 검토할 수 있습니다. | 금액 기준 미달 여부 재확인<br>지역업체 후보 검색 | shopping_mall_local_supplier |
 | R_MAS_SECOND_STAGE_EVALUATION_METHOD_REVIEW | shopping_mall | MAS 2단계경쟁 종합평가·표준평가 방식 검토 |  |  |  |  |  | mas |  |  |  | source_mapping_required | 평가방식별 세부 기준 확인 필요 | 2단계경쟁 평가방식 선택<br>방식별 지역업체 유불리 판단 |  |
-| R_MAS_LOCAL_SUPPLIER_CANDIDATE_LOOKUP | shopping_mall | MAS·종합쇼핑몰 내 지역업체 후보 조회 |  |  |  |  |  | mas, pps_shopping_mall |  |  |  | source_mapping_required | 지역업체 검색 결과 확인 필요 | 지역 내 업체 수 파악<br>제안 조건 부합 업체 확인 | shopping_mall_local_supplier |
+| R_MAS_LOCAL_SUPPLIER_CANDIDATE_LOOKUP | shopping_mall | MAS·종합쇼핑몰 내 지역업체 후보 조회 |  |  |  |  |  | mas, pps_shopping_mall |  |  |  | company_api_mapping_required | 지역업체 검색 결과 확인 필요 | 지역 내 업체 수 파악<br>제안 조건 부합 업체 확인 | shopping_mall_local_supplier |
 | R_EXPLICIT_ITEM_ELIGIBILITY | item_eligibility | 중기경쟁제품·직접생산확인 추가 검토 |  |  |  |  |  |  |  |  |  | source_mapping_required | 증빙 확인 필요 | 직생증명서 유효성 확인<br>중소기업자간 경쟁제품 고시 확인 |  |
 | R_TECH_DEVELOPMENT_PRODUCT_REVIEW | item_eligibility | 기술개발제품·성능인증·혁신제품 확인 |  | goods, service |  |  |  |  |  |  |  | source_mapping_required | 인증 유효성 확인 필요 | 기술개발제품 인증서 유효기간 확인<br>성능인증 범위 확인 |  |
-| R_COMPANY_CANDIDATE_LOOKUP_GOODS | candidate_lookup | 물품 후보업체 조회 |  | goods |  |  |  |  |  |  |  | source_mapping_required | 후보 조회 필요 | 물품 관련 지역 조건 설정<br>품목 분류코드 매핑 확인 |  |
-| R_COMPANY_CANDIDATE_LOOKUP_SERVICE | candidate_lookup | 용역 후보업체 조회 |  | service |  |  |  |  |  |  |  | source_mapping_required | 후보 조회 필요 | 용역 분야별 실적 확인<br>지역 조건 설정 |  |
-| R_COMPANY_CANDIDATE_LOOKUP_CONSTRUCTION | candidate_lookup | 공사 면허업체 후보 조회 |  | construction |  |  |  |  |  |  |  | source_mapping_required | 후보 조회 필요 | 공종별 면허 요구사항 확인<br>시공능력평가액 조건 설정 |  |
+| R_COMPANY_CANDIDATE_LOOKUP_GOODS | candidate_lookup | 물품 후보업체 조회 |  | goods |  |  |  |  |  |  |  | company_api_mapping_required | 후보 조회 필요 | 물품 관련 지역 조건 설정<br>품목 분류코드 매핑 확인 |  |
+| R_COMPANY_CANDIDATE_LOOKUP_SERVICE | candidate_lookup | 용역 후보업체 조회 |  | service |  |  |  |  |  |  |  | company_api_mapping_required | 후보 조회 필요 | 용역 분야별 실적 확인<br>지역 조건 설정 |  |
+| R_COMPANY_CANDIDATE_LOOKUP_CONSTRUCTION | candidate_lookup | 공사 면허업체 후보 조회 |  | construction |  |  |  |  |  |  |  | company_api_mapping_required | 후보 조회 필요 | 공종별 면허 요구사항 확인<br>시공능력평가액 조건 설정 |  |
 | R_BUYER_TYPE_LOW_CONFIDENCE | validation | 기관유형 확인 필요 |  |  |  |  |  |  |  |  |  | source_mapping_required | 기관유형 확인 필요 | 정확한 발주기관 법적 성격 규명<br>적용 법체계 분기 |  |
 
 ## 금지 표현 정책

@@ -123,8 +123,8 @@ def test_mas_second_stage_comprehensive():
     assert "R_MAS_SECOND_STAGE_REGIONAL_EVALUATION_REVIEW" in rule_ids
     
     rule = next(r for r in matched if r["rule_id"] == "R_MAS_SECOND_STAGE_REGIONAL_EVALUATION_REVIEW")
-    assert rule["max_score"] == 7.5
-    assert rule["score_basis"] == "다수공급자계약 2단계경쟁 종합평가방식 선택 평가항목"
+    assert rule["numeric_basis"]["expected_value_hint"] == "7.5"
+    assert rule["score_basis"] is None
 
 def test_mas_no_blind_trigger():
     catalog = load_catalog()

@@ -129,7 +129,6 @@
 - **source_id 확정 여부**: evaluation_criteria_check_required
 - **금액 기준**: 없음
 - **숫자/비율 파라미터**: P_MAS_SECOND_STAGE_MAX_SCORE (매핑 필요)
-- **가점·배점 기준**: 최대 7.5 점 (다수공급자계약 2단계경쟁 종합평가방식 선택 평가항목)
 
 ## R_LOCAL_PRODUCT_PRIORITY: 지역상품 우선구매 조례·시책 검토
 - **관련 법령·시행령·기준**: 우선구매, 조례, 지역상품
@@ -197,7 +196,7 @@
 ## R_MAS_LOCAL_SUPPLIER_CANDIDATE_LOOKUP: MAS·종합쇼핑몰 내 지역업체 후보 조회
 - **관련 법령·시행령·기준**: 종합쇼핑몰, 지역업체 등록현황
 - **DB source_id 후보**: 미정
-- **source_id 확정 여부**: source_mapping_required
+- **source_id 확정 여부**: company_api_mapping_required
 - **금액 기준**: 없음
 
 ## R_EXPLICIT_ITEM_ELIGIBILITY: 중기경쟁제품·직접생산확인 추가 검토
@@ -215,19 +214,19 @@
 ## R_COMPANY_CANDIDATE_LOOKUP_GOODS: 물품 후보업체 조회
 - **관련 법령·시행령·기준**: 
 - **DB source_id 후보**: 미정
-- **source_id 확정 여부**: source_mapping_required
+- **source_id 확정 여부**: company_api_mapping_required
 - **금액 기준**: 없음
 
 ## R_COMPANY_CANDIDATE_LOOKUP_SERVICE: 용역 후보업체 조회
 - **관련 법령·시행령·기준**: 
 - **DB source_id 후보**: 미정
-- **source_id 확정 여부**: source_mapping_required
+- **source_id 확정 여부**: company_api_mapping_required
 - **금액 기준**: 없음
 
 ## R_COMPANY_CANDIDATE_LOOKUP_CONSTRUCTION: 공사 면허업체 후보 조회
 - **관련 법령·시행령·기준**: 
 - **DB source_id 후보**: 미정
-- **source_id 확정 여부**: source_mapping_required
+- **source_id 확정 여부**: company_api_mapping_required
 - **금액 기준**: 없음
 
 ## R_BUYER_TYPE_LOW_CONFIDENCE: 기관유형 확인 필요
