@@ -192,9 +192,36 @@ class ChatbotRuntimeOrchestrator:
             ))
             errors.append(f"company_candidate_resolver: {str(e)}")
 
-        # ── Stage 5: Answer Builder ──
+        # ── Stage 5: Evidence Context (optional) ──
+        evidence_context = None
+        opts = request.runtime_options or {}
+        use_evidence = opts.get("use_evidence_builder", False)
+        source_map_path = opts.get("source_map_path", None)
+
+        if use_evidence:
+            try:
+                from app.answer_builder.evidence_context_loader import build_evidence_context
+                evidence_context = build_evidence_context(
+                    router_result, source_map_path=source_map_path
+                )
+                stages.append(RuntimeStageResult(
+                    stage_name="evidence_context", status="success", skipped=False
+                ))
+            except Exception as e:
+                stages.append(RuntimeStageResult(
+                    stage_name="evidence_context", status="failed", skipped=False, reason=str(e)
+                ))
+                errors.append(f"evidence_context: {str(e)}")
+                # evidence 실패 시 기존 route_answer로 fallback — runtime 중단 안 함
+        else:
+            stages.append(RuntimeStageResult(
+                stage_name="evidence_context", status="skipped", skipped=True,
+                reason="use_evidence_builder=False"
+            ))
+
+        # ── Stage 6: Answer Builder ──
         try:
-            answer_output = route_answer(router_result)
+            answer_output = route_answer(router_result, evidence_context=evidence_context)
 
             # Company API 결과가 있으면 후보표 추가
             if company_result and company_result.status == "success" and company_result.candidates:
@@ -266,7 +293,7 @@ class ChatbotRuntimeOrchestrator:
 
 
 def run_chatbot_runtime(request: ChatbotRuntimeRequest) -> ChatbotRuntimeResponse:
-    """함수형 진입점. runtime_options로 Company API mock/live 전환 가능."""
+    """함수형 진입점. runtime_options로 Company API, Evidence Builder 전환 가능."""
     opts = request.runtime_options or {}
     use_mock_company_api = opts.get("use_mock_company_api", True)
     return ChatbotRuntimeOrchestrator(
