@@ -61,44 +61,12 @@ app.add_middleware(
 PRODUCTION_DEPLOYMENT = "HOLD"
 
 # ─────────────────────────────────────────────
-# Pilot Basic Auth Middleware
+# Pilot Basic Auth Middleware (DISABLED)
 # ─────────────────────────────────────────────
 @app.middleware("http")
 async def pilot_auth_middleware(request: Request, call_next):
-    if os.getenv("PILOT_AUTH_ENABLED", "").lower() != "true":
-        return await call_next(request)
-
-    path = request.url.path
-    protected_paths = ["/ui", "/chat", "/rag/status", "/version"]
-    is_protected = any(path.startswith(p) for p in protected_paths)
-
-    if not is_protected:
-        return await call_next(request)
-        
-    # 로컬호스트(Streamlit UI 내부 호출)는 인증 우회
-    if request.client and request.client.host in ("127.0.0.1", "localhost"):
-        return await call_next(request)
-
-    auth_header = request.headers.get("Authorization")
-    if auth_header and auth_header.startswith("Basic "):
-        try:
-            decoded = base64.b64decode(auth_header[6:]).decode("utf-8")
-            username, _, password = decoded.partition(":")
-
-            expected_user = os.getenv("PILOT_AUTH_USER", "")
-            expected_pass = os.getenv("PILOT_AUTH_PASSWORD", "")
-
-            if expected_user and expected_pass:
-                if secrets.compare_digest(username, expected_user) and secrets.compare_digest(password, expected_pass):
-                    return await call_next(request)
-        except Exception:
-            pass
-
-    return Response(
-        content="Unauthorized",
-        status_code=401,
-        headers={"WWW-Authenticate": 'Basic realm="Pilot Access"'}
-    )
+    # 사용자의 요청에 따라 모든 비밀번호/인증 로직 무효화 (프리패스)
+    return await call_next(request)
 
 # ─────────────────────────────────────────────
 # Frontend StaticFiles Mount
