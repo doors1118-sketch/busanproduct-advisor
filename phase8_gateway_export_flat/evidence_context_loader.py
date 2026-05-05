@@ -18,11 +18,22 @@ from app.answer_builder.evidence_policy import (
     build_parameter_status,
 )
 
+from pathlib import Path
+
 # ── 기본 source map 경로 ──
-_DEFAULT_MAP_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    "purchase_support_rule_source_map.json"
-)
+def _get_map_paths() -> List[str]:
+    current_file = Path(__file__).resolve()
+    search_dirs = [
+        current_file.parent,
+        current_file.parent.parent,
+        current_file.parents[2],
+        current_file.parents[2] / "app" / "data"
+    ]
+    paths = []
+    for d in search_dirs:
+        paths.append(str(d / "purchase_support_rule_source_map.merged.json"))
+        paths.append(str(d / "purchase_support_rule_source_map.json"))
+    return paths
 
 # ── active_rule_ids 자동 추론 ──
 _RULE_SET_GOODS = [
@@ -86,13 +97,14 @@ def load_source_map(path: Optional[str] = None) -> dict:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    merged_path = _DEFAULT_MAP_PATH.replace(".json", ".merged.json")
-    if os.path.exists(merged_path):
-        with open(merged_path, "r", encoding="utf-8") as f:
-            return json.load(f)
-
-    with open(_DEFAULT_MAP_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    for p in _get_map_paths():
+        if os.path.exists(p):
+            with open(p, "r", encoding="utf-8") as f:
+                return json.load(f)
+                
+    import logging
+    logging.warning("[EvidenceContextLoader] purchase_support_rule_source_map.json을 찾을 수 없습니다. (빈 딕셔너리 반환)")
+    return {}
 
 
 def _infer_active_rules(router_result: RouterResult) -> List[str]:
@@ -170,6 +182,8 @@ def build_evidence_context(
     router_result: RouterResult,
     active_rule_ids: Optional[List[str]] = None,
     source_map_path: Optional[str] = None,
+    threshold_ref_used: Optional[str] = None,
+    threshold_value_used: Optional[int] = None,
 ) -> EvidenceContext:
     """EvidenceContext를 구성한다."""
     source_map = load_source_map(source_map_path)
@@ -219,6 +233,8 @@ def build_evidence_context(
         rule_statuses=rule_statuses,
         source_gap_exists=source_gap_exists,
         unresolved_numeric_exists=unresolved_numeric_exists,
+        threshold_ref_used=threshold_ref_used,
+        threshold_value_used=threshold_value_used,
     )
 
 

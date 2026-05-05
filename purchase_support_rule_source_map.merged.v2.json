@@ -23,47 +23,18 @@
     "unmatched_query_terms": [],
     "numeric_parameters": [
       {
-        "parameter_ref": "P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD",
-        "candidate_source_ids": [],
+        "parameter_ref": "P_GENERAL_SMALL_DIRECT_CONTRACT_THRESHOLD",
+        "candidate_source_ids": [
+          "1f0b13d9-650f-4c12-a2a8-f820a2791fdf",
+          "433540d3-ecff-4282-91db-e0118ea7729a"
+        ],
         "expected_value_hint": null,
-        "resolved_value": 20000000,
-        "requires_manual_numeric_verification": false,
-        "parameter_status": "resolved"
-      },
-      {
-        "parameter_ref": "P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD",
-        "candidate_source_ids": [],
-        "expected_value_hint": null,
-        "resolved_value": 20000000,
-        "requires_manual_numeric_verification": false,
-        "parameter_status": "resolved"
-      },
-      {
-        "parameter_ref": "P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD",
-        "candidate_source_ids": [],
-        "expected_value_hint": null,
-        "resolved_value": 50000000,
-        "requires_manual_numeric_verification": false,
-        "parameter_status": "resolved"
-      },
-      {
-        "parameter_ref": "P_LOCAL_DIRECT_SMALL_BUSINESS_THRESHOLD",
-        "candidate_source_ids": [],
-        "expected_value_hint": null,
-        "resolved_value": 100000000,
-        "requires_manual_numeric_verification": false,
-        "parameter_status": "resolved"
-      },
-      {
-        "parameter_ref": "P_LOCAL_DIRECT_POLICY_COMPANY_THRESHOLD",
-        "candidate_source_ids": [],
-        "expected_value_hint": null,
-        "resolved_value": 100000000,
-        "requires_manual_numeric_verification": false,
-        "parameter_status": "resolved"
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
+        "parameter_status": "candidate_only"
       }
     ],
-    "source_chain_status": "mapped_verified",
+    "source_chain_status": "partial_mapped",
     "primary_source_details": [
       {
         "id": "1f0b13d9-650f-4c12-a2a8-f820a2791fdf",
@@ -96,7 +67,7 @@
       }
     ],
     "high_priority_source_count": 2,
-    "remaining_gap_reason": "None"
+    "remaining_gap_reason": "Numeric parameters pending manual verification"
   },
   "R_DIRECT_GENERAL_SMALL_AMOUNT_NOT_PRIMARY": {
     "rule_id": "R_DIRECT_GENERAL_SMALL_AMOUNT_NOT_PRIMARY",
@@ -125,13 +96,12 @@
           "1f0b13d9-650f-4c12-a2a8-f820a2791fdf"
         ],
         "expected_value_hint": null,
-        "resolved_value": 20000000,
-        "requires_manual_numeric_verification": false,
-        "parameter_status": "resolved",
-        "remaining_gap_reason": "Extracted and verified from relevant law articles/notifications"
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
+        "parameter_status": "candidate_only"
       }
     ],
-    "source_chain_status": "mapped_verified",
+    "source_chain_status": "partial_mapped",
     "primary_source_details": [
       {
         "id": "433540d3-ecff-4282-91db-e0118ea7729a",
@@ -164,7 +134,7 @@
       }
     ],
     "high_priority_source_count": 2,
-    "remaining_gap_reason": "None"
+    "remaining_gap_reason": "Numeric parameters pending manual verification"
   },
   "R_DIRECT_ONE_PERSON_QUOTE": {
     "rule_id": "R_DIRECT_ONE_PERSON_QUOTE",
@@ -255,48 +225,7 @@
       "장애인기업",
       "사회적기업"
     ],
-    "numeric_parameters": [
-      {
-        "parameter_ref": "P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD",
-        "candidate_source_ids": [],
-        "expected_value_hint": null,
-        "resolved_value": 20000000,
-        "requires_manual_numeric_verification": false,
-        "parameter_status": "resolved"
-      },
-      {
-        "parameter_ref": "P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD",
-        "candidate_source_ids": [],
-        "expected_value_hint": null,
-        "resolved_value": 20000000,
-        "requires_manual_numeric_verification": false,
-        "parameter_status": "resolved"
-      },
-      {
-        "parameter_ref": "P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD",
-        "candidate_source_ids": [],
-        "expected_value_hint": null,
-        "resolved_value": 50000000,
-        "requires_manual_numeric_verification": false,
-        "parameter_status": "resolved"
-      },
-      {
-        "parameter_ref": "P_LOCAL_DIRECT_SMALL_BUSINESS_THRESHOLD",
-        "candidate_source_ids": [],
-        "expected_value_hint": null,
-        "resolved_value": 100000000,
-        "requires_manual_numeric_verification": false,
-        "parameter_status": "resolved"
-      },
-      {
-        "parameter_ref": "P_LOCAL_DIRECT_POLICY_COMPANY_THRESHOLD",
-        "candidate_source_ids": [],
-        "expected_value_hint": null,
-        "resolved_value": 100000000,
-        "requires_manual_numeric_verification": false,
-        "parameter_status": "resolved"
-      }
-    ],
+    "numeric_parameters": [],
     "source_chain_status": "partial_mapped",
     "primary_source_details": [
       {
@@ -1309,7 +1238,9 @@
         "지방계약법"
       ]
     },
-    "unmatched_query_terms": [],
+    "unmatched_query_terms": [
+      "지역의무공동도급"
+    ],
     "numeric_parameters": [
       {
         "parameter_ref": "P_LOCAL_JOINT_CONTRACT_MIN_SHARE",
@@ -1317,10 +1248,9 @@
           "7df9356d-2c69-4313-9bc7-7e86674203b9"
         ],
         "expected_value_hint": null,
-        "resolved_value": 40,
-        "requires_manual_numeric_verification": false,
-        "parameter_status": "resolved",
-        "remaining_gap_reason": "Extracted and verified from relevant law articles/notifications"
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
+        "parameter_status": "candidate_only"
       },
       {
         "parameter_ref": "P_LOCAL_JOINT_CONTRACT_MAX_SHARE",
@@ -1328,13 +1258,12 @@
           "7df9356d-2c69-4313-9bc7-7e86674203b9"
         ],
         "expected_value_hint": null,
-        "resolved_value": 49,
-        "requires_manual_numeric_verification": false,
-        "parameter_status": "resolved",
-        "remaining_gap_reason": "Extracted and verified from relevant law articles/notifications"
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
+        "parameter_status": "candidate_only"
       }
     ],
-    "source_chain_status": "mapped_verified",
+    "source_chain_status": "partial_mapped",
     "primary_source_details": [
       {
         "id": "7df9356d-2c69-4313-9bc7-7e86674203b9",
@@ -1367,7 +1296,7 @@
       }
     ],
     "high_priority_source_count": 1,
-    "remaining_gap_reason": "None"
+    "remaining_gap_reason": "Numeric parameters pending manual verification"
   },
   "R_NATIONAL_REGIONAL_JOINT_CONTRACT": {
     "rule_id": "R_NATIONAL_REGIONAL_JOINT_CONTRACT",
@@ -1388,7 +1317,9 @@
         "국가계약법"
       ]
     },
-    "unmatched_query_terms": [],
+    "unmatched_query_terms": [
+      "지역의무공동도급"
+    ],
     "numeric_parameters": [
       {
         "parameter_ref": "P_NATIONAL_JOINT_CONTRACT_MIN_SHARE",
@@ -1396,13 +1327,12 @@
           "813f5354-7af9-4ad7-a744-ae2a98286a40"
         ],
         "expected_value_hint": null,
-        "resolved_value": 30,
-        "requires_manual_numeric_verification": false,
-        "parameter_status": "resolved",
-        "remaining_gap_reason": "Extracted and verified from relevant law articles/notifications"
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
+        "parameter_status": "candidate_only"
       }
     ],
-    "source_chain_status": "mapped_verified",
+    "source_chain_status": "partial_mapped",
     "primary_source_details": [
       {
         "id": "813f5354-7af9-4ad7-a744-ae2a98286a40",
@@ -1435,7 +1365,7 @@
       }
     ],
     "high_priority_source_count": 1,
-    "remaining_gap_reason": "None"
+    "remaining_gap_reason": "Numeric parameters pending manual verification"
   },
   "R_PUBLIC_INSTITUTION_REGIONAL_JOINT_CONTRACT_CHECK": {
     "rule_id": "R_PUBLIC_INSTITUTION_REGIONAL_JOINT_CONTRACT_CHECK",
@@ -2220,7 +2150,9 @@
       "original": [],
       "alias_resolved": []
     },
-    "unmatched_query_terms": [],
+    "unmatched_query_terms": [
+      "2단계경쟁"
+    ],
     "numeric_parameters": [
       {
         "parameter_ref": "P_MAS_SECOND_STAGE_MAX_SCORE",
@@ -2228,13 +2160,12 @@
           "a75755ca-622d-4f90-a1ce-5787b1ebd929"
         ],
         "expected_value_hint": "7.5",
-        "resolved_value": 7.5,
-        "requires_manual_numeric_verification": false,
-        "parameter_status": "resolved",
-        "remaining_gap_reason": "Extracted and verified from relevant law articles/notifications"
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
+        "parameter_status": "candidate_only"
       }
     ],
-    "source_chain_status": "mapped_verified",
+    "source_chain_status": "partial_mapped",
     "primary_source_details": [
       {
         "id": "a75755ca-622d-4f90-a1ce-5787b1ebd929",
@@ -2267,7 +2198,7 @@
       }
     ],
     "high_priority_source_count": 1,
-    "remaining_gap_reason": "None"
+    "remaining_gap_reason": "Numeric parameters pending manual verification"
   },
   "R_LOCAL_PRODUCT_PRIORITY": {
     "rule_id": "R_LOCAL_PRODUCT_PRIORITY",
@@ -2568,13 +2499,12 @@
           "a75755ca-622d-4f90-a1ce-5787b1ebd929"
         ],
         "expected_value_hint": "50000000",
-        "resolved_value": 50000000,
-        "requires_manual_numeric_verification": false,
-        "parameter_status": "resolved",
-        "remaining_gap_reason": "Extracted and verified from relevant law articles/notifications"
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
+        "parameter_status": "candidate_only"
       }
     ],
-    "source_chain_status": "mapped_verified",
+    "source_chain_status": "partial_mapped",
     "primary_source_details": [
       {
         "id": "a75755ca-622d-4f90-a1ce-5787b1ebd929",
@@ -2607,7 +2537,7 @@
       }
     ],
     "high_priority_source_count": 1,
-    "remaining_gap_reason": "None"
+    "remaining_gap_reason": "Numeric parameters pending manual verification"
   },
   "R_MAS_SECOND_STAGE_THRESHOLD_SME_COMPETITION": {
     "rule_id": "R_MAS_SECOND_STAGE_THRESHOLD_SME_COMPETITION",
@@ -2626,7 +2556,9 @@
       "original": [],
       "alias_resolved": []
     },
-    "unmatched_query_terms": [],
+    "unmatched_query_terms": [
+      "중소기업자간 경쟁제품"
+    ],
     "numeric_parameters": [
       {
         "parameter_ref": "P_MAS_SECOND_STAGE_SME_COMPETITION_THRESHOLD",
@@ -2635,13 +2567,12 @@
           "e34672de-21f2-4ead-8afd-39b2a0b9e604"
         ],
         "expected_value_hint": "100000000",
-        "resolved_value": 100000000,
-        "requires_manual_numeric_verification": false,
-        "parameter_status": "resolved",
-        "remaining_gap_reason": "Extracted and verified from relevant law articles/notifications"
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
+        "parameter_status": "candidate_only"
       }
     ],
-    "source_chain_status": "mapped_verified",
+    "source_chain_status": "partial_mapped",
     "primary_source_details": [
       {
         "id": "a75755ca-622d-4f90-a1ce-5787b1ebd929",
@@ -2692,7 +2623,7 @@
       }
     ],
     "high_priority_source_count": 2,
-    "remaining_gap_reason": "None"
+    "remaining_gap_reason": "Numeric parameters pending manual verification"
   },
   "R_MAS_SECOND_STAGE_THRESHOLD_SME_MANUFACTURED_OPTIONAL": {
     "rule_id": "R_MAS_SECOND_STAGE_THRESHOLD_SME_MANUFACTURED_OPTIONAL",
@@ -2717,10 +2648,9 @@
           "a75755ca-622d-4f90-a1ce-5787b1ebd929"
         ],
         "expected_value_hint": "50000000~100000000",
-        "resolved_value": 50000000,
-        "requires_manual_numeric_verification": false,
-        "parameter_status": "resolved",
-        "remaining_gap_reason": "Extracted and verified from relevant law articles/notifications"
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
+        "parameter_status": "candidate_only"
       },
       {
         "parameter_ref": "P_MAS_SECOND_STAGE_SME_MANUFACTURED_OPTIONAL_MAX",
@@ -2728,13 +2658,12 @@
           "a75755ca-622d-4f90-a1ce-5787b1ebd929"
         ],
         "expected_value_hint": "50000000~100000000",
-        "resolved_value": 100000000,
-        "requires_manual_numeric_verification": false,
-        "parameter_status": "resolved",
-        "remaining_gap_reason": "Extracted and verified from relevant law articles/notifications"
+        "resolved_value": null,
+        "requires_manual_numeric_verification": true,
+        "parameter_status": "candidate_only"
       }
     ],
-    "source_chain_status": "mapped_verified",
+    "source_chain_status": "partial_mapped",
     "primary_source_details": [
       {
         "id": "a75755ca-622d-4f90-a1ce-5787b1ebd929",
@@ -2767,7 +2696,7 @@
       }
     ],
     "high_priority_source_count": 1,
-    "remaining_gap_reason": "None"
+    "remaining_gap_reason": "Numeric parameters pending manual verification"
   },
   "R_MAS_BELOW_SECOND_STAGE_LOCAL_SUPPLIER_REVIEW": {
     "rule_id": "R_MAS_BELOW_SECOND_STAGE_LOCAL_SUPPLIER_REVIEW",

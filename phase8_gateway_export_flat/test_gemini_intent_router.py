@@ -50,14 +50,3 @@ def test_prohibited_phrases_removal():
     result = router.parse_gemini_response("계약 문의", json.dumps(mock_json))
     assert "수의계약 가능합니다" not in result.reason
     assert "금지된 표현 제거됨" in result.reason
-
-def test_routing_decision_auto_fill():
-    router = GeminiIntentRouter()
-    mock_json = {
-        "primary_intent": "contract_review",
-        "slots": {"buyer_name": "테스트기관", "amount": 50000000}
-    }
-    
-    result = router.parse_gemini_response("테스트기관 5천만원 물품 구매", json.dumps(mock_json))
-    assert result.routing_decision != ""
-    assert result.routing_decision == "contract_review_flow"

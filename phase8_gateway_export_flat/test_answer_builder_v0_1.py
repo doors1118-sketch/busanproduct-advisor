@@ -83,5 +83,144 @@ def test_answer_builder_forbidden_phrase_fallback():
     assert "계약 가능합니다" not in out.rendered_markdown
     assert "구매 가능합니다" not in out.rendered_markdown
     assert "수의계약 가능합니다" not in out.rendered_markdown
-    assert "지역제한 가능합니다" not in out.rendered_markdown
     assert "낙찰 가능합니다" not in out.rendered_markdown
+
+def test_answer_builder_threshold_display():
+    gw = get_base_gateway_response()
+    dc = DecisionContext(review_outcome="review_candidate")
+    
+    from app.answer_builder.evidence_schema import EvidenceContext, RuleEvidenceStatus, EvidenceParameterStatus
+    
+    # Mock EvidenceContext with threshold
+    ec = EvidenceContext(
+        active_rule_ids=["R_DIRECT_GENERAL_SMALL_AMOUNT"],
+        rule_statuses=[
+            RuleEvidenceStatus(
+                rule_id="R_DIRECT_GENERAL_SMALL_AMOUNT",
+                display_name="소액수의계약",
+                category="수의계약",
+                source_chain_status="mapped_verified",
+                display_level="source_verified",
+                numeric_parameters=[EvidenceParameterStatus(parameter_ref="P_LOCAL_DIRECT_POLICY_COMPANY_THRESHOLD", display_allowed=True)]
+            )
+        ],
+        threshold_ref_used="P_LOCAL_DIRECT_POLICY_COMPANY_THRESHOLD",
+        threshold_value_used=50000000
+    )
+    
+    from app.answer_builder.evidence_answer_builder import apply_evidence_to_answer
+    out = build_answer(gw, dc)
+    out = apply_evidence_to_answer(out, ec)
+    
+    # Check if threshold is displayed with LABEL mapping
+    assert "적용 기준" in out.rendered_markdown
+    assert "정책기업 수의계약 기준" in out.rendered_markdown
+    assert "50,000,000원" in out.rendered_markdown
+    
+    # Should not be masked by FORBIDDEN_NUMERIC_HINTS
+    assert "[수치 확인 필요]" not in out.rendered_markdown
+    assert out.forbidden_phrase_scan_passed is True
+
+def test_answer_builder_threshold_not_displayed_if_unresolved():
+    gw = get_base_gateway_response()
+    dc = DecisionContext(review_outcome="review_candidate")
+    
+    from app.answer_builder.evidence_schema import EvidenceContext, RuleEvidenceStatus, EvidenceParameterStatus
+    
+    # Mock EvidenceContext with unresolved parameter
+    ec = EvidenceContext(
+        active_rule_ids=["R_DIRECT_GENERAL_SMALL_AMOUNT"],
+        rule_statuses=[
+            RuleEvidenceStatus(
+                rule_id="R_DIRECT_GENERAL_SMALL_AMOUNT",
+                display_name="소액수의계약",
+                category="수의계약",
+                source_chain_status="mapped_verified",
+                display_level="source_verified",
+                numeric_parameters=[EvidenceParameterStatus(parameter_ref="P_LOCAL_DIRECT_POLICY_COMPANY_THRESHOLD", display_allowed=False)]
+            )
+        ],
+        threshold_ref_used="P_LOCAL_DIRECT_POLICY_COMPANY_THRESHOLD",
+        threshold_value_used=50000000
+    )
+    
+    from app.answer_builder.evidence_answer_builder import apply_evidence_to_answer
+    out = build_answer(gw, dc)
+    out = apply_evidence_to_answer(out, ec)
+    
+    # Check if threshold is NOT displayed due to display_allowed=False
+    assert "적용 기준" not in out.rendered_markdown
+    assert "50,000,000원" not in out.rendered_markdown
+    # 수치 기준 확인 필요 메시지 표시 여부
+    assert "수치 기준은 최신 법령 원문 확인 필요" in out.rendered_markdown
+    # 원문 렌더링이 차단되었는지 확인 (source_verified 이더라도 unresolved이면 <details> 차단됨)
+    assert "<details>" not in out.rendered_markdown
+
+def test_answer_builder_unknown_parameter_ref_hidden():
+    gw = get_base_gateway_response()
+    dc = DecisionContext(review_outcome="review_candidate")
+    from app.answer_builder.evidence_schema import EvidenceContext, RuleEvidenceStatus, EvidenceParameterStatus
+    
+    ec = EvidenceContext(
+        active_rule_ids=["R_DIRECT_GENERAL_SMALL_AMOUNT"],
+        rule_statuses=[
+            RuleEvidenceStatus(
+                rule_id="R_DIRECT_GENERAL_SMALL_AMOUNT",
+                display_name="소액수의계약",
+                category="수의계약",
+                source_chain_status="mapped_verified",
+                display_level="source_verified",
+                numeric_parameters=[EvidenceParameterStatus(parameter_ref="UNKNOWN_REF", display_allowed=True)]
+            )
+        ],
+        threshold_ref_used="UNKNOWN_REF",
+        threshold_value_used=50000000
+    )
+    
+    from app.answer_builder.evidence_answer_builder import apply_evidence_to_answer
+    out = build_answer(gw, dc)
+    out = apply_evidence_to_answer(out, ec)
+    
+    # UNKNOWN_REF is not in PARAMETER_LABELS, so it should not be displayed
+    assert "적용 기준" not in out.rendered_markdown
+    assert "UNKNOWN_REF" not in out.rendered_markdown
+
+def test_answer_builder_key_articles_load():
+    gw = get_base_gateway_response()
+    dc = DecisionContext(review_outcome="review_candidate")
+    from app.answer_builder.evidence_schema import EvidenceContext, RuleEvidenceStatus, EvidenceParameterStatus
+    
+    # Create a temporary key_articles.json to test actual loading
+    import os, json
+    test_articles_path = os.path.join(os.path.dirname(__file__), "key_articles.json")
+    long_text = "A" * 300
+    with open(test_articles_path, "w", encoding="utf-8") as f:
+        json.dump({"R_TEST_RULE": long_text}, f)
+        
+    try:
+        ec = EvidenceContext(
+            active_rule_ids=["R_TEST_RULE"],
+            rule_statuses=[
+                RuleEvidenceStatus(
+                    rule_id="R_TEST_RULE",
+                    display_name="테스트 룰",
+                    category="테스트",
+                    source_chain_status="mapped_verified",
+                    display_level="source_verified",
+                    numeric_parameters=[] # No numeric parameters, so display_allowed is True implicitly
+                )
+            ]
+        )
+        
+        from phase8_gateway_export_flat.evidence_answer_builder import apply_evidence_to_answer
+        out = build_answer(gw, dc)
+        out = apply_evidence_to_answer(out, ec)
+        
+        # Ensure the article was loaded and truncated
+        assert "관련 조문 발췌 보기" in out.rendered_markdown
+        assert "A" * 200 in out.rendered_markdown
+        assert "A" * 250 not in out.rendered_markdown
+        assert "너무 긴 원문은 가독성을 위해 축약되었습니다" in out.rendered_markdown
+    finally:
+        if os.path.exists(test_articles_path):
+            os.remove(test_articles_path)

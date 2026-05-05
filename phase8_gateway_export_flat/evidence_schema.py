@@ -42,3 +42,5 @@ class EvidenceContext(BaseModel):
     rule_statuses: List[RuleEvidenceStatus] = Field(default_factory=list)
     source_gap_exists: bool = False
     unresolved_numeric_exists: bool = False
+    threshold_ref_used: Optional[str] = None
+    threshold_value_used: Optional[int] = None

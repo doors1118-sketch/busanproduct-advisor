@@ -322,17 +322,18 @@ FLOW_MAP = {
     "clarification_required": build_clarification,
 }
 
-def route_answer(router_result: RouterResult, evidence_context=None) -> AnswerBuilderOutput:
+def route_answer(router_result: RouterResult, evidence_context=None, item_eligibility_context=None) -> AnswerBuilderOutput:
     """RouterResult.routing_decision에 따라 적절한 빌더를 호출한다.
 
     evidence_context가 전달되면 evidence section을 답변에 추가한다.
+    item_eligibility_context가 전달되면 품목 적격성 판단 section을 추가한다.
     """
     builder_fn = FLOW_MAP.get(router_result.routing_decision, build_out_of_scope)
     out = builder_fn(router_result)
 
-    if evidence_context is not None:
+    if evidence_context is not None or item_eligibility_context is not None:
         from app.answer_builder.evidence_answer_builder import apply_evidence_to_answer
-        out = apply_evidence_to_answer(out, evidence_context)
+        out = apply_evidence_to_answer(out, evidence_context, item_eligibility_context=item_eligibility_context)
 
     return out
 

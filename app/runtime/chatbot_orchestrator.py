@@ -144,13 +144,69 @@ class ChatbotRuntimeOrchestrator:
             reason="Gateway integration deferred",
         ))
 
-        # ── Stage 3: Rule Engine (stub) ──
-        stages.append(RuntimeStageResult(
-            stage_name="rule_engine",
-            status="skipped",
-            skipped=True,
-            reason="Rule Engine deep integration deferred",
-        ))
+        # ── Stage 2.5: Item Eligibility Resolver ──
+        item_eligibility_context = None
+        try:
+            from phase8_gateway_export_flat.item_eligibility_adapter import ItemEligibilityAdapter
+            adapter = ItemEligibilityAdapter()
+            item_name = router_result.slots.item_name if hasattr(router_result.slots, 'item_name') else None
+            detail_item_code = router_result.slots.detail_item_code if hasattr(router_result.slots, 'detail_item_code') else None
+            company_id = router_result.slots.company_id if hasattr(router_result.slots, 'company_id') else None
+            
+            eligibility_result = adapter.resolve(item_name=item_name, detail_item_code=detail_item_code, company_id=company_id)
+            if eligibility_result.resolver_status != "not_triggered":
+                item_eligibility_context = eligibility_result.context
+                stages.append(RuntimeStageResult(
+                    stage_name="item_eligibility",
+                    status="success"
+                ))
+            else:
+                stages.append(RuntimeStageResult(stage_name="item_eligibility", status="success", skipped=True))
+        except Exception as e:
+            import traceback
+            import logging
+            logging.exception("Item Eligibility Resolver Error")
+            stages.append(RuntimeStageResult(stage_name="item_eligibility", status="failed", reason=str(e)))
+            errors.append(f"item_eligibility: {str(e)}")
+
+        # ── Stage 3: Amount Layer (Rule Engine) ──
+        active_rule_ids = None
+        threshold_ref_used = None
+        threshold_value_used = None
+        try:
+            from phase8_gateway_export_flat.amount_layer import resolve_active_rules
+            slots_dict = router_result.slots.model_dump()
+            
+            source_map = None
+            source_map_path = request.runtime_options.get("source_map_path") if request.runtime_options else None
+            if source_map_path:
+                with open(source_map_path, "r", encoding="utf-8") as f:
+                    source_map = json.load(f)
+            
+            if request.runtime_options and request.runtime_options.get("review_all_routes"):
+                slots_dict["review_all_routes"] = True
+            amount_result = resolve_active_rules(slots_dict, source_map=source_map)
+            active_rule_ids = amount_result.get("active_rule_ids", [])
+            threshold_ref_used = amount_result.get("threshold_ref_used")
+            threshold_value_used = amount_result.get("threshold_value_used")
+            
+            # R_EXPLICIT_ITEM_ELIGIBILITY 강제 주입
+            if item_eligibility_context and "R_EXPLICIT_ITEM_ELIGIBILITY" not in active_rule_ids:
+                active_rule_ids.append("R_EXPLICIT_ITEM_ELIGIBILITY")
+
+            stages.append(RuntimeStageResult(
+                stage_name="rule_engine",
+                status="success",
+                skipped=False
+            ))
+        except Exception as e:
+            stages.append(RuntimeStageResult(
+                stage_name="rule_engine",
+                status="failed",
+                skipped=False,
+                reason=str(e)
+            ))
+            errors.append(f"rule_engine: {str(e)}")
 
         # ── Stage 4: Company Candidate Resolver ──
         try:
@@ -200,9 +256,13 @@ class ChatbotRuntimeOrchestrator:
 
         if use_evidence:
             try:
-                from app.answer_builder.evidence_context_loader import build_evidence_context
+                from phase8_gateway_export_flat.evidence_context_loader import build_evidence_context
                 evidence_context = build_evidence_context(
-                    router_result, source_map_path=source_map_path
+                    router_result, 
+                    source_map_path=source_map_path,
+                    active_rule_ids=active_rule_ids,
+                    threshold_ref_used=threshold_ref_used,
+                    threshold_value_used=threshold_value_used
                 )
                 stages.append(RuntimeStageResult(
                     stage_name="evidence_context", status="success", skipped=False
@@ -221,11 +281,16 @@ class ChatbotRuntimeOrchestrator:
 
         # ── Stage 6: Answer Builder ──
         try:
-            answer_output = route_answer(router_result, evidence_context=evidence_context)
+            answer_output = route_answer(
+                router_result, 
+                evidence_context=evidence_context,
+                item_eligibility_context=item_eligibility_context
+            )
 
             # Company API 결과가 있으면 후보표 추가
             if company_result and company_result.status == "success" and company_result.candidates:
                 answer_output = _render_candidate_table(company_result, answer_output)
+            # 중복 파이프라인 방지: Final Forbidden Phrase Scan은 하단(Line 297)에서 통합 처리
 
             stages.append(RuntimeStageResult(
                 stage_name="answer_builder", status="success", skipped=False
@@ -250,8 +315,11 @@ class ChatbotRuntimeOrchestrator:
 
         # ── Forbidden phrase re-scan (후보표 추가 후 재검사) ──
         blocked = [p for p in FORBIDDEN_PHRASES if p in answer_output.rendered_markdown]
-        answer_output.blocked_phrases_found = blocked
-        answer_output.forbidden_phrase_scan_passed = len(blocked) == 0
+        if blocked:
+            existing_blocked = set(answer_output.blocked_phrases_found)
+            existing_blocked.update(blocked)
+            answer_output.blocked_phrases_found = list(existing_blocked)
+            answer_output.forbidden_phrase_scan_passed = False
         if blocked:
             answer_output.fallback_applied = True
             answer_output.rendered_markdown = (
@@ -278,6 +346,8 @@ class ChatbotRuntimeOrchestrator:
             runtime_status = "degraded"
         else:
             runtime_status = "success"
+
+
 
         return ChatbotRuntimeResponse(
             user_query=request.user_query,

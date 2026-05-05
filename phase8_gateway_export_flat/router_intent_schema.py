@@ -18,10 +18,14 @@ class RouterSlots(BaseModel):
     contract_object: Optional[str] = None
     contract_subtype: Optional[str] = None
     item_name: Optional[str] = None
+    detail_item_code: Optional[str] = None
+    company_id: Optional[str] = None
     amount: Optional[int] = None
     amount_unit: Optional[str] = None
     procurement_route: Optional[str] = None
     contract_method: Optional[str] = None
+    company_type: Optional[str] = None
+    quote_type: Optional[str] = None
     service_type: Optional[str] = None
     construction_type: Optional[str] = None
     location: Optional[str] = None
