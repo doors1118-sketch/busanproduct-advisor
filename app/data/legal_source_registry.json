@@ -11,7 +11,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:27:33.917447+09:00",
+    "collected_at": "2026-05-05T23:02:09.091231+09:00",
     "law_id": "010002",
     "mst": "253973",
     "effective_date": "20240217",
@@ -63,11 +63,7 @@
         "조문제목": "국제입찰에 의한 지방자치단체 계약의 범위",
         "내용미리보기": "제5조(국제입찰에 의한 지방자치단체 계약의 범위)"
       }
-    ],
-    "normalized_title": "지방자치단체를 당사자로 하는 계약에 관한 법률",
-    "law_category": "act",
-    "official_url": "https://www.law.go.kr/법령/%EC%A7%80%EB%B0%A9%EC%9E%90%EC%B9%98%EB%8B%A8%EC%B2%B4%EB%A5%BC%20%EB%8B%B9%EC%82%AC%EC%9E%90%EB%A1%9C%20%ED%95%98%EB%8A%94%20%EA%B3%84%EC%95%BD%EC%97%90%20%EA%B4%80%ED%95%9C%20%EB%B2%95%EB%A5%A0",
-    "version_hash": "c2497f96d212bcd7"
+    ]
   },
   {
     "seed_id": "local_contract_decree",
@@ -81,7 +77,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:27:36.811932+09:00",
+    "collected_at": "2026-05-05T23:02:12.184489+09:00",
     "law_id": "010098",
     "mst": "281055",
     "effective_date": "20260102",
@@ -133,11 +129,7 @@
         "조문제목": "국제입찰에 의한 계약",
         "내용미리보기": "제4조(국제입찰에 의한 계약)"
       }
-    ],
-    "normalized_title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령",
-    "law_category": "enforcement_decree",
-    "official_url": "https://www.law.go.kr/법령/%EC%A7%80%EB%B0%A9%EC%9E%90%EC%B9%98%EB%8B%A8%EC%B2%B4%EB%A5%BC%20%EB%8B%B9%EC%82%AC%EC%9E%90%EB%A1%9C%20%ED%95%98%EB%8A%94%20%EA%B3%84%EC%95%BD%EC%97%90%20%EA%B4%80%ED%95%9C%20%EB%B2%95%EB%A5%A0%20%EC%8B%9C%ED%96%89%EB%A0%B9",
-    "version_hash": "607f24fa4caf4436"
+    ]
   },
   {
     "seed_id": "local_contract_rule",
@@ -151,15 +143,15 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:27:39.843455+09:00",
+    "collected_at": "2026-05-05T23:02:15.375267+09:00",
     "law_id": "010153",
-    "mst": "282729",
-    "effective_date": "20260102",
+    "mst": "285747",
+    "effective_date": "20260424",
     "issuing_org": "행정안전부",
     "law_name_official": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행규칙",
     "article_count": 104,
     "annex_count": 19,
-    "full_text_length": 7869,
+    "full_text_length": 7880,
     "raw_search_result": {
       "법령일련번호": "285747",
       "현행연혁코드": "현행",
@@ -203,11 +195,7 @@
         "조문제목": "",
         "내용미리보기": "제2장 추정가격과 예정가격 <개정 2010.11.5>"
       }
-    ],
-    "normalized_title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행규칙",
-    "law_category": "enforcement_rule",
-    "official_url": "https://www.law.go.kr/법령/%EC%A7%80%EB%B0%A9%EC%9E%90%EC%B9%98%EB%8B%A8%EC%B2%B4%EB%A5%BC%20%EB%8B%B9%EC%82%AC%EC%9E%90%EB%A1%9C%20%ED%95%98%EB%8A%94%20%EA%B3%84%EC%95%BD%EC%97%90%20%EA%B4%80%ED%95%9C%20%EB%B2%95%EB%A5%A0%20%EC%8B%9C%ED%96%89%EA%B7%9C%EC%B9%99",
-    "version_hash": "59920a31408e3779"
+    ]
   },
   {
     "seed_id": "national_contract_act",
@@ -221,7 +209,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:27:43.123784+09:00",
+    "collected_at": "2026-05-05T23:02:18.503239+09:00",
     "law_id": "000695",
     "mst": "277151",
     "effective_date": "20260102",
@@ -273,11 +261,7 @@
         "조문제목": "계약의 원칙",
         "내용미리보기": "제5조(계약의 원칙)"
       }
-    ],
-    "normalized_title": "국가를 당사자로 하는 계약에 관한 법률",
-    "law_category": "act",
-    "official_url": "https://www.law.go.kr/법령/%EA%B5%AD%EA%B0%80%EB%A5%BC%20%EB%8B%B9%EC%82%AC%EC%9E%90%EB%A1%9C%20%ED%95%98%EB%8A%94%20%EA%B3%84%EC%95%BD%EC%97%90%20%EA%B4%80%ED%95%9C%20%EB%B2%95%EB%A5%A0",
-    "version_hash": "f7a462d0b6259c18"
+    ]
   },
   {
     "seed_id": "national_contract_decree",
@@ -291,7 +275,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:27:45.983871+09:00",
+    "collected_at": "2026-05-05T23:02:21.584472+09:00",
     "law_id": "002652",
     "mst": "280803",
     "effective_date": "20260102",
@@ -343,11 +327,7 @@
         "조문제목": "",
         "내용미리보기": "제4조 삭제 <2020.4.7>"
       }
-    ],
-    "normalized_title": "국가를 당사자로 하는 계약에 관한 법률 시행령",
-    "law_category": "enforcement_decree",
-    "official_url": "https://www.law.go.kr/법령/%EA%B5%AD%EA%B0%80%EB%A5%BC%20%EB%8B%B9%EC%82%AC%EC%9E%90%EB%A1%9C%20%ED%95%98%EB%8A%94%20%EA%B3%84%EC%95%BD%EC%97%90%20%EA%B4%80%ED%95%9C%20%EB%B2%95%EB%A5%A0%20%EC%8B%9C%ED%96%89%EB%A0%B9",
-    "version_hash": "c62f115c31179073"
+    ]
   },
   {
     "seed_id": "national_contract_rule",
@@ -361,7 +341,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:27:49.129560+09:00",
+    "collected_at": "2026-05-05T23:02:24.894297+09:00",
     "law_id": "006590",
     "mst": "282607",
     "effective_date": "20260102",
@@ -413,11 +393,7 @@
         "조문제목": "",
         "내용미리보기": "제2장 예정가격"
       }
-    ],
-    "normalized_title": "국가를 당사자로 하는 계약에 관한 법률 시행규칙",
-    "law_category": "enforcement_rule",
-    "official_url": "https://www.law.go.kr/법령/%EA%B5%AD%EA%B0%80%EB%A5%BC%20%EB%8B%B9%EC%82%AC%EC%9E%90%EB%A1%9C%20%ED%95%98%EB%8A%94%20%EA%B3%84%EC%95%BD%EC%97%90%20%EA%B4%80%ED%95%9C%20%EB%B2%95%EB%A5%A0%20%EC%8B%9C%ED%96%89%EA%B7%9C%EC%B9%99",
-    "version_hash": "f57d2cb62a67963b"
+    ]
   },
   {
     "seed_id": "procurement_act",
@@ -431,7 +407,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:27:52.153223+09:00",
+    "collected_at": "2026-05-05T23:02:28.049670+09:00",
     "law_id": "000705",
     "mst": "277155",
     "effective_date": "20260102",
@@ -483,11 +459,7 @@
         "조문제목": "다른 법률과의 관계",
         "내용미리보기": "제4조(다른 법률과의 관계) 조달사업에 관하여는 다른 법률에 특별한 규정이 있는 경우를 제외하고는 이 법에서 정하는 바에 따른다."
       }
-    ],
-    "normalized_title": "조달사업에 관한 법률",
-    "law_category": "act",
-    "official_url": "https://www.law.go.kr/법령/%EC%A1%B0%EB%8B%AC%EC%82%AC%EC%97%85%EC%97%90%20%EA%B4%80%ED%95%9C%20%EB%B2%95%EB%A5%A0",
-    "version_hash": "79cb6d30c50614ab"
+    ]
   },
   {
     "seed_id": "procurement_decree",
@@ -501,7 +473,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:27:55.096494+09:00",
+    "collected_at": "2026-05-05T23:02:31.128385+09:00",
     "law_id": "004862",
     "mst": "280891",
     "effective_date": "20260102",
@@ -553,11 +525,7 @@
         "조문제목": "수요기관의 범위",
         "내용미리보기": "제4조(수요기관의 범위)"
       }
-    ],
-    "normalized_title": "조달사업에 관한 법률 시행령",
-    "law_category": "enforcement_decree",
-    "official_url": "https://www.law.go.kr/법령/%EC%A1%B0%EB%8B%AC%EC%82%AC%EC%97%85%EC%97%90%20%EA%B4%80%ED%95%9C%20%EB%B2%95%EB%A5%A0%20%EC%8B%9C%ED%96%89%EB%A0%B9",
-    "version_hash": "b5681bd9608b0e96"
+    ]
   },
   {
     "seed_id": "procurement_rule",
@@ -571,7 +539,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:27:58.118313+09:00",
+    "collected_at": "2026-05-05T23:02:34.263478+09:00",
     "law_id": "008200",
     "mst": "282675",
     "effective_date": "20260102",
@@ -623,11 +591,7 @@
         "조문제목": "공사의 계약절차",
         "내용미리보기": "제5조(공사의 계약절차)"
       }
-    ],
-    "normalized_title": "조달사업에 관한 법률 시행규칙",
-    "law_category": "enforcement_rule",
-    "official_url": "https://www.law.go.kr/법령/%EC%A1%B0%EB%8B%AC%EC%82%AC%EC%97%85%EC%97%90%20%EA%B4%80%ED%95%9C%20%EB%B2%95%EB%A5%A0%20%EC%8B%9C%ED%96%89%EA%B7%9C%EC%B9%99",
-    "version_hash": "a47a51a8ada2c44e"
+    ]
   },
   {
     "seed_id": "local_bid_execution",
@@ -642,7 +606,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:01.068212+09:00",
+    "collected_at": "2026-05-05T23:02:37.412641+09:00",
     "law_id": "29508",
     "mst": null,
     "effective_date": "20250707",
@@ -666,11 +630,7 @@
       "시행일자": "20250708",
       "생성일자": "20260103"
     },
-    "articles_preview": [],
-    "normalized_title": "지방자치단체 입찰 및 계약집행기준",
-    "law_category": "regulation",
-    "official_url": "https://www.law.go.kr/행정규칙/%EC%A7%80%EB%B0%A9%EC%9E%90%EC%B9%98%EB%8B%A8%EC%B2%B4%20%EC%9E%85%EC%B0%B0%20%EB%B0%8F%20%EA%B3%84%EC%95%BD%EC%A7%91%ED%96%89%EA%B8%B0%EC%A4%80",
-    "version_hash": "2b33443b6433922f"
+    "articles_preview": []
   },
   {
     "seed_id": "local_bid_winner",
@@ -685,7 +645,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:03.549435+09:00",
+    "collected_at": "2026-05-05T23:02:39.904010+09:00",
     "law_id": "36201",
     "mst": null,
     "effective_date": "20251124",
@@ -709,11 +669,7 @@
       "시행일자": "20251201",
       "생성일자": "20251202"
     },
-    "articles_preview": [],
-    "normalized_title": "지방자치단체 입찰시 낙찰자 결정기준",
-    "law_category": "regulation",
-    "official_url": "https://www.law.go.kr/행정규칙/%EC%A7%80%EB%B0%A9%EC%9E%90%EC%B9%98%EB%8B%A8%EC%B2%B4%20%EC%9E%85%EC%B0%B0%EC%8B%9C%20%EB%82%99%EC%B0%B0%EC%9E%90%20%EA%B2%B0%EC%A0%95%EA%B8%B0%EC%A4%80",
-    "version_hash": "a7665bf2dfebd3e4"
+    "articles_preview": []
   },
   {
     "seed_id": "gov_bid_execution",
@@ -728,7 +684,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:06.012889+09:00",
+    "collected_at": "2026-05-05T23:02:42.436581+09:00",
     "law_id": "34470",
     "mst": null,
     "effective_date": "20260401",
@@ -778,11 +734,7 @@
         "조문제목": "",
         "내용미리보기": "제2조의3(하도급 관련사항의 공고) ① 각 중앙관서의 장 또는 계약담당공무원은 입찰공고시 하도급과 관련하여 계약상대자가 숙지하여야 할 다음의 사항 등을 공고하여야 한다.\n  1. "
       }
-    ],
-    "normalized_title": "정부 입찰ㆍ계약 집행기준",
-    "law_category": "regulation",
-    "official_url": "https://www.law.go.kr/행정규칙/%28%EA%B3%84%EC%95%BD%EC%98%88%EA%B7%9C%29%20%EC%A0%95%EB%B6%80%20%EC%9E%85%EC%B0%B0%C2%B7%EA%B3%84%EC%95%BD%20%EC%A7%91%ED%96%89%EA%B8%B0%EC%A4%80",
-    "version_hash": "541a9ca5aac7a1c4"
+    ]
   },
   {
     "seed_id": "contract_regulation",
@@ -797,7 +749,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:08.567689+09:00",
+    "collected_at": "2026-05-05T23:02:45.134440+09:00",
     "law_id": "2103368",
     "mst": null,
     "effective_date": "20230718",
@@ -827,11 +779,7 @@
         "조문제목": "",
         "내용미리보기": "「관세법」 제106조에 따라 보세구역 도착 또는 수입신고수리된 물품으로서 계약조건과 상이하여 반송 또는 수출할 물품을 신고수리함에 있어 일부세관에서는 대체품이 수입 또는 외화대금이"
       }
-    ],
-    "normalized_title": "계약내용과 상이한 물품의 반송 또는 수출 신고수리에 관한 예규",
-    "law_category": "regulation",
-    "official_url": "https://www.law.go.kr/행정규칙/%EA%B3%84%EC%95%BD%EB%82%B4%EC%9A%A9%EA%B3%BC%20%EC%83%81%EC%9D%B4%ED%95%9C%20%EB%AC%BC%ED%92%88%EC%9D%98%20%EB%B0%98%EC%86%A1%20%EB%98%90%EB%8A%94%20%EC%88%98%EC%B6%9C%20%EC%8B%A0%EA%B3%A0%EC%88%98%EB%A6%AC%EC%97%90%20%EA%B4%80%ED%95%9C%20%EC%98%88%EA%B7%9C",
-    "version_hash": "7b2bd7a948c4240e"
+    ]
   },
   {
     "seed_id": "pps_mas_standard",
@@ -846,7 +794,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:11.005553+09:00",
+    "collected_at": "2026-05-05T23:02:47.678140+09:00",
     "law_id": "81137",
     "mst": null,
     "effective_date": "20220307",
@@ -896,11 +844,7 @@
         "조문제목": "",
         "내용미리보기": "제5조(2단계경쟁 회피금지) ① 구매부서의 장은 2단계경쟁 회피를 목적으로 세부품명 기준 공사현장 별로 1회 납품요구대상 구매예산을 제3조 제1항의 기준금액 미만으로 분할하여 납품"
       }
-    ],
-    "normalized_title": "낙동강유역환경청 레미콘ㆍ아스콘 다수공급자계약 2단계경쟁 업무처리기준",
-    "law_category": "notice",
-    "official_url": "https://www.law.go.kr/행정규칙/%EB%82%99%EB%8F%99%EA%B0%95%EC%9C%A0%EC%97%AD%ED%99%98%EA%B2%BD%EC%B2%AD%20%EB%A0%88%EB%AF%B8%EC%BD%98%C2%B7%EC%95%84%EC%8A%A4%EC%BD%98%20%EB%8B%A4%EC%88%98%EA%B3%B5%EA%B8%89%EC%9E%90%EA%B3%84%EC%95%BD%202%EB%8B%A8%EA%B3%84%EA%B2%BD%EC%9F%81%20%EC%97%85%EB%AC%B4%EC%B2%98%EB%A6%AC%EA%B8%B0%EC%A4%80",
-    "version_hash": "0b58711ba99108d0"
+    ]
   },
   {
     "seed_id": "shopping_mall_ops",
@@ -915,7 +859,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:13.477548+09:00",
+    "collected_at": "2026-05-05T23:02:50.273804+09:00",
     "law_id": "33217",
     "mst": null,
     "effective_date": "20241226",
@@ -965,11 +909,7 @@
         "조문제목": "",
         "내용미리보기": "제4조(서비스 범위) ① 종합쇼핑몰의 주요 서비스 범위는 다음 각 호와 같다.\n  1. 조달청과 단가계약이 체결된 수요물자에 대한 종합쇼핑몰 등록과 계약상대자의 요청에 따른 등록내"
       }
-    ],
-    "normalized_title": "국가종합전자조달시스템 종합쇼핑몰 운영규정",
-    "law_category": "notice",
-    "official_url": "https://www.law.go.kr/행정규칙/%EA%B5%AD%EA%B0%80%EC%A2%85%ED%95%A9%EC%A0%84%EC%9E%90%EC%A1%B0%EB%8B%AC%EC%8B%9C%EC%8A%A4%ED%85%9C%20%EC%A2%85%ED%95%A9%EC%87%BC%ED%95%91%EB%AA%B0%20%EC%9A%B4%EC%98%81%EA%B7%9C%EC%A0%95",
-    "version_hash": "73f276e41ca5d417"
+    ]
   },
   {
     "seed_id": "mas_processing",
@@ -984,7 +924,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:16.016319+09:00",
+    "collected_at": "2026-05-05T23:02:52.883710+09:00",
     "law_id": "65191",
     "mst": null,
     "effective_date": "20260227",
@@ -1034,11 +974,7 @@
         "조문제목": "",
         "내용미리보기": "제2장 다수공급자계약 체결"
       }
-    ],
-    "normalized_title": "물품 다수공급자계약 업무처리규정",
-    "law_category": "notice",
-    "official_url": "https://www.law.go.kr/행정규칙/%EB%AC%BC%ED%92%88%20%EB%8B%A4%EC%88%98%EA%B3%B5%EA%B8%89%EC%9E%90%EA%B3%84%EC%95%BD%20%EC%97%85%EB%AC%B4%EC%B2%98%EB%A6%AC%EA%B7%9C%EC%A0%95",
-    "version_hash": "de96b995179609c6"
+    ]
   },
   {
     "seed_id": "mas_2step",
@@ -1053,7 +989,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:18.745568+09:00",
+    "collected_at": "2026-05-05T23:02:55.778656+09:00",
     "law_id": "81137",
     "mst": null,
     "effective_date": "20220307",
@@ -1103,11 +1039,7 @@
         "조문제목": "",
         "내용미리보기": "제5조(2단계경쟁 회피금지) ① 구매부서의 장은 2단계경쟁 회피를 목적으로 세부품명 기준 공사현장 별로 1회 납품요구대상 구매예산을 제3조 제1항의 기준금액 미만으로 분할하여 납품"
       }
-    ],
-    "normalized_title": "낙동강유역환경청 레미콘ㆍ아스콘 다수공급자계약 2단계경쟁 업무처리기준",
-    "law_category": "notice",
-    "official_url": "https://www.law.go.kr/행정규칙/%EB%82%99%EB%8F%99%EA%B0%95%EC%9C%A0%EC%97%AD%ED%99%98%EA%B2%BD%EC%B2%AD%20%EB%A0%88%EB%AF%B8%EC%BD%98%C2%B7%EC%95%84%EC%8A%A4%EC%BD%98%20%EB%8B%A4%EC%88%98%EA%B3%B5%EA%B8%89%EC%9E%90%EA%B3%84%EC%95%BD%202%EB%8B%A8%EA%B3%84%EA%B2%BD%EC%9F%81%20%EC%97%85%EB%AC%B4%EC%B2%98%EB%A6%AC%EA%B8%B0%EC%A4%80",
-    "version_hash": "0b58711ba99108d0"
+    ]
   },
   {
     "seed_id": "sme_purchase_act",
@@ -1121,7 +1053,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:21.259498+09:00",
+    "collected_at": "2026-05-05T23:02:58.378576+09:00",
     "law_id": "010998",
     "mst": "277129",
     "effective_date": "20260102",
@@ -1173,11 +1105,7 @@
         "조문제목": "",
         "내용미리보기": "제2장 중소기업제품 구매촉진 및 중소기업자간 경쟁제도 운영"
       }
-    ],
-    "normalized_title": "중소기업제품 구매촉진 및 판로지원에 관한 법률",
-    "law_category": "act",
-    "official_url": "https://www.law.go.kr/법령/%EC%A4%91%EC%86%8C%EA%B8%B0%EC%97%85%EC%A0%9C%ED%92%88%20%EA%B5%AC%EB%A7%A4%EC%B4%89%EC%A7%84%20%EB%B0%8F%20%ED%8C%90%EB%A1%9C%EC%A7%80%EC%9B%90%EC%97%90%20%EA%B4%80%ED%95%9C%20%EB%B2%95%EB%A5%A0",
-    "version_hash": "9e6fbcaedd69741c"
+    ]
   },
   {
     "seed_id": "sme_purchase_decree",
@@ -1191,7 +1119,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:24.193084+09:00",
+    "collected_at": "2026-05-05T23:03:01.478491+09:00",
     "law_id": "011101",
     "mst": "281341",
     "effective_date": "20260102",
@@ -1243,11 +1171,7 @@
         "조문제목": "중소기업자와의 우선조달계약",
         "내용미리보기": "제2조의2(중소기업자와의 우선조달계약)"
       }
-    ],
-    "normalized_title": "중소기업제품 구매촉진 및 판로지원에 관한 법률 시행령",
-    "law_category": "enforcement_decree",
-    "official_url": "https://www.law.go.kr/법령/%EC%A4%91%EC%86%8C%EA%B8%B0%EC%97%85%EC%A0%9C%ED%92%88%20%EA%B5%AC%EB%A7%A4%EC%B4%89%EC%A7%84%20%EB%B0%8F%20%ED%8C%90%EB%A1%9C%EC%A7%80%EC%9B%90%EC%97%90%20%EA%B4%80%ED%95%9C%20%EB%B2%95%EB%A5%A0%20%EC%8B%9C%ED%96%89%EB%A0%B9",
-    "version_hash": "8d938658b28c4fe2"
+    ]
   },
   {
     "seed_id": "sme_competition_items",
@@ -1262,7 +1186,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:27.214684+09:00",
+    "collected_at": "2026-05-05T23:03:04.710778+09:00",
     "law_id": "36574",
     "mst": null,
     "effective_date": "20250829",
@@ -1292,11 +1216,7 @@
         "조문제목": "",
         "내용미리보기": "<img id=\"155942861\">\n</img>\n<img id=\"155942863\">\n</img>\n<img id=\"155942865\">\n</img>\n<img id=\"1559428"
       }
-    ],
-    "normalized_title": "중소기업자간 경쟁제품 및 공사용자재 직접구매 대상 품목 지정 내역",
-    "law_category": "notice",
-    "official_url": "https://www.law.go.kr/행정규칙/%EC%A4%91%EC%86%8C%EA%B8%B0%EC%97%85%EC%9E%90%EA%B0%84%20%EA%B2%BD%EC%9F%81%EC%A0%9C%ED%92%88%20%EB%B0%8F%20%EA%B3%B5%EC%82%AC%EC%9A%A9%EC%9E%90%EC%9E%AC%20%EC%A7%81%EC%A0%91%EA%B5%AC%EB%A7%A4%20%EB%8C%80%EC%83%81%20%ED%92%88%EB%AA%A9%20%EC%A7%80%EC%A0%95%20%EB%82%B4%EC%97%AD",
-    "version_hash": "3ada54f1467f605e"
+    ]
   },
   {
     "seed_id": "direct_production",
@@ -1311,7 +1231,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:29.632242+09:00",
+    "collected_at": "2026-05-05T23:03:07.223266+09:00",
     "law_id": "32898",
     "mst": null,
     "effective_date": "20231215",
@@ -1361,11 +1281,7 @@
         "조문제목": "",
         "내용미리보기": "제5조(다른 법규와의 관계) 「조달청 제조물품 직접생산확인 기준」에 관하여 다른 법규에 특별한 규정이 있는 경우를 제외하고는 이 규정에서 정하는 바에 따른다."
       }
-    ],
-    "normalized_title": "조달청 제조물품 직접생산확인 기준",
-    "law_category": "notice",
-    "official_url": "https://www.law.go.kr/행정규칙/%EC%A1%B0%EB%8B%AC%EC%B2%AD%20%EC%A0%9C%EC%A1%B0%EB%AC%BC%ED%92%88%20%EC%A7%81%EC%A0%91%EC%83%9D%EC%82%B0%ED%99%95%EC%9D%B8%20%EA%B8%B0%EC%A4%80",
-    "version_hash": "08dd59f90911e4f4"
+    ]
   },
   {
     "seed_id": "women_enterprise_act",
@@ -1379,7 +1295,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:32.145334+09:00",
+    "collected_at": "2026-05-05T23:03:09.846447+09:00",
     "law_id": "001993",
     "mst": "255889",
     "effective_date": "20240501",
@@ -1431,11 +1347,7 @@
         "조문제목": "여성기업활동 촉진에 관한 기본계획",
         "내용미리보기": "제5조(여성기업활동 촉진에 관한 기본계획)"
       }
-    ],
-    "normalized_title": "여성기업지원에 관한 법률",
-    "law_category": "act",
-    "official_url": "https://www.law.go.kr/법령/%EC%97%AC%EC%84%B1%EA%B8%B0%EC%97%85%EC%A7%80%EC%9B%90%EC%97%90%20%EA%B4%80%ED%95%9C%20%EB%B2%95%EB%A5%A0",
-    "version_hash": "8e40ea36dd373304"
+    ]
   },
   {
     "seed_id": "women_enterprise_decree",
@@ -1449,7 +1361,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:35.056654+09:00",
+    "collected_at": "2026-05-05T23:03:12.864894+09:00",
     "law_id": "004178",
     "mst": "262701",
     "effective_date": "20240514",
@@ -1501,11 +1413,7 @@
         "조문제목": "",
         "내용미리보기": "제4조 삭제 <2024.5.14>"
       }
-    ],
-    "normalized_title": "여성기업지원에 관한 법률 시행령",
-    "law_category": "enforcement_decree",
-    "official_url": "https://www.law.go.kr/법령/%EC%97%AC%EC%84%B1%EA%B8%B0%EC%97%85%EC%A7%80%EC%9B%90%EC%97%90%20%EA%B4%80%ED%95%9C%20%EB%B2%95%EB%A5%A0%20%EC%8B%9C%ED%96%89%EB%A0%B9",
-    "version_hash": "65dced14a5f1e0c1"
+    ]
   },
   {
     "seed_id": "disabled_enterprise_act",
@@ -1519,7 +1427,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:37.962228+09:00",
+    "collected_at": "2026-05-05T23:03:15.922801+09:00",
     "law_id": "010011",
     "mst": "271277",
     "effective_date": "20251128",
@@ -1571,11 +1479,7 @@
         "조문제목": "장애인기업활동촉진에 관한 기본계획 등",
         "내용미리보기": "제5조(장애인기업활동촉진에 관한 기본계획 등)"
       }
-    ],
-    "normalized_title": "장애인기업활동 촉진법",
-    "law_category": "act",
-    "official_url": "https://www.law.go.kr/법령/%EC%9E%A5%EC%95%A0%EC%9D%B8%EA%B8%B0%EC%97%85%ED%99%9C%EB%8F%99%20%EC%B4%89%EC%A7%84%EB%B2%95",
-    "version_hash": "a48993823c4630f1"
+    ]
   },
   {
     "seed_id": "disabled_enterprise_decree",
@@ -1589,7 +1493,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:40.916020+09:00",
+    "collected_at": "2026-05-05T23:03:18.946544+09:00",
     "law_id": "010055",
     "mst": "279877",
     "effective_date": "20251128",
@@ -1641,11 +1545,7 @@
         "조문제목": "",
         "내용미리보기": "제4조 삭제 <2024.5.14>"
       }
-    ],
-    "normalized_title": "장애인기업활동 촉진법 시행령",
-    "law_category": "enforcement_decree",
-    "official_url": "https://www.law.go.kr/법령/%EC%9E%A5%EC%95%A0%EC%9D%B8%EA%B8%B0%EC%97%85%ED%99%9C%EB%8F%99%20%EC%B4%89%EC%A7%84%EB%B2%95%20%EC%8B%9C%ED%96%89%EB%A0%B9",
-    "version_hash": "5a047a6e5e553531"
+    ]
   },
   {
     "seed_id": "social_enterprise_act",
@@ -1659,7 +1559,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:43.891658+09:00",
+    "collected_at": "2026-05-05T23:03:22.014369+09:00",
     "law_id": "010365",
     "mst": "122694",
     "effective_date": "20120201",
@@ -1711,11 +1611,7 @@
         "조문제목": "사회적기업 육성 기본계획의 수립",
         "내용미리보기": "제5조(사회적기업 육성 기본계획의 수립)"
       }
-    ],
-    "normalized_title": "사회적기업 육성법",
-    "law_category": "act",
-    "official_url": "https://www.law.go.kr/법령/%EC%82%AC%ED%9A%8C%EC%A0%81%EA%B8%B0%EC%97%85%20%EC%9C%A1%EC%84%B1%EB%B2%95",
-    "version_hash": "a17390acd4696ce6"
+    ]
   },
   {
     "seed_id": "social_enterprise_decree",
@@ -1729,7 +1625,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:46.777040+09:00",
+    "collected_at": "2026-05-05T23:03:24.993402+09:00",
     "law_id": "010472",
     "mst": "281623",
     "effective_date": "20260102",
@@ -1781,11 +1677,7 @@
         "조문제목": "",
         "내용미리보기": "제5조 삭제 <2010.12.9>"
       }
-    ],
-    "normalized_title": "사회적기업 육성법 시행령",
-    "law_category": "enforcement_decree",
-    "official_url": "https://www.law.go.kr/법령/%EC%82%AC%ED%9A%8C%EC%A0%81%EA%B8%B0%EC%97%85%20%EC%9C%A1%EC%84%B1%EB%B2%95%20%EC%8B%9C%ED%96%89%EB%A0%B9",
-    "version_hash": "2db70146daf9944d"
+    ]
   },
   {
     "seed_id": "innovation_product",
@@ -1800,7 +1692,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:49.651674+09:00",
+    "collected_at": "2026-05-05T23:03:28.029534+09:00",
     "law_id": "74257",
     "mst": null,
     "effective_date": "20260130",
@@ -1850,11 +1742,7 @@
         "조문제목": "",
         "내용미리보기": "제4조(계약심사협의회) 다음 각 호의 사항은 계약심사협의회 심의를 통해 결정한다.\n  1. 혁신시제품의 지정 및 취소와 관련하여 조달정책심의위원회 또는 공공수요발굴위원회에 상정할 "
       }
-    ],
-    "normalized_title": "혁신제품 구매 운영 규정",
-    "law_category": "notice",
-    "official_url": "https://www.law.go.kr/행정규칙/%ED%98%81%EC%8B%A0%EC%A0%9C%ED%92%88%20%EA%B5%AC%EB%A7%A4%20%EC%9A%B4%EC%98%81%20%EA%B7%9C%EC%A0%95",
-    "version_hash": "0b77f7496d4e621a"
+    ]
   },
   {
     "seed_id": "innovation_prototype",
@@ -1869,7 +1757,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:52.532879+09:00",
+    "collected_at": "2026-05-05T23:03:30.943669+09:00",
     "law_id": "70541",
     "mst": null,
     "effective_date": "20260309",
@@ -1919,11 +1807,7 @@
         "조문제목": "",
         "내용미리보기": "제5조 (직접생산 의무) ① 계약상대자는 계약기간 동안 「조달청 제조물품 직접생산확인 기준」 및 「중소기업자간 경쟁제품 직접생산 확인기준」에 따라 직접 제조하여 납품하여야 한다. "
       }
-    ],
-    "normalized_title": "혁신제품 시범구매계약 추가특수조건",
-    "law_category": "admin_rule",
-    "official_url": "https://www.law.go.kr/행정규칙/%ED%98%81%EC%8B%A0%EC%A0%9C%ED%92%88%20%EC%8B%9C%EB%B2%94%EA%B5%AC%EB%A7%A4%EA%B3%84%EC%95%BD%20%EC%B6%94%EA%B0%80%ED%8A%B9%EC%88%98%EC%A1%B0%EA%B1%B4",
-    "version_hash": "1475053022a4ea38"
+    ]
   },
   {
     "seed_id": "excellent_procurement",
@@ -1938,7 +1822,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:55.005163+09:00",
+    "collected_at": "2026-05-05T23:03:33.553257+09:00",
     "law_id": "35662",
     "mst": null,
     "effective_date": "20230721",
@@ -1988,11 +1872,7 @@
         "조문제목": "",
         "내용미리보기": "제2장 지정"
       }
-    ],
-    "normalized_title": "우수조달공동상표 물품 지정 관리규정",
-    "law_category": "notice",
-    "official_url": "https://www.law.go.kr/행정규칙/%EC%9A%B0%EC%88%98%EC%A1%B0%EB%8B%AC%EA%B3%B5%EB%8F%99%EC%83%81%ED%91%9C%20%EB%AC%BC%ED%92%88%20%EC%A7%80%EC%A0%95%20%EA%B4%80%EB%A6%AC%EA%B7%9C%EC%A0%95",
-    "version_hash": "d2fcaedef6936cb5"
+    ]
   },
   {
     "seed_id": "tech_priority_purchase",
@@ -2007,7 +1887,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:28:57.641393+09:00",
+    "collected_at": "2026-05-05T23:03:36.682017+09:00",
     "law_id": "36221",
     "mst": null,
     "effective_date": "20260130",
@@ -2057,11 +1937,7 @@
         "조문제목": "",
         "내용미리보기": "제2장 기술개발제품 등에 대한 우선구매 지원"
       }
-    ],
-    "normalized_title": "중소기업기술개발제품 우선구매제도 운영 등에 관한 시행세칙",
-    "law_category": "notice",
-    "official_url": "https://www.law.go.kr/행정규칙/%EC%A4%91%EC%86%8C%EA%B8%B0%EC%97%85%EA%B8%B0%EC%88%A0%EA%B0%9C%EB%B0%9C%EC%A0%9C%ED%92%88%20%EC%9A%B0%EC%84%A0%EA%B5%AC%EB%A7%A4%EC%A0%9C%EB%8F%84%20%EC%9A%B4%EC%98%81%20%EB%93%B1%EC%97%90%20%EA%B4%80%ED%95%9C%20%EC%8B%9C%ED%96%89%EC%84%B8%EC%B9%99",
-    "version_hash": "e58b25a0027c8b7f"
+    ]
   },
   {
     "seed_id": "busan_local_product",
@@ -2074,7 +1950,7 @@
       "skip_api_pdf_available"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:29:00.310561+09:00",
+    "collected_at": "2026-05-05T23:03:39.523325+09:00",
     "law_id": null,
     "mst": null,
     "effective_date": null,
@@ -2084,11 +1960,7 @@
     "annex_count": 0,
     "full_text_length": 0,
     "raw_search_result": "API 미지원. PDF 보유",
-    "articles_preview": null,
-    "normalized_title": "부산광역시 지역상품 우선구매 관련 조례",
-    "law_category": "ordinance",
-    "official_url": "https://www.law.go.kr/자치법규/%EB%B6%80%EC%82%B0%EA%B4%91%EC%97%AD%EC%8B%9C%20%EC%A7%80%EC%97%AD%EC%83%81%ED%92%88%20%EC%9A%B0%EC%84%A0%EA%B5%AC%EB%A7%A4%20%EA%B4%80%EB%A0%A8%20%EC%A1%B0%EB%A1%80",
-    "version_hash": "4b9562fdbf7f7947"
+    "articles_preview": null
   },
   {
     "seed_id": "busan_local_company",
@@ -2101,7 +1973,7 @@
       "skip_api_pdf_available"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:29:00.313062+09:00",
+    "collected_at": "2026-05-05T23:03:39.525799+09:00",
     "law_id": null,
     "mst": null,
     "effective_date": null,
@@ -2111,11 +1983,7 @@
     "annex_count": 0,
     "full_text_length": 0,
     "raw_search_result": "API 미지원. PDF 보유",
-    "articles_preview": null,
-    "normalized_title": "부산광역시 지역업체ㆍ지역상품 우대 관련 자치법규",
-    "law_category": "ordinance",
-    "official_url": "https://www.law.go.kr/행정규칙/%EB%B6%80%EC%82%B0%EA%B4%91%EC%97%AD%EC%8B%9C%20%EC%A7%80%EC%97%AD%EC%97%85%EC%B2%B4%C2%B7%EC%A7%80%EC%97%AD%EC%83%81%ED%92%88%20%EC%9A%B0%EB%8C%80%20%EA%B4%80%EB%A0%A8%20%EC%9E%90%EC%B9%98%EB%B2%95%EA%B7%9C",
-    "version_hash": "fe4063e1c1bc5c19"
+    "articles_preview": null
   },
   {
     "seed_id": "public_institution_act",
@@ -2129,7 +1997,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:29:00.314737+09:00",
+    "collected_at": "2026-05-05T23:03:39.528163+09:00",
     "law_id": "010375",
     "mst": "276057",
     "effective_date": "20260102",
@@ -2181,11 +2049,7 @@
         "조문제목": "공공기관",
         "내용미리보기": "제4조(공공기관)"
       }
-    ],
-    "normalized_title": "공공기관의 운영에 관한 법률",
-    "law_category": "act",
-    "official_url": "https://www.law.go.kr/법령/%EA%B3%B5%EA%B3%B5%EA%B8%B0%EA%B4%80%EC%9D%98%20%EC%9A%B4%EC%98%81%EC%97%90%20%EA%B4%80%ED%95%9C%20%EB%B2%95%EB%A5%A0",
-    "version_hash": "0d2b4e14bd7a9302"
+    ]
   },
   {
     "seed_id": "public_institution_decree",
@@ -2199,7 +2063,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:29:03.272554+09:00",
+    "collected_at": "2026-05-05T23:03:42.674086+09:00",
     "law_id": "010413",
     "mst": "280787",
     "effective_date": "20260102",
@@ -2251,11 +2115,7 @@
         "조문제목": "자체수입액",
         "내용미리보기": "제5조(자체수입액) 법 제5조제3항 및 같은 조 제4항제1호가목에서 \"자체수입액\"이란 다음 각 호의 수입액을 합한 금액을 말하며, 제3조제1호에 해당하는 금액은 다음 각 호의 수입"
       }
-    ],
-    "normalized_title": "공공기관의 운영에 관한 법률 시행령",
-    "law_category": "enforcement_decree",
-    "official_url": "https://www.law.go.kr/법령/%EA%B3%B5%EA%B3%B5%EA%B8%B0%EA%B4%80%EC%9D%98%20%EC%9A%B4%EC%98%81%EC%97%90%20%EA%B4%80%ED%95%9C%20%EB%B2%95%EB%A5%A0%20%EC%8B%9C%ED%96%89%EB%A0%B9",
-    "version_hash": "78b9ab2b02697aac"
+    ]
   },
   {
     "seed_id": "public_corp_contract_rule",
@@ -2269,7 +2129,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:29:06.248373+09:00",
+    "collected_at": "2026-05-05T23:03:45.770740+09:00",
     "law_id": "010568",
     "mst": "285569",
     "effective_date": "20260420",
@@ -2321,11 +2181,7 @@
         "조문제목": "계약의 원칙",
         "내용미리보기": "제5조(계약의 원칙)"
       }
-    ],
-    "normalized_title": "공기업ㆍ준정부기관 계약사무규칙",
-    "law_category": "enforcement_rule",
-    "official_url": "https://www.law.go.kr/법령/%EA%B3%B5%EA%B8%B0%EC%97%85%E3%86%8D%EC%A4%80%EC%A0%95%EB%B6%80%EA%B8%B0%EA%B4%80%20%EA%B3%84%EC%95%BD%EC%82%AC%EB%AC%B4%EA%B7%9C%EC%B9%99",
-    "version_hash": "1490136c22bc265f"
+    ]
   },
   {
     "seed_id": "public_corp_accounting_rule",
@@ -2339,7 +2195,7 @@
       "get_full_text"
     ],
     "steps_failed": [],
-    "collected_at": "2026-05-04T11:29:09.170829+09:00",
+    "collected_at": "2026-05-05T23:03:48.842514+09:00",
     "law_id": "010470",
     "mst": "282599",
     "effective_date": "20260102",
@@ -2391,10 +2247,6 @@
         "조문제목": "회계담당",
         "내용미리보기": "제5조(회계담당)"
       }
-    ],
-    "normalized_title": "공기업ㆍ준정부기관 회계사무규칙",
-    "law_category": "enforcement_rule",
-    "official_url": "https://www.law.go.kr/법령/%EA%B3%B5%EA%B8%B0%EC%97%85%E3%86%8D%EC%A4%80%EC%A0%95%EB%B6%80%EA%B8%B0%EA%B4%80%20%ED%9A%8C%EA%B3%84%EC%82%AC%EB%AC%B4%EA%B7%9C%EC%B9%99",
-    "version_hash": "fc8a8a0542c74995"
+    ]
   }
 ]

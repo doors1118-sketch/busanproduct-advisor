@@ -297,7 +297,7 @@ class ChatbotRuntimeOrchestrator:
 
         if use_evidence and router_result.routing_decision != "clarification_required":
             try:
-                from phase8_gateway_export_flat.evidence_context_loader import build_evidence_context
+                from phase8_gateway_export_flat.evidence_context_loader import build_evidence_context, _infer_active_rules
                 evidence_context = build_evidence_context(
                     router_result, 
                     source_map_path=source_map_path,

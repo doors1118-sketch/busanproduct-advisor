@@ -65,6 +65,7 @@ def build_parameter_status(param: dict) -> EvidenceParameterStatus:
     return EvidenceParameterStatus(
         parameter_ref=param.get("parameter_ref", ""),
         resolved_value=param.get("resolved_value"),
+        display_value=param.get("display_value"),
         expected_value_hint=param.get("expected_value_hint"),
         requires_manual_numeric_verification=param.get("requires_manual_numeric_verification", True),
         display_allowed=display_allowed,

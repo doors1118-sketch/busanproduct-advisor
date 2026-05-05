@@ -50,15 +50,15 @@ KST = timezone(timedelta(hours=9))
 # ─── Seed 법령 매니페스트 (33건) ───
 SEED_LAWS = [
     # Group A: 핵심 계약법 (법률 → search_law)
-    {"id":"local_contract_act","name":"지방계약법","query":"지방자치단체를 당사자로 하는 계약에 관한 법률","tool":"search_law","group":"A","mst":"253973"},
-    {"id":"local_contract_decree","name":"지방계약법 시행령","query":"지방자치단체를 당사자로 하는 계약에 관한 법률 시행령","tool":"search_law","group":"A","mst":"281055"},
-    {"id":"local_contract_rule","name":"지방계약법 시행규칙","query":"지방자치단체를 당사자로 하는 계약에 관한 법률 시행규칙","tool":"search_law","group":"A","mst":"282729"},
-    {"id":"national_contract_act","name":"국가계약법","query":"국가를 당사자로 하는 계약에 관한 법률","tool":"search_law","group":"A","mst":"277151"},
-    {"id":"national_contract_decree","name":"국가계약법 시행령","query":"국가를 당사자로 하는 계약에 관한 법률 시행령","tool":"search_law","group":"A","mst":"280803"},
-    {"id":"national_contract_rule","name":"국가계약법 시행규칙","query":"국가를 당사자로 하는 계약에 관한 법률 시행규칙","tool":"search_law","group":"A","mst":"282607"},
-    {"id":"procurement_act","name":"조달사업법","query":"조달사업에 관한 법률","tool":"search_law","group":"A","mst":"277155"},
-    {"id":"procurement_decree","name":"조달사업법 시행령","query":"조달사업에 관한 법률 시행령","tool":"search_law","group":"A","mst":"280891"},
-    {"id":"procurement_rule","name":"조달사업법 시행규칙","query":"조달사업에 관한 법률 시행규칙","tool":"search_law","group":"A","mst":"282675"},
+    {"id":"local_contract_act","name":"지방계약법","query":"지방자치단체를 당사자로 하는 계약에 관한 법률","tool":"search_law","group":"A"},
+    {"id":"local_contract_decree","name":"지방계약법 시행령","query":"지방자치단체를 당사자로 하는 계약에 관한 법률 시행령","tool":"search_law","group":"A"},
+    {"id":"local_contract_rule","name":"지방계약법 시행규칙","query":"지방자치단체를 당사자로 하는 계약에 관한 법률 시행규칙","tool":"search_law","group":"A"},
+    {"id":"national_contract_act","name":"국가계약법","query":"국가를 당사자로 하는 계약에 관한 법률","tool":"search_law","group":"A"},
+    {"id":"national_contract_decree","name":"국가계약법 시행령","query":"국가를 당사자로 하는 계약에 관한 법률 시행령","tool":"search_law","group":"A"},
+    {"id":"national_contract_rule","name":"국가계약법 시행규칙","query":"국가를 당사자로 하는 계약에 관한 법률 시행규칙","tool":"search_law","group":"A"},
+    {"id":"procurement_act","name":"조달사업법","query":"조달사업에 관한 법률","tool":"search_law","group":"A"},
+    {"id":"procurement_decree","name":"조달사업법 시행령","query":"조달사업에 관한 법률 시행령","tool":"search_law","group":"A"},
+    {"id":"procurement_rule","name":"조달사업법 시행규칙","query":"조달사업에 관한 법률 시행규칙","tool":"search_law","group":"A"},
     # Group B: 행정규칙·예규·집행기준
     {"id":"local_bid_execution","name":"지방자치단체 입찰 및 계약집행기준","query":"지방자치단체 입찰 및 계약집행기준","tool":"search_admin_rule","group":"B","topic":False},
     {"id":"local_bid_winner","name":"지방자치단체 입찰시 낙찰자 결정기준","query":"지방자치단체 입찰시 낙찰자 결정기준","tool":"search_admin_rule","group":"B","topic":False},
@@ -69,8 +69,8 @@ SEED_LAWS = [
     {"id":"mas_processing","name":"물품 다수공급자계약 업무처리규정","query":"물품 다수공급자계약 업무처리규정","tool":"search_admin_rule","group":"B","topic":False},
     {"id":"mas_2step","name":"MAS 2단계경쟁 관련 기준","query":"다수공급자계약 2단계 경쟁","tool":"search_admin_rule","group":"B","topic":True},
     # Group C: 중소·정책기업 법령
-    {"id":"sme_purchase_act","name":"중소기업제품 구매촉진 및 판로지원법","query":"중소기업제품 구매촉진 및 판로지원에 관한 법률","tool":"search_law","group":"C","mst":"277129"},
-    {"id":"sme_purchase_decree","name":"중소기업제품 구매촉진법 시행령","query":"중소기업제품 구매촉진 및 판로지원에 관한 법률 시행령","tool":"search_law","group":"C","mst":"281341"},
+    {"id":"sme_purchase_act","name":"중소기업제품 구매촉진 및 판로지원법","query":"중소기업제품 구매촉진 및 판로지원에 관한 법률","tool":"search_law","group":"C"},
+    {"id":"sme_purchase_decree","name":"중소기업제품 구매촉진법 시행령","query":"중소기업제품 구매촉진 및 판로지원에 관한 법률 시행령","tool":"search_law","group":"C"},
     {"id":"sme_competition_items","name":"중소기업자간 경쟁제품 지정내역","query":"중소기업자간 경쟁제품 직접구매 대상품목","tool":"search_admin_rule","group":"C","topic":True},
     {"id":"direct_production","name":"직접생산확인 관련 기준","query":"직접생산확인","tool":"search_admin_rule","group":"C","topic":True},
     {"id":"women_enterprise_act","name":"여성기업지원법","query":"여성기업지원에 관한 법률","tool":"search_law","group":"C"},
@@ -90,7 +90,7 @@ SEED_LAWS = [
     # Group F: 공공기관·공기업·준정부기관 계약기준
     {"id":"public_institution_act","name":"공공기관의 운영에 관한 법률","query":"공공기관의 운영에 관한 법률","tool":"search_law","group":"F"},
     {"id":"public_institution_decree","name":"공공기관의 운영에 관한 법률 시행령","query":"공공기관의 운영에 관한 법률 시행령","tool":"search_law","group":"F"},
-    {"id":"public_corp_contract_rule","name":"공기업ㆍ준정부기관 계약사무규칙","query":"공기업 준정부기관 계약사무규칙","tool":"search_law","group":"F","mst":"285569"},
+    {"id":"public_corp_contract_rule","name":"공기업ㆍ준정부기관 계약사무규칙","query":"공기업 준정부기관 계약사무규칙","tool":"search_law","group":"F"},
     {"id":"public_corp_accounting_rule","name":"공기업ㆍ준정부기관 회계사무규칙","query":"공기업 준정부기관 회계사무규칙","tool":"search_law","group":"F"},
 ]
 

@@ -29,6 +29,15 @@ PARAMETER_LABELS = {
     "P_LOCAL_DIRECT_POLICY_COMPANY_THRESHOLD": "정책기업 수의계약 기준",
 }
 
+LOCAL_LIMITED_BID_LABELS = {
+    "P_LOCAL_LIMITED_BID_GENERAL_CONSTRUCTION_THRESHOLD": "종합공사",
+    "P_LOCAL_LIMITED_BID_SPECIALTY_CONSTRUCTION_THRESHOLD": "전문공사 및 그 밖의 공사 관련 법령에 따른 공사",
+    "P_LOCAL_LIMITED_BID_TECHNICAL_SERVICE_THRESHOLD": "건설기술·건축설계·엔지니어링기술 용역",
+    "P_LOCAL_LIMITED_BID_SAFETY_DIAGNOSIS_SERVICE_THRESHOLD": "안전점검 및 정밀안전진단 용역",
+    "P_LOCAL_LIMITED_BID_GOODS_SERVICE_NOTICE_THRESHOLD": "그 밖의 용역 또는 물품의 제조·구매 등",
+    "P_LOCAL_LIMITED_BID_SEOUL_BUSAN_INCHEON_GU_GUN_THRESHOLD": "서울·부산·인천 관할 군·구",
+}
+
 _DISPLAY_LEVEL_LABELS = {
     "source_verified": "검증된 source 후보가 확인되었습니다.",
     "source_candidate": "source 후보가 있으나 검토 상태 확인이 필요합니다.",
@@ -208,6 +217,30 @@ def build_evidence_sections(evidence_context: EvidenceContext, router_slots=None
             title="Source Gap 안내",
             content="일부 검토 항목의 법령 source가 아직 완전히 매핑되지 않았습니다. "
                     "해당 항목은 '확인 필요'로 표시되었으며, 원문 대조가 권장됩니다."
+        ))
+
+    # 지역제한 입찰 기준금액 테이블 추가
+    local_limited_rows = []
+    has_local_limited_rule = False
+    for rs in evidence_context.rule_statuses:
+        if rs.rule_id == "R_LOCAL_LIMITED_BID_AMOUNT":
+            has_local_limited_rule = True
+            for p in rs.numeric_parameters:
+                if p.parameter_ref in LOCAL_LIMITED_BID_LABELS:
+                    label = LOCAL_LIMITED_BID_LABELS[p.parameter_ref]
+                    if p.display_allowed and p.resolved_value is not None:
+                        val_str = p.display_value or f"{int(p.resolved_value):,}원"
+                        local_limited_rows.append(f"| {label} | {val_str} | Source Map resolved |")
+                    else:
+                        local_limited_rows.append(f"| {label} | 확인 필요 | Source Map unresolved |")
+
+    if has_local_limited_rule and local_limited_rows:
+        header = "| 구분 | 기준금액 | 상태 |\n|---|---:|---|\n"
+        table_str = header + "\n".join(local_limited_rows)
+        # 테이블 섹션을 리스트의 앞쪽에 삽입하여 잘 보이게 한다 (근거 기반 검토 상태 바로 앞이나 뒤)
+        sections.append(AnswerSection(
+            title="지역제한 입찰 기준금액",
+            content="지방자치단체 계약에서 지역제한 입찰은 계약목적물과 기관유형에 따라 기준금액이 달라집니다.\n\n" + table_str
         ))
 
     return sections
