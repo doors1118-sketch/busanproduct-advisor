@@ -74,6 +74,10 @@ async def pilot_auth_middleware(request: Request, call_next):
 
     if not is_protected:
         return await call_next(request)
+        
+    # 로컬호스트(Streamlit UI 내부 호출)는 인증 우회
+    if request.client and request.client.host in ("127.0.0.1", "localhost"):
+        return await call_next(request)
 
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Basic "):
