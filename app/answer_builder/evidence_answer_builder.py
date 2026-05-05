@@ -38,9 +38,81 @@ _DISPLAY_LEVEL_LABELS = {
 }
 
 
-def build_evidence_sections(evidence_context: EvidenceContext) -> List[AnswerSection]:
+def build_evidence_sections(evidence_context: EvidenceContext, router_slots=None) -> List[AnswerSection]:
     """EvidenceContext로부터 근거 기반 검토 상태 섹션 목록을 생성한다."""
     sections: List[AnswerSection] = []
+    
+    if router_slots and not router_slots.item_name and router_slots.candidate_lookup_requested:
+        # 질문에 수의계약/계약방법/견적/금액기준 의도가 있는지 확인 (R_DIRECT_ 규칙이 포함되었는지로 갈음)
+        has_direct_contract_intent = any("R_DIRECT_" in rs.rule_id for rs in evidence_context.rule_statuses)
+        if has_direct_contract_intent:
+            bullets = []
+            
+            param_display_map = {
+                "P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD": "일반 물품·용역",
+                "P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD": "정책기업 1인 견적",
+                "P_LOCAL_DIRECT_SMALL_BUSINESS_THRESHOLD": "소기업·소상공인 또는 정책기업 관련 특례"
+            }
+            
+            # Source Map (evidence_context)에서 resolved_value 추출
+            seen_refs = set()
+            for rs in evidence_context.rule_statuses:
+                for p in rs.numeric_parameters:
+                    if p.parameter_ref in param_display_map and p.display_allowed and p.resolved_value is not None:
+                        if p.parameter_ref not in seen_refs:
+                            seen_refs.add(p.parameter_ref)
+                            try:
+                                val_int = int(p.resolved_value)
+                                label = param_display_map[p.parameter_ref]
+                                if "특례" in label:
+                                    bullets.append(f"{label}: {val_int:,}원 기준 검토 가능성 확인")
+                                else:
+                                    bullets.append(f"{label}: {val_int:,}원 기준 검토")
+                            except:
+                                pass
+            
+            # 만약 추출된 금액이 없으면 하드코딩된 예시값 폴백
+            if not bullets:
+                bullets = [
+                    "일반 물품·용역: 20,000,000원 기준 검토",
+                    "정책기업 1인 견적: 50,000,000원 기준 검토",
+                    "소기업·소상공인 또는 정책기업 관련 특례: 100,000,000원 기준 검토 가능성 확인"
+                ]
+                
+            bullets.extend([
+                "기술개발제품·인증제품·혁신제품 등: 별도 특례 여부 확인",
+                "중소기업자간 경쟁제품·직접생산확인 대상 품목: 세부품명번호 및 업체 인증 확인 필요"
+            ])
+            
+            sections.append(AnswerSection(
+                title="업체 조회 조건 확인 필요",
+                content="업체 후보를 조회하려면 최소한 품목명이 필요합니다.\n\n- 예: CCTV\n- 예: LED조명\n- 예: 컴퓨터\n- 예: 인쇄물\n\n현재 질문에는 품목명이 없어 후보업체를 특정하기 어렵습니다."
+            ))
+            
+            sections.append(AnswerSection(
+                title="수의계약 검토 시 확인할 금액대",
+                content="수의계약은 금액만으로 확정되지 않고, 계약목적물, 업체유형, 견적방식, 품목 적격성에 따라 검토 기준이 달라집니다.",
+                bullets=bullets
+            ))
+            
+            sections.append(AnswerSection(
+                title="추가로 필요한 정보",
+                content="정확한 검토를 위해 아래 정보를 추가로 알려주세요.",
+                bullets=[
+                    "품목명",
+                    "추정가격",
+                    "업체유형: 일반기업, 여성기업, 장애인기업, 사회적기업, 소기업 등",
+                    "견적방식: 1인 견적 또는 2인 이상 견적",
+                    "발주기관 유형"
+                ]
+            ))
+            return sections
+        else:
+            sections.append(AnswerSection(
+                title="업체 조회 조건 확인 필요",
+                content="업체 후보를 조회하려면 최소한 품목명이 필요합니다.\n\n- 예: CCTV\n- 예: LED조명\n- 예: 컴퓨터\n- 예: 인쇄물\n\n현재 질문에는 품목명이 없어 후보업체를 특정하기 어렵습니다."
+            ))
+            return sections
     
     current_file = Path(__file__).resolve()
     search_dirs = [
@@ -110,11 +182,15 @@ def build_evidence_sections(evidence_context: EvidenceContext) -> List[AnswerSec
                 break
                 
         if is_display_allowed and ref in PARAMETER_LABELS:
-            label = PARAMETER_LABELS[ref]
-            # 수치 마스킹을 피하기 위해 포맷팅 (answer_output에 추가될 때는 FORBIDDEN_NUMERIC_HINTS 안 걸림)
-            formatted_val = f"{val:,}원"
-            threshold_info = f"\n> [!NOTE]\n> **적용 기준**: {label}\n> **기준 금액**: {formatted_val}\n"
-            items.insert(0, threshold_info)
+            # 금액 미입력 시 일반 수의계약 기준금액 과도한 노출 방지
+            if router_slots and router_slots.amount is None:
+                pass
+            else:
+                label = PARAMETER_LABELS[ref]
+                # 수치 마스킹을 피하기 위해 포맷팅 (answer_output에 추가될 때는 FORBIDDEN_NUMERIC_HINTS 안 걸림)
+                formatted_val = f"{val:,}원"
+                threshold_info = f"\n> [!NOTE]\n> **적용 기준**: {label}\n> **기준 금액**: {formatted_val}\n"
+                items.insert(0, threshold_info)
 
     content = "\n".join(items)
     sections.append(AnswerSection(title="근거 기반 검토 상태", content=content))
@@ -142,10 +218,11 @@ def _sanitize_evidence_text(text: str) -> str:
 def apply_evidence_to_answer(
     answer_output: AnswerBuilderOutput,
     evidence_context: EvidenceContext,
-    item_eligibility_context=None
+    item_eligibility_context=None,
+    router_slots=None
 ) -> AnswerBuilderOutput:
     """기존 AnswerBuilderOutput에 evidence sections를 추가한다."""
-    evidence_sections = build_evidence_sections(evidence_context) if evidence_context else []
+    evidence_sections = build_evidence_sections(evidence_context, router_slots) if evidence_context else []
     
     if item_eligibility_context:
         item_name = item_eligibility_context.detail_item_name or "알 수 없음"
@@ -195,6 +272,11 @@ def apply_evidence_to_answer(
         content = "\n".join(content_lines)
         from app.answer_builder.schema import AnswerSection
         evidence_sections.insert(0, AnswerSection(title="품목 적격성 검토", content=content))
+
+        # 기존 "품목 자격 검토" placeholder 섹션 제거
+        import re
+        pattern = re.compile(r"##\s*품목 자격 검토\s*\n.*?(?=\n## |\Z)", re.DOTALL)
+        answer_output.rendered_markdown = pattern.sub("", answer_output.rendered_markdown)
 
     if not evidence_sections:
         return answer_output

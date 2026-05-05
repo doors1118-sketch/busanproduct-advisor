@@ -114,6 +114,27 @@ def _caution_section() -> AnswerSection:
         content="정확한 판단은 관련 법령과 규정을 직접 확인하시기 바랍니다."
     )
 
+COMPANY_TYPE_LABELS = {
+    "women": "여성기업",
+    "disabled": "장애인기업",
+    "social": "사회적기업",
+    "startup": "창업기업",
+    "small_business": "소기업·소상공인",
+    "general": "일반기업",
+}
+
+QUOTE_TYPE_LABELS = {
+    "1_quote": "1인 견적",
+    "2_quote": "2인 이상 견적",
+}
+
+CONTRACT_METHOD_LABELS = {
+    "direct_contract": "수의계약 검토",
+    "competitive_bid": "경쟁입찰 검토",
+    "limited_competition": "제한경쟁 검토",
+    "open_competition": "일반경쟁 검토",
+}
+
 # ─────────────────────────────────────────────
 # Flow Builders
 # ─────────────────────────────────────────────
@@ -163,7 +184,15 @@ def build_contract_review(router_result: RouterResult) -> AnswerBuilderOutput:
     if slots.item_name:
         summary_bullets.append(f"품목: {slots.item_name}")
     if slots.contract_object:
-        summary_bullets.append(f"계약목적물: {slots.contract_object}")
+        obj_map = {"goods": "물품", "service": "용역", "construction": "공사"}
+        obj_label = obj_map.get(slots.contract_object, slots.contract_object)
+        summary_bullets.append(f"계약목적물: {obj_label}")
+    if slots.company_type:
+        summary_bullets.append(f"업체유형: {COMPANY_TYPE_LABELS.get(slots.company_type, slots.company_type)}")
+    if slots.quote_type:
+        summary_bullets.append(f"견적유형: {QUOTE_TYPE_LABELS.get(slots.quote_type, slots.quote_type)}")
+    if slots.contract_method:
+        summary_bullets.append(f"계약방식: {CONTRACT_METHOD_LABELS.get(slots.contract_method, slots.contract_method)}")
     if slots.procurement_route:
         summary_bullets.append(f"조달경로: {slots.procurement_route}")
 
@@ -245,6 +274,28 @@ def build_mixed_flow(router_result: RouterResult) -> AnswerBuilderOutput:
     sections = [
         AnswerSection(title="복합 검토 요약", content="질문에 여러 검토 항목이 포함되어 있어 아래 순서로 안내합니다.")
     ]
+
+    has_contract_info = bool(router_result.slots.amount or router_result.slots.item_name or router_result.slots.contract_object or router_result.slots.company_type or router_result.slots.quote_type)
+    if "contract_review" in all_intents or has_contract_info:
+        slots = router_result.slots
+        summary_bullets = []
+        if slots.amount:
+            summary_bullets.append(f"추정가격: {slots.amount:,}원")
+        if slots.item_name:
+            summary_bullets.append(f"품목: {slots.item_name}")
+        if slots.contract_object:
+            obj_map = {"goods": "물품", "service": "용역", "construction": "공사"}
+            obj_label = obj_map.get(slots.contract_object, slots.contract_object)
+            summary_bullets.append(f"계약목적물: {obj_label}")
+        if slots.company_type:
+            summary_bullets.append(f"업체유형: {COMPANY_TYPE_LABELS.get(slots.company_type, slots.company_type)}")
+        if slots.quote_type:
+            summary_bullets.append(f"견적유형: {QUOTE_TYPE_LABELS.get(slots.quote_type, slots.quote_type)}")
+        if slots.contract_method:
+            summary_bullets.append(f"계약방식: {CONTRACT_METHOD_LABELS.get(slots.contract_method, slots.contract_method)}")
+            
+        if summary_bullets:
+            sections.append(AnswerSection(title="계약 검토 요약", content="아래 조건을 기준으로 계약 유형 및 절차를 검토합니다.", bullets=summary_bullets))
 
     route_sec = None
     if "procurement_route_review" in all_intents:
@@ -333,7 +384,7 @@ def route_answer(router_result: RouterResult, evidence_context=None, item_eligib
 
     if evidence_context is not None or item_eligibility_context is not None:
         from app.answer_builder.evidence_answer_builder import apply_evidence_to_answer
-        out = apply_evidence_to_answer(out, evidence_context, item_eligibility_context=item_eligibility_context)
+        out = apply_evidence_to_answer(out, evidence_context, item_eligibility_context=item_eligibility_context, router_slots=router_result.slots)
 
     return out
 

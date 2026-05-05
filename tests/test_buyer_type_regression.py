@@ -15,7 +15,7 @@ from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Optional, List
 
-BASE = Path(r"c:\Users\COMTREE\Desktop\메뉴얼 제작")
+BASE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE))
 sys.path.insert(0, str(BASE / "phase8_gateway_export_flat"))
 

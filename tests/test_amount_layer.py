@@ -10,19 +10,19 @@ import os
 from pathlib import Path
 
 # 경로 설정
-BASE_DIR = Path(r"c:\Users\COMTREE\Desktop\메뉴얼 제작")
-sys.path.insert(0, str(BASE_DIR))
-sys.path.insert(0, str(BASE_DIR / "phase8_gateway_export_flat"))
+BASE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE))
+sys.path.insert(0, str(BASE / "phase8_gateway_export_flat"))
 
 from amount_layer import resolve_active_rules, classify_amount, _to_int_or_none
 
 # source_map 로드 (테스트용)
-SMAP_PATH = BASE_DIR / "purchase_support_rule_source_map.json"
+SMAP_PATH = BASE / "purchase_support_rule_source_map.json"
 with open(SMAP_PATH, "r", encoding="utf-8") as f:
     TEST_SOURCE_MAP = json.load(f)
 
 # ──────────────────────────────────────────────────────────
-OUT_PATH = BASE_DIR / "scratch" / "amount_layer_test_result.txt"
+OUT_PATH = BASE / "scratch" / "amount_layer_test_result.txt"
 lines = []
 passed = 0
 failed = 0

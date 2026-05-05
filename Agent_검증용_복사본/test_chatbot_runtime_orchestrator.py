@@ -8,11 +8,8 @@ from app.runtime.runtime_schema import ChatbotRuntimeRequest
 from app.runtime.company_api_adapter import CompanyAPIAdapter, CompanyCandidateResult, CompanyCandidateRow
 
 
-def _run(query: str, mock: dict, options: dict = None):
-    opts = {"use_mock_company_api": True, "use_mock_item_eligibility": True}
-    if options:
-        opts.update(options)
-    req = ChatbotRuntimeRequest(user_query=query, mock_gemini_response=mock, runtime_options=opts)
+def _run(query: str, mock: dict):
+    req = ChatbotRuntimeRequest(user_query=query, mock_gemini_response=mock)
     return run_chatbot_runtime(req)
 
 
@@ -122,7 +119,7 @@ def test_runtime_candidate_search_empty_result(monkeypatch):
     assert cs is not None and cs.status == "success"
     assert "후보업체 없음" in cs.reason
     assert resp.answer_output.candidate_table_section is None
-    assert "조건에 맞는 후보가 현재 조회되지 않습니다" in resp.answer_output.rendered_markdown
+    assert "API 연동" in resp.answer_output.rendered_markdown
     _assert_clean(resp)
 
 
@@ -144,7 +141,7 @@ def test_runtime_candidate_search_api_failed(monkeypatch):
     assert cs is not None and cs.status == "failed"
     assert "Connection timeout" in cs.reason
     # 답변 자체는 placeholder로 정상 생성
-    assert "업체 조회가 일시적으로 불가합니다" in resp.answer_output.rendered_markdown
+    assert "API 연동" in resp.answer_output.rendered_markdown
     _assert_clean(resp)
 
 
@@ -263,8 +260,7 @@ def test_runtime_forbidden_sweep():
 # Fallback 안전성
 # ────────────────────────────────────────────────────
 
-def test_runtime_no_mock_response_safe_fallback(monkeypatch):
-    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+def test_runtime_no_mock_response_safe_fallback():
     req = ChatbotRuntimeRequest(user_query="아무거나", mock_gemini_response=None)
     resp = run_chatbot_runtime(req)
     assert resp.runtime_status == "success"

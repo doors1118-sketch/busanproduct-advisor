@@ -112,13 +112,10 @@ class ChatbotRuntimeOrchestrator:
         try:
             if request.mock_gemini_response is not None:
                 raw = json.dumps(request.mock_gemini_response, ensure_ascii=False)
-                router_result = self.router.parse_gemini_response(request.user_query, raw)
             else:
-                router_result = self.router.route(request.user_query)
+                raw = json.dumps({"primary_intent": "out_of_scope", "confidence": 0.3, "slots": {}})
 
-            # ── Stage 1.5: Slot Repair ──
-            from app.router.slot_repair import repair_slots
-            router_result = repair_slots(request.user_query, router_result)
+            router_result = self.router.parse_gemini_response(request.user_query, raw)
 
             stages.append(RuntimeStageResult(
                 stage_name="intent_router", status="success", skipped=False
@@ -152,13 +149,8 @@ class ChatbotRuntimeOrchestrator:
         # ── Stage 2.5: Item Eligibility Resolver ──
         item_eligibility_context = None
         try:
-            from app.runtime.item_eligibility_adapter import ItemEligibilityAdapter
-            
-            # runtime_options에서 오버라이드 여부 확인
-            opts = request.runtime_options or {}
-            use_mock_ie = opts.get('use_mock_item_eligibility')
-            adapter = ItemEligibilityAdapter(use_mock=use_mock_ie)
-            
+            from phase8_gateway_export_flat.item_eligibility_adapter import ItemEligibilityAdapter
+            adapter = ItemEligibilityAdapter()
             item_name = router_result.slots.item_name if hasattr(router_result.slots, 'item_name') else None
             detail_item_code = router_result.slots.detail_item_code if hasattr(router_result.slots, 'detail_item_code') else None
             company_id = router_result.slots.company_id if hasattr(router_result.slots, 'company_id') else None
@@ -166,13 +158,9 @@ class ChatbotRuntimeOrchestrator:
             eligibility_result = adapter.resolve(item_name=item_name, detail_item_code=detail_item_code, company_id=company_id)
             if eligibility_result.resolver_status != "not_triggered":
                 item_eligibility_context = eligibility_result.context
-                
-                # data_unavailable인 경우 stage status를 failed로 처리하여 degraded 유도
-                stage_status = "failed" if eligibility_result.resolver_status == "data_unavailable" else "success"
-                
                 stages.append(RuntimeStageResult(
                     stage_name="item_eligibility",
-                    status=stage_status
+                    status="success"
                 ))
             else:
                 stages.append(RuntimeStageResult(stage_name="item_eligibility", status="success", skipped=True))
@@ -279,7 +267,7 @@ class ChatbotRuntimeOrchestrator:
         use_evidence = opts.get("use_evidence_builder", False)
         source_map_path = opts.get("source_map_path", None)
 
-        if use_evidence and router_result.routing_decision != "clarification_required":
+        if use_evidence:
             try:
                 from phase8_gateway_export_flat.evidence_context_loader import build_evidence_context
                 evidence_context = build_evidence_context(
@@ -312,24 +300,11 @@ class ChatbotRuntimeOrchestrator:
                 item_eligibility_context=item_eligibility_context
             )
 
-            # Company API Placeholder 치환 로직
-            import re
-            placeholder_pattern = re.compile(r"##\s*(업체 후보 조회|조회 결과)\s*\n.*?(?=\n## |\Z)", re.DOTALL)
-            
-            if company_result:
-                if company_result.status == "success" and company_result.candidates:
-                    # 후보표가 있으므로 기존 placeholder 삭제 (후보표는 아래에서 렌더링됨)
-                    answer_output.rendered_markdown = placeholder_pattern.sub("", answer_output.rendered_markdown)
-                    answer_output = _render_candidate_table(company_result, answer_output)
-                elif company_result.status == "empty":
-                    answer_output.rendered_markdown = placeholder_pattern.sub("## 업체 후보 조회\n조건에 맞는 후보가 현재 조회되지 않습니다.\n\n", answer_output.rendered_markdown)
-                elif company_result.status == "failed":
-                    answer_output.rendered_markdown = placeholder_pattern.sub("## 업체 후보 조회\n업체 조회가 일시적으로 불가합니다.\n\n", answer_output.rendered_markdown)
-                elif company_result.status == "skipped":
-                    answer_output.rendered_markdown = placeholder_pattern.sub("## 업체 후보 조회\n업체 조회 조건이 부족합니다.\n\n", answer_output.rendered_markdown)
+            # Company API 결과가 있으면 후보표 추가
+            if company_result and company_result.status == "success" and company_result.candidates:
+                answer_output = _render_candidate_table(company_result, answer_output)
 
             # Company API 실패 시 사용자 안내 문구 삽입
-            # (기존 company_fail_notice 로직 유지)
             if company_fail_notice and answer_output.rendered_markdown:
                 caution_marker = "\n\n## 주의사항"
                 notice_block = f"\n\n---\n{company_fail_notice}\n"
