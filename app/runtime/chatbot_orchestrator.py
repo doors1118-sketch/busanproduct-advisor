@@ -11,7 +11,9 @@ User Query → Intent Router → Gateway (stub) → Rule Engine (stub)
 이 모듈은 최종 법적 판단을 생성하지 않는다.
 """
 import json
+import os
 from typing import Optional
+from pathlib import Path
 
 from app.router.gemini_intent_router import GeminiIntentRouter
 from app.router.intent_schema import RouterResult
@@ -26,6 +28,18 @@ from app.runtime.company_api_adapter import CompanyAPIAdapter, CompanyCandidateR
 
 FALLBACK_MESSAGE = "질의 의도 또는 필수 정보가 불명확하여 추가 확인이 필요합니다."
 DISCLAIMER = "본 안내는 법적 효력이 없으며, 참고용으로만 제공됩니다."
+
+
+def _default_source_map_path() -> str | None:
+    """프로젝트 루트의 purchase_support_rule_source_map.json 경로 반환. 없으면 None."""
+    candidates = [
+        Path(__file__).resolve().parents[2] / "purchase_support_rule_source_map.json",
+        Path(__file__).resolve().parents[1] / "purchase_support_rule_source_map.json",
+    ]
+    for p in candidates:
+        if p.exists():
+            return str(p)
+    return None
 
 
 def _fallback_answer() -> AnswerBuilderOutput:
@@ -193,6 +207,8 @@ class ChatbotRuntimeOrchestrator:
             
             source_map = None
             source_map_path = request.runtime_options.get("source_map_path") if request.runtime_options else None
+            if not source_map_path:
+                source_map_path = _default_source_map_path()
             if source_map_path:
                 with open(source_map_path, "r", encoding="utf-8") as f:
                     source_map = json.load(f)
@@ -418,6 +434,19 @@ def run_chatbot_runtime(request: ChatbotRuntimeRequest) -> ChatbotRuntimeRespons
     opts = request.runtime_options or {}
     # runtime_options에 명시적 지정이 없으면 None → 환경변수 기본값 사용
     use_mock_company_api = opts.get("use_mock_company_api", None)
+
+    # source_map_path 기본값 주입
+    if "source_map_path" not in opts:
+        default_smp = _default_source_map_path()
+        if default_smp:
+            opts["source_map_path"] = default_smp
+
+    # use_evidence_builder 기본값 주입
+    if "use_evidence_builder" not in opts:
+        opts["use_evidence_builder"] = True
+
+    request.runtime_options = opts
+
     return ChatbotRuntimeOrchestrator(
         use_mock_company_api=use_mock_company_api
     ).run(request)
