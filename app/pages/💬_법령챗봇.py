@@ -2,8 +2,9 @@
 💬 법령챗봇 — AI 법령 해석 상담
 지역상생 조달 어드바이저의 핵심 기능 2.
 """
-import sys
 import os
+import sys
+import base64
 
 # app 디렉토리를 Python 경로에 추가
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -245,7 +246,14 @@ _(잘 모르시겠다면 **'1번'** 또는 **'건너뛰기'**를 입력하시면
                 "agency_type": selected_agency
             }
             
-            response = requests.post(api_url, json=payload, timeout=20)
+            headers = {}
+            auth_user = os.getenv("PILOT_AUTH_USER", "")
+            auth_pass = os.getenv("PILOT_AUTH_PASSWORD", "")
+            if auth_user and auth_pass:
+                token = base64.b64encode(f"{auth_user}:{auth_pass}".encode("utf-8")).decode("utf-8")
+                headers["Authorization"] = f"Basic {token}"
+            
+            response = requests.post(api_url, json=payload, headers=headers, timeout=20)
             response.raise_for_status()
             data = response.json()
             
