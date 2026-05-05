@@ -84,7 +84,7 @@ _AGENCY_NUMBER_MAP = {
 
 with st.sidebar:
     st.markdown("### 💬 AI 법령 챗봇")
-    st.caption("법제처 API + Gemini 기반")
+    st.caption("Source Map + Orchestrator 기반")
     st.markdown("---")
     st.markdown("""
     **사용 방법**
@@ -95,11 +95,13 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("**📌 답변 구조**")
     st.markdown("""
-    - 📌 결론
-    - 📜 법적 근거
-    - 💼 실무 적용
-    - 🏢 지역제품 구매 방법
-    - ⚠️ 주의사항
+    - 계약 검토 요약
+    - 조달경로 검토
+    - 지역업체 구매지원 제도 검토
+    - 품목 적격성 검토
+    - 근거 기반 검토 상태
+    - 검토 후보 업체
+    - 주의사항
     """)
     st.markdown("---")
     if st.button("🗑️ 대화 초기화", use_container_width=True):
@@ -115,7 +117,7 @@ if "chat_history" not in st.session_state:
 
 # ── 메인 헤더 ──
 st.markdown('<div class="chat-header">💬 부산광역시 지역경제 상생협력 어드바이저</div>', unsafe_allow_html=True)
-st.markdown('<div class="chat-sub">계약 및 조달 법령에 대해 질문하면, 법제처 API에서 법령 및 행정규칙, 해석례, 소속기관의 계약지침을 검색하여 답변합니다.</div>', unsafe_allow_html=True)
+st.markdown('<div class="chat-sub">사전 매핑된 Source Map과 내부 검토 규칙을 기준으로 계약·조달 검토 항목을 구조화하여 안내합니다.</div>', unsafe_allow_html=True)
 
 # ── 소속기관 유형 선택 + 대화 초기화 (메인 영역) ──
 col_agency, col_reset = st.columns([4, 1])
@@ -228,8 +230,8 @@ _(잘 모르시겠다면 **'1번'** 또는 **'건너뛰기'**를 입력하시면
         st.stop()  # API 호출 없이 여기서 중단
 
     # ── [Case A] 기관 확정 → 실제 분석 실행 ──
-    # 기관 유형 컨텍스트를 질문에 삽입 (Gemini에만 전달)
-    chat_input = f"[소속기관: {selected_agency}] {user_input}"
+    # 기관 유형은 별도 필드로 전송하므로 원문만 사용합니다.
+    chat_input = user_input
 
     # AI 답변 생성
     with st.chat_message("assistant", avatar="⚖️"):
@@ -243,7 +245,7 @@ _(잘 모르시겠다면 **'1번'** 또는 **'건너뛰기'**를 입력하시면
                 "agency_type": selected_agency
             }
             
-            response = requests.post(api_url, json=payload, timeout=45)
+            response = requests.post(api_url, json=payload, timeout=20)
             response.raise_for_status()
             data = response.json()
             
