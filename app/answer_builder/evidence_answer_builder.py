@@ -43,19 +43,24 @@ def build_evidence_sections(evidence_context: EvidenceContext, router_slots=None
     sections: List[AnswerSection] = []
     
     if router_slots and not router_slots.item_name and router_slots.candidate_lookup_requested:
-        # 질문에 수의계약/계약방법/견적/금액기준 의도가 있는지 확인 (R_DIRECT_ 규칙이 포함되었는지로 갈음)
-        has_direct_contract_intent = any("R_DIRECT_" in rs.rule_id for rs in evidence_context.rule_statuses)
+        # 질문에 수의계약/계약방법/견적/금액기준 의도가 있는지 확인
+        has_direct_contract_intent = (
+            any("R_DIRECT_" in rs.rule_id for rs in evidence_context.rule_statuses)
+            or getattr(router_slots, "contract_method", None) == "direct_contract"
+        )
         if has_direct_contract_intent:
             bullets = []
             
             param_display_map = {
                 "P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD": "일반 물품·용역",
                 "P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD": "정책기업 1인 견적",
-                "P_LOCAL_DIRECT_SMALL_BUSINESS_THRESHOLD": "소기업·소상공인 또는 정책기업 관련 특례"
+                "P_LOCAL_DIRECT_SMALL_BUSINESS_THRESHOLD": "소기업·소상공인 등 수의계약",
+                "P_LOCAL_DIRECT_POLICY_COMPANY_THRESHOLD": "정책기업 관련 특례",
             }
             
             # Source Map (evidence_context)에서 resolved_value 추출
             seen_refs = set()
+            seen_values = set()  # 동일 금액 중복 표시 방지
             for rs in evidence_context.rule_statuses:
                 for p in rs.numeric_parameters:
                     if p.parameter_ref in param_display_map and p.display_allowed and p.resolved_value is not None:
@@ -63,6 +68,9 @@ def build_evidence_sections(evidence_context: EvidenceContext, router_slots=None
                             seen_refs.add(p.parameter_ref)
                             try:
                                 val_int = int(p.resolved_value)
+                                if val_int in seen_values:
+                                    continue  # 동일 금액 중복 제거
+                                seen_values.add(val_int)
                                 label = param_display_map[p.parameter_ref]
                                 if "특례" in label:
                                     bullets.append(f"{label}: {val_int:,}원 기준 검토 가능성 확인")
@@ -71,12 +79,11 @@ def build_evidence_sections(evidence_context: EvidenceContext, router_slots=None
                             except:
                                 pass
             
-            # 만약 추출된 금액이 없으면 하드코딩된 예시값 폴백
+            # resolved numeric parameter가 없으면 숫자를 표시하지 않는다 (하드코딩 금지)
             if not bullets:
                 bullets = [
-                    "일반 물품·용역: 20,000,000원 기준 검토",
-                    "정책기업 1인 견적: 50,000,000원 기준 검토",
-                    "소기업·소상공인 또는 정책기업 관련 특례: 100,000,000원 기준 검토 가능성 확인"
+                    "금액 기준은 현재 Source Map에서 검증된 resolved parameter가 확인될 때만 표시합니다.",
+                    "품목명, 추정가격, 업체유형, 견적방식을 입력하면 해당 기준을 재검토합니다.",
                 ]
                 
             bullets.extend([
@@ -287,7 +294,11 @@ def apply_evidence_to_answer(
         # sec.content는 이미 build_evidence_sections 안에서 개별 라인별로 sanitize 되었습니다.
         # 단, source_gap 안내 등은 여기서 sanitize 될 필요가 없으나 안전하게 통과됩니다.
         # 따라서 전체 일괄 sanitize는 제거합니다.
-        evidence_md_parts.append(f"\n\n## {sec.title}\n{sec.content}")
+        sec_md = f"\n\n## {sec.title}\n{sec.content}"
+        if sec.bullets:
+            for b in sec.bullets:
+                sec_md += f"\n- {b}"
+        evidence_md_parts.append(sec_md)
 
     evidence_md = "\n".join(evidence_md_parts)
 
