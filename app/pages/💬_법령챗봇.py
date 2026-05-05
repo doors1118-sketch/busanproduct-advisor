@@ -13,9 +13,13 @@ sys.path.insert(0, APP_DIR)
 import streamlit as st
 from dotenv import load_dotenv
 
-# .env 파일: 프로젝트 루트(app 상위)에서 로드
+# .env 파일 및 pilot_auth.env 파일 로드
 PROJECT_ROOT = os.path.dirname(APP_DIR)
 load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
+load_dotenv(os.path.join(PROJECT_ROOT, "pilot_auth.env"))
+# 운영 환경 대비 절대 경로 체크
+if os.path.exists("/root/advisor/pilot_auth.env"):
+    load_dotenv("/root/advisor/pilot_auth.env")
 
 import requests
 
@@ -247,8 +251,8 @@ _(잘 모르시겠다면 **'1번'** 또는 **'건너뛰기'**를 입력하시면
             }
             
             headers = {}
-            auth_user = os.getenv("PILOT_AUTH_USER", "")
-            auth_pass = os.getenv("PILOT_AUTH_PASSWORD", "")
+            auth_user = os.getenv("PILOT_AUTH_USER", "admin")
+            auth_pass = os.getenv("PILOT_AUTH_PASSWORD", "pilot123!")
             if auth_user and auth_pass:
                 token = base64.b64encode(f"{auth_user}:{auth_pass}".encode("utf-8")).decode("utf-8")
                 headers["Authorization"] = f"Basic {token}"
