@@ -1775,7 +1775,8 @@ def _chat_v144(
     company_tools = ["search_local_company_by_product", "search_local_company_by_license", "search_local_company_by_category"]
     shopping_tools = ["search_shopping_mall"]
     policy_company_tools = ["search_company_by_policy"]
-    product_tools = ["search_certified_product", "search_innovation_product", "search_innovation_products", "search_tech_development_products"]
+    product_tools = ["search_certified_product", "search_innovation_product", "search_innovation_products", 
+                      "search_tech_development_products", "search_excellent_procurement_product"]
     
     # low-risk company_search일 경우 법령 도구 스킵하여 지연 최소화
     skip_law_tools = risk_info.get("risk_level") == "low" and "company_search" in guardrails
