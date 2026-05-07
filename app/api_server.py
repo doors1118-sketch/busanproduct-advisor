@@ -444,6 +444,12 @@ def _chat_legacy(req: ChatRequest, start: float):
             final_answer_scanned=meta.get("final_answer_scanned", False),
             model_selected=meta.get("model_used", os.getenv("GEMINI_MODEL", "gemini-2.5-pro")),
             model_decision_reason=meta.get("model_decision_reason", ""),
+            tier_resolved=meta.get("tier_resolved", 1),
+            mandatory_mcp_plan=meta.get("mandatory_mcp_plan", []),
+            mandatory_mcp_executed=meta.get("mandatory_mcp_executed", []),
+            mandatory_mcp_missing=meta.get("mandatory_mcp_missing", []),
+            mcp_preflight_elapsed_ms=meta.get("mcp_preflight_elapsed_ms", 0),
+            tool_call_count=meta.get("tool_call_count", 0),
         )
         return JSONResponse(content=resp_obj.dict(), media_type="application/json; charset=utf-8")
 
