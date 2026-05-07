@@ -1920,53 +1920,10 @@ def _chat_v144(
     model_start = time.time()
     
     amount_detected = _parse_amount(user_message)
-    if query_tier in (1, 2) and amount_detected is not None:
+    if query_tier == 1 and amount_detected is not None:
+        # tier 1(단순 금액 질문, 품목 없음)만 bypass 유지
         if progress_callback:
             progress_callback("⚡ [Bypass] 모델 본문 생성 우회 및 템플릿 처리 중...")
-            
-        if query_tier == 2:
-            query = _extract_item_keyword(user_message)
-            
-            import concurrent.futures
-            
-            def run_mock_tool(tool_name, query_arg):
-                start = time.time()
-                mock_call = MockFunctionCall(tool_name, {"query": query_arg})
-                res = _execute_function_call(mock_call)
-                elapsed = int((time.time() - start) * 1000)
-                return {
-                    "tool_name": tool_name,
-                    "status": "success" if "error" not in res else "failed",
-                    "result": res,
-                    "elapsed_ms": elapsed
-                }
-
-            def run_mock_tool_product(tool_name, product_arg):
-                """product_name 파라미터를 사용하는 도구용."""
-                start = time.time()
-                mock_call = MockFunctionCall(tool_name, {"product_name": product_arg})
-                res = _execute_function_call(mock_call)
-                elapsed = int((time.time() - start) * 1000)
-                return {
-                    "tool_name": tool_name,
-                    "status": "success" if "error" not in res else "failed",
-                    "result": res,
-                    "elapsed_ms": elapsed
-                }
-
-            # 멀티 라우트 검색: 품목 + 쇼핑몰 + 정책기업(여성/사회적/장애인) + 인증 + 혁신
-            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-                futures = [
-                    executor.submit(run_mock_tool, "search_shopping_mall", query),
-                    executor.submit(run_mock_tool, "search_local_company_by_product", query),
-                    executor.submit(run_mock_tool, "search_company_by_policy", "여성기업"),
-                    executor.submit(run_mock_tool, "search_company_by_policy", "사회적기업"),
-                    executor.submit(run_mock_tool, "search_company_by_policy", "장애인기업"),
-                    executor.submit(run_mock_tool_product, "search_certified_product", query),
-                    executor.submit(run_mock_tool_product, "search_innovation_product", query),
-                ]
-                for f in concurrent.futures.as_completed(futures):
-                    all_tool_results.append(f.result())
 
         return _finalize_answer("", history, user_message, all_tool_results, api_status, progress_callback, generation_meta={
             "model_used": "bypass_tier_1_2",
@@ -1985,6 +1942,73 @@ def _chat_v144(
             "mcp_called_for_freshness": cache_stats.get("mcp_called_for_freshness", False) if 'cache_stats' in locals() else False,
             "cache_status": cache_stats.get("cache_status", "") if 'cache_stats' in locals() else "",
         })
+
+    # ── tier 2(금액+품목): 멀티 라우트 사전 검색 후 LLM에 위임 ──
+    if query_tier == 2 and amount_detected is not None:
+        if progress_callback:
+            progress_callback("🔍 [Multi-Route] 구매 경로별 업체 사전 검색 중...")
+
+        query = _extract_item_keyword(user_message)
+        import concurrent.futures
+
+        def run_mock_tool(tool_name, query_arg):
+            start = time.time()
+            mock_call = MockFunctionCall(tool_name, {"query": query_arg})
+            res = _execute_function_call(mock_call)
+            elapsed = int((time.time() - start) * 1000)
+            return {
+                "tool_name": tool_name,
+                "status": "success" if "error" not in res else "failed",
+                "result": res,
+                "elapsed_ms": elapsed
+            }
+
+        def run_mock_tool_product(tool_name, product_arg):
+            """product_name 파라미터를 사용하는 도구용."""
+            start = time.time()
+            mock_call = MockFunctionCall(tool_name, {"product_name": product_arg})
+            res = _execute_function_call(mock_call)
+            elapsed = int((time.time() - start) * 1000)
+            return {
+                "tool_name": tool_name,
+                "status": "success" if "error" not in res else "failed",
+                "result": res,
+                "elapsed_ms": elapsed
+            }
+
+        # 멀티 라우트 검색: 품목 + 쇼핑몰 + 정책기업(여성/사회적/장애인) + 인증 + 혁신
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            futures = [
+                executor.submit(run_mock_tool, "search_shopping_mall", query),
+                executor.submit(run_mock_tool, "search_local_company_by_product", query),
+                executor.submit(run_mock_tool, "search_company_by_policy", "여성기업"),
+                executor.submit(run_mock_tool, "search_company_by_policy", "사회적기업"),
+                executor.submit(run_mock_tool, "search_company_by_policy", "장애인기업"),
+                executor.submit(run_mock_tool_product, "search_certified_product", query),
+                executor.submit(run_mock_tool_product, "search_innovation_product", query),
+            ]
+            for f in concurrent.futures.as_completed(futures):
+                all_tool_results.append(f.result())
+
+        # 사전 검색 결과를 LLM 컨텍스트에 주입 (LLM이 분석·그룹핑)
+        prefetch_parts = ["\n\n[사전 검색된 업체 데이터 — 아래 데이터를 기반으로 구매 경로별 업체를 그룹핑하여 안내하라]"]
+        for tr in all_tool_results:
+            tool_name = tr.get("tool_name", "unknown")
+            result_text = tr.get("result", "")
+            if isinstance(result_text, str) and len(result_text) > 10:
+                prefetch_parts.append(f"\n--- {tool_name} 결과 ---\n{result_text[:3000]}")
+        prefetch_context = "\n".join(prefetch_parts)
+
+        # 기존 contents의 마지막 user 메시지에 사전 검색 결과를 추가
+        if contents and contents[-1].role == "user":
+            original_text = contents[-1].parts[0].text
+            contents[-1] = types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=original_text + prefetch_context)]
+            )
+
+        print(f"  [MULTI-ROUTE] tier=2, amount={amount_detected}, query='{query}', prefetched={len(all_tool_results)} tools", flush=True)
+        # bypass 하지 않고 아래 LLM 루프로 fall-through
 
     # LLM 루프 전체 경과시간 제한 (FAIL_TO_CACHE 시 12초)
     from policies.timeout_policy import FAIL_TO_CACHE as _FTC, get_timeout as _get_tool_timeout
