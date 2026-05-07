@@ -46,12 +46,21 @@ from cachetools import TTLCache
 _mcp_cache = TTLCache(maxsize=100, ttl=3600)
 
 # ─────────────────────────────────────────────
-# Gemini 클라이언트 초기화
+# Gemini 클라이언트 초기화 — Vertex AI (SLA 99.9%, 503 방지)
 # ─────────────────────────────────────────────
-client = genai.Client(
-    api_key=os.getenv("GEMINI_API_KEY"),
-    http_options={"api_version": "v1beta"},  # SDK 내장 tenacity 재시도 최소화
-)
+# GOOGLE_APPLICATION_CREDENTIALS 환경변수로 서비스 계정 JSON 키 인증
+_use_vertex = os.path.exists(os.getenv("GOOGLE_APPLICATION_CREDENTIALS", ""))
+if _use_vertex:
+    client = genai.Client(
+        vertexai=True,
+        project="carbide-team-457809-a8",
+        location="asia-northeast3",  # 서울 리전
+    )
+    print("[INIT] Vertex AI 클라이언트 (서울 리전, SLA 99.9%)")
+else:
+    # Fallback: Vertex AI 키가 없으면 기존 AI Studio 사용
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    print("[INIT] AI Studio 클라이언트 (fallback)")
 # Flash 전용 — 응답속도·비용·품질 종합 고려 시 Flash로 충분 (Pro 제거)
 MODEL_ID = "gemini-2.5-flash"
 FALLBACK_MODEL = "gemini-2.5-flash"
