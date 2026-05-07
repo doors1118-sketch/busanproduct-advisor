@@ -1676,11 +1676,13 @@ def _chat_v144(
         from policies.model_routing_policy import generate_mandatory_mcp_plan
         mandatory_mcp_plan = generate_mandatory_mcp_plan(user_message, query_tier)
         if mandatory_mcp_plan:
+            print(f"  [MCP-PREFLIGHT] Starting: tier={query_tier}, plan={len(mandatory_mcp_plan)} items", flush=True)
             preflight_start = time.time()
             mcp_context, _, mandatory_mcp_executed, mandatory_mcp_missing, cache_stats = _execute_tier_2_mandatory_mcp(
                 user_message, mandatory_mcp_plan, progress_callback
             )
             mcp_preflight_elapsed_ms = int((time.time() - preflight_start) * 1000)
+            print(f"  [MCP-PREFLIGHT] Done: executed={len(mandatory_mcp_executed)}, missing={len(mandatory_mcp_missing)}, elapsed={mcp_preflight_elapsed_ms}ms", flush=True)
             rag_context = f"### [사전 조회된 필수 법령/매뉴얼 근거]\n{mcp_context}\n\n" + rag_context
 
     # [FAIL_TO_CACHE] MCP preflight 전부 실패 시 LLM 루프 우회 → deterministic template
