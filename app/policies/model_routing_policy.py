@@ -1,8 +1,7 @@
 """
 모델 라우팅 정책 (model_routing_policy)
-- risk_based 모드: 질문 위험도에 따라 Pro/Flash 자동 선택
-- 저위험 → Flash, 고위험 → Pro
-- Pro 실패 시 fallback 정책 결정
+- risk_based 모드: 질문 위험도에 따라 라우팅 결정
+- Flash 전용 — 응답속도·비용·품질 종합 고려
 """
 import os
 import re
@@ -12,11 +11,10 @@ from typing import Optional
 # ─────────────────────────────────────────────
 # 환경 변수
 # ─────────────────────────────────────────────
-ROUTER_MODEL = os.getenv("ROUTER_MODEL", "gemini-2.5-flash")
-# MCP preflight가 법령 데이터를 사전 주입하므로 LLM은 종합·작문 역할
-# → Flash로 충분. Pro 필요시 env GEMINI_MODEL=gemini-2.5-pro로 오버라이드
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "gemini-2.5-flash")
+ROUTER_MODEL = "gemini-2.5-flash"
+# Flash 전용 — Pro 제거
+GEMINI_MODEL = "gemini-2.5-flash"
+FALLBACK_MODEL = "gemini-2.5-flash"
 MODEL_ROUTING_MODE = os.getenv("MODEL_ROUTING_MODE", "risk_based")
 
 
@@ -171,12 +169,12 @@ def classify_risk(user_message: str, intent_labels: list = None) -> dict:
                 "model_decision_reason": f"저위험 패턴 매칭 → Flash 사용",
             }
 
-    # 기본: Pro 사용 (미분류 → 안전 우선)
+    # 기본: Flash 사용 (모든 경우)
     return {
         "risk_level": "medium",
         "high_risk_triggers": [],
         "model_primary": GEMINI_MODEL,
-        "model_decision_reason": "미분류 질문 → 안전 우선 Pro 사용",
+        "model_decision_reason": "Flash 전용 정책",
     }
 
 

@@ -49,8 +49,9 @@ _mcp_cache = TTLCache(maxsize=100, ttl=3600)
 # Gemini 클라이언트 초기화
 # ─────────────────────────────────────────────
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-MODEL_ID = os.getenv("GEMINI_MODEL", "gemini-2.5-pro")
-FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "gemini-2.5-flash")
+# Flash 전용 — 응답속도·비용·품질 종합 고려 시 Flash로 충분 (Pro 제거)
+MODEL_ID = "gemini-2.5-flash"
+FALLBACK_MODEL = "gemini-2.5-flash"
 
 # ─────────────────────────────────────────────
 # Function Calling 도구 정의
@@ -683,14 +684,15 @@ def _search_law_rag(query: str, n_results: int = 5, agency_type: str = None) -> 
 # 병렬 RAG 검색 (임베딩 1회 + ThreadPool)
 # ─────────────────────────────────────────────
 def _parallel_rag_search(query: str, agency_type: str = None) -> dict:
-    """5개 RAG 소스를 병렬로 검색. 임베딩은 1회만 수행. 전체 5초 제한."""
-    from concurrent.futures import ThreadPoolExecutor, as_completed
+    """RAG 검색: QA + 매뉴얼만 사용. 혁신/기술개발은 업체 API에서 담당.
+    임베딩 로드 3초 제한. ChromaDB 미연결 시 빈 결과 즉시 반환."""
+    from concurrent.futures import ThreadPoolExecutor
     import time
 
     start = time.time()
-    results = {"qa": "", "manual": "", "innovation": "", "tech": ""}
+    results = {"qa": "", "manual": ""}
 
-    # 1. 임베딩 (실패 시 빈 결과 즉시 반환)
+    # 1. 임베딩 (실패 또는 3초 초과 시 스킵)
     try:
         from embedding import encode_query
         query_vector = encode_query(query)
@@ -701,38 +703,21 @@ def _parallel_rag_search(query: str, agency_type: str = None) -> dict:
     embed_time = time.time() - start
     print(f"  [RAG] 임베딩 완료: {embed_time:.1f}초")
     
-    # 임베딩만 5초 이상 걸리면 검색 스킵
-    if embed_time > 5.0:
-        print(f"  [RAG] 임베딩 {embed_time:.1f}초 > 5초, 검색 스킵")
+    if embed_time > 3.0:
+        print(f"  [RAG] 임베딩 {embed_time:.1f}초 > 3초, 검색 스킵 (콜드스타트)")
         return results
 
-    # 2. 4개 소스 병렬 검색 (타임아웃 3초)
+    # 2. QA + 매뉴얼만 검색 (타임아웃 3초)
     def search_qa():
         return _search_pps_qa(query)
 
     def search_manual():
         return _search_manuals(query, query_vector=query_vector)
 
-    def search_innovation():
-        try:
-            from ingest_innovation import search_innovation as _si
-            return _si(query, n_results=5)
-        except Exception:
-            return ""
-
-    def search_tech():
-        try:
-            from ingest_tech_products import search_tech_products as _st
-            return _st(query, max_results=5)
-        except Exception:
-            return ""
-
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    with ThreadPoolExecutor(max_workers=2) as pool:
         futures = {
             "qa": pool.submit(search_qa),
             "manual": pool.submit(search_manual),
-            "innovation": pool.submit(search_innovation),
-            "tech": pool.submit(search_tech),
         }
         for key, future in futures.items():
             try:
@@ -742,7 +727,7 @@ def _parallel_rag_search(query: str, agency_type: str = None) -> dict:
                 results[key] = ""
 
     total_time = time.time() - start
-    print(f"  [RAG] 전체 검색 완료: {total_time:.1f}초 (임베딩 {embed_time:.1f}초 + 검색 {total_time-embed_time:.1f}초)")
+    print(f"  [RAG] 검색 완료: {total_time:.1f}초 (QA+매뉴얼만)")
     return results
 
 
@@ -1691,7 +1676,7 @@ def _chat_v144(
     rag_dict = _parallel_rag_search(user_message)
     rag_elapsed_ms = int((time.time() - rag_start) * 1000)
     rag_parts = []
-    for key in ["qa", "manual", "innovation", "tech"]:  # law 제거
+    for key in ["qa", "manual"]:  # QA+매뉴얼만 (혁신/기술개발은 업체 API에서 담당)
         val = rag_dict.get(key, "")
         if val and isinstance(val, str) and val.strip():
             rag_parts.append(val)
