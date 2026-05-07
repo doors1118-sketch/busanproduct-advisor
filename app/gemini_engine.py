@@ -1661,23 +1661,13 @@ def _chat_v144(
             mcp_preflight_elapsed_ms = int((time.time() - preflight_start) * 1000)
             print(f"  [MCP-PREFLIGHT] Done: executed={len(mandatory_mcp_executed)}, missing={len(mandatory_mcp_missing)}, elapsed={mcp_preflight_elapsed_ms}ms", flush=True)
 
-    # ─── 6. RAG 검색 (매뉴얼/QA — 보충 역할, 후순위) ───
+    # ─── 6. RAG 완전 제거 — 법령은 MCP, 매뉴얼은 Phase 2에서 법령DB로 통합 예정 ───
     rag_context = ""
-    if progress_callback:
-        progress_callback("📚 매뉴얼 검색 중...")
-    rag_start = time.time()
-    rag_dict = _parallel_rag_search(user_message)
-    rag_elapsed_ms = int((time.time() - rag_start) * 1000)
-    rag_parts = []
-    for key in ["qa", "manual"]:  # QA+매뉴얼만 (혁신/기술개발은 업체 API에서 담당)
-        val = rag_dict.get(key, "")
-        if val and isinstance(val, str) and val.strip():
-            rag_parts.append(val)
-    rag_context = "\n\n".join(rag_parts)
+    rag_elapsed_ms = 0
 
-    # MCP 법령 결과를 RAG 컨텍스트 앞에 주입
+    # MCP 법령 결과를 컨텍스트로 주입
     if query_tier in (1, 2) and mandatory_mcp_plan and 'mcp_context' in locals():
-        rag_context = f"### [사전 조회된 필수 법령/매뉴얼 근거]\n{mcp_context}\n\n" + rag_context
+        rag_context = f"### [법령 근거 — 최신 법령 기반, 법적 판단 우선]\n{mcp_context}"
 
     # [FAIL_TO_CACHE] MCP preflight 전부 실패 시 LLM 루프 우회 → deterministic template
     _ftc_flag = os.getenv("MCP_FAIL_TO_CACHE", "false").lower() == "true"
