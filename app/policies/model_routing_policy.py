@@ -335,21 +335,25 @@ def generate_mandatory_mcp_plan(user_message: str, tier: int, agency_type: str =
         law_system = "local"  # 지자체 (기본)
 
     # ━━━ 기관별 핵심 법령 매핑 ━━━
-    # 수의계약 조문
+    # 수의계약 조문 (법률 + 시행령)
     DIRECT_CONTRACT_QUERIES = {
         "local": [
+            ("search_law", "지방계약법 제9조 계약의 방법"),
             ("search_law", "지방계약법 시행령 제25조 수의계약에 의할 수 있는 경우"),
             ("search_law", "지방계약법 시행령 제30조 수의계약대상자 선정절차"),
         ],
         "national": [
+            ("search_law", "국가계약법 제7조 계약의 방법"),
             ("search_law", "국가계약법 시행령 제26조 수의계약에 의할 수 있는 경우"),
             ("search_law", "국가계약법 시행령 제30조 수의계약대상자 선정절차"),
         ],
         "public_corp": [
             ("search_law", "공기업 준정부기관 계약사무규칙 수의계약"),
+            ("search_law", "국가계약법 제7조 계약의 방법"),
             ("search_law", "국가계약법 시행령 제26조 수의계약"),
         ],
         "invested": [
+            ("search_law", "지방계약법 제9조 계약의 방법"),
             ("search_law", "지방계약법 시행령 제25조 수의계약에 의할 수 있는 경우"),
             ("search_law", "지방계약법 시행령 제30조 수의계약대상자 선정절차"),
             ("search_law", "지방자치단체 출자 출연기관 운영에 관한 법률 계약"),
@@ -374,19 +378,19 @@ def generate_mandatory_mcp_plan(user_message: str, tier: int, agency_type: str =
             ("search_admin_rule", "지방자치단체 입찰시 낙찰자 결정기준"),
         ],
     }
-    # 공동계약 조문
+    # 공동계약 조문 (법률→시행령→운용요령 연쇄 필요 → chain_law_system 사용)
     JOINT_CONTRACT_QUERIES = {
         "local": [
-            ("search_law", "지방계약법 시행령 제88조 공동계약"),
+            ("chain_law_system", "지방계약법 공동계약 의무비율 지역업체"),
         ],
         "national": [
-            ("search_law", "국가계약법 시행령 제72조 공동계약"),
+            ("chain_law_system", "국가계약법 공동계약 의무비율"),
         ],
         "public_corp": [
-            ("search_law", "국가계약법 시행령 제72조 공동계약"),
+            ("chain_law_system", "국가계약법 공동계약 의무비율"),
         ],
         "invested": [
-            ("search_law", "지방계약법 시행령 제88조 공동계약"),
+            ("chain_law_system", "지방계약법 공동계약 의무비율 지역업체"),
         ],
     }
     # 기본 행정규칙

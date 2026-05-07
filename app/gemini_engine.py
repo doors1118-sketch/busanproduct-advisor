@@ -1650,26 +1650,29 @@ def _chat_v144(
         return _execute_tier_0_fast_track(user_message, history, api_status, progress_callback, intent_labels)
         
     amount_detected = _parse_amount(user_message)
-    skip_rag_completely = (query_tier in (1, 2) and amount_detected is not None)
+    # MCP preflight가 법령 조회를 대체하므로, 법령 RAG만 선택적 스킵
+    # Q&A/매뉴얼/혁신/기술 RAG는 실무 가이드로서 항상 유지
+    skip_law_rag = (query_tier in (1, 2) and amount_detected is not None)
     
     # RAG elapsed time must be initialized
     rag_elapsed_ms = 0
 
     rag_context = ""
-    if not skip_rag_completely:
-        if progress_callback:
-            progress_callback("📚 매뉴얼 검색 중...")
-        rag_start = time.time()
-        rag_dict = _parallel_rag_search(user_message)
-        rag_elapsed_ms = int((time.time() - rag_start) * 1000)
-        rag_parts = []
-        for key in ["law", "qa", "manual", "innovation", "tech"]:
-            val = rag_dict.get(key, "")
-            if val and isinstance(val, str) and val.strip():
-                rag_parts.append(val)
-        rag_context = "\n\n".join(rag_parts)
-    else:
-        print("  [RAG] Skipped completely for low-risk company search.")
+    if progress_callback:
+        progress_callback("📚 매뉴얼 검색 중...")
+    rag_start = time.time()
+    rag_dict = _parallel_rag_search(user_message)
+    rag_elapsed_ms = int((time.time() - rag_start) * 1000)
+    rag_parts = []
+    for key in ["law", "qa", "manual", "innovation", "tech"]:
+        # 법령 RAG는 MCP preflight가 대체 → 금액 질문에서 스킵
+        if key == "law" and skip_law_rag:
+            print("  [RAG] law RAG skipped (MCP preflight 대체)")
+            continue
+        val = rag_dict.get(key, "")
+        if val and isinstance(val, str) and val.strip():
+            rag_parts.append(val)
+    rag_context = "\n\n".join(rag_parts)
 
     mandatory_mcp_plan = []
     mandatory_mcp_executed = []
