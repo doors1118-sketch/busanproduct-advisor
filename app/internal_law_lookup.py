@@ -373,16 +373,17 @@ def _get_relevant_articles(law_short: str, query: str, max_articles: int = 5) ->
     for art_no, art_data in articles.items():
         text = art_data.get("text", "")
         title = art_data.get("title", "")
+        cross_refs = art_data.get("cross_refs", [])  # DB에 저장된 위임 참조
         search_target = title + " " + text  # 전체 텍스트 검색
         # 키워드 단위 매칭: 각 키워드가 조문에 포함되면 가중치 부여
         score = 0
         for kw in query_keywords:
             if kw in search_target:
                 score += len(kw)  # 긴 키워드일수록 높은 점수
-        scored.append((score, art_no, title, text))
+        scored.append((score, art_no, title, text, cross_refs))
     
     scored.sort(reverse=True)
-    return [(no, title, text) for _, no, title, text in scored[:max_articles] if _ >= 4]
+    return [(no, title, text, crefs) for _, no, title, text, crefs in scored[:max_articles] if _ >= 4]
 
 
 def _extract_cross_references(text: str) -> List[Tuple[str, str]]:
@@ -446,19 +447,25 @@ def chain_law_system_internal(query: str) -> Optional[str]:
         relevant = _get_relevant_articles(law_short, query, max_articles=5)
         if relevant:
             lines.append(f"▶ {tier_name}: {law_short}")
-            for art_no, title, text in relevant:
+            for art_no, title, text, cross_refs in relevant:
                 title_str = f" ({title})" if title else ""
                 lines.append(f"  {art_no}{title_str}")
                 lines.append(f"  {text[:1200]}")
                 lines.append("")
                 total_found += 1
                 collected_refs.add(f"{law_short} {art_no}")
-                # 위임 참조 수집
-                cross_refs = _extract_cross_references(text)
-                for ref_law, ref_art in cross_refs:
-                    ref_key = f"{ref_law} {ref_art}"
-                    if ref_key not in collected_refs:
-                        pending_cross_refs.append((ref_law, ref_art))
+                # 위임 참조 수집: DB의 cross_refs 필드 우선, 없으면 텍스트 추출
+                if cross_refs:
+                    for cr in cross_refs:
+                        ref_key = f"{cr['law']} {cr['article']}"
+                        if ref_key not in collected_refs:
+                            pending_cross_refs.append((cr['law'], cr['article']))
+                else:
+                    text_refs = _extract_cross_references(text)
+                    for ref_law, ref_art in text_refs:
+                        ref_key = f"{ref_law} {ref_art}"
+                        if ref_key not in collected_refs:
+                            pending_cross_refs.append((ref_law, ref_art))
         else:
             lines.append(f"▶ {tier_name}: {law_short} (관련 조문 없음)")
             lines.append("")
@@ -474,7 +481,7 @@ def chain_law_system_internal(query: str) -> Optional[str]:
                 rule_articles = _get_relevant_articles(rule_name, query, max_articles=3)
                 if rule_articles:
                     lines.append(f"  ● {rule_name}")
-                    for art_no, title, text in rule_articles:
+                    for art_no, title, text, cross_refs in rule_articles:
                         title_str = f" ({title})" if title else ""
                         lines.append(f"    {art_no}{title_str}")
                         lines.append(f"    {text[:1000]}")
@@ -482,11 +489,17 @@ def chain_law_system_internal(query: str) -> Optional[str]:
                         total_found += 1
                         collected_refs.add(f"{rule_name} {art_no}")
                         # 행정규칙 조문에서도 위임 참조 수집
-                        cross_refs = _extract_cross_references(text)
-                        for ref_law, ref_art in cross_refs:
-                            ref_key = f"{ref_law} {ref_art}"
-                            if ref_key not in collected_refs:
-                                pending_cross_refs.append((ref_law, ref_art))
+                        if cross_refs:
+                            for cr in cross_refs:
+                                ref_key = f"{cr['law']} {cr['article']}"
+                                if ref_key not in collected_refs:
+                                    pending_cross_refs.append((cr['law'], cr['article']))
+                        else:
+                            text_refs = _extract_cross_references(text)
+                            for ref_law, ref_art in text_refs:
+                                ref_key = f"{ref_law} {ref_art}"
+                                if ref_key not in collected_refs:
+                                    pending_cross_refs.append((ref_law, ref_art))
                 else:
                     # 키워드 매칭 실패 시 첫 조문이라도 보여줌
                     articles = rule_data.get("articles", {})

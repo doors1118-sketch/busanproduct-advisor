@@ -48,6 +48,40 @@ LAW_LIST = [
 def _get_xml(params: dict) -> ET.Element:
     """법제처 API XML 응답 파싱."""
     params["OC"] = OC
+
+
+# ── 법령 풀네임 → 약칭 매핑 (참조 추출용) ──
+_FULL_TO_SHORT = {}
+for _law in LAW_LIST:
+    _FULL_TO_SHORT[_law["name"]] = _law["short"]
+    _FULL_TO_SHORT[_law["short"]] = _law["short"]
+
+
+def _extract_refs(text: str) -> list:
+    """조문 텍스트에서 위임 참조(「법령명」 제X조)를 추출한다.
+    
+    Returns:
+        [{"law": "국가계약법 시행규칙", "article": "제24조", "raw": "원문"}]
+    """
+    refs = []
+    seen = set()
+    pattern = r'「([^」]+)」[^제]{0,15}(제\d+조(?:의\d+)?)'
+    for match in re.finditer(pattern, text):
+        law_full = match.group(1).strip()
+        art_no = match.group(2)
+        # 약칭 변환
+        short = None
+        for full_key in sorted(_FULL_TO_SHORT.keys(), key=len, reverse=True):
+            if full_key in law_full or law_full in full_key:
+                short = _FULL_TO_SHORT[full_key]
+                break
+        if not short:
+            short = law_full  # 매핑 없으면 원래 이름 사용
+        key = f"{short} {art_no}"
+        if key not in seen:
+            seen.add(key)
+            refs.append({"law": short, "article": art_no, "raw": match.group(0)})
+    return refs
     params["type"] = "XML"
     resp = requests.get(BASE_URL, params=params, timeout=30)
     resp.raise_for_status()
@@ -199,15 +233,20 @@ def main():
                 "articles": {}
             }
             for art in articles:
+                # 위임 참조 자동 추출
+                cross_refs = _extract_refs(art["text"])
                 db[short]["articles"][art["article"]] = {
                     "title": art["title"],
                     "text": art["text"],
                     "lookup_key": f"{short} {art['article']}",
+                    "cross_refs": [{"law": r["law"], "article": r["article"]} for r in cross_refs],
                 }
                 total_articles += 1
                 total_chars += len(art["text"])
             
-            print(f"    ✅ {len(articles)}개 조문, {sum(len(a['text']) for a in articles):,}자")
+            # 참조 통계
+            ref_count = sum(len(db[short]["articles"][a]["cross_refs"]) for a in db[short]["articles"])
+            print(f"    ✅ {len(articles)}개 조문, {sum(len(a['text']) for a in articles):,}자, 참조 {ref_count}건")
         else:
             # 기존 DB에서 정상 데이터 보존
             if short in existing_db:
