@@ -257,7 +257,7 @@ _(잘 모르시겠다면 **'1번'** 또는 **'건너뛰기'**를 입력하시면
                 token = base64.b64encode(f"{auth_user}:{auth_pass}".encode("utf-8")).decode("utf-8")
                 headers["Authorization"] = f"Basic {token}"
             
-            response = requests.post(api_url, json=payload, headers=headers, timeout=20)
+            response = requests.post(api_url, json=payload, headers=headers, timeout=120)
             response.raise_for_status()
             data = response.json()
             
