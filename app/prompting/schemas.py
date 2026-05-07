@@ -73,11 +73,17 @@ class ApiStatus:
 class CompanyResult:
     """구조화된 업체 결과 — contract_possible=False 강제"""
     company_name: str = ""
+    company_id: str = ""  # 상세조회용 내부 식별자 (사업자번호 아님)
     location: str = ""
     main_products: list[str] = field(default_factory=list)
-    policy_tags: list[str] = field(default_factory=list)
-    tag_source: str = "internal_policy_company_db"
+    license_types: list[str] = field(default_factory=list)  # 면허/업종 (건축공사업, 전기공사업 등)
+    policy_tags: list[str] = field(default_factory=list)  # 정책업체 유형 (여성기업, 사회적기업 등)
+    certified_product_types: list[str] = field(default_factory=list)  # 인증 유형 (NEP, NET 등)
+    shopping_mall_flags: list[str] = field(default_factory=list)  # 쇼핑몰 등록 유형 (mas, third_party 등)
+    sme_competition_product: bool = False  # 중소기업자간 경쟁제품 여부
+    tag_source: str = "live_company_api"
     business_status: str = "unknown"
+    business_status_label: str = ""  # 사용자 표시용 (영업중, 폐업 등)
     contract_possible: bool = False  # 항상 False — 자동 승격 금지
     legal_eligibility_status: str = "unverified"
     candidate_status: str = "candidate"  # candidate | 추가 확인 필요 | 법적 적격성 확인 필요

@@ -33,7 +33,7 @@ from prompting.guardrail_sanity_check import apply_guardrail_sanity_check
 from prompting.prompt_assembler import assemble_prompt, get_core_prompt_hash
 from prompting.schemas import ApiStatus, LegalConclusionScope
 from policies.timeout_policy import call_mcp_with_timeout, evaluate_legal_scope
-from policies.company_policy import format_company_for_llm
+from policies.company_policy import format_company_for_llm, format_company_detail_for_llm
 from policies.monitoring_policy import log_routing, log_classification_failure
 
 # 인용 조문 저장 (답변 후 다운로드용)
@@ -497,7 +497,7 @@ def _execute_function_call(function_call) -> str:
         # ── 부산 지역업체 검색 (Monitoring API 통합) ──
         elif name == "get_company_detail":
             data = company_api.get_company_detail(args.get("company_id", ""))
-            return json.dumps(data, ensure_ascii=False)
+            return format_company_detail_for_llm(data)
         elif name == "search_company_by_product":
             data = company_api.search_by_product(args.get("query", ""))
             return format_company_for_llm(data, max_results=10)
