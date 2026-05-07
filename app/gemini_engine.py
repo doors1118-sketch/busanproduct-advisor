@@ -2124,6 +2124,32 @@ def _chat_v144(
                 except Exception as e:
                     raise last_err or Exception("API call failed after retries")
             else:
+                # 503 등 API 실패 시, MCP Preflight 데이터가 있으면 fallback 답변 생성
+                if 'mcp_context' in locals() and mcp_context:
+                    print(f"  [FALLBACK] Gemini 503. MCP 법령 데이터로 fallback 답변 생성.")
+                    fallback_msg = (
+                        f"⚠️ AI 응답 서비스(Gemini)가 일시적으로 지연되어, "
+                        f"사전 조회된 법령 근거를 직접 제공합니다.\n\n"
+                        f"### 관련 법령 근거\n{mcp_context}\n\n"
+                        f"---\n💡 **위 법령 원문을 참고하여 판단해 주세요.** "
+                        f"잠시 후 다시 질문하시면 AI가 종합 분석 답변을 제공합니다."
+                    )
+                    ans, hist = _finalize_answer(fallback_msg, history, user_message, all_tool_results, api_status, progress_callback, generation_meta={
+                        "model_used": model_to_use,
+                        "fallback_used": True,
+                        "fallback_reason": f"gemini_api_{_fb_err_type.lower()}_mcp_fallback",
+                        "retry_count": total_retries,
+                        "risk_level": risk_info.get("risk_level", "unknown"),
+                        "high_risk_triggers": risk_info.get("high_risk_triggers", []),
+                        "model_decision_reason": "gemini_503_mcp_data_fallback",
+                        "deterministic_template_used": True,
+                        "core_prompt_hash": _fb_core_hash,
+                        "prompt_prefix_hash": _fb_prefix_hash,
+                        "api_error_detected": True,
+                        "api_error_type": _fb_err_type,
+                        "selected_guardrails": list(guardrails) if 'guardrails' in locals() else ["common_procurement"],
+                    })
+                    return ans, hist
                 raise last_err or Exception("API call failed after retries")
 
         candidate = response.candidates[0]
