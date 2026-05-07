@@ -337,46 +337,47 @@ def generate_mandatory_mcp_plan(user_message: str, tier: int, agency_type: str =
         law_system = "local"  # 지자체 (기본)
 
     # ━━━ 기관별 핵심 법령 매핑 ━━━
+    # ※ 법제처 API는 공백을 AND 조건 처리 → 키워드 3~4개가 최적
     # 수의계약 조문 (법률 + 시행령)
     DIRECT_CONTRACT_QUERIES = {
         "local": [
-            ("search_law", "지방계약법 제9조 계약의 방법"),
-            ("search_law", "지방계약법 시행령 제25조 수의계약에 의할 수 있는 경우"),
-            ("search_law", "지방계약법 시행령 제30조 수의계약대상자 선정절차"),
+            ("search_law", "지방계약법 제9조"),
+            ("search_law", "지방계약법 시행령 제25조"),
+            ("search_law", "지방계약법 시행령 제30조"),
         ],
         "national": [
-            ("search_law", "국가계약법 제7조 계약의 방법"),
-            ("search_law", "국가계약법 시행령 제26조 수의계약에 의할 수 있는 경우"),
-            ("search_law", "국가계약법 시행령 제30조 수의계약대상자 선정절차"),
+            ("search_law", "국가계약법 제7조"),
+            ("search_law", "국가계약법 시행령 제26조"),
+            ("search_law", "국가계약법 시행령 제30조"),
         ],
         "public_corp": [
             ("search_law", "공기업 준정부기관 계약사무규칙 수의계약"),
-            ("search_law", "국가계약법 제7조 계약의 방법"),
-            ("search_law", "국가계약법 시행령 제26조 수의계약"),
+            ("search_law", "국가계약법 제7조"),
+            ("search_law", "국가계약법 시행령 제26조"),
         ],
         "invested": [
-            ("search_law", "지방계약법 제9조 계약의 방법"),
-            ("search_law", "지방계약법 시행령 제25조 수의계약에 의할 수 있는 경우"),
-            ("search_law", "지방계약법 시행령 제30조 수의계약대상자 선정절차"),
-            ("search_law", "지방자치단체 출자 출연기관 운영에 관한 법률 계약"),
+            ("search_law", "지방계약법 제9조"),
+            ("search_law", "지방계약법 시행령 제25조"),
+            ("search_law", "지방계약법 시행령 제30조"),
+            ("search_law", "출자출연기관 운영 법률 계약"),
         ],
     }
     # 제한입찰 조문
     LIMITED_BID_QUERIES = {
         "local": [
-            ("search_law", "지방계약법 시행령 제20조 제한입찰"),
+            ("search_law", "지방계약법 시행령 제20조"),
             ("search_admin_rule", "지방자치단체 입찰시 낙찰자 결정기준"),
         ],
         "national": [
-            ("search_law", "국가계약법 시행령 제21조 제한경쟁입찰 참가자격 제한"),
+            ("search_law", "국가계약법 시행령 제21조"),
             ("search_admin_rule", "정부 입찰 계약 집행기준"),
         ],
         "public_corp": [
-            ("search_law", "공기업 준정부기관 계약사무규칙 경쟁입찰"),
+            ("search_law", "계약사무규칙 경쟁입찰"),
             ("search_admin_rule", "기타공공기관 계약사무 운영규정"),
         ],
         "invested": [
-            ("search_law", "지방계약법 시행령 제20조 제한입찰"),
+            ("search_law", "지방계약법 시행령 제20조"),
             ("search_admin_rule", "지방자치단체 입찰시 낙찰자 결정기준"),
         ],
     }
