@@ -300,6 +300,10 @@ def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str 
     if risk_info.get("risk_level") in ["low", "medium"] and any(i in intent_labels for i in fast_track_intents):
         return 0
 
+    # Tier 0 키워드 fallback: 품목+지역업체 언급 + 금액/계약방식 없음 → 순수 업체 검색
+    if (has_item or has_local) and not has_amount and not has_contract_method and not has_agency:
+        return 0
+
     # Tier 3: 기관명 패턴이 명확할 때만 (단순 "공사"는 오탐 우려로 제외)
     if has_agency:
         return 3
