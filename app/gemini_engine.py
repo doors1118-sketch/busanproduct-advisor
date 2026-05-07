@@ -978,7 +978,7 @@ def chat(user_message: str, history: list[dict] = None, progress_callback=None, 
                 err_msg = str(api_err)
                 if any(kw in err_msg for kw in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE"]):
                     import time
-                    wait_sec = 15 * (retry + 1)
+                    wait_sec = 2 * (retry + 1)  # 2/4/6초 (기존 15/30/45초→2/4/6초)
                     print(f"  [API] Retry {retry+1}/3 - waiting {wait_sec}s...")
                     time.sleep(wait_sec)
                 else:
@@ -2074,7 +2074,7 @@ def _chat_v144(
                         continue # 즉시 Flash로 재시도
                 
                 if any(kw in err_msg for kw in ["429", "RESOURCE_EXHAUSTED", "503"]):
-                    wait_sec = 5 * (retry + 1)
+                    wait_sec = 2 * (retry + 1)  # 2/4/6초 (총 12초, 기존 50초→12초)
                     print(f"  [API] Retry {retry+1}/4 - waiting {wait_sec}s...", flush=True)
                     time.sleep(wait_sec)
                 else:
