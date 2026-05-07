@@ -118,7 +118,16 @@ def fetch_law_full(mst: str) -> list[dict]:
                     continue
                 
                 # 조번호 정규화 (예: "25" → "제25조")
+                # 조문내용에서 실제 조문번호 추출 (제6조의2 등 구분)
                 article_key = f"제{jo_no}조" if jo_no and not jo_no.startswith("제") else jo_no
+                
+                # 법제처 API는 제6조/제6조의2/제6조의3 등을 모두 jo_no="6"으로 반환
+                # → 조문내용 텍스트에서 실제 조문번호를 추출하여 key 중복 방지
+                real_no_match = re.match(r'(제\d+조(?:의\d+)?)', full_text.strip())
+                if real_no_match:
+                    real_key = real_no_match.group(1)
+                    if real_key != article_key:
+                        article_key = real_key
                 
                 articles.append({
                     "article": article_key,
