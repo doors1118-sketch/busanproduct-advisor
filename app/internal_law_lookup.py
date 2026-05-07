@@ -15,7 +15,7 @@ MCP preflight 및 LLM 도구 호출 시 외부 법제처 API 대신
 import os
 import re
 import json
-from typing import Optional
+from typing import Optional, List, Tuple
 
 _ROOT = os.path.dirname(os.path.abspath(__file__))
 _LAW_DB_PATH = os.path.join(_ROOT, "data", "law_articles_db.json")
@@ -28,6 +28,8 @@ _law_db_cache: dict = None
 _key_articles_cache: dict = None
 # 빠른 조회용 인덱스: "지방계약법 시행령 제25조" → 조문 텍스트
 _lookup_index: dict = None
+# MST → short_name 역매핑 (get_law_text 내부 DB 지원용)
+_mst_to_short: dict = None
 
 
 def _load_law_db() -> dict:
@@ -39,8 +41,14 @@ def _load_law_db() -> dict:
             _law_db_cache = json.load(f)
         # 조회용 인덱스 구축
         _lookup_index = {}
+        global _mst_to_short
+        _mst_to_short = {}
         total_articles = 0
         for short_name, law_data in _law_db_cache.items():
+            # MST 역매핑
+            mst = law_data.get("mst", "")
+            if mst:
+                _mst_to_short[str(mst)] = short_name
             articles = law_data.get("articles", {})
             for article_no, article_data in articles.items():
                 # "지방계약법 시행령 제25조" → 조문 텍스트
@@ -328,8 +336,29 @@ def _detect_law_system(query: str) -> str:
     return "지방계약법"
 
 
+def _extract_keywords(text: str) -> List[str]:
+    """텍스트에서 2글자 이상 키워드를 추출한다.
+    조사/어미를 제거하고 핵심 키워드만 반환."""
+    # 공백/조사 기준 분리
+    particles = ['은', '는', '이', '가', '을', '를', '에', '의', '로', '으로',
+                 '에서', '과', '와', '도', '만', '까지', '부터', '에게', '한테',
+                 '라고', '라는', '에는', '으로서', '이란', '이라']
+    words = re.split(r'[\s,;.?!()\[\]{}·ㆍ]+', text)
+    keywords = []
+    for w in words:
+        # 조사 제거
+        for p in sorted(particles, key=len, reverse=True):
+            if w.endswith(p) and len(w) > len(p) + 1:
+                w = w[:-len(p)]
+                break
+        if len(w) >= 2:
+            keywords.append(w)
+    return keywords
+
+
 def _get_relevant_articles(law_short: str, query: str, max_articles: int = 5) -> list:
-    """해당 법령에서 쿼리와 관련된 핵심 조문 추출."""
+    """해당 법령에서 쿼리와 관련된 핵심 조문 추출.
+    키워드 단위 매칭 + 전체 텍스트 검색으로 정밀도 향상."""
     db = _law_db_cache or {}
     law_data = db.get(law_short)
     if not law_data:
@@ -339,22 +368,58 @@ def _get_relevant_articles(law_short: str, query: str, max_articles: int = 5) ->
     if not articles:
         return []
     
-    query_chars = set(query.replace(" ", ""))
+    query_keywords = _extract_keywords(query)
     scored = []
     for art_no, art_data in articles.items():
         text = art_data.get("text", "")
         title = art_data.get("title", "")
-        # 점수: 쿼리 키워드와 조문 텍스트의 매칭도
-        score = sum(1 for c in query_chars if c in (text[:500] + title))
+        search_target = title + " " + text  # 전체 텍스트 검색
+        # 키워드 단위 매칭: 각 키워드가 조문에 포함되면 가중치 부여
+        score = 0
+        for kw in query_keywords:
+            if kw in search_target:
+                score += len(kw)  # 긴 키워드일수록 높은 점수
         scored.append((score, art_no, title, text))
     
     scored.sort(reverse=True)
-    return [(no, title, text) for _, no, title, text in scored[:max_articles] if _ >= 2]
+    return [(no, title, text) for _, no, title, text in scored[:max_articles] if _ >= 4]
+
+
+def _extract_cross_references(text: str) -> List[Tuple[str, str]]:
+    """조문 텍스트에서 위임 참조(「법령명」 제X조)를 추출한다.
+    
+    예: '「국가계약법 시행규칙」 제24조제2항' → ('국가계약법 시행규칙', '제24조')
+    
+    Returns:
+        [(법령 약칭, 조문번호), ...]
+    """
+    refs = []
+    # 패턴: 「법령명」 제X조(의Y)
+    pattern = r'「([^」]+)」[^제]{0,10}(제\d+조(?:의\d+)?)'
+    for match in re.finditer(pattern, text):
+        law_full_name = match.group(1).strip()
+        article_no = match.group(2)
+        # 법령 풀네임을 약칭으로 변환
+        short = None
+        for pattern_key in sorted(_SHORT_NAME_MAP.keys(), key=len, reverse=True):
+            if pattern_key in law_full_name:
+                short = _SHORT_NAME_MAP[pattern_key]
+                break
+        # SHORT_NAME_MAP에 없으면 풀네임에서 직접 추출 시도
+        if not short:
+            for db_short in (_law_db_cache or {}).keys():
+                if db_short in law_full_name or law_full_name in db_short:
+                    short = db_short
+                    break
+        if short:
+            refs.append((short, article_no))
+    return refs
 
 
 def chain_law_system_internal(query: str) -> Optional[str]:
     """
     내부 DB 전용 — 법률→시행령→시행규칙→행정규칙 4단 체계 분석.
+    + 위임 참조 자동 추적 (depth=1)
     
     외부 MCP 호출 없이 0ms 수준으로 작동.
     """
@@ -369,6 +434,8 @@ def chain_law_system_internal(query: str) -> Optional[str]:
     
     lines = [f"═══ 법체계 분석 (내부DB): {system_key} ═══", ""]
     total_found = 0
+    collected_refs = set()  # 이미 포함된 조문 추적 (중복 방지)
+    pending_cross_refs = []  # 위임 참조 대기열
     
     # 4단계 순회
     for tier_name in ["법률", "시행령", "시행규칙"]:
@@ -376,15 +443,22 @@ def chain_law_system_internal(query: str) -> Optional[str]:
         if not law_short:
             continue
         
-        relevant = _get_relevant_articles(law_short, query, max_articles=3)
+        relevant = _get_relevant_articles(law_short, query, max_articles=5)
         if relevant:
             lines.append(f"▶ {tier_name}: {law_short}")
             for art_no, title, text in relevant:
                 title_str = f" ({title})" if title else ""
                 lines.append(f"  {art_no}{title_str}")
-                lines.append(f"  {text[:800]}")
+                lines.append(f"  {text[:1200]}")
                 lines.append("")
                 total_found += 1
+                collected_refs.add(f"{law_short} {art_no}")
+                # 위임 참조 수집
+                cross_refs = _extract_cross_references(text)
+                for ref_law, ref_art in cross_refs:
+                    ref_key = f"{ref_law} {ref_art}"
+                    if ref_key not in collected_refs:
+                        pending_cross_refs.append((ref_law, ref_art))
         else:
             lines.append(f"▶ {tier_name}: {law_short} (관련 조문 없음)")
             lines.append("")
@@ -396,15 +470,57 @@ def chain_law_system_internal(query: str) -> Optional[str]:
         for rule_name in admin_rules:
             rule_data = _law_db_cache.get(rule_name)
             if rule_data:
-                articles = rule_data.get("articles", {})
-                first_text = ""
-                for art_data in list(articles.values())[:1]:
-                    first_text = art_data.get("text", "")[:500]
-                lines.append(f"  ● {rule_name}")
-                if first_text:
-                    lines.append(f"    {first_text}")
-                lines.append("")
-                total_found += 1
+                # 행정규칙도 키워드 기반으로 관련 조문 검색
+                rule_articles = _get_relevant_articles(rule_name, query, max_articles=3)
+                if rule_articles:
+                    lines.append(f"  ● {rule_name}")
+                    for art_no, title, text in rule_articles:
+                        title_str = f" ({title})" if title else ""
+                        lines.append(f"    {art_no}{title_str}")
+                        lines.append(f"    {text[:1000]}")
+                        lines.append("")
+                        total_found += 1
+                        collected_refs.add(f"{rule_name} {art_no}")
+                        # 행정규칙 조문에서도 위임 참조 수집
+                        cross_refs = _extract_cross_references(text)
+                        for ref_law, ref_art in cross_refs:
+                            ref_key = f"{ref_law} {ref_art}"
+                            if ref_key not in collected_refs:
+                                pending_cross_refs.append((ref_law, ref_art))
+                else:
+                    # 키워드 매칭 실패 시 첫 조문이라도 보여줌
+                    articles = rule_data.get("articles", {})
+                    first_text = ""
+                    for art_data in list(articles.values())[:1]:
+                        first_text = art_data.get("text", "")[:500]
+                    lines.append(f"  ● {rule_name}")
+                    if first_text:
+                        lines.append(f"    {first_text}")
+                    lines.append("")
+                    total_found += 1
+    
+    # ── 위임 참조 자동 추적 (depth=1) ──
+    if pending_cross_refs:
+        unique_refs = []
+        seen = set()
+        for ref_law, ref_art in pending_cross_refs:
+            key = f"{ref_law} {ref_art}"
+            if key not in collected_refs and key not in seen:
+                unique_refs.append((ref_law, ref_art))
+                seen.add(key)
+        
+        if unique_refs:
+            lines.append("")
+            lines.append("▶ 위임 참조 조문 (자동 추적):")
+            for ref_law, ref_art in unique_refs[:5]:  # 최대 5개
+                lookup_key = f"{ref_law} {ref_art}"
+                ref_text = (_lookup_index or {}).get(lookup_key, "")
+                if ref_text:
+                    lines.append(f"  ● {lookup_key}")
+                    lines.append(f"    {ref_text[:1000]}")
+                    lines.append("")
+                    total_found += 1
+                    print(f"  [INTERNAL_LAW] 위임 참조 추적: {lookup_key} ({len(ref_text)} chars)")
     
     if total_found == 0:
         return None

@@ -106,7 +106,26 @@ def search_law(query: str, display: int = 5) -> str:
 
 
 def get_law_text(mst: str = None, law_id: str = None, jo: str = None) -> str:
-    """법령 조문 조회. mst 또는 law_id 필요."""
+    """법령 조문 조회. 내부 DB 우선 → 외부 MCP fallback."""
+    # ── 1단계: 내부 DB 우선 조회 (MST + 조문번호) ──
+    if mst and jo:
+        try:
+            from internal_law_lookup import _load_law_db, _mst_to_short, _lookup_index
+            _load_law_db()
+            if _mst_to_short and _lookup_index:
+                short_name = _mst_to_short.get(str(mst))
+                if short_name:
+                    # 조문번호 정규화: "25" → "제25조"
+                    article_key = f"제{jo}조" if not jo.startswith("제") else jo
+                    lookup_key = f"{short_name} {article_key}"
+                    text = _lookup_index.get(lookup_key, "")
+                    if text:
+                        print(f"  [get_law_text] 내부 DB HIT: {lookup_key} ({len(text)} chars)")
+                        return f"[내부DB] [{lookup_key}]\n{text}"
+        except Exception as e:
+            print(f"  [get_law_text] 내부 DB 조회 실패: {e}")
+    
+    # ── 2단계: 외부 MCP fallback ──
     args = {}
     if mst:
         args["mst"] = mst
@@ -253,7 +272,33 @@ def search_admin_rule(query: str, knd: int = None) -> str:
 
 
 def get_admin_rule(rule_id: str) -> str:
-    """행정규칙 전문 조회. search_admin_rule로 얻은 ID를 사용."""
+    """행정규칙 전문 조회. 내부 DB 우선 → 외부 MCP fallback."""
+    # ── 1단계: 내부 DB 우선 조회 ──
+    try:
+        from internal_law_lookup import _load_law_db, _law_db_cache
+        _load_law_db()
+        if _law_db_cache:
+            # rule_id가 숫자ID일 수 있으므로, DB에서 이름 기반 매칭 시도
+            for short_name, law_data in _law_db_cache.items():
+                source = law_data.get("source", "")
+                if "행정규칙" not in source and "규정" not in short_name \
+                   and "예규" not in short_name and "기준" not in short_name \
+                   and "요령" not in short_name and "세칙" not in short_name:
+                    continue
+                # rule_id가 이름의 일부인지 확인
+                if rule_id in short_name or short_name in rule_id:
+                    articles = law_data.get("articles", {})
+                    if articles:
+                        lines = [f"[내부DB] {short_name} 전문"]
+                        for art_no, art_data in articles.items():
+                            lines.append(art_data.get("text", "")[:2000])
+                        result_text = "\n\n".join(lines)
+                        print(f"  [get_admin_rule] 내부 DB HIT: {short_name} ({len(result_text)} chars)")
+                        return result_text
+    except Exception as e:
+        print(f"  [get_admin_rule] 내부 DB 조회 실패: {e}")
+    
+    # ── 2단계: 외부 MCP fallback ──
     result = _mcp_call("execute_tool", {
         "tool_name": "get_admin_rule",
         "params": {"id": rule_id},
