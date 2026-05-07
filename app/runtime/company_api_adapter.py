@@ -134,6 +134,20 @@ class CompanyAPIAdapter:
             search_location=location
         )
 
+    # ── 검색어 정규화: 일반 명사 제거 ──
+    _GENERIC_SUFFIXES = ["물품", "용역", "공사", "구매", "납품", "조달", "설치", "제품", "장비"]
+
+    def _normalize_search_query(self, item_name: str) -> str:
+        """Router가 'LED 물품' 처럼 일반 명사를 포함하는 경우 제거.
+        'LED 물품' → 'LED', 'LED' → 'LED' (변경 없음)"""
+        import re
+        query = item_name.strip()
+        for suffix in self._GENERIC_SUFFIXES:
+            query = re.sub(rf'\s*{re.escape(suffix)}\s*', ' ', query)
+        query = query.strip()
+        # 정규화 후 비어버리면 원본 유지
+        return query if query else item_name.strip()
+
     def _live_search(self, item_name: str, location: str) -> CompanyCandidateResult:
         """실제 모니터링 시스템 API 호출 (Fail-Closed 보장).
 
@@ -154,7 +168,9 @@ class CompanyAPIAdapter:
         try:
             from app.company_api import search_by_product
 
-            raw = search_by_product(item_name)
+            search_query = self._normalize_search_query(item_name)
+            logger.info(f"Company API 검색어 정규화: '{item_name}' → '{search_query}'")
+            raw = search_by_product(search_query)
 
             # ── API 레벨 실패 ──
             if raw.get("company_search_status") == "failed":
