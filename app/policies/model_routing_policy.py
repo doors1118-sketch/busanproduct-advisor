@@ -564,10 +564,15 @@ def generate_mandatory_mcp_plan(user_message: str, tier: int, agency_type: str =
             add(tool, {"query": q})
         add("search_admin_rule", {"query": "공동계약운용요령"})
 
-    # [의도 6] 입찰/낙찰 → 기관별 입찰 관련 행정규칙
+    # [의도 6] 입찰/낙찰 → 기관별 입찰 관련 행정규칙 + 법체계 보충
     if has_bid:
         for tool, q in LIMITED_BID_QUERIES[law_system]:
             add(tool, {"query": q})
+        # 법체계 맥락 보충 (개별 조문의 상위/하위 법령 관계 파악용)
+        if law_system == "local":
+            add("chain_law_system", {"query": "지방계약법 입찰 제한경쟁 낙찰자"})
+        elif law_system == "national":
+            add("chain_law_system", {"query": "국가계약법 입찰 제한경쟁 낙찰자"})
 
     # [의도 7] 우선구매/의무구매 → 중소기업 우선구매 (기관 공통)
     if has_priority:
@@ -587,10 +592,15 @@ def generate_mandatory_mcp_plan(user_message: str, tier: int, agency_type: str =
         for tool, q in EVALUATION_QUERIES[law_system]:
             add(tool, {"query": q})
 
-    # [의도 11] 예정가격/원가계산/보증금 등 → 기관별 가격 기준
+    # [의도 11] 예정가격/원가계산/보증금 등 → 기관별 가격 기준 + 법체계 보충
     if has_price:
         for tool, q in PRICE_QUERIES[law_system]:
             add(tool, {"query": q})
+        # 법체계 맥락 보충
+        if law_system == "local":
+            add("chain_law_system", {"query": "지방계약법 예정가격 원가계산"})
+        elif law_system == "national":
+            add("chain_law_system", {"query": "국가계약법 예정가격 원가계산"})
 
     # [안전망] 아무 의도도 감지 안 되면 → 질문 원문으로 직접 검색
     if not plan:
