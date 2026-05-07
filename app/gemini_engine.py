@@ -3144,7 +3144,10 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
     # 내부 프롬프트/지침 누출 검사
     prompt_leak_patterns = [
         r"중요 지침", r"내부 처리", r"초안 답변", r"알겠습니다", 
-        r"수정하겠습니다", r"시스템 지침", r"프롬프트"
+        r"수정하겠습니다", r"시스템 지침", r"프롬프트",
+        r"\[MCP_FAILED\]", r"MCP_FAILED", r"RAG 검색",
+        r"RAG 검색 결과", r"조회 실패로 법적 판단",
+        r"확인되지 않았습니다\)", r"MCP 호출",
     ]
     prompt_leak_detected = False
     for pat in prompt_leak_patterns:
