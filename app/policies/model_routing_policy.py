@@ -286,7 +286,7 @@ def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str 
 
     has_amount = any(w in user_message for w in ["천만원", "백만원", "억원", "금액", "예산", "만원"])
     has_local = any(w in user_message for w in ["지역업체", "부산업체", "부산 업체", "지역 업체", "부산상품", "지역상품"])
-    has_item = any(w in user_message for w in ["컴퓨터", "물품", "CCTV", "구매", "조명"])
+    has_item = any(w in user_message for w in ["컴퓨터", "물품", "CCTV", "구매", "조명", "LED", "가구", "차량", "복사기", "프린터", "에어컨", "냉난방", "소프트웨어", "서버", "사려", "구입", "납품"])
     has_agency = any(w in user_message for w in ["부산교통공사", "공기업", "출자출연", "시설공단", "환경공단"])
 
     # Tier 0: 금액 관련 법적 제한/한도 판단이 주 목적이 아닌 순수 업체 검색/상세 조회
@@ -298,8 +298,8 @@ def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str 
     if has_agency:
         return 3
 
-    # Tier 2: 금액 + 품목 + 지역업체 선호
-    if has_amount and has_local and has_item:
+    # Tier 2: 금액 + 품목 (지역업체 선호는 부산 어드바이저이므로 기본 전제)
+    if has_amount and (has_item or has_local):
         return 2
 
     # Tier 1: 그 외 금액이 있거나, 수의계약 등 일반적인 계약 검토 질문
