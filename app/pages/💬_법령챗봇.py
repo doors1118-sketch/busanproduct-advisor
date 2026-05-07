@@ -2,8 +2,9 @@
 💬 법령챗봇 — AI 법령 해석 상담
 지역상생 조달 어드바이저의 핵심 기능 2.
 """
-import sys
 import os
+import sys
+import base64
 
 # app 디렉토리를 Python 경로에 추가
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -12,11 +13,16 @@ sys.path.insert(0, APP_DIR)
 import streamlit as st
 from dotenv import load_dotenv
 
-# .env 파일: 프로젝트 루트(app 상위)에서 로드
+# .env 파일 및 pilot_auth.env 파일 로드
 PROJECT_ROOT = os.path.dirname(APP_DIR)
 load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
+load_dotenv(os.path.join(PROJECT_ROOT, "pilot_auth.env"))
+# 운영 환경 대비 절대 경로 체크
+if os.path.exists("/root/advisor/pilot_auth.env"):
+    load_dotenv("/root/advisor/pilot_auth.env")
 
-from gemini_engine import chat
+import requests
+
 from system_prompt import EXAMPLE_QUESTIONS
 
 # ── 스타일 ──
@@ -83,7 +89,7 @@ _AGENCY_NUMBER_MAP = {
 
 with st.sidebar:
     st.markdown("### 💬 AI 법령 챗봇")
-    st.caption("법제처 API + Gemini 기반")
+    st.caption("Source Map + Orchestrator 기반")
     st.markdown("---")
     st.markdown("""
     **사용 방법**
@@ -94,11 +100,13 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("**📌 답변 구조**")
     st.markdown("""
-    - 📌 결론
-    - 📜 법적 근거
-    - 💼 실무 적용
-    - 🏢 지역제품 구매 방법
-    - ⚠️ 주의사항
+    - 계약 검토 요약
+    - 조달경로 검토
+    - 지역업체 구매지원 제도 검토
+    - 품목 적격성 검토
+    - 근거 기반 검토 상태
+    - 검토 후보 업체
+    - 주의사항
     """)
     st.markdown("---")
     if st.button("🗑️ 대화 초기화", use_container_width=True):
@@ -114,7 +122,7 @@ if "chat_history" not in st.session_state:
 
 # ── 메인 헤더 ──
 st.markdown('<div class="chat-header">💬 부산광역시 지역경제 상생협력 어드바이저</div>', unsafe_allow_html=True)
-st.markdown('<div class="chat-sub">계약 및 조달 법령에 대해 질문하면, 법제처 API에서 법령 및 행정규칙, 해석례, 소속기관의 계약지침을 검색하여 답변합니다.</div>', unsafe_allow_html=True)
+st.markdown('<div class="chat-sub">사전 매핑된 Source Map과 내부 검토 규칙을 기준으로 계약·조달 검토 항목을 구조화하여 안내합니다.</div>', unsafe_allow_html=True)
 
 # ── 소속기관 유형 선택 + 대화 초기화 (메인 영역) ──
 col_agency, col_reset = st.columns([4, 1])
@@ -227,130 +235,62 @@ _(잘 모르시겠다면 **'1번'** 또는 **'건너뛰기'**를 입력하시면
         st.stop()  # API 호출 없이 여기서 중단
 
     # ── [Case A] 기관 확정 → 실제 분석 실행 ──
-    # 기관 유형 컨텍스트를 질문에 삽입 (Gemini에만 전달)
-    chat_input = f"[소속기관: {selected_agency}] {user_input}"
+    # 기관 유형은 별도 필드로 전송하므로 원문만 사용합니다.
+    chat_input = user_input
 
     # AI 답변 생성
     with st.chat_message("assistant", avatar="⚖️"):
-        status_container = st.status("법령을 검색하고 해석 중입니다...", expanded=True)
+        status_container = st.status("서버에서 답변을 생성 중입니다...", expanded=True)
         try:
-            def on_progress(msg):
-                status_container.update(label=msg, state="running")
-                status_container.write(msg)
+            # FastAPI 서버 호출
+            api_url = os.getenv("CHATBOT_API_URL", "http://127.0.0.1:8001/chat")
+            payload = {
+                "message": chat_input,
+                "history": st.session_state.chat_history,
+                "agency_type": selected_agency
+            }
             
-            answer, updated_history = chat(
-                chat_input,
-                st.session_state.chat_history,
-                progress_callback=on_progress,
-                agency_type=selected_agency,
-            )
+            headers = {}
+            auth_user = os.getenv("PILOT_AUTH_USER", "admin")
+            auth_pass = os.getenv("PILOT_AUTH_PASSWORD", "pilot123!")
+            if auth_user and auth_pass:
+                token = base64.b64encode(f"{auth_user}:{auth_pass}".encode("utf-8")).decode("utf-8")
+                headers["Authorization"] = f"Basic {token}"
+            
+            response = requests.post(api_url, json=payload, headers=headers, timeout=20)
+            response.raise_for_status()
+            data = response.json()
+            
+            answer = data.get("answer", "⚠️ 응답을 불러올 수 없습니다.")
+            updated_history = data.get("history", st.session_state.chat_history)
+            
             status_container.update(label="✅ 답변 완료", state="complete", expanded=False)
             st.session_state.chat_history = updated_history
+            
+            # 마크다운 렌더링
             st.markdown(answer)
             st.session_state.messages.append({"role": "assistant", "content": answer})
             
-            # ── 업체 검색 결과가 있으면 다운로드 + 펼쳐보기 ──
-            import company_api
-            results = company_api.last_search_results
-            companies = results.get("업체목록", []) if results else []
-            total = results.get("검색결과수", 0) if results else 0
-            
-            if companies and total > 10:
-                query_label = company_api.last_search_query or "업체 검색"
+            # 디버그 정보 표시 (운영 환경에서도 테스트 확인용)
+            with st.expander("🛠️ 시스템 처리 로그 (검증용)"):
+                st.json({
+                    "pipeline_mode": data.get("pipeline_mode"),
+                    "runtime_status": data.get("runtime_status"),
+                    "routing_decision": data.get("routing_decision"),
+                    "primary_intent": data.get("primary_intent"),
+                    "fallback_applied": data.get("fallback_applied"),
+                    "forbidden_phrase_scan_passed": data.get("forbidden_phrase_scan_passed"),
+                    "latency_ms": data.get("latency_ms"),
+                })
                 
-                st.markdown(f"---\n📊 **전체 {total}건** 중 상위 10건만 표시됨")
-                
-                col1, col2 = st.columns(2)
-                with col1:
-                    excel_bytes = company_api.results_to_excel(results)
-                    if excel_bytes:
-                        st.download_button(
-                            label=f"📥 전체 {total}건 Excel 다운로드",
-                            data=excel_bytes,
-                            file_name=f"부산_지역업체_{query_label}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            use_container_width=True,
-                        )
-                
-                with col2:
-                    pass  # 여백
-                
-                with st.expander(f"📋 전체 {total}건 펼쳐보기"):
-                    import pandas as pd
-                    safe_fields = ["업체명", "소재지", "대표품명", "업체구분", "제조구분"]
-                    rows = [{f: c.get(f, "") for f in safe_fields} for c in companies]
-                    df = pd.DataFrame(rows)
-                    st.dataframe(df, use_container_width=True, height=400)
-                
-                # 결과 초기화 (중복 노출 방지)
-                company_api.last_search_results = {}
-                company_api.last_search_query = ""
-            
-            # ── 종합쇼핑몰 검색 결과 다운로드 ──
-            import shopping_mall
-            mall_results = shopping_mall.last_mall_results
-            mall_items = mall_results.get("items", []) if mall_results else []
-            
-            if mall_items:
-                mall_query = shopping_mall.last_mall_query or "쇼핑몰"
-                filtered = mall_results.get("filteredCount", len(mall_items))
-                
-                st.markdown(f"---\n🛒 **종합쇼핑몰 부산 업체 상품: {filtered}건**")
-                
-                col1, col2 = st.columns(2)
-                with col1:
-                    excel_bytes = shopping_mall.results_to_excel(mall_results)
-                    if excel_bytes:
-                        st.download_button(
-                            label=f"📥 쇼핑몰 {filtered}건 Excel",
-                            data=excel_bytes,
-                            file_name=f"종합쇼핑몰_{mall_query}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            use_container_width=True,
-                        )
-                with col2:
-                    pass
-                
-                with st.expander(f"🛒 종합쇼핑몰 {filtered}건 펼쳐보기"):
-                    import pandas as pd
-                    fields = {"cntrctCorpNm": "업체명", "hdoffceLocplc": "소재지",
-                              "prdctSpecNm": "물품규격", "cntrctPrceAmt": "가격",
-                              "cntrctMthdNm": "계약방법", "qltyRltnCertInfo": "인증"}
-                    rows = [{kor: item.get(eng, "") for eng, kor in fields.items()} for item in mall_items]
-                    df = pd.DataFrame(rows)
-                    st.dataframe(df, use_container_width=True, height=300)
-                
-                shopping_mall.last_mall_results = {}
-                shopping_mall.last_mall_query = ""
-            
-            # ── 인용 규정 다운로드 ──
-            import gemini_engine
-            if gemini_engine._cited_laws:
-                cited_text = ""
-                for i, law in enumerate(gemini_engine._cited_laws):
-                    cited_text += f"\n{'='*60}\n"
-                    cited_text += f"📜 인용 규정 {i+1}\n"
-                    cited_text += f"{'='*60}\n"
-                    cited_text += law.get("text", "")
-                    cited_text += "\n"
-                
-                st.download_button(
-                    label=f"📜 인용 규정 {len(gemini_engine._cited_laws)}건 다운로드",
-                    data=cited_text.encode("utf-8"),
-                    file_name="인용_법령_규정.txt",
-                    mime="text/plain",
-                    use_container_width=True,
-                )
-                
+        except requests.exceptions.Timeout:
+            status_container.update(label="❌ 오류 발생", state="error", expanded=False)
+            error_msg = "⏳ **서버 응답 지연**\n\n내부 조회 시간이 오래 걸려 타임아웃이 발생했습니다."
+            st.error(error_msg)
+            st.session_state.messages.append({"role": "assistant", "content": error_msg})
         except Exception as e:
             status_container.update(label="❌ 오류 발생", state="error", expanded=False)
-            err_str = str(e)
-            if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                error_msg = "⏳ **API 사용량 한도 초과**\n\n무료 티어 분당 요청 한도에 도달했습니다. **30초 후 다시 시도해주세요.**\n\n(결제 연결 시 이 제한이 해제됩니다)"
-            elif "503" in err_str or "UNAVAILABLE" in err_str:
-                error_msg = "⏳ **Gemini 서버 일시 과부하**\n\n잠시 후 다시 시도해주세요. (보통 1~2분 내 복구됩니다)"
-            else:
-                error_msg = f"⚠️ 오류가 발생했습니다: {err_str}"
+            error_msg = f"⚠️ API 서버 통신 오류가 발생했습니다: {str(e)}"
             st.error(error_msg)
             st.session_state.messages.append({"role": "assistant", "content": error_msg})
 

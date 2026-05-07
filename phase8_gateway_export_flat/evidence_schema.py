@@ -18,6 +18,7 @@ class EvidenceSourceRef(BaseModel):
 class EvidenceParameterStatus(BaseModel):
     parameter_ref: str
     resolved_value: Optional[Any] = None
+    display_value: Optional[str] = None
     expected_value_hint: Optional[str] = None
     requires_manual_numeric_verification: bool = True
     display_allowed: bool = False

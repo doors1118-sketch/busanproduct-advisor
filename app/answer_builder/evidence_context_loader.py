@@ -59,6 +59,7 @@ _RULE_SET_CONSTRUCTION = [
 ]
 
 _RULE_SET_LOCAL_PURCHASE_BASE = [
+    "R_LOCAL_LIMITED_BID_AMOUNT",
     "R_LOCAL_PRODUCT_PRIORITY",
     "R_POLICY_COMPANY_PREFERENCE",
 ]
@@ -125,7 +126,8 @@ def _infer_active_rules(router_result: RouterResult) -> List[str]:
             rules.extend(_RULE_SET_GOODS)
 
     # local_purchase_support
-    if "local_purchase_support" in all_intents:
+    legal_topic = router_result.slots.legal_topic or ""
+    if "local_purchase_support" in all_intents or "local_limited" in legal_topic or "지역제한" in legal_topic:
         rules.extend(_RULE_SET_LOCAL_PURCHASE_BASE)
         if contract_object == "goods":
             rules.append("R_REGIONAL_RESTRICTION_GOODS")

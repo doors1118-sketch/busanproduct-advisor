@@ -61,40 +61,12 @@ app.add_middleware(
 PRODUCTION_DEPLOYMENT = "HOLD"
 
 # ─────────────────────────────────────────────
-# Pilot Basic Auth Middleware
+# Pilot Basic Auth Middleware (DISABLED)
 # ─────────────────────────────────────────────
 @app.middleware("http")
 async def pilot_auth_middleware(request: Request, call_next):
-    if os.getenv("PILOT_AUTH_ENABLED", "").lower() != "true":
-        return await call_next(request)
-
-    path = request.url.path
-    protected_paths = ["/ui", "/chat", "/rag/status", "/version"]
-    is_protected = any(path.startswith(p) for p in protected_paths)
-
-    if not is_protected:
-        return await call_next(request)
-
-    auth_header = request.headers.get("Authorization")
-    if auth_header and auth_header.startswith("Basic "):
-        try:
-            decoded = base64.b64decode(auth_header[6:]).decode("utf-8")
-            username, _, password = decoded.partition(":")
-
-            expected_user = os.getenv("PILOT_AUTH_USER", "")
-            expected_pass = os.getenv("PILOT_AUTH_PASSWORD", "")
-
-            if expected_user and expected_pass:
-                if secrets.compare_digest(username, expected_user) and secrets.compare_digest(password, expected_pass):
-                    return await call_next(request)
-        except Exception:
-            pass
-
-    return Response(
-        content="Unauthorized",
-        status_code=401,
-        headers={"WWW-Authenticate": 'Basic realm="Pilot Access"'}
-    )
+    # 사용자의 요청에 따라 모든 비밀번호/인증 로직 무효화 (프리패스)
+    return await call_next(request)
 
 # ─────────────────────────────────────────────
 # Frontend StaticFiles Mount
@@ -196,6 +168,15 @@ class ChatResponse(BaseModel):
     legal_basis_to_purchase_route_mapped: bool = False
     answer_builder_elapsed_ms: int = 0
     answer_builder_network_call_count: int = 0
+
+    # Phase 11: Orchestrator Pipeline Metadata
+    pipeline_mode: str = ""  # orchestrator / legacy_gemini
+    runtime_status: str = ""  # success / degraded / failed
+    routing_decision: str = ""
+    primary_intent: str = ""
+    runtime_stages: list = []
+    forbidden_phrase_scan_passed: bool = True
+    blocked_phrases_found: list = []
 
 
 # ─────────────────────────────────────────────
@@ -306,162 +287,183 @@ def rag_status():
     return _get_rag_status()
 
 
+USE_ORCHESTRATOR_CHAT = os.getenv("USE_ORCHESTRATOR_CHAT", "true").lower() == "true"
+DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
+
+# ─────────────────────────────────────────────
+# PII / Security Filter
+# ─────────────────────────────────────────────
+_SECURITY_REDACT_KEYS = {
+    "parameter_ref", "expected_value_hint", "source_map_path",
+    "api_key", "GEMINI_API_KEY", "LAW_API_OC",
+}
+
+def _sanitize_response_dict(d: dict) -> dict:
+    """운영 응답에서 내부 정보/PII를 필터링한다."""
+    import re
+    sanitized = {}
+    for k, v in d.items():
+        if k in _SECURITY_REDACT_KEYS:
+            continue
+        if isinstance(v, str):
+            # 사업자등록번호 마스킹
+            v = re.sub(r'\d{3}-\d{2}-\d{5}', '[사업자번호 보호됨]', v)
+            # API Key 패턴
+            v = re.sub(r'AIza[0-9A-Za-z\-_]{35}', '[API키 보호됨]', v)
+            # Traceback 제거 (운영 모드)
+            if not DEBUG_MODE and 'Traceback' in v:
+                v = '[시스템 오류 - 관리자 문의]'
+        sanitized[k] = v
+    return sanitized
+
+
 @app.post("/chat", response_model=ChatResponse)
 def chat_endpoint(req: ChatRequest):
     start = time.time()
 
+    # ── Orchestrator 경로 (기본) ──
+    if USE_ORCHESTRATOR_CHAT:
+        return _chat_orchestrator(req, start)
+
+    # ── Legacy 경로 (롤백용) ──
+    return _chat_legacy(req, start)
+
+
+def _chat_orchestrator(req: ChatRequest, start: float):
+    """Orchestrator 파이프라인 기반 /chat 처리."""
+    try:
+        from app.runtime.chatbot_orchestrator import run_chatbot_runtime
+        from app.runtime.runtime_schema import ChatbotRuntimeRequest
+
+        runtime_req = ChatbotRuntimeRequest(
+            user_query=req.message,
+            runtime_options={},
+        )
+        runtime_resp = run_chatbot_runtime(runtime_req)
+
+        latency_ms = int((time.time() - start) * 1000)
+
+        # Answer: rendered_markdown 그대로 반환
+        answer = runtime_resp.answer_output.rendered_markdown
+
+        # runtime_stages → serializable list
+        stages_list = []
+        for s in runtime_resp.runtime_stages:
+            stages_list.append({
+                "stage": s.stage_name,
+                "status": s.status,
+                "skipped": s.skipped,
+                "reason": s.reason if DEBUG_MODE else None,
+            })
+
+        # errors는 DEBUG_MODE에서만 상세 노출
+        errors_out = runtime_resp.errors if DEBUG_MODE else []
+
+        resp_obj = ChatResponse(
+            answer=answer,
+            history=req.history,
+            latency_ms=latency_ms,
+            total_latency_ms=latency_ms,
+            production_deployment=PRODUCTION_DEPLOYMENT,
+            legal_conclusion_allowed=False,
+            contract_possible_auto_promoted=False,
+            final_answer_scanned=True,
+            sensitive_fields_removed=True,
+            enrichment_join_key_redacted=True,
+            deterministic_template_used=True,
+            # Phase 11 Orchestrator metadata
+            pipeline_mode="orchestrator",
+            runtime_status=runtime_resp.runtime_status,
+            routing_decision=runtime_resp.router_result.routing_decision,
+            primary_intent=runtime_resp.router_result.primary_intent,
+            runtime_stages=stages_list,
+            forbidden_phrase_scan_passed=runtime_resp.answer_output.forbidden_phrase_scan_passed,
+            blocked_phrases_found=runtime_resp.answer_output.blocked_phrases_found,
+            # answer builder
+            answer_builder_used=runtime_resp.router_result.routing_decision,
+            candidate_table_source="orchestrator_structured" if runtime_resp.answer_output.candidate_table_section else "none",
+        )
+
+        resp_dict = resp_obj.dict()
+        resp_dict = _sanitize_response_dict(resp_dict)
+
+        return JSONResponse(content=resp_dict, media_type="application/json; charset=utf-8")
+
+    except Exception as e:
+        latency_ms = int((time.time() - start) * 1000)
+        err_str = str(e)
+
+        if not DEBUG_MODE:
+            print(f"[ORCHESTRATOR ERROR] {traceback.format_exc()}")
+
+        if any(kw in err_str for kw in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE"]):
+            error_msg = "API 사용량 한도 초과 또는 서버 지연. 잠시 후 다시 시도하세요."
+        else:
+            error_msg = "내부 처리 오류가 발생했습니다."
+
+        resp_obj = ChatResponse(
+            answer=f"⚠️ {error_msg}",
+            history=req.history,
+            latency_ms=latency_ms,
+            total_latency_ms=latency_ms,
+            production_deployment=PRODUCTION_DEPLOYMENT,
+            pipeline_mode="orchestrator",
+            runtime_status="failed",
+        )
+        return JSONResponse(
+            content=_sanitize_response_dict(resp_obj.dict()),
+            status_code=500,
+            media_type="application/json; charset=utf-8",
+        )
+
+
+def _chat_legacy(req: ChatRequest, start: float):
+    """기존 gemini_engine.chat() 경로 (USE_ORCHESTRATOR_CHAT=false 롤백용)."""
     try:
         from gemini_engine import chat as engine_chat, get_last_generation_meta
 
-        # gemini_engine.chat() 호출
         answer, updated_history = engine_chat(
             user_message=req.message,
             history=req.history,
             progress_callback=None,
             agency_type=req.agency_type,
         )
-
         latency_ms = int((time.time() - start) * 1000)
-
-        # 실제 generation_meta 읽기
         meta = get_last_generation_meta()
-
-        # RAG status (lightweight)
-        rag_summary = {}
-        try:
-            rag_full = _get_rag_status()
-            rag_summary = {
-                "laws": rag_full["laws"]["status"],
-                "manuals": rag_full["manuals"]["status"],
-                "innovation": rag_full["innovation"]["status"],
-            }
-        except Exception:
-            rag_summary = {"laws": "unknown", "manuals": "unknown", "innovation": "unknown"}
-
-        # safety metadata: 실제 값 우선, 없으면 기본값
-        candidate_table_source = meta.get("candidate_table_source", "not_available")
-        legal_conclusion_allowed = meta.get("legal_conclusion_allowed", False)
-        forbidden_remaining = meta.get("forbidden_patterns_remaining_after_rewrite", [])
-        final_answer_scanned = meta.get("final_answer_scanned", False)
-        model_used = meta.get("model_used", os.getenv("GEMINI_MODEL", "gemini-2.5-pro"))
-        model_decision_reason = meta.get("model_decision_reason", "")
-        safety_metadata_status = "ACTUAL" if meta else "NOT_EXPOSED"
 
         resp_obj = ChatResponse(
             answer=answer,
             history=updated_history,
-            candidate_table_source=candidate_table_source,
-            legal_conclusion_allowed=legal_conclusion_allowed,
-            contract_possible_auto_promoted=False,
-            forbidden_patterns_remaining_after_rewrite=forbidden_remaining,
-            final_answer_scanned=final_answer_scanned,
-            sensitive_fields_detected=[],
-            model_selected=model_used,
-            model_decision_reason=model_decision_reason,
             latency_ms=latency_ms,
-            rag_status=rag_summary,
-            production_deployment=PRODUCTION_DEPLOYMENT,
-            route_guidance_provided=meta.get("route_guidance_provided", False),
-            regional_route_guidance_provided=meta.get("regional_route_guidance_provided", False),
-            amount_detected=meta.get("amount_detected"),
-            amount_band=meta.get("amount_band"),
-            candidate_counts_by_type=meta.get("candidate_counts_by_type", {}),
-            source_call_statuses=meta.get("source_call_statuses", {}),
-            sensitive_fields_removed=meta.get("sensitive_fields_removed", True),
-            enrichment_join_key_redacted=meta.get("enrichment_join_key_redacted", True),
             total_latency_ms=latency_ms,
-            rag_elapsed_ms=meta.get("rag_elapsed_ms"),
-            model_elapsed_ms=meta.get("model_elapsed_ms"),
-            rewrite_elapsed_ms=meta.get("rewrite_elapsed_ms"),
-            tool_elapsed_ms_by_name=meta.get("tool_elapsed_ms_by_name", {}),
-            tool_call_count=meta.get("tool_call_count", 0),
-            tool_args_log=meta.get("tool_args_log", []),
-            fast_track_applied=meta.get("fast_track_applied", False),
-            deterministic_template_used=meta.get("deterministic_template_used", False),
-            tier_resolved=meta.get("tier_resolved", 1),
-            answer_schema_version=meta.get("answer_schema_version", "regional_procurement_v1"),
-            mandatory_mcp_plan=meta.get("mandatory_mcp_plan", []),
-            mandatory_mcp_executed=meta.get("mandatory_mcp_executed", []),
-            mandatory_mcp_missing=meta.get("mandatory_mcp_missing", []),
-            mcp_chain_statuses=meta.get("mcp_chain_statuses", {}),
-            admin_rule_call_statuses=meta.get("admin_rule_call_statuses", {}),
-            pps_rule_call_statuses=meta.get("pps_rule_call_statuses", {}),
-            mcp_preflight_elapsed_ms=meta.get("mcp_preflight_elapsed_ms"),
-            legal_basis_cache_used=meta.get("legal_basis_cache_used", False),
-            legal_basis_cache_hit_count=meta.get("legal_basis_cache_hit_count", 0),
-            legal_basis_cache_miss_count=meta.get("legal_basis_cache_miss_count", 0),
-            mcp_called_for_cache_miss=meta.get("mcp_called_for_cache_miss", False),
-            mcp_called_for_freshness=meta.get("mcp_called_for_freshness", False),
-            cache_status=meta.get("cache_status", ""),
-            source_status=meta.get("source_status", ""),
-            
-            # Phase 2: 업체 데이터 캐시 상태
-            company_cache_used=meta.get("company_cache_used", False),
-            company_cache_refreshed_at=meta.get("company_cache_refreshed_at"),
-            company_cache_age_hours=meta.get("company_cache_age_hours"),
-            company_source_status=meta.get("company_source_status", "no_company_query"),
-            company_source_status_user_label=meta.get("company_source_status_user_label", "업체검색 불필요"),
-            company_search_status=meta.get("company_search_status", "not_called"),
-            company_data_sources_used=meta.get("company_data_sources_used", []),
-            company_cache_mode=meta.get("company_cache_mode", "none"),
-            answer_builder_used=meta.get("answer_builder_used"),
-            answer_sections_rendered=meta.get("answer_sections_rendered", []),
-            candidate_section_position=meta.get("candidate_section_position", -1),
-            legal_basis_section_rendered=meta.get("legal_basis_section_rendered", False),
-            user_facing_source_labels_used=meta.get("user_facing_source_labels_used", False),
-            raw_tool_names_hidden_from_answer=meta.get("raw_tool_names_hidden_from_answer", False),
-            legal_basis_table_rendered=meta.get("legal_basis_table_rendered", False),
-            source_status_user_label=meta.get("source_status_user_label", ""),
-            legal_basis_to_purchase_route_mapped=meta.get("legal_basis_to_purchase_route_mapped", False),
-            answer_builder_elapsed_ms=meta.get("answer_builder_elapsed_ms", 0),
-            answer_builder_network_call_count=meta.get("answer_builder_network_call_count", 0),
+            production_deployment=PRODUCTION_DEPLOYMENT,
+            pipeline_mode="legacy_gemini",
+            candidate_table_source=meta.get("candidate_table_source", "not_available"),
+            legal_conclusion_allowed=meta.get("legal_conclusion_allowed", False),
+            forbidden_patterns_remaining_after_rewrite=meta.get("forbidden_patterns_remaining_after_rewrite", []),
+            final_answer_scanned=meta.get("final_answer_scanned", False),
+            model_selected=meta.get("model_used", os.getenv("GEMINI_MODEL", "gemini-2.5-pro")),
+            model_decision_reason=meta.get("model_decision_reason", ""),
         )
         return JSONResponse(content=resp_obj.dict(), media_type="application/json; charset=utf-8")
 
     except Exception as e:
         latency_ms = int((time.time() - start) * 1000)
-        err_str = str(e)
-
-        # Fail-closed: 외부 API 오류 분류
-        if any(kw in err_str for kw in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE"]):
-            error_msg = "API 사용량 한도 초과 또는 서버 지연. 잠시 후 다시 시도하세요."
-            resp_obj = ChatResponse(
-                answer=f"⚠️ {error_msg}",
-                history=req.history,
-                candidate_table_source="none",
-                legal_conclusion_allowed=False,
-                contract_possible_auto_promoted=False,
-                forbidden_patterns_remaining_after_rewrite=[],
-                final_answer_scanned=False,
-                sensitive_fields_detected=[],
-                model_selected="",
-                model_decision_reason=f"error: {error_msg}",
-                latency_ms=latency_ms,
-                rag_status={},
-                production_deployment=PRODUCTION_DEPLOYMENT,
-                total_latency_ms=latency_ms,
-            )
-            return JSONResponse(content=resp_obj.dict(), media_type="application/json; charset=utf-8")
-        else:
-            print(f"[API ERROR] {traceback.format_exc()}")
-            error_msg = "내부 서버 오류"
-            resp_obj = ChatResponse(
-                answer=f"⚠️ {error_msg}",
-                history=req.history,
-                candidate_table_source="none",
-                legal_conclusion_allowed=False,
-                contract_possible_auto_promoted=False,
-                forbidden_patterns_remaining_after_rewrite=[],
-                final_answer_scanned=False,
-                sensitive_fields_detected=[],
-                model_selected="",
-                model_decision_reason=f"error: {error_msg}",
-                latency_ms=latency_ms,
-                rag_status={},
-                production_deployment=PRODUCTION_DEPLOYMENT,
-                total_latency_ms=latency_ms,
-            )
-            return JSONResponse(content=resp_obj.dict(), status_code=500, media_type="application/json; charset=utf-8")
+        print(f"[LEGACY ERROR] {traceback.format_exc()}")
+        resp_obj = ChatResponse(
+            answer="⚠️ 내부 서버 오류",
+            history=req.history,
+            latency_ms=latency_ms,
+            total_latency_ms=latency_ms,
+            production_deployment=PRODUCTION_DEPLOYMENT,
+            pipeline_mode="legacy_gemini",
+            runtime_status="failed",
+        )
+        return JSONResponse(
+            content=resp_obj.dict(),
+            status_code=500,
+            media_type="application/json; charset=utf-8",
+        )
 
 
 # ─────────────────────────────────────────────

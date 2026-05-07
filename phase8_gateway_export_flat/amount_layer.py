@@ -126,15 +126,18 @@ _ALWAYS_ACTIVE = [
 # contract_object별 기본 규칙
 _OBJECT_RULES = {
     "goods": [
+        "R_LOCAL_LIMITED_BID_AMOUNT",
         "R_REGIONAL_RESTRICTION_GOODS",
         "R_GOODS_REGIONAL_POINTS_NOT_PRIMARY",
         "R_LOCAL_PRODUCT_PRIORITY",
     ],
     "service": [
+        "R_LOCAL_LIMITED_BID_AMOUNT",
         "R_REGIONAL_RESTRICTION_SERVICE",
         "R_SERVICE_REGIONAL_POINTS_EVALUATION_CHECK",
     ],
     "construction": [
+        "R_LOCAL_LIMITED_BID_AMOUNT",
         "R_REGIONAL_RESTRICTION_CONSTRUCTION",
         "R_CONSTRUCTION_REGIONAL_POINTS_QUALIFICATION_CHECK",
     ],
@@ -234,6 +237,12 @@ def resolve_active_rules(
 
     # ── 공통 규칙 ──
     active_rules.extend(_ALWAYS_ACTIVE)
+
+    # ── 법령/제도 관련 특수 규칙 ──
+    legal_topic = request_slots.get("legal_topic") or ""
+    if "local_limited" in legal_topic or "지역제한" in legal_topic or "지역업체" in legal_topic or request_slots.get("review_all_routes"):
+        if "R_LOCAL_LIMITED_BID_AMOUNT" not in active_rules:
+            active_rules.append("R_LOCAL_LIMITED_BID_AMOUNT")
 
     # ── contract_object별 기본 규칙 ──
     if contract_object and contract_object in _OBJECT_RULES:

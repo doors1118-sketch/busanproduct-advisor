@@ -180,12 +180,6 @@ class CompanyAPIAdapter:
                     search_location=location
                 )
 
-            # ── malformed row 제거 (dict가 아닌 원소 방어) ──
-            malformed_count = len([c for c in candidates_raw if not isinstance(c, dict)])
-            if malformed_count:
-                logger.warning(f"Malformed candidate rows skipped: {malformed_count}건 (query={item_name})")
-            candidates_raw = [c for c in candidates_raw if isinstance(c, dict)]
-
             # ── location 후처리 필터링 (None 안전) ──
             if location:
                 candidates_raw = [
@@ -204,8 +198,6 @@ class CompanyAPIAdapter:
             # ── 정상 변환 (방어적 정규화) ──
             rows = []
             for c in candidates_raw:
-                if not isinstance(c, dict):
-                    continue
                 name = _as_str(c.get("company_name"))
                 # 마스킹: 이름 앞 3자만 표시
                 masked = name[:3] + "***" if len(name) >= 3 else name + "***"

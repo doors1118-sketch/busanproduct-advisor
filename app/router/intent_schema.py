@@ -39,7 +39,18 @@ class RouterResult(BaseModel):
     secondary_intents: List[Intent] = Field(default_factory=list)
     confidence: float = 1.0
     slots: RouterSlots = Field(default_factory=RouterSlots)
-    routing_decision: str = ""
+    routing_decision: Literal[
+        "legal_explanation_flow",
+        "contract_review_flow",
+        "local_purchase_support_flow",
+        "candidate_search_flow",
+        "item_eligibility_flow",
+        "procurement_route_review_flow",
+        "mixed_flow",
+        "clarification_required",
+        "out_of_scope",
+        ""
+    ] = ""
     candidate_lookup_required: bool = False
     legal_explanation_only: bool = False
     clarification_needed: List[str] = Field(default_factory=list)
