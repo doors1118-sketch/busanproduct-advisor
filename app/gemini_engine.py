@@ -827,6 +827,11 @@ def _normalize_agency_type(agency_type: str) -> str:
     if not agency_type:
         return "default"
     mapping = {
+        # ── identity: 이미 정규화된 키가 들어오면 그대로 반환 ──
+        "local_government": "local_government",
+        "national_agency": "national_agency",
+        "public_corporation": "public_corporation",
+        "invested_institution": "invested_institution",
         # 지방자치단체 그룹 → local_government (assembler와 통일)
         "지방자치단체": "local_government",
         "부산광역시": "local_government",
