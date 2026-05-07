@@ -3021,10 +3021,11 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
             generation_meta["formatter_input_count"] = formatter_input_count
             generation_meta["formatter_output_chars"] = formatter_output_chars
 
-    # LLM 생성 표 감지 및 폐기
+    # LLM 생성 표 감지 및 폐기 (단, 멀티 라우트 사전검색 시에는 LLM 표 보존)
+    _multi_route_prefetched = generation_meta.get("tier_resolved") == 2 if generation_meta else False
     llm_has_table = bool(re.search(r"\|.*\|.*\n\|.*(?:---|-|:).*\|", answer))
-    if llm_has_table:
-        # Markdown 표 형태 제거
+    if llm_has_table and not _multi_route_prefetched:
+        # Markdown 표 형태 제거 (멀티 라우트가 아닌 경우에만)
         answer = re.sub(r"(\n?\|.*\|.*)+", "", answer)
         if generation_meta is not None:
             generation_meta["llm_generated_table_detected"] = True
@@ -3036,6 +3037,12 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
                     answer += f"\n\n---\n{server_table}"
                 else:
                     answer += f"\n\n---\n**[시스템 자동 생성 표]**\n{server_table}"
+    elif llm_has_table and _multi_route_prefetched:
+        # 멀티 라우트: LLM 표 보존 (구매 경로별 그룹핑)
+        if generation_meta is not None:
+            generation_meta["llm_generated_table_detected"] = True
+            generation_meta["llm_generated_table_discarded"] = False
+            generation_meta["candidate_table_source"] = "llm_multi_route"
     elif formatted:
         # LLM이 표를 생성하지 않았지만 formatter 결과가 있으면 서버 표로 추가
         server_table = formatted
@@ -3229,44 +3236,54 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
         if amount_detected is not None:
             tier_resolved = generation_meta.get("tier_resolved", 1) if generation_meta else 1
             mcp_executed = generation_meta.get("mandatory_mcp_executed", []) if generation_meta else []
-            from policies.answer_builder_policy import (
-                build_amount_contract_guidance_answer,
-                build_regional_procurement_answer
-            )
-            
-            if tier_resolved == 2:
-                route_answer = build_regional_procurement_answer(generation_meta if generation_meta else {}, mcp_executed)
-            else:
-                route_answer = build_amount_contract_guidance_answer(generation_meta if generation_meta else {}, mcp_executed)
-                
-            answer = route_answer
-            
-            if server_table:
-                # Replace placeholder if exists, otherwise append
-                if "[SERVER_TABLE_PLACEHOLDER]" in answer:
-                    answer = answer.replace("[SERVER_TABLE_PLACEHOLDER]", f"**[시스템 자동 추출 후보 표]**\n{server_table}")
-                else:
-                    answer += f"\n\n**[시스템 자동 추출 후보 표]**\n{server_table}"
-            else:
-                answer = answer.replace("[SERVER_TABLE_PLACEHOLDER]", "(검색 결과에서 유효한 업체 후보를 추출하지 못했습니다.)")
 
-            if generation_meta is not None:
-                generation_meta["amount_detected"] = amount_detected
-                generation_meta["amount_band"] = amount_band
-                generation_meta["general_small_value_sole_quote"] = general_small_value_sole_quote
-                generation_meta["policy_company_sole_quote"] = policy_company_sole_quote
-                generation_meta["candidate_counts_by_type"] = candidate_counts_by_type
-                generation_meta["source_call_statuses"] = source_call_statuses
-                generation_meta["sensitive_fields_removed"] = True
-                generation_meta["enrichment_join_key_redacted"] = True
+            # 멀티 라우트 사전검색(tier 2)인 경우 LLM 답변 보존
+            if tier_resolved == 2 and _multi_route_prefetched:
+                # LLM이 사전검색 데이터를 기반으로 구매 경로별 분석·그룹핑한 답변 유지
+                if generation_meta is not None:
+                    generation_meta["answer_discarded"] = False
+                    generation_meta["deterministic_template_used"] = False
+                    generation_meta["candidate_table_source"] = "llm_multi_route"
+                    generation_meta["amount_detected"] = amount_detected
+            else:
+                from policies.answer_builder_policy import (
+                    build_amount_contract_guidance_answer,
+                    build_regional_procurement_answer
+                )
+                
+                if tier_resolved == 2:
+                    route_answer = build_regional_procurement_answer(generation_meta if generation_meta else {}, mcp_executed)
+                else:
+                    route_answer = build_amount_contract_guidance_answer(generation_meta if generation_meta else {}, mcp_executed)
+                    
+                answer = route_answer
+                
                 if server_table:
-                    generation_meta["candidate_table_preserved"] = True
-                generation_meta["llm_generated_table_discarded"] = True
-                generation_meta["answer_discarded"] = True
-                generation_meta["deterministic_template_used"] = True
-                generation_meta["forbidden_patterns_matched"] = []
-                # Remove post scan forbidden since we replaced the answer entirely
-                post_scan_forbidden.clear()
+                    # Replace placeholder if exists, otherwise append
+                    if "[SERVER_TABLE_PLACEHOLDER]" in answer:
+                        answer = answer.replace("[SERVER_TABLE_PLACEHOLDER]", f"**[시스템 자동 추출 후보 표]**\n{server_table}")
+                    else:
+                        answer += f"\n\n**[시스템 자동 추출 후보 표]**\n{server_table}"
+                else:
+                    answer = answer.replace("[SERVER_TABLE_PLACEHOLDER]", "(검색 결과에서 유효한 업체 후보를 추출하지 못했습니다.)")
+
+                if generation_meta is not None:
+                    generation_meta["amount_detected"] = amount_detected
+                    generation_meta["amount_band"] = amount_band
+                    generation_meta["general_small_value_sole_quote"] = general_small_value_sole_quote
+                    generation_meta["policy_company_sole_quote"] = policy_company_sole_quote
+                    generation_meta["candidate_counts_by_type"] = candidate_counts_by_type
+                    generation_meta["source_call_statuses"] = source_call_statuses
+                    generation_meta["sensitive_fields_removed"] = True
+                    generation_meta["enrichment_join_key_redacted"] = True
+                    if server_table:
+                        generation_meta["candidate_table_preserved"] = True
+                    generation_meta["llm_generated_table_discarded"] = True
+                    generation_meta["answer_discarded"] = True
+                    generation_meta["deterministic_template_used"] = True
+                    generation_meta["forbidden_patterns_matched"] = []
+                    # Remove post scan forbidden since we replaced the answer entirely
+                    post_scan_forbidden.clear()
         else:
             # LLM 법적 판단 문장 및 유출 문장 폐기 (Fail-closed 전환)
             if server_table:
