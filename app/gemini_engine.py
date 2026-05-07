@@ -1800,6 +1800,7 @@ def _chat_v144(
         system_instruction=assembled.core_prompt,  # Core만 (불변)
         tools=dynamic_tools,
         temperature=0.1,
+        thinking_config=types.ThinkingConfig(thinking_budget=1024),  # thinking 제한 → 응답 속도 대폭 향상
     )
 
     # 대화 이력 + dynamic context
@@ -2029,9 +2030,9 @@ def _chat_v144(
         print(f"  [MULTI-ROUTE] tier=2, amount={amount_detected}, query='{query}', prefetched={len(all_tool_results)} tools", flush=True)
         # bypass 하지 않고 아래 LLM 루프로 fall-through
 
-    # LLM 루프 전체 경과시간 제한 (FAIL_TO_CACHE 시 12초)
+    # LLM 루프 전체 경과시간 제한 (FAIL_TO_CACHE 시 12초, Vertex AI 안정 시 90초)
     from policies.timeout_policy import FAIL_TO_CACHE as _FTC, get_timeout as _get_tool_timeout
-    _loop_max_sec = 12 if _FTC else 45
+    _loop_max_sec = 12 if _FTC else 90
     _loop_start = time.time()
 
     for round_i in range(MAX_TOOL_CALL_ROUNDS):
