@@ -1596,21 +1596,23 @@ def _chat_v144(
           f"ambiguous={keyword_result.ambiguous_keywords} "
           f"unambiguous={keyword_result.is_unambiguous}")
 
-    # ─── 2. LLM Intent Router (fast path 또는 flash) ───
-    intent_result = classify_intent(user_message, keyword_result, client)
-    print(f"  [INTENT] candidates={[(c.label, c.confidence) for c in intent_result.candidates]} "
-          f"status={intent_result.router_status}")
-
-    # 분류 실패 로그
-    if intent_result.router_status == "failed":
-        log_classification_failure(
-            request_id=request_id,
-            question=user_message,
-            router_status="failed",
-            candidates=[{"label": c.label, "confidence": c.confidence}
-                        for c in intent_result.candidates],
-            reason="LLM Router failed, using Pre-Router fallback",
-        )
+    # ─── 2. 의도 분류 (키워드 기반, LLM 호출 없음) ───
+    # Pre-Router의 키워드 매칭 결과를 직접 사용
+    # LLM 의도분류 제거 이유: 키워드 95% 커버 + 관대한 조문 세트가 안전망
+    intent_labels = [cat for cat in keyword_result.matched_categories if cat != "unclear"]
+    if not intent_labels:
+        intent_labels = ["common_procurement"]
+    
+    # IntentRouteResult 호환 객체 생성 (guardrail_selector 호환용)
+    from prompting.schemas import IntentRouteResult, IntentCandidate
+    intent_result = IntentRouteResult(
+        candidates=[IntentCandidate(label=lbl, confidence=0.90) for lbl in intent_labels],
+        agency_type="local_government",
+        needs_clarification=None,
+        mcp_required=True,
+        router_status="keyword_only",
+    )
+    print(f"  [INTENT] labels={intent_labels} (keyword-based, no LLM call)")
 
     # ─── 3. Guardrail 선택 + Sanity Check ───
     initial_guardrails = select_guardrails(intent_result, keyword_result)
@@ -1618,17 +1620,8 @@ def _chat_v144(
     sanity_added = list(set(guardrails) - set(initial_guardrails))
     print(f"  [GUARDRAILS] {guardrails} (Sanity added: {sanity_added})")
 
-    # ─── 4. RAG 검색 (기존 로직 재사용) ───
-    # P0-3: _parallel_rag_search()는 dict를 반환 → values를 조립
+    # ─── 4. Tier 분류 ───
     from policies.model_routing_policy import classify_risk, classify_query_tier
-    intent_labels = [c.label for c in intent_result.candidates] if intent_result and hasattr(intent_result, 'candidates') else []
-    
-    # [NEW] Pre-router에서 감지된 명시적 intent들을 보존
-    if keyword_result and hasattr(keyword_result, 'matched_categories'):
-        for cat in keyword_result.matched_categories:
-            if cat not in intent_labels and cat != "unclear":
-                intent_labels.append(cat)
-                
     risk_info = classify_risk(user_message, intent_labels)
     
     query_tier = classify_query_tier(risk_info, intent_labels, user_message)

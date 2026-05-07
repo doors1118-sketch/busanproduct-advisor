@@ -1,17 +1,13 @@
 """
-주제 클러스터 기반 조문 매핑 엔진
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-금액 하드코딩 없이, [기관유형 × 계약유형 × 주제]로 필요한 조문 클러스터를 반환.
-금액 판단은 LLM이 조문 원문을 읽고 직접 수행합니다.
+주제 클러스터 기반 조문 매핑 엔진 v2
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[기관유형 × 계약유형 × 주제]로 필요한 조문 클러스터를 반환.
+금액 판단은 LLM이 조문 원문을 읽고 직접 수행.
 
-조건 축:
-  1. 기관유형: local(지자체) / national(국가) / public_corp(공기업) / invested(출자출연)
-  2. 계약유형: goods(물품) / construction(공사) / service(용역) / unspecified(미지정)
-  3. 주제: direct_contract(수의계약) / bid(입찰) / price(예정가격) / joint(공동계약) / ...
-
-사용법:
-  cluster = get_topic_cluster(agency="local", topic="direct_contract", contract_type="goods")
-  articles = fetch_cluster_articles(cluster)  # 내부 DB에서 0ms 조회
+v2 변경:
+  - BASE_ARTICLES: 어떤 질문이든 항상 포함되는 핵심 조문 세트
+  - 키워드 미감지 시에도 기본 조문 세트 반환 (안전망)
+  - 인접 주제 핵심 조문 자동 포함 (관대한 조문 선택)
 """
 import json
 import os
@@ -56,25 +52,75 @@ LAW_SYSTEMS = {
     },
 }
 
-# ━━━ 주제별 조문 클러스터 ━━━
-# 각 클러스터는 (법령명_키, [조문번호 목록]) 튜플의 리스트
-# "ALL"은 해당 법령의 모든 조문, "전문"은 행정규칙 전문
+# ━━━ 항상 포함되는 기본 조문 세트 (안전망) ━━━
+# 어떤 키워드도 감지되지 않아도 이 조문들은 반드시 포함됨
+# → LLM이 넓은 컨텍스트에서 관련 부분을 찾아 답변
+BASE_ARTICLES = {
+    "local": [
+        ("law", ["제9조"]),           # 계약 방법 (수의/경쟁)
+        ("decree", ["제13조"]),       # 일반경쟁입찰 원칙
+        ("decree", ["제25조"]),       # 수의계약 요건
+        ("decree", ["제30조"]),       # 수의계약 금액 기준
+        ("decree", ["제20조"]),       # 제한경쟁 사유
+    ],
+    "national": [
+        ("law", ["제7조"]),
+        ("decree", ["제14조"]),
+        ("decree", ["제26조"]),
+        ("decree", ["제30조"]),
+        ("decree", ["제21조"]),
+    ],
+    "public_corp": [
+        ("law", ["제7조"]),
+        ("decree", ["제14조"]),
+        ("decree", ["제26조"]),
+        ("decree", ["제30조"]),
+    ],
+}
 
+# ━━━ 인접 주제 매핑 ━━━
+# 특정 주제 감지 시 함께 가져올 인접 주제의 핵심 조문
+ADJACENT_TOPICS = {
+    "direct_contract": ["bid", "price"],     # 수의계약 → 입찰+예정가격 핵심도 함께
+    "bid": ["direct_contract", "price"],     # 입찰 → 수의계약+예정가격도 함께
+    "price": ["direct_contract", "bid"],     # 예정가격 → 수의계약+입찰도 함께
+    "joint_contract": ["bid"],               # 공동계약 → 입찰도 함께
+    "evaluation": ["bid"],                   # 가점/평가 → 입찰도 함께
+    "policy_company": ["direct_contract"],   # 정책기업 → 수의계약도 함께
+}
+
+# 인접 주제에서 가져올 핵심 조문 (전체가 아닌 핵심만)
+ADJACENT_CORE_ONLY = {
+    "direct_contract": {
+        "local": [("decree", ["제25조", "제30조"])],
+        "national": [("decree", ["제26조", "제30조"])],
+    },
+    "bid": {
+        "local": [("decree", ["제13조", "제20조"])],
+        "national": [("decree", ["제14조", "제21조"])],
+    },
+    "price": {
+        "local": [("decree", ["제7조", "제9조"])],
+        "national": [("decree", ["제7조", "제9조"])],
+    },
+}
+
+# ━━━ 주제별 조문 클러스터 ━━━
 TOPIC_CLUSTERS = {
     # ── 수의계약 ──
     "direct_contract": {
         "local": {
-            "core": [  # 항상 포함
-                ("law", ["제9조"]),                          # 수의계약 근거
-                ("decree", ["제25조", "제26조", "제30조"]),   # 수의계약 요건+금액+제한
-                ("rule", ["제28조", "제29조", "제30조"]),     # 수의계약 시행규칙
+            "core": [
+                ("law", ["제9조"]),
+                ("decree", ["제25조", "제26조", "제30조"]),
+                ("rule", ["제28조", "제29조", "제30조"]),
             ],
             "by_type": {
-                "goods": [("decree", ["제25조", "제30조"])],  # 물품 금액기준 강조
+                "goods": [("decree", ["제25조", "제30조"])],
                 "construction": [("decree", ["제25조", "제30조", "제30조의2"])],
                 "service": [("decree", ["제25조", "제30조"])],
             },
-            "admin": [  # 관련 행정규칙
+            "admin": [
                 ("지방자치단체 입찰 및 계약집행기준", ["전문"]),
             ],
         },
@@ -249,9 +295,7 @@ TOPIC_CLUSTERS = {
     # ── 가점/평가 ──
     "evaluation": {
         "local": {
-            "core": [
-                ("decree", ["제42조"]),
-            ],
+            "core": [("decree", ["제42조"])],
             "by_type": {
                 "construction": [("decree", ["제42조"])],
                 "service": [("decree", ["제42조"])],
@@ -261,9 +305,7 @@ TOPIC_CLUSTERS = {
             ],
         },
         "national": {
-            "core": [
-                ("decree", ["제42조"]),
-            ],
+            "core": [("decree", ["제42조"])],
             "by_type": {},
             "admin": [
                 ("(계약예규) 정부 입찰·계약 집행기준", ["전문"]),
@@ -281,9 +323,7 @@ TOPIC_CLUSTERS = {
     # ── 우수조달/혁신제품 ──
     "excellence": {
         "_common": {
-            "core": [
-                ("조달사업법", ["제9조의2"]),
-            ],
+            "core": [("조달사업법", ["제9조의2"])],
             "by_type": {},
             "admin": [
                 ("우수조달공동상표 물품 지정 관리규정", ["전문"]),
@@ -293,28 +333,22 @@ TOPIC_CLUSTERS = {
         },
     },
 
-    # ── 정책기업 수의계약 특례 (여성/장애인/사회적기업) ──
+    # ── 정책기업 수의계약 특례 ──
     "policy_company": {
         "local": {
-            "core": [
-                ("decree", ["제25조", "제30조"]),  # 특례 조항 포함
-            ],
+            "core": [("decree", ["제25조", "제30조"])],
             "by_type": {},
             "admin": [],
         },
         "national": {
-            "core": [
-                ("decree", ["제26조", "제30조"]),
-            ],
+            "core": [("decree", ["제26조", "제30조"])],
             "by_type": {},
             "admin": [],
         },
         "public_corp": {
             "core": [],
             "by_type": {},
-            "admin": [
-                ("공기업계약사무규칙", ["전문"]),
-            ],
+            "admin": [("공기업계약사무규칙", ["전문"])],
         },
     },
 
@@ -323,9 +357,7 @@ TOPIC_CLUSTERS = {
         "_common": {
             "core": [],
             "by_type": {},
-            "admin": [
-                ("(계약예규) 공사계약일반조건", ["전문"]),
-            ],
+            "admin": [("(계약예규) 공사계약일반조건", ["전문"])],
         },
     },
 
@@ -363,14 +395,16 @@ TOPIC_KEYWORDS = {
     "policy_company": ["여성기업", "장애인기업", "사회적기업", "청년창업", "소기업",
                        "소상공인", "정책기업", "자활기업", "마을기업"],
     "construction": ["공사", "건설", "시공", "건축"],
-    "service": ["용역", "설계", "감리", "컨설팅", "엔지니어링"],
+    "service": ["용역", "설계", "감리", "컨설팅", "엔지니어링",
+                "안전진단", "점검", "조사", "평가용역", "위탁", "대행", "맡기"],
 }
 
 CONTRACT_TYPE_KEYWORDS = {
     "goods": ["물품", "구매", "납품", "구입", "사무용품", "소모품", "장비", "기자재",
               "컴퓨터", "가구", "차량", "프린터", "에어컨", "서버", "비품"],
     "construction": ["공사", "건설", "시공", "건축", "종합공사", "전문공사"],
-    "service": ["용역", "설계", "감리", "컨설팅", "엔지니어링", "기술용역"],
+    "service": ["용역", "설계", "감리", "컨설팅", "엔지니어링", "기술용역",
+                "안전진단", "점검", "위탁", "대행", "맡기"],
 }
 
 AGENCY_KEYWORDS = {
@@ -387,9 +421,9 @@ def detect_topics(user_message: str) -> list:
     for topic, keywords in TOPIC_KEYWORDS.items():
         if any(kw in user_message for kw in keywords):
             detected.append(topic)
-    # 기본 안전망: 아무것도 감지 안 되면 수의계약 + 입찰 (가장 빈번)
+    # 기본 안전망: 아무것도 감지 안 되면 수의계약 + 입찰 + 예정가격 (가장 빈번한 3주제)
     if not detected:
-        detected = ["direct_contract", "bid"]
+        detected = ["direct_contract", "bid", "price"]
     return detected
 
 
@@ -422,10 +456,7 @@ def detect_agency_type(user_message: str, agency_type: str = None) -> str:
 def get_article_refs(agency: str, topics: list, contract_type: str = "unspecified") -> list:
     """
     주제 클러스터 기반으로 필요한 조문 참조 목록을 생성합니다.
-    
-    Returns:
-        list of (법령명, 조문번호) 튜플
-        예: [("지방계약법", "제9조"), ("지방계약법 시행령", "제25조"), ...]
+    v2: 기본 세트 + 인접 주제 핵심 조문 자동 포함
     """
     law_system = LAW_SYSTEMS.get(agency, LAW_SYSTEMS["local"])
     refs = []
@@ -438,27 +469,33 @@ def get_article_refs(agency: str, topics: list, contract_type: str = "unspecifie
             refs.append((law_name, article_no))
     
     def resolve_law_key(key: str) -> str:
-        """'law', 'decree', 'rule' → 실제 법령명으로 변환"""
         if key in law_system:
             return law_system[key]
-        return key  # 이미 실제 법령명인 경우
-    
+        return key
+
+    # ── 1단계: 기본 세트 (항상 포함) ──
+    base = BASE_ARTICLES.get(agency, BASE_ARTICLES.get("local", []))
+    for law_key, art_list in base:
+        resolved = resolve_law_key(law_key)
+        for art_no in art_list:
+            add_ref(resolved, art_no)
+
+    # ── 2단계: 감지된 주제별 클러스터 ──
     for topic in topics:
         cluster = TOPIC_CLUSTERS.get(topic)
         if not cluster:
             continue
         
-        # _common이면 기관 무관
         if "_common" in cluster:
             topic_data = cluster["_common"]
         elif agency in cluster:
             topic_data = cluster[agency]
         elif "local" in cluster:
-            topic_data = cluster["local"]  # fallback
+            topic_data = cluster["local"]
         else:
             continue
         
-        # core 조문 추가
+        # core 조문
         for law_key, art_list in topic_data.get("core", []):
             resolved = resolve_law_key(law_key)
             for art_no in art_list:
@@ -475,6 +512,20 @@ def get_article_refs(agency: str, topics: list, contract_type: str = "unspecifie
         for admin_name, art_list in topic_data.get("admin", []):
             for art_no in art_list:
                 add_ref(admin_name, art_no)
+
+    # ── 3단계: 인접 주제 핵심 조문 (관대한 확장) ──
+    adjacent_added = set()
+    for topic in topics:
+        for adj_topic in ADJACENT_TOPICS.get(topic, []):
+            if adj_topic in topics or adj_topic in adjacent_added:
+                continue  # 이미 감지된 주제이거나 추가됨
+            adjacent_added.add(adj_topic)
+            adj_core = ADJACENT_CORE_ONLY.get(adj_topic, {})
+            adj_articles = adj_core.get(agency, adj_core.get("local", []))
+            for law_key, art_list in adj_articles:
+                resolved = resolve_law_key(law_key)
+                for art_no in art_list:
+                    add_ref(resolved, art_no)
     
     return refs
 
@@ -482,10 +533,6 @@ def get_article_refs(agency: str, topics: list, contract_type: str = "unspecifie
 def build_preflight_plan(user_message: str, agency_type: str = None) -> list:
     """
     질문을 분석하여 MCP Preflight 실행 계획을 생성합니다.
-    generate_mandatory_mcp_plan()을 대체합니다.
-    
-    Returns:
-        list of {"name": tool_name, "args": {"query": ...}} 형태
     """
     agency = detect_agency_type(user_message, agency_type)
     topics = detect_topics(user_message)
@@ -498,7 +545,6 @@ def build_preflight_plan(user_message: str, agency_type: str = None) -> list:
     
     for law_name, article_no in article_refs:
         if article_no == "전문":
-            # 행정규칙 전문
             tool = "search_admin_rule"
             query = law_name
         else:
