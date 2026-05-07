@@ -148,25 +148,65 @@ def get_annexes(law_name: str, annex_no: str = None) -> str:
 
 
 def chain_law_system(query: str) -> str:
-    """법령 체계 종합 분석 (법률·시행령·시행규칙 3단 구조). 외부 MCP 사용."""
+    """법률→시행령→시행규칙→행정규칙 4단 체계 분석. 내부 DB 우선 → 외부 MCP 보완."""
+    # ── 1단계: 내부 DB 우선 (0ms) ──
+    try:
+        from internal_law_lookup import chain_law_system_internal
+        internal_result = chain_law_system_internal(query)
+        if internal_result:
+            return internal_result
+    except Exception as e:
+        print(f"  [chain_law_system] 내부 DB 실패: {e}")
+    
+    # ── 2단계: 내부에 없으면 외부 MCP 보완 ──
     try:
         result = _mcp_call("chain_law_system", {"query": query})
         if result["success"]:
-            return result["text"]
+            return f"[외부MCP] {result['text']}"
         return f"[FAILED] chain_law_system 실패: {result['text']}"
     except Exception as e:
         return f"[FAILED] chain_law_system 외부 MCP 호출 실패: {e}"
 
 
 def chain_full_research(query: str) -> str:
-    """종합 리서치. AI검색→법령→판례→해석례 자동 수행. 외부 MCP 사용."""
+    """종합 리서치. 법령(내부DB) + 판례·해석례(외부MCP) 하이브리드."""
+    parts = []
+    
+    # ── 1단계: 법령/행정규칙 (내부 DB, 0ms) ──
+    try:
+        from internal_law_lookup import chain_full_research_internal
+        internal_result = chain_full_research_internal(query)
+        if internal_result:
+            parts.append(internal_result)
+    except Exception as e:
+        print(f"  [chain_full_research] 내부 DB 실패: {e}")
+    
+    # ── 2단계: 판례·해석례 (외부 MCP) ──
+    try:
+        prec = _mcp_call("search_decisions", {"query": query, "domain": "precedent", "display": 3})
+        if prec["success"] and prec["text"] and len(prec["text"]) > 30:
+            parts.append(f"▶ 관련 판례:\n{prec['text']}")
+    except Exception:
+        pass
+    
+    try:
+        interp = _mcp_call("search_decisions", {"query": query, "domain": "interpretation", "display": 3})
+        if interp["success"] and interp["text"] and len(interp["text"]) > 30:
+            parts.append(f"▶ 관련 해석례:\n{interp['text']}")
+    except Exception:
+        pass
+    
+    if parts:
+        return "\n\n".join(parts)
+    
+    # 전부 실패 시 외부 MCP chain 시도
     try:
         result = _mcp_call("chain_full_research", {"query": query})
         if result["success"]:
-            return result["text"]
+            return f"[외부MCP] {result['text']}"
         return f"[FAILED] chain_full_research 실패: {result['text']}"
     except Exception as e:
-        return f"[FAILED] chain_full_research 외부 MCP 호출 실패: {e}"
+        return f"[FAILED] chain_full_research 실패: {e}"
 
 
 def chain_action_basis(query: str) -> str:
