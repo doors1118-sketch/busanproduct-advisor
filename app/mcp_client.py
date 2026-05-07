@@ -84,9 +84,25 @@ def _mcp_call(tool_name: str, arguments: dict, timeout: int = None) -> dict:
 # ─────────────────────────────────────────────
 
 def search_law(query: str, display: int = 5) -> str:
-    """법령명으로 검색. 텍스트 결과 반환."""
-    result = _mcp_call("search_law", {"query": query, "display": display})
-    return result["text"]
+    """법령명으로 검색. 내부 DB 우선 → 외부 MCP 보완."""
+    # ── 1단계: 내부 DB 우선 조회 (key_articles.json + ChromaDB) ──
+    try:
+        from internal_law_lookup import search_internal_law
+        internal_result = search_internal_law(query)
+        if internal_result:
+            return internal_result
+    except Exception as e:
+        print(f"  [search_law] 내부 DB 조회 실패: {e}")
+    
+    # ── 2단계: 내부에 없으면 외부 MCP 보완 호출 ──
+    try:
+        result = _mcp_call("search_law", {"query": query, "display": display})
+        if result["success"] and result["text"] and "[NOT_FOUND]" not in result["text"]:
+            return f"[외부MCP] {result['text']}"
+        # 외부 MCP도 NOT_FOUND
+        return result["text"]
+    except Exception as e:
+        return f"[FAILED] 외부 MCP 호출 실패 (법제처 API 응답 거부 가능): {e}"
 
 
 def get_law_text(mst: str = None, law_id: str = None, jo: str = None) -> str:
@@ -132,15 +148,25 @@ def get_annexes(law_name: str, annex_no: str = None) -> str:
 
 
 def chain_law_system(query: str) -> str:
-    """법령 체계 종합 분석 (법률·시행령·시행규칙 3단 구조)."""
-    result = _mcp_call("chain_law_system", {"query": query})
-    return result["text"]
+    """법령 체계 종합 분석 (법률·시행령·시행규칙 3단 구조). 외부 MCP 사용."""
+    try:
+        result = _mcp_call("chain_law_system", {"query": query})
+        if result["success"]:
+            return result["text"]
+        return f"[FAILED] chain_law_system 실패: {result['text']}"
+    except Exception as e:
+        return f"[FAILED] chain_law_system 외부 MCP 호출 실패: {e}"
 
 
 def chain_full_research(query: str) -> str:
-    """종합 리서치. AI검색→법령→판례→해석례 자동 수행."""
-    result = _mcp_call("chain_full_research", {"query": query})
-    return result["text"]
+    """종합 리서치. AI검색→법령→판례→해석례 자동 수행. 외부 MCP 사용."""
+    try:
+        result = _mcp_call("chain_full_research", {"query": query})
+        if result["success"]:
+            return result["text"]
+        return f"[FAILED] chain_full_research 실패: {result['text']}"
+    except Exception as e:
+        return f"[FAILED] chain_full_research 외부 MCP 호출 실패: {e}"
 
 
 def chain_action_basis(query: str) -> str:
@@ -160,15 +186,30 @@ def verify_citations(text: str) -> str:
 # ─────────────────────────────────────────────
 
 def search_admin_rule(query: str, knd: int = None) -> str:
-    """행정규칙(훈령/예규/고시) 검색. knd: 1=훈령, 2=예규, 3=고시."""
-    params = {"query": query}
-    if knd is not None:
-        params["knd"] = str(knd)
-    result = _mcp_call("execute_tool", {
-        "tool_name": "search_admin_rule",
-        "params": params,
-    })
-    return result["text"]
+    """행정규칙(훈령/예규/고시) 검색. 내부 DB 우선 → 외부 MCP 보완."""
+    # ── 1단계: 내부 DB 우선 조회 ──
+    try:
+        from internal_law_lookup import search_internal_admin_rule
+        internal_result = search_internal_admin_rule(query)
+        if internal_result:
+            return internal_result
+    except Exception as e:
+        print(f"  [search_admin_rule] 내부 DB 조회 실패: {e}")
+    
+    # ── 2단계: 외부 MCP 보완 호출 ──
+    try:
+        params = {"query": query}
+        if knd is not None:
+            params["knd"] = str(knd)
+        result = _mcp_call("execute_tool", {
+            "tool_name": "search_admin_rule",
+            "params": params,
+        })
+        if result["success"]:
+            return f"[외부MCP] {result['text']}"
+        return result["text"]
+    except Exception as e:
+        return f"[FAILED] search_admin_rule 외부 MCP 호출 실패: {e}"
 
 
 def get_admin_rule(rule_id: str) -> str:
@@ -191,9 +232,14 @@ def chain_procedure_detail(query: str) -> str:
 
 
 def chain_ordinance_compare(query: str) -> str:
-    """조례 비교 연구 (상위법→전국 조례 검색)."""
-    result = _mcp_call("chain_ordinance_compare", {"query": query})
-    return result["text"]
+    """조례 비교 연구 (상위법→전국 조례 검색). 외부 MCP 사용."""
+    try:
+        result = _mcp_call("chain_ordinance_compare", {"query": query})
+        if result["success"]:
+            return result["text"]
+        return f"[FAILED] chain_ordinance_compare 실패: {result['text']}"
+    except Exception as e:
+        return f"[FAILED] chain_ordinance_compare 외부 MCP 호출 실패: {e}"
 
 
 def chain_amendment_track(query: str) -> str:
