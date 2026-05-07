@@ -683,21 +683,30 @@ def _search_law_rag(query: str, n_results: int = 5, agency_type: str = None) -> 
 # 병렬 RAG 검색 (임베딩 1회 + ThreadPool)
 # ─────────────────────────────────────────────
 def _parallel_rag_search(query: str, agency_type: str = None) -> dict:
-    """5개 RAG 소스를 병렬로 검색. 임베딩은 1회만 수행."""
+    """5개 RAG 소스를 병렬로 검색. 임베딩은 1회만 수행. 전체 5초 제한."""
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    from embedding import encode_query
     import time
 
     start = time.time()
-
-    # 1. 임베딩 1회만 수행
-    query_vector = encode_query(query)
-    embed_time = time.time() - start
-    print(f"  [RAG] 임베딩 완료: {embed_time:.1f}초")
-
-    # 2. 4개 소스 병렬 검색 (법령은 MCP preflight가 전담 → RAG에서 제거)
     results = {"qa": "", "manual": "", "innovation": "", "tech": ""}
 
+    # 1. 임베딩 (실패 시 빈 결과 즉시 반환)
+    try:
+        from embedding import encode_query
+        query_vector = encode_query(query)
+    except Exception as e:
+        print(f"  [RAG] 임베딩 실패, 스킵: {e}")
+        return results
+    
+    embed_time = time.time() - start
+    print(f"  [RAG] 임베딩 완료: {embed_time:.1f}초")
+    
+    # 임베딩만 5초 이상 걸리면 검색 스킵
+    if embed_time > 5.0:
+        print(f"  [RAG] 임베딩 {embed_time:.1f}초 > 5초, 검색 스킵")
+        return results
+
+    # 2. 4개 소스 병렬 검색 (타임아웃 3초)
     def search_qa():
         return _search_pps_qa(query)
 
@@ -727,9 +736,9 @@ def _parallel_rag_search(query: str, agency_type: str = None) -> dict:
         }
         for key, future in futures.items():
             try:
-                results[key] = future.result(timeout=15)
+                results[key] = future.result(timeout=3)
             except Exception as e:
-                print(f"  [RAG] {key} 검색 실패: {e}")
+                print(f"  [RAG] {key} 검색 실패/타임아웃: {e}")
                 results[key] = ""
 
     total_time = time.time() - start
