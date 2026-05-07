@@ -288,8 +288,14 @@ def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str 
 
     has_amount = any(w in user_message for w in ["천만원", "백만원", "억원", "금액", "예산", "만원"])
     has_local = any(w in user_message for w in ["지역업체", "부산업체", "부산 업체", "지역 업체", "부산상품", "지역상품"])
-    has_item = any(w in user_message for w in ["컴퓨터", "물품", "CCTV", "구매", "조명", "LED", "가구", "차량", "복사기", "프린터", "에어컨", "냉난방", "소프트웨어", "서버", "사려", "구입", "납품"])
+    has_item = any(w in user_message for w in ["컴퓨터", "물품", "CCTV", "구매", "조명", "LED", "가구", "차량",
+                                                "복사기", "프린터", "에어컨", "냉난방", "소프트웨어", "서버",
+                                                "사려", "구입", "납품", "사무용품", "소모품", "청소용품",
+                                                "사무기기", "가전", "장비", "기자재", "비품", "용품"])
     has_agency = any(w in user_message for w in ["부산교통공사", "공기업", "출자출연", "시설공단", "환경공단"])
+    has_contract_method = any(w in user_message for w in ["수의계약", "입찰", "경쟁입찰", "제한입찰",
+                                                           "수의", "견적", "낙찰", "적격심사",
+                                                           "공동계약", "MAS", "다수공급자"])
 
     # Tier 0: 금액 관련 법적 제한/한도 판단이 주 목적이 아닌 순수 업체 검색/상세 조회
     fast_track_intents = {"company_search", "policy_candidate_search", "shopping_mall_search", "certified_product_search", "company_detail", "license_search", "mas_search", "innovation_product_search", "excellent_procurement_search"}
@@ -300,11 +306,15 @@ def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str 
     if has_agency:
         return 3
 
-    # Tier 2: 금액 + 품목 (지역업체 선호는 부산 어드바이저이므로 기본 전제)
-    if has_amount and (has_item or has_local):
+    # Tier 2: 금액 + 품목, 또는 금액 + 계약방식 (수의계약/입찰 포함 시 반드시 법령 조회)
+    if has_amount and (has_item or has_local or has_contract_method):
         return 2
 
-    # Tier 1: 그 외 금액이 있거나, 수의계약 등 일반적인 계약 검토 질문
+    # Tier 2: 계약방식 키워드만으로도 법령 조회 필요 (금액 없어도)
+    if has_contract_method:
+        return 2
+
+    # Tier 1: 그 외 금액이 있거나, 일반적인 질문
     return 1
 
 def generate_mandatory_mcp_plan(user_message: str, tier: int, agency_type: str = None) -> list:

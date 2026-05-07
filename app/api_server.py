@@ -451,6 +451,35 @@ def _chat_legacy(req: ChatRequest, start: float):
             mcp_preflight_elapsed_ms=meta.get("mcp_preflight_elapsed_ms", 0),
             tool_call_count=meta.get("tool_call_count", 0),
         )
+
+        # ── QA 테스트 로그 자동 저장 ──
+        try:
+            from qa_test_logger import save_qa_log
+            save_qa_log(
+                question=req.message,
+                answer=answer,
+                agency_type=req.agency_type,
+                latency_ms=latency_ms,
+                tier_resolved=meta.get("tier_resolved"),
+                tool_call_count=meta.get("tool_call_count", 0),
+                mcp_preflight_elapsed_ms=meta.get("mcp_preflight_elapsed_ms", 0),
+                mandatory_mcp_plan=meta.get("mandatory_mcp_plan"),
+                mandatory_mcp_executed=meta.get("mandatory_mcp_executed"),
+                mandatory_mcp_missing=meta.get("mandatory_mcp_missing"),
+                model_used=meta.get("model_used"),
+                pipeline_mode="legacy_gemini",
+                extra_meta={
+                    "rag_elapsed_ms": meta.get("rag_elapsed_ms"),
+                    "model_elapsed_ms": meta.get("model_elapsed_ms"),
+                    "legal_basis_cache_hit_count": meta.get("legal_basis_cache_hit_count"),
+                    "legal_basis_cache_miss_count": meta.get("legal_basis_cache_miss_count"),
+                    "deterministic_template_used": meta.get("deterministic_template_used"),
+                    "source_status": meta.get("source_status"),
+                },
+            )
+        except Exception as log_err:
+            print(f"  [QA_LOG] Failed: {log_err}")
+
         return JSONResponse(content=resp_obj.dict(), media_type="application/json; charset=utf-8")
 
     except Exception as e:
@@ -470,6 +499,37 @@ def _chat_legacy(req: ChatRequest, start: float):
             status_code=500,
             media_type="application/json; charset=utf-8",
         )
+
+
+# ─────────────────────────────────────────────
+# QA 테스트 로그 조회 API
+# ─────────────────────────────────────────────
+@app.get("/qa-logs")
+def get_qa_logs_endpoint(date: str = None, limit: int = 100):
+    """QA 테스트 로그 조회. ?date=20260507&limit=50"""
+    try:
+        from qa_test_logger import get_qa_logs
+        logs = get_qa_logs(date_str=date, limit=limit)
+        return JSONResponse(
+            content={"count": len(logs), "logs": logs},
+            media_type="application/json; charset=utf-8",
+        )
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+
+@app.get("/qa-summary")
+def get_qa_summary_endpoint(date: str = None):
+    """QA 테스트 일별 요약. ?date=20260507"""
+    try:
+        from qa_test_logger import get_qa_summary
+        summary = get_qa_summary(date_str=date)
+        return JSONResponse(
+            content=summary,
+            media_type="application/json; charset=utf-8",
+        )
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
 
 # ─────────────────────────────────────────────
