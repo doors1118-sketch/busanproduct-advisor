@@ -48,11 +48,16 @@ def repair_slots(user_query: str, router_result: RouterResult) -> RouterResult:
             repaired_slots.append("quote_type")
             
     # 4. 품목명 및 계약목적물
-    items = ["LED조명", "컴퓨터", "CCTV"]
-    for item in items:
-        if item in user_query:
+    items = [
+        ("LED조명", "LED조명"), ("LED 조명", "LED 조명"), ("LED", "LED"),
+        ("컴퓨터", "컴퓨터"), ("CCTV", "CCTV"),
+        ("에어컨", "에어컨"), ("프린터", "프린터"), ("복사기", "복사기"),
+        ("가구", "가구"), ("차량", "차량"), ("서버", "서버"),
+    ]
+    for keyword, item_name_val in items:
+        if keyword in user_query:
             if not slots.item_name:
-                slots.item_name = item
+                slots.item_name = item_name_val
                 repaired_slots.append("item_name")
             if not slots.contract_object:
                 slots.contract_object = "goods"
@@ -66,7 +71,10 @@ def repair_slots(user_query: str, router_result: RouterResult) -> RouterResult:
             repaired_slots.append("location")
             
     if not slots.candidate_lookup_requested:
-        if re.search(r"업체.*(찾아|추천|알려)", user_query):
+        if re.search(r"업체.*(찾아|추천|알려|있어|있나|있는지|어디|보여|검색|리스트)", user_query):
+            slots.candidate_lookup_requested = True
+            repaired_slots.append("candidate_lookup_requested")
+        elif re.search(r"(지역업체|부산업체|부산 업체|지역 업체)", user_query):
             slots.candidate_lookup_requested = True
             repaired_slots.append("candidate_lookup_requested")
 
