@@ -19,7 +19,7 @@ from google.genai import types
 
 # Feature flag: legacy | dynamic_v1_4_4
 PROMPT_MODE = os.getenv("PROMPT_MODE", "legacy")
-MAX_TOOL_CALL_ROUNDS = int(os.getenv("MAX_TOOL_CALL_ROUNDS", "3"))
+MAX_TOOL_CALL_ROUNDS = int(os.getenv("MAX_TOOL_CALL_ROUNDS", "2"))  # MCP preflight가 데이터 사전 주입 → 2라운드 충분
 
 # Legacy system prompt (PROMPT_MODE=legacy 일 때만 사용)
 from system_prompt import SYSTEM_PROMPT
@@ -1770,7 +1770,11 @@ def _chat_v144(
     
     # low-risk company_search일 경우 법령 도구 스킵하여 지연 최소화
     skip_law_tools = risk_info.get("risk_level") == "low" and "company_search" in guardrails
-    law_tools_to_skip = ["chain_full_research", "chain_action_basis", "search_law", "get_law_text", "search_interpretations", "get_annexes", "chain_procedure_detail", "chain_ordinance_compare", "chain_document_review"]
+    # Tier 2 + 금액 + MCP preflight 완료 시: 법령은 이미 컨텍스트에 주입됨
+    # → LLM이 법령 도구를 추가 호출하지 않도록 제거 (종합·작문에 집중)
+    if query_tier == 2 and amount_detected is not None and mandatory_mcp_executed:
+        skip_law_tools = True
+    law_tools_to_skip = ["chain_full_research", "chain_action_basis", "search_law", "get_law_text", "search_interpretations", "get_annexes", "chain_procedure_detail", "chain_ordinance_compare", "chain_document_review", "chain_law_system", "search_admin_rule", "get_admin_rule", "chain_amendment_track"]
     
     all_funcs = law_tools[0].function_declarations
     filtered_funcs = []
@@ -1785,8 +1789,12 @@ def _chat_v144(
             if skip_law_tools and f.name in law_tools_to_skip:
                 continue
             filtered_funcs.append(f)
-            
-    dynamic_tools = [types.Tool(function_declarations=filtered_funcs)]
+    
+    # 도구가 0개가 되면 LLM이 텍스트 생성만 수행 (도구 호출 불가)
+    if filtered_funcs:
+        dynamic_tools = [types.Tool(function_declarations=filtered_funcs)]
+    else:
+        dynamic_tools = []
 
     config = types.GenerateContentConfig(
         system_instruction=assembled.core_prompt,  # Core만 (불변)

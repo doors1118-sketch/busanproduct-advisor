@@ -13,7 +13,9 @@ from typing import Optional
 # 환경 변수
 # ─────────────────────────────────────────────
 ROUTER_MODEL = os.getenv("ROUTER_MODEL", "gemini-2.5-flash")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-pro")
+# MCP preflight가 법령 데이터를 사전 주입하므로 LLM은 종합·작문 역할
+# → Flash로 충분. Pro 필요시 env GEMINI_MODEL=gemini-2.5-pro로 오버라이드
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "gemini-2.5-flash")
 MODEL_ROUTING_MODE = os.getenv("MODEL_ROUTING_MODE", "risk_based")
 
