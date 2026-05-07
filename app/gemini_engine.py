@@ -695,11 +695,8 @@ def _parallel_rag_search(query: str, agency_type: str = None) -> dict:
     embed_time = time.time() - start
     print(f"  [RAG] 임베딩 완료: {embed_time:.1f}초")
 
-    # 2. 5개 소스 병렬 검색 (벡터 전달)
-    results = {"law": "", "qa": "", "manual": "", "innovation": "", "tech": ""}
-
-    def search_law():
-        return _search_law_rag(query, agency_type=agency_type)
+    # 2. 4개 소스 병렬 검색 (법령은 MCP preflight가 전담 → RAG에서 제거)
+    results = {"qa": "", "manual": "", "innovation": "", "tech": ""}
 
     def search_qa():
         return _search_pps_qa(query)
@@ -721,9 +718,8 @@ def _parallel_rag_search(query: str, agency_type: str = None) -> dict:
         except Exception:
             return ""
 
-    with ThreadPoolExecutor(max_workers=5) as pool:
+    with ThreadPoolExecutor(max_workers=4) as pool:
         futures = {
-            "law": pool.submit(search_law),
             "qa": pool.submit(search_qa),
             "manual": pool.submit(search_manual),
             "innovation": pool.submit(search_innovation),
@@ -1650,9 +1646,10 @@ def _chat_v144(
         return _execute_tier_0_fast_track(user_message, history, api_status, progress_callback, intent_labels)
         
     amount_detected = _parse_amount(user_message)
-    # MCP preflight가 법령 조회를 대체하므로, 법령 RAG만 선택적 스킵
-    # Q&A/매뉴얼/혁신/기술 RAG는 실무 가이드로서 항상 유지
-    skip_law_rag = (query_tier in (1, 2) and amount_detected is not None)
+    # ━━━ 법령 RAG 완전 제거 ━━━
+    # 법령은 MCP preflight(내부 DB → 외부 MCP)가 전담
+    # RAG는 실무 가이드(Q&A/매뉴얼/혁신/기술) 전용
+    skip_law_rag = True  # 항상 스킵
     
     # RAG elapsed time must be initialized
     rag_elapsed_ms = 0
@@ -1664,11 +1661,7 @@ def _chat_v144(
     rag_dict = _parallel_rag_search(user_message)
     rag_elapsed_ms = int((time.time() - rag_start) * 1000)
     rag_parts = []
-    for key in ["law", "qa", "manual", "innovation", "tech"]:
-        # 법령 RAG는 MCP preflight가 대체 → 금액 질문에서 스킵
-        if key == "law" and skip_law_rag:
-            print("  [RAG] law RAG skipped (MCP preflight 대체)")
-            continue
+    for key in ["qa", "manual", "innovation", "tech"]:  # law 제거
         val = rag_dict.get(key, "")
         if val and isinstance(val, str) and val.strip():
             rag_parts.append(val)
