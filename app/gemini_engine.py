@@ -48,7 +48,10 @@ _mcp_cache = TTLCache(maxsize=100, ttl=3600)
 # ─────────────────────────────────────────────
 # Gemini 클라이언트 초기화
 # ─────────────────────────────────────────────
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+client = genai.Client(
+    api_key=os.getenv("GEMINI_API_KEY"),
+    http_options={"api_version": "v1beta"},  # SDK 내장 tenacity 재시도 최소화
+)
 # Flash 전용 — 응답속도·비용·품질 종합 고려 시 Flash로 충분 (Pro 제거)
 MODEL_ID = "gemini-2.5-flash"
 FALLBACK_MODEL = "gemini-2.5-flash"
