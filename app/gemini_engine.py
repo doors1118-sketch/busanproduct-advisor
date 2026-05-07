@@ -1192,7 +1192,13 @@ def _verify_and_annotate_v144(answer: str, tool_results: list[dict]) -> str:
 def _extract_item_keyword(msg):
     import re
     # 알려진 주요 품목 명시적 추출
-    known_products = ["CCTV", "컴퓨터", "공기청정기", "드론", "노트북", "책상", "의자", "프린터", "모니터", "서버", "수중펌프", "펌프수문", "안전펜스"]
+    known_products = [
+        "LED조명", "LED 조명", "LED",
+        "CCTV", "컴퓨터", "공기청정기", "드론", "노트북", "책상", "의자",
+        "프린터", "모니터", "서버", "수중펌프", "펌프수문", "안전펜스",
+        "에어컨", "복사기", "가구", "차량", "냉난방기", "소방설비",
+        "정수기", "복합기", "칠판", "전자칠판", "빔프로젝터",
+    ]
     for prod in known_products:
         if prod.lower() in msg.lower():
             return prod
