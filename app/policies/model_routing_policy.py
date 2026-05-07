@@ -432,19 +432,75 @@ def generate_mandatory_mcp_plan(user_message: str, tier: int, agency_type: str =
         "public_corp": "조달청 일반용역 적격심사 세부기준",
         "invested": "지방자치단체 입찰시 낙찰자 결정기준 용역 적격심사",
     }
+    # 평가/가점 관련
+    EVALUATION_QUERIES = {
+        "local": [
+            ("search_admin_rule", "지방자치단체 입찰시 낙찰자 결정기준 지역업체 가점"),
+            ("search_admin_rule", "지방자치단체 입찰시 낙찰자 결정기준 적격심사 세부기준"),
+        ],
+        "national": [
+            ("search_admin_rule", "정부 입찰 계약 집행기준 적격심사 지역가점"),
+            ("search_admin_rule", "조달청 적격심사 세부기준 신인도 가점"),
+        ],
+        "public_corp": [
+            ("search_admin_rule", "기타공공기관 계약사무 운영규정 적격심사"),
+        ],
+        "invested": [
+            ("search_admin_rule", "지방자치단체 입찰시 낙찰자 결정기준 지역업체 가점"),
+            ("search_admin_rule", "지방자치단체 입찰시 낙찰자 결정기준 적격심사 세부기준"),
+        ],
+    }
+    # 가격/예정가격 관련
+    PRICE_QUERIES = {
+        "local": [
+            ("search_law", "지방계약법 시행령 예정가격 작성기준"),
+            ("search_admin_rule", "지방자치단체 원가계산 및 예정가격 작성요령"),
+        ],
+        "national": [
+            ("search_law", "국가계약법 시행령 예정가격 작성기준"),
+            ("search_admin_rule", "원가계산에 의한 예정가격 작성준칙"),
+        ],
+        "public_corp": [
+            ("search_law", "국가계약법 시행령 예정가격 작성기준"),
+        ],
+        "invested": [
+            ("search_law", "지방계약법 시행령 예정가격 작성기준"),
+            ("search_admin_rule", "지방자치단체 원가계산 및 예정가격 작성요령"),
+        ],
+    }
 
     # ━━━ 의도 감지 ━━━
     has_amount = bool(re.search(r'\d+[천만백억]', msg))
-    has_contract_method = any(w in msg for w in ["수의계약", "견적", "1인", "2인", "소액", "수의"])
-    has_bid = any(w in msg for w in ["입찰", "경쟁입찰", "공개입찰", "낙찰", "적격심사"])
-    has_regional = any(w in msg for w in ["지역", "부산", "지역제한", "지역업체", "로컬"])
-    has_joint = any(w in msg for w in ["공동계약", "공동도급", "공동수급", "JV"])
-    has_mas = any(w in msg for w in ["종합쇼핑몰", "MAS", "다수공급", "쇼핑몰", "3자단가", "제3자"])
-    has_excellence = any(w in msg for w in ["우수조달", "우수물품", "혁신제품", "혁신", "기술개발"])
-    has_policy_company = any(w in msg for w in ["여성기업", "장애인기업", "사회적기업", "청년창업", "소기업", "소상공인", "정책기업"])
-    has_priority = any(w in msg for w in ["우선구매", "의무구매", "중소기업제품"])
-    has_construction = any(w in msg for w in ["공사", "건설", "시공", "건축"])
-    has_service = any(w in msg for w in ["용역", "설계", "감리", "컨설팅"])
+    has_contract_method = any(w in msg for w in ["수의계약", "견적", "1인", "2인", "소액", "수의",
+                                                  "수의시담", "소액수의", "견적서"])
+    has_bid = any(w in msg for w in ["입찰", "경쟁입찰", "공개입찰", "낙찰", "적격심사",
+                                      "제한경쟁", "일반경쟁", "지명경쟁", "입찰공고",
+                                      "투찰", "개찰", "유찰", "재공고"])
+    has_regional = any(w in msg for w in ["지역", "부산", "지역제한", "지역업체", "로컬",
+                                           "지역가점", "지역상생", "지역상품", "지역보호",
+                                           "본점소재지", "소재지"])
+    has_joint = any(w in msg for w in ["공동계약", "공동도급", "공동수급", "JV", "컨소시엄"])
+    has_mas = any(w in msg for w in ["종합쇼핑몰", "MAS", "다수공급", "쇼핑몰", "3자단가", "제3자",
+                                      "나라장터", "카탈로그", "단가계약"])
+    has_excellence = any(w in msg for w in ["우수조달", "우수물품", "혁신제품", "혁신", "기술개발",
+                                             "신기술", "신제품", "성능인증", "품질인증",
+                                             "우수발명", "녹색제품"])
+    has_policy_company = any(w in msg for w in ["여성기업", "장애인기업", "사회적기업", "청년창업",
+                                                 "소기업", "소상공인", "정책기업",
+                                                 "사회적협동조합", "자활기업", "마을기업",
+                                                 "중증장애인", "장애인표준사업장"])
+    has_priority = any(w in msg for w in ["우선구매", "의무구매", "중소기업제품",
+                                           "직접생산", "경쟁제품", "중소기업자간"])
+    has_construction = any(w in msg for w in ["공사", "건설", "시공", "건축", "종합공사", "전문공사"])
+    has_service = any(w in msg for w in ["용역", "설계", "감리", "컨설팅", "엔지니어링", "기술용역"])
+    # [추가 의도]
+    has_evaluation = any(w in msg for w in ["가점", "배점", "평가기준", "평가항목", "심사기준",
+                                             "신인도", "신용평가", "종합평가", "기술평가",
+                                             "제안서평가", "가격점수", "비가격점수"])
+    has_price = any(w in msg for w in ["예정가격", "추정가격", "기초금액", "원가계산",
+                                        "예가", "투찰률", "사정률", "낙찰률",
+                                        "계약보증금", "하자보증", "지체상금", "선금",
+                                        "기성", "설계변경"])
 
     # ━━━ Tier 1: 기본 법령 조회 ━━━
     if tier == 1:
@@ -519,15 +575,24 @@ def generate_mandatory_mcp_plan(user_message: str, tier: int, agency_type: str =
     if has_service:
         add("search_admin_rule", {"query": SERVICE_QUERIES[law_system]})
 
-    # [안전망] 아무 의도도 감지 안 되면 기본 세트
-    if not plan:
-        for tool, q in DIRECT_CONTRACT_QUERIES[law_system]:
+    # [의도 10] 가점/평가/심사 → 기관별 평가 기준
+    if has_evaluation:
+        for tool, q in EVALUATION_QUERIES[law_system]:
             add(tool, {"query": q})
-        if law_system in ("local", "invested"):
-            add("chain_law_system", {"query": "지방계약법 물품 구매 지역제한"})
-            add("chain_ordinance_compare", {"query": "부산광역시 지역상품 우선구매 조례"})
-        elif law_system == "national":
-            add("chain_law_system", {"query": "국가계약법 물품 구매 지역제한"})
+
+    # [의도 11] 예정가격/원가계산/보증금 등 → 기관별 가격 기준
+    if has_price:
+        for tool, q in PRICE_QUERIES[law_system]:
+            add(tool, {"query": q})
+
+    # [안전망] 아무 의도도 감지 안 되면 → 질문 원문으로 직접 검색
+    if not plan:
+        # 질문 원문에서 핵심 키워드를 추출하여 법령 검색
+        # (의도에 걸리지 않은 미지의 질문도 대응)
+        add("chain_full_research", {"query": user_message[:80]})
+        # 기본 법령도 함께 주입
+        for tool, q in DIRECT_CONTRACT_QUERIES[law_system][:1]:
+            add(tool, {"query": q})
 
     return plan
 
