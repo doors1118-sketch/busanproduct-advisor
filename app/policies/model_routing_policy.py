@@ -320,9 +320,23 @@ def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str 
 def generate_mandatory_mcp_plan(user_message: str, tier: int, agency_type: str = None) -> list:
     """
     Tier 1/2 쿼리에 대해 필수적으로 호출해야 할 MCP 계획을 생성합니다.
-    질문 의도를 키워드로 분석하여, 해당 의도에 맞는 법령/행정규칙을 동적으로 선택합니다.
-    agency_type에 따라 적용 법령 체계가 달라집니다.
+    주제 클러스터 엔진을 우선 사용하고, 실패 시 기존 키워드 매칭을 fallback으로 사용합니다.
     """
+    # ── 1순위: 주제 클러스터 엔진 (기관×주제×계약유형 → 조문 클러스터) ──
+    try:
+        from topic_cluster_engine import build_preflight_plan
+        cluster_plan = build_preflight_plan(user_message, agency_type)
+        if cluster_plan:
+            return cluster_plan
+    except Exception as e:
+        print(f"  [TOPIC_CLUSTER] Fallback to legacy: {e}")
+    
+    # ── 2순위: 기존 키워드 매칭 (fallback) ──
+    return _legacy_mandatory_mcp_plan(user_message, tier, agency_type)
+
+
+def _legacy_mandatory_mcp_plan(user_message: str, tier: int, agency_type: str = None) -> list:
+    """기존 키워드 매칭 기반 MCP 계획 (fallback용)."""
     msg = user_message.lower()
     plan = []
     seen = set()  # 중복 방지
