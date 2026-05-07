@@ -135,15 +135,15 @@ def classify_candidates(tool_results: list, user_message: str = "") -> dict:
                 if cands:
                     for cand in cands:
                         c_types = cand.get("candidate_types", [])
-                    key = cand.get("company_name", cand.get("product_name", ""))
-                    if key:
-                        cand.setdefault("contract_possible_auto_promoted", False)
-                        cand.setdefault("legal_eligibility_status", "확인 필요")
-                        cand.setdefault("display_status", "후보")
-                        for p_type in c_types:
-                            if p_type in classified and key not in seen[p_type]:
-                                seen[p_type].add(key)
-                                classified[p_type].append(cand)
+                        key = cand.get("company_name", cand.get("product_name", ""))
+                        if key:
+                            cand.setdefault("contract_possible_auto_promoted", False)
+                            cand.setdefault("legal_eligibility_status", "확인 필요")
+                            cand.setdefault("display_status", "후보")
+                            for p_type in c_types:
+                                if p_type in classified and key not in seen[p_type]:
+                                    seen[p_type].add(key)
+                                    classified[p_type].append(cand)
                 continue
         except Exception:
             pass
