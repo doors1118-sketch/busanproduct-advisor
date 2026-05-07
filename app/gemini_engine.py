@@ -1654,19 +1654,7 @@ def _chat_v144(
     # RAG elapsed time must be initialized
     rag_elapsed_ms = 0
 
-    rag_context = ""
-    if progress_callback:
-        progress_callback("📚 매뉴얼 검색 중...")
-    rag_start = time.time()
-    rag_dict = _parallel_rag_search(user_message)
-    rag_elapsed_ms = int((time.time() - rag_start) * 1000)
-    rag_parts = []
-    for key in ["qa", "manual", "innovation", "tech"]:  # law 제거
-        val = rag_dict.get(key, "")
-        if val and isinstance(val, str) and val.strip():
-            rag_parts.append(val)
-    rag_context = "\n\n".join(rag_parts)
-
+    # ─── 5. MCP Preflight (법령 내부DB 조회 — 핵심 데이터, 먼저 실행) ───
     mandatory_mcp_plan = []
     mandatory_mcp_executed = []
     mandatory_mcp_missing = []
@@ -1685,7 +1673,24 @@ def _chat_v144(
             )
             mcp_preflight_elapsed_ms = int((time.time() - preflight_start) * 1000)
             print(f"  [MCP-PREFLIGHT] Done: executed={len(mandatory_mcp_executed)}, missing={len(mandatory_mcp_missing)}, elapsed={mcp_preflight_elapsed_ms}ms", flush=True)
-            rag_context = f"### [사전 조회된 필수 법령/매뉴얼 근거]\n{mcp_context}\n\n" + rag_context
+
+    # ─── 6. RAG 검색 (매뉴얼/QA — 보충 역할, 후순위) ───
+    rag_context = ""
+    if progress_callback:
+        progress_callback("📚 매뉴얼 검색 중...")
+    rag_start = time.time()
+    rag_dict = _parallel_rag_search(user_message)
+    rag_elapsed_ms = int((time.time() - rag_start) * 1000)
+    rag_parts = []
+    for key in ["qa", "manual", "innovation", "tech"]:  # law 제거
+        val = rag_dict.get(key, "")
+        if val and isinstance(val, str) and val.strip():
+            rag_parts.append(val)
+    rag_context = "\n\n".join(rag_parts)
+
+    # MCP 법령 결과를 RAG 컨텍스트 앞에 주입
+    if query_tier in (1, 2) and mandatory_mcp_plan and 'mcp_context' in locals():
+        rag_context = f"### [사전 조회된 필수 법령/매뉴얼 근거]\n{mcp_context}\n\n" + rag_context
 
     # [FAIL_TO_CACHE] MCP preflight 전부 실패 시 LLM 루프 우회 → deterministic template
     _ftc_flag = os.getenv("MCP_FAIL_TO_CACHE", "false").lower() == "true"
@@ -1760,28 +1765,40 @@ def _chat_v144(
     # 1) 업체검색 도구 필터링 (User Rule 1) 및 초저지연 최적화    
     company_tools = ["search_local_company_by_product", "search_local_company_by_license", "search_local_company_by_category"]
     shopping_tools = ["search_shopping_mall"]
+    policy_company_tools = ["search_company_by_policy"]
+    product_tools = ["search_certified_product", "search_innovation_product", "search_innovation_products", "search_tech_development_products"]
     
     # low-risk company_search일 경우 법령 도구 스킵하여 지연 최소화
     skip_law_tools = risk_info.get("risk_level") == "low" and "company_search" in guardrails
     # Tier 2 + 금액 + MCP preflight 완료 시: 법령은 이미 컨텍스트에 주입됨
     # → LLM이 법령 도구를 추가 호출하지 않도록 제거 (종합·작문에 집중)
+    skip_company_tools = False
     if query_tier == 2 and amount_detected is not None and mandatory_mcp_executed:
         skip_law_tools = True
+        # 업체 7개도 사전 호출 완료 → LLM에서 업체 도구도 제거 (중복 호출 방지)
+        skip_company_tools = True
+        print("  [TOOL_FILTER] tier=2 사전호출 완료 → 법령+업체 도구 제거, LLM은 종합·작문만 수행")
     law_tools_to_skip = ["chain_full_research", "chain_action_basis", "search_law", "get_law_text", "search_interpretations", "get_annexes", "chain_procedure_detail", "chain_ordinance_compare", "chain_document_review", "chain_law_system", "search_admin_rule", "get_admin_rule", "chain_amendment_track"]
+    company_tools_to_skip = company_tools + shopping_tools + policy_company_tools + product_tools
     
     all_funcs = law_tools[0].function_declarations
     filtered_funcs = []
     for f in all_funcs:
-        if f.name in company_tools:
-            if "company_search" in guardrails:
-                filtered_funcs.append(f)
-        elif f.name in shopping_tools:
-            if "mas_shopping_mall" in guardrails or "company_search" in guardrails:
-                filtered_funcs.append(f)
-        else:
-            if skip_law_tools and f.name in law_tools_to_skip:
-                continue
-            filtered_funcs.append(f)
+        # 법령 도구 스킵
+        if skip_law_tools and f.name in law_tools_to_skip:
+            continue
+        # 업체 도구 스킵 (tier=2 사전호출 완료 시)
+        if skip_company_tools and f.name in company_tools_to_skip:
+            continue
+        # 업체검색은 guardrails에 있을 때만 허용 (기존 로직 유지)
+        if not skip_company_tools:
+            if f.name in company_tools:
+                if "company_search" not in guardrails:
+                    continue
+            elif f.name in shopping_tools:
+                if "mas_shopping_mall" not in guardrails and "company_search" not in guardrails:
+                    continue
+        filtered_funcs.append(f)
     
     # 도구가 0개가 되면 LLM이 텍스트 생성만 수행 (도구 호출 불가)
     if filtered_funcs:
