@@ -284,7 +284,7 @@ def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str 
     if not intent_labels:
         intent_labels = []
 
-    has_amount = any(w in user_message for w in ["천만원", "백만원", "억원", "금액", "예산", "만원"])
+    has_amount = any(w in user_message for w in ["천만원", "백만원", "억원", "억", "금액", "예산", "만원"])
     has_local = any(w in user_message for w in ["지역업체", "부산업체", "부산 업체", "지역 업체", "부산상품", "지역상품"])
     has_item = any(w in user_message for w in ["컴퓨터", "물품", "CCTV", "구매", "조명", "LED", "가구", "차량",
                                                 "복사기", "프린터", "에어컨", "냉난방", "소프트웨어", "서버",
