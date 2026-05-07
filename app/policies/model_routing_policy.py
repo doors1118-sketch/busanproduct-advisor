@@ -306,19 +306,106 @@ def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str 
     return 1
 
 def generate_mandatory_mcp_plan(user_message: str, tier: int) -> list:
-    """Tier 1/2 쿼리에 대해 필수적으로 호출해야 할 MCP 계획을 생성합니다."""
+    """
+    Tier 1/2 쿼리에 대해 필수적으로 호출해야 할 MCP 계획을 생성합니다.
+    질문 의도를 키워드로 분석하여, 해당 의도에 맞는 법령/행정규칙을 동적으로 선택합니다.
+    """
+    msg = user_message.lower()
+    plan = []
+    seen = set()  # 중복 방지
+
+    def add(name: str, args: dict):
+        key = f"{name}:{args.get('query','')}{args.get('mst','')}{args.get('jo','')}"
+        if key not in seen:
+            seen.add(key)
+            plan.append({"name": name, "args": args})
+
+    # ━━━ 의도 감지 ━━━
+    has_amount = bool(re.search(r'\d+[천만백억]', msg))
+    has_contract_method = any(w in msg for w in ["수의계약", "견적", "1인", "2인", "소액", "수의"])
+    has_bid = any(w in msg for w in ["입찰", "경쟁입찰", "공개입찰", "낙찰", "적격심사"])
+    has_regional = any(w in msg for w in ["지역", "부산", "지역제한", "지역업체", "로컬"])
+    has_joint = any(w in msg for w in ["공동계약", "공동도급", "공동수급", "JV"])
+    has_mas = any(w in msg for w in ["종합쇼핑몰", "MAS", "다수공급", "쇼핑몰", "3자단가", "제3자"])
+    has_excellence = any(w in msg for w in ["우수조달", "우수물품", "혁신제품", "혁신", "기술개발"])
+    has_policy_company = any(w in msg for w in ["여성기업", "장애인기업", "사회적기업", "청년창업", "소기업", "소상공인", "정책기업"])
+    has_priority = any(w in msg for w in ["우선구매", "의무구매", "중소기업제품"])
+    has_construction = any(w in msg for w in ["공사", "건설", "시공", "건축"])
+    has_service = any(w in msg for w in ["용역", "설계", "감리", "컨설팅"])
+
+    # ━━━ Tier 1: 기본 법령 조회 ━━━
     if tier == 1:
-        return [
-            {"name": "search_law", "args": {"query": "지방계약법 시행령 제25조 수의계약"}},
-            {"name": "search_admin_rule", "args": {"query": "지방자치단체 입찰 및 계약집행기준 수의계약 요령"}},
-        ]
-    elif tier == 2:
-        return [
-            {"name": "chain_law_system", "args": {"query": "지방계약법 물품 구매 지역제한 제한경쟁"}},
-            {"name": "chain_procedure_detail", "args": {"query": "지방자치단체 물품 구매 지역제한 MAS 2단계 경쟁"}},
-            {"name": "chain_ordinance_compare", "args": {"query": "부산광역시 지역상품 우선구매 조례"}},
-            {"name": "search_admin_rule", "args": {"query": "지방자치단체 입찰시 낙찰자 결정기준 물품 적격심사 지역업체"}},
-            {"name": "search_admin_rule", "args": {"query": "조달청 내자구매업무 처리규정"}},
-            {"name": "search_admin_rule", "args": {"query": "물품 다수공급자계약 업무처리규정"}}
-        ]
-    return []
+        # 수의계약 관련이면 핵심 조문
+        if has_contract_method or has_amount:
+            add("search_law", {"query": "지방계약법 시행령 제25조 수의계약"})
+            add("search_law", {"query": "지방계약법 시행령 제30조 수의계약대상자 선정"})
+        # 입찰이면 입찰 관련
+        if has_bid:
+            add("search_law", {"query": "지방계약법 시행령 제20조 제한입찰"})
+            add("search_admin_rule", {"query": "지방자치단체 입찰시 낙찰자 결정기준"})
+        # 아무것도 안 걸리면 기본
+        if not plan:
+            add("search_law", {"query": "지방계약법 시행령 제25조 수의계약"})
+            add("search_admin_rule", {"query": "지방자치단체 입찰 및 계약집행기준"})
+        return plan
+
+    # ━━━ Tier 2: 의도 기반 동적 쿼리 ━━━
+    if tier != 2:
+        return plan
+
+    # [기본] 수의계약/금액이 포함되면 항상 핵심 2개 조문
+    if has_contract_method or has_amount:
+        add("search_law", {"query": "지방계약법 시행령 제25조 수의계약에 의할 수 있는 경우"})
+        add("search_law", {"query": "지방계약법 시행령 제30조 수의계약대상자 선정절차"})
+
+    # [의도 1] 지역제한/부산 → 지역제한 법체계 + 부산 조례
+    if has_regional:
+        add("chain_law_system", {"query": "지방계약법 물품 구매 지역제한 제한경쟁"})
+        add("chain_ordinance_compare", {"query": "부산광역시 지역상품 우선구매 조례"})
+
+    # [의도 2] MAS/종합쇼핑몰 → MAS 규정
+    if has_mas:
+        add("search_admin_rule", {"query": "물품 다수공급자계약 업무처리규정"})
+        add("search_admin_rule", {"query": "국가종합전자조달시스템 종합쇼핑몰 운영규정"})
+
+    # [의도 3] 우수조달/혁신제품 → 우수물품 특례
+    if has_excellence:
+        add("search_admin_rule", {"query": "우수조달물품 지정 관리 규정"})
+        add("search_admin_rule", {"query": "혁신제품 구매 운영 규정"})
+
+    # [의도 4] 정책기업(여성/장애인/사회적) → 특례 수의계약 조문
+    if has_policy_company:
+        add("search_law", {"query": "지방계약법 시행령 제25조 제5호 여성기업 장애인기업 사회적기업 수의계약"})
+
+    # [의도 5] 공동계약 → 공동계약 조문 + 운용요령
+    if has_joint:
+        add("search_law", {"query": "지방계약법 시행령 제88조 공동계약"})
+        add("search_admin_rule", {"query": "공동계약운용요령"})
+
+    # [의도 6] 입찰/낙찰 → 입찰 관련 행정규칙
+    if has_bid:
+        add("search_law", {"query": "지방계약법 시행령 제20조 제한입찰"})
+        add("search_admin_rule", {"query": "지방자치단체 입찰시 낙찰자 결정기준"})
+
+    # [의도 7] 우선구매/의무구매 → 중소기업 우선구매
+    if has_priority:
+        add("search_law", {"query": "중소기업제품 구매촉진 및 판로지원에 관한 법률"})
+        add("search_admin_rule", {"query": "중소기업자간 경쟁제품 직접구매 대상 품목"})
+
+    # [의도 8] 공사 → 공사 관련 기준
+    if has_construction:
+        add("search_admin_rule", {"query": "지방자치단체 입찰시 낙찰자 결정기준 공사 적격심사"})
+
+    # [의도 9] 용역 → 용역 관련 기준
+    if has_service:
+        add("search_admin_rule", {"query": "지방자치단체 입찰시 낙찰자 결정기준 용역 적격심사"})
+
+    # [안전망] 아무 의도도 감지 안 되면 기본 세트
+    if not plan:
+        add("search_law", {"query": "지방계약법 시행령 제25조 수의계약"})
+        add("search_law", {"query": "지방계약법 시행령 제30조 수의계약대상자 선정"})
+        add("chain_law_system", {"query": "지방계약법 물품 구매 지역제한"})
+        add("chain_ordinance_compare", {"query": "부산광역시 지역상품 우선구매 조례"})
+
+    return plan
+
