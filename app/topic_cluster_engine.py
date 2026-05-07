@@ -80,13 +80,17 @@ BASE_ARTICLES = {
 
 # ━━━ 인접 주제 매핑 ━━━
 # 특정 주제 감지 시 함께 가져올 인접 주제의 핵심 조문
+# 핵심 설계 원칙: "안 됩니다"로 끝나지 않고 "이런 예외/대안 경로가 있습니다"까지 안내
 ADJACENT_TOPICS = {
-    "direct_contract": ["bid", "price"],     # 수의계약 → 입찰+예정가격 핵심도 함께
-    "bid": ["direct_contract", "price"],     # 입찰 → 수의계약+예정가격도 함께
-    "price": ["direct_contract", "bid"],     # 예정가격 → 수의계약+입찰도 함께
-    "joint_contract": ["bid"],               # 공동계약 → 입찰도 함께
-    "evaluation": ["bid"],                   # 가점/평가 → 입찰도 함께
-    "policy_company": ["direct_contract"],   # 정책기업 → 수의계약도 함께
+    # 수의계약 → 입찰+예정가격 + 예외 특례(기술개발/혁신/정책기업/우선구매)
+    "direct_contract": ["bid", "price", "excellence", "policy_company", "priority_purchase"],
+    "bid": ["direct_contract", "price"],
+    "price": ["direct_contract", "bid"],
+    "joint_contract": ["bid"],
+    "evaluation": ["bid"],
+    "policy_company": ["direct_contract"],
+    "excellence": ["direct_contract", "priority_purchase"],
+    "priority_purchase": ["direct_contract", "excellence"],
 }
 
 # 인접 주제에서 가져올 핵심 조문 (전체가 아닌 핵심만)
@@ -102,6 +106,22 @@ ADJACENT_CORE_ONLY = {
     "price": {
         "local": [("decree", ["제7조", "제9조"])],
         "national": [("decree", ["제7조", "제9조"])],
+    },
+    "excellence": {
+        "local": [("조달사업법", ["제9조의2"])],
+        "national": [("조달사업법", ["제9조의2"])],
+    },
+    "policy_company": {
+        "local": [("decree", ["제25조", "제30조"])],
+        "national": [("decree", ["제26조", "제30조"])],
+    },
+    "priority_purchase": {
+        "local": [
+            ("중소기업구매촉진법", ["제6조", "제12조"]),
+        ],
+        "national": [
+            ("중소기업구매촉진법", ["제6조", "제12조"]),
+        ],
     },
 }
 
