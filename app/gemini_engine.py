@@ -1940,13 +1940,33 @@ def _chat_v144(
                     "result": res,
                     "elapsed_ms": elapsed
                 }
-                
-            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-                future_sm = executor.submit(run_mock_tool, "search_shopping_mall", query)
-                future_lc = executor.submit(run_mock_tool, "search_local_company_by_product", query)
-                
-                all_tool_results.append(future_sm.result())
-                all_tool_results.append(future_lc.result())
+
+            def run_mock_tool_product(tool_name, product_arg):
+                """product_name 파라미터를 사용하는 도구용."""
+                start = time.time()
+                mock_call = MockFunctionCall(tool_name, {"product_name": product_arg})
+                res = _execute_function_call(mock_call)
+                elapsed = int((time.time() - start) * 1000)
+                return {
+                    "tool_name": tool_name,
+                    "status": "success" if "error" not in res else "failed",
+                    "result": res,
+                    "elapsed_ms": elapsed
+                }
+
+            # 멀티 라우트 검색: 품목 + 쇼핑몰 + 정책기업(여성/사회적/장애인) + 인증 + 혁신
+            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+                futures = [
+                    executor.submit(run_mock_tool, "search_shopping_mall", query),
+                    executor.submit(run_mock_tool, "search_local_company_by_product", query),
+                    executor.submit(run_mock_tool, "search_company_by_policy", "여성기업"),
+                    executor.submit(run_mock_tool, "search_company_by_policy", "사회적기업"),
+                    executor.submit(run_mock_tool, "search_company_by_policy", "장애인기업"),
+                    executor.submit(run_mock_tool_product, "search_certified_product", query),
+                    executor.submit(run_mock_tool_product, "search_innovation_product", query),
+                ]
+                for f in concurrent.futures.as_completed(futures):
+                    all_tool_results.append(f.result())
 
         return _finalize_answer("", history, user_message, all_tool_results, api_status, progress_callback, generation_meta={
             "model_used": "bypass_tier_1_2",
