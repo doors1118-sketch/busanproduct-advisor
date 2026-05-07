@@ -1674,9 +1674,10 @@ def _chat_v144(
     
     if query_tier in (1, 2):
         from policies.model_routing_policy import generate_mandatory_mcp_plan
-        mandatory_mcp_plan = generate_mandatory_mcp_plan(user_message, query_tier)
+        agency_key_for_mcp = _normalize_agency_type(agency_type) if agency_type else "default"
+        mandatory_mcp_plan = generate_mandatory_mcp_plan(user_message, query_tier, agency_type=agency_key_for_mcp)
         if mandatory_mcp_plan:
-            print(f"  [MCP-PREFLIGHT] Starting: tier={query_tier}, plan={len(mandatory_mcp_plan)} items", flush=True)
+            print(f"  [MCP-PREFLIGHT] Starting: tier={query_tier}, agency={agency_key_for_mcp}, plan={len(mandatory_mcp_plan)} items", flush=True)
             preflight_start = time.time()
             mcp_context, _, mandatory_mcp_executed, mandatory_mcp_missing, cache_stats = _execute_tier_2_mandatory_mcp(
                 user_message, mandatory_mcp_plan, progress_callback

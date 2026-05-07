@@ -305,10 +305,11 @@ def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str 
     # Tier 1: 그 외 금액이 있거나, 수의계약 등 일반적인 계약 검토 질문
     return 1
 
-def generate_mandatory_mcp_plan(user_message: str, tier: int) -> list:
+def generate_mandatory_mcp_plan(user_message: str, tier: int, agency_type: str = None) -> list:
     """
     Tier 1/2 쿼리에 대해 필수적으로 호출해야 할 MCP 계획을 생성합니다.
     질문 의도를 키워드로 분석하여, 해당 의도에 맞는 법령/행정규칙을 동적으로 선택합니다.
+    agency_type에 따라 적용 법령 체계가 달라집니다.
     """
     msg = user_message.lower()
     plan = []
@@ -319,6 +320,118 @@ def generate_mandatory_mcp_plan(user_message: str, tier: int) -> list:
         if key not in seen:
             seen.add(key)
             plan.append({"name": name, "args": args})
+
+    # ━━━ 기관 유형별 법령 체계 결정 ━━━
+    at = (agency_type or "").lower().replace(" ", "")
+    # 기관 유형 정규화
+    if at in ("national_agency", "국가기관", "중앙부처", "national_gov"):
+        law_system = "national"
+    elif at in ("public_corporation", "공기업", "준정부기관", "공기업/준정부기관", "공공기관", "public_agency"):
+        law_system = "public_corp"
+    elif at in ("invested_institution", "출자출연기관", "지방공기업", "부산도시공사", "부산교통공사",
+                "부산시설공단", "부산관광공사", "busan_entity"):
+        law_system = "invested"
+    else:
+        law_system = "local"  # 지자체 (기본)
+
+    # ━━━ 기관별 핵심 법령 매핑 ━━━
+    # 수의계약 조문
+    DIRECT_CONTRACT_QUERIES = {
+        "local": [
+            ("search_law", "지방계약법 시행령 제25조 수의계약에 의할 수 있는 경우"),
+            ("search_law", "지방계약법 시행령 제30조 수의계약대상자 선정절차"),
+        ],
+        "national": [
+            ("search_law", "국가계약법 시행령 제26조 수의계약에 의할 수 있는 경우"),
+            ("search_law", "국가계약법 시행령 제30조 수의계약대상자 선정절차"),
+        ],
+        "public_corp": [
+            ("search_law", "공기업 준정부기관 계약사무규칙 수의계약"),
+            ("search_law", "국가계약법 시행령 제26조 수의계약"),
+        ],
+        "invested": [
+            ("search_law", "지방계약법 시행령 제25조 수의계약에 의할 수 있는 경우"),
+            ("search_law", "지방계약법 시행령 제30조 수의계약대상자 선정절차"),
+            ("search_law", "지방자치단체 출자 출연기관 운영에 관한 법률 계약"),
+        ],
+    }
+    # 제한입찰 조문
+    LIMITED_BID_QUERIES = {
+        "local": [
+            ("search_law", "지방계약법 시행령 제20조 제한입찰"),
+            ("search_admin_rule", "지방자치단체 입찰시 낙찰자 결정기준"),
+        ],
+        "national": [
+            ("search_law", "국가계약법 시행령 제21조 제한경쟁입찰 참가자격 제한"),
+            ("search_admin_rule", "정부 입찰 계약 집행기준"),
+        ],
+        "public_corp": [
+            ("search_law", "공기업 준정부기관 계약사무규칙 경쟁입찰"),
+            ("search_admin_rule", "기타공공기관 계약사무 운영규정"),
+        ],
+        "invested": [
+            ("search_law", "지방계약법 시행령 제20조 제한입찰"),
+            ("search_admin_rule", "지방자치단체 입찰시 낙찰자 결정기준"),
+        ],
+    }
+    # 공동계약 조문
+    JOINT_CONTRACT_QUERIES = {
+        "local": [
+            ("search_law", "지방계약법 시행령 제88조 공동계약"),
+        ],
+        "national": [
+            ("search_law", "국가계약법 시행령 제72조 공동계약"),
+        ],
+        "public_corp": [
+            ("search_law", "국가계약법 시행령 제72조 공동계약"),
+        ],
+        "invested": [
+            ("search_law", "지방계약법 시행령 제88조 공동계약"),
+        ],
+    }
+    # 기본 행정규칙
+    DEFAULT_ADMIN_QUERIES = {
+        "local": [
+            ("search_admin_rule", "지방자치단체 입찰 및 계약집행기준"),
+        ],
+        "national": [
+            ("search_admin_rule", "정부 입찰 계약 집행기준"),
+        ],
+        "public_corp": [
+            ("search_admin_rule", "기타공공기관 계약사무 운영규정"),
+        ],
+        "invested": [
+            ("search_admin_rule", "지방자치단체 입찰 및 계약집행기준"),
+        ],
+    }
+    # 정책기업 수의계약 특례
+    POLICY_COMPANY_QUERIES = {
+        "local": [
+            ("search_law", "지방계약법 시행령 제25조 제5호 여성기업 장애인기업 사회적기업 수의계약"),
+        ],
+        "national": [
+            ("search_law", "국가계약법 시행령 제26조 여성기업 장애인기업 사회적기업 수의계약"),
+        ],
+        "public_corp": [
+            ("search_law", "공기업 준정부기관 계약사무규칙 여성기업 장애인기업 수의계약"),
+        ],
+        "invested": [
+            ("search_law", "지방계약법 시행령 제25조 제5호 여성기업 장애인기업 사회적기업 수의계약"),
+        ],
+    }
+    # 적격심사(공사/용역)
+    CONSTRUCTION_QUERIES = {
+        "local": "지방자치단체 입찰시 낙찰자 결정기준 공사 적격심사",
+        "national": "조달청 시설공사 적격심사세부기준",
+        "public_corp": "조달청 시설공사 적격심사세부기준",
+        "invested": "지방자치단체 입찰시 낙찰자 결정기준 공사 적격심사",
+    }
+    SERVICE_QUERIES = {
+        "local": "지방자치단체 입찰시 낙찰자 결정기준 용역 적격심사",
+        "national": "조달청 일반용역 적격심사 세부기준",
+        "public_corp": "조달청 일반용역 적격심사 세부기준",
+        "invested": "지방자치단체 입찰시 낙찰자 결정기준 용역 적격심사",
+    }
 
     # ━━━ 의도 감지 ━━━
     has_amount = bool(re.search(r'\d+[천만백억]', msg))
@@ -335,77 +448,87 @@ def generate_mandatory_mcp_plan(user_message: str, tier: int) -> list:
 
     # ━━━ Tier 1: 기본 법령 조회 ━━━
     if tier == 1:
-        # 수의계약 관련이면 핵심 조문
         if has_contract_method or has_amount:
-            add("search_law", {"query": "지방계약법 시행령 제25조 수의계약"})
-            add("search_law", {"query": "지방계약법 시행령 제30조 수의계약대상자 선정"})
-        # 입찰이면 입찰 관련
+            for tool, q in DIRECT_CONTRACT_QUERIES[law_system]:
+                add(tool, {"query": q})
         if has_bid:
-            add("search_law", {"query": "지방계약법 시행령 제20조 제한입찰"})
-            add("search_admin_rule", {"query": "지방자치단체 입찰시 낙찰자 결정기준"})
-        # 아무것도 안 걸리면 기본
+            for tool, q in LIMITED_BID_QUERIES[law_system]:
+                add(tool, {"query": q})
         if not plan:
-            add("search_law", {"query": "지방계약법 시행령 제25조 수의계약"})
-            add("search_admin_rule", {"query": "지방자치단체 입찰 및 계약집행기준"})
+            for tool, q in DIRECT_CONTRACT_QUERIES[law_system][:1]:
+                add(tool, {"query": q})
+            for tool, q in DEFAULT_ADMIN_QUERIES[law_system]:
+                add(tool, {"query": q})
         return plan
 
     # ━━━ Tier 2: 의도 기반 동적 쿼리 ━━━
     if tier != 2:
         return plan
 
-    # [기본] 수의계약/금액이 포함되면 항상 핵심 2개 조문
+    # [기본] 수의계약/금액이 포함되면 핵심 조문
     if has_contract_method or has_amount:
-        add("search_law", {"query": "지방계약법 시행령 제25조 수의계약에 의할 수 있는 경우"})
-        add("search_law", {"query": "지방계약법 시행령 제30조 수의계약대상자 선정절차"})
+        for tool, q in DIRECT_CONTRACT_QUERIES[law_system]:
+            add(tool, {"query": q})
 
     # [의도 1] 지역제한/부산 → 지역제한 법체계 + 부산 조례
     if has_regional:
-        add("chain_law_system", {"query": "지방계약법 물품 구매 지역제한 제한경쟁"})
+        if law_system == "local":
+            add("chain_law_system", {"query": "지방계약법 물품 구매 지역제한 제한경쟁"})
+        elif law_system == "national":
+            add("chain_law_system", {"query": "국가계약법 물품 구매 지역제한 제한경쟁"})
+        else:
+            add("chain_law_system", {"query": "지방계약법 물품 구매 지역제한 제한경쟁"})
         add("chain_ordinance_compare", {"query": "부산광역시 지역상품 우선구매 조례"})
 
-    # [의도 2] MAS/종합쇼핑몰 → MAS 규정
+    # [의도 2] MAS/종합쇼핑몰 → MAS 규정 (기관 공통)
     if has_mas:
         add("search_admin_rule", {"query": "물품 다수공급자계약 업무처리규정"})
         add("search_admin_rule", {"query": "국가종합전자조달시스템 종합쇼핑몰 운영규정"})
 
-    # [의도 3] 우수조달/혁신제품 → 우수물품 특례
+    # [의도 3] 우수조달/혁신제품 → 우수물품 특례 (기관 공통)
     if has_excellence:
         add("search_admin_rule", {"query": "우수조달물품 지정 관리 규정"})
         add("search_admin_rule", {"query": "혁신제품 구매 운영 규정"})
 
-    # [의도 4] 정책기업(여성/장애인/사회적) → 특례 수의계약 조문
+    # [의도 4] 정책기업(여성/장애인/사회적) → 기관별 특례 조문
     if has_policy_company:
-        add("search_law", {"query": "지방계약법 시행령 제25조 제5호 여성기업 장애인기업 사회적기업 수의계약"})
+        for tool, q in POLICY_COMPANY_QUERIES[law_system]:
+            add(tool, {"query": q})
 
-    # [의도 5] 공동계약 → 공동계약 조문 + 운용요령
+    # [의도 5] 공동계약 → 기관별 공동계약 조문 + 운용요령
     if has_joint:
-        add("search_law", {"query": "지방계약법 시행령 제88조 공동계약"})
+        for tool, q in JOINT_CONTRACT_QUERIES[law_system]:
+            add(tool, {"query": q})
         add("search_admin_rule", {"query": "공동계약운용요령"})
 
-    # [의도 6] 입찰/낙찰 → 입찰 관련 행정규칙
+    # [의도 6] 입찰/낙찰 → 기관별 입찰 관련 행정규칙
     if has_bid:
-        add("search_law", {"query": "지방계약법 시행령 제20조 제한입찰"})
-        add("search_admin_rule", {"query": "지방자치단체 입찰시 낙찰자 결정기준"})
+        for tool, q in LIMITED_BID_QUERIES[law_system]:
+            add(tool, {"query": q})
 
-    # [의도 7] 우선구매/의무구매 → 중소기업 우선구매
+    # [의도 7] 우선구매/의무구매 → 중소기업 우선구매 (기관 공통)
     if has_priority:
         add("search_law", {"query": "중소기업제품 구매촉진 및 판로지원에 관한 법률"})
         add("search_admin_rule", {"query": "중소기업자간 경쟁제품 직접구매 대상 품목"})
 
-    # [의도 8] 공사 → 공사 관련 기준
+    # [의도 8] 공사 → 기관별 적격심사 기준
     if has_construction:
-        add("search_admin_rule", {"query": "지방자치단체 입찰시 낙찰자 결정기준 공사 적격심사"})
+        add("search_admin_rule", {"query": CONSTRUCTION_QUERIES[law_system]})
 
-    # [의도 9] 용역 → 용역 관련 기준
+    # [의도 9] 용역 → 기관별 적격심사 기준
     if has_service:
-        add("search_admin_rule", {"query": "지방자치단체 입찰시 낙찰자 결정기준 용역 적격심사"})
+        add("search_admin_rule", {"query": SERVICE_QUERIES[law_system]})
 
     # [안전망] 아무 의도도 감지 안 되면 기본 세트
     if not plan:
-        add("search_law", {"query": "지방계약법 시행령 제25조 수의계약"})
-        add("search_law", {"query": "지방계약법 시행령 제30조 수의계약대상자 선정"})
-        add("chain_law_system", {"query": "지방계약법 물품 구매 지역제한"})
-        add("chain_ordinance_compare", {"query": "부산광역시 지역상품 우선구매 조례"})
+        for tool, q in DIRECT_CONTRACT_QUERIES[law_system]:
+            add(tool, {"query": q})
+        if law_system in ("local", "invested"):
+            add("chain_law_system", {"query": "지방계약법 물품 구매 지역제한"})
+            add("chain_ordinance_compare", {"query": "부산광역시 지역상품 우선구매 조례"})
+        elif law_system == "national":
+            add("chain_law_system", {"query": "국가계약법 물품 구매 지역제한"})
 
     return plan
+
 
