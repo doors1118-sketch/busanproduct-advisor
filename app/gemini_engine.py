@@ -1800,7 +1800,6 @@ def _chat_v144(
         system_instruction=assembled.core_prompt,  # Core만 (불변)
         tools=dynamic_tools,
         temperature=0.1,
-        thinking_config=types.ThinkingConfig(thinking_budget=1024),  # thinking 제한 → 응답 속도 대폭 향상
     )
 
     # 대화 이력 + dynamic context
