@@ -36,6 +36,12 @@ def _has_contract_method(text: str) -> bool:
     ))
 
 
+def _has_contract_object_alias(text: str) -> bool:
+    return any(term in (text or "") for term in (
+        "물품", "용역", "공사", "구매", "구입", "납품", "제조", "제품", "사려고", "살건데", "사려",
+    ))
+
+
 def _has_legal_terms(text: str) -> bool:
     return any(term in (text or "") for term in (
         "법", "시행령", "시행규칙", "행정규칙", "예규", "고시", "기준", "조문", "제",
@@ -79,6 +85,10 @@ def assess_routing_confidence(
 
     gateway_conf = getattr(gateway_decision, "confidence", None)
     gateway_route = getattr(gateway_decision, "route", None)
+    has_amount = _has_amount(user_message)
+    has_contract_method = _has_contract_method(user_message)
+    has_contract_object = _has_contract_object_alias(user_message) or _has_specific_item_alias(user_message)
+    has_legal_terms = _has_legal_terms(user_message)
     if gateway_conf == "certain":
         score += 0.2
         if gateway_route in {"company_search", "direct_article", "standard_card"}:
@@ -98,29 +108,34 @@ def assess_routing_confidence(
     rc = _router_confidence(router_result)
     if rc is None:
         if gateway_route == "complex_router":
-            reasons.append("llm_router_not_available_for_complex_query")
-            score -= 0.1
+            if has_amount and has_contract_object:
+                score += 0.1
+            else:
+                reasons.append("llm_router_not_available_for_complex_query")
+                score -= 0.1
     else:
         score += (rc - 0.5) * 0.35
         if rc < 0.65:
             reasons.append(f"llm_router_low_confidence:{rc:.2f}")
 
-    has_amount = _has_amount(user_message)
-    has_contract_method = _has_contract_method(user_message)
-    has_legal_terms = _has_legal_terms(user_message)
     company_intent = any(label in intent_labels for label in (
         "company_search", "policy_candidate_search", "shopping_mall_search",
         "certified_product_search", "innovation_product_search",
     ))
+    local_intent = any(term in (user_message or "") for term in ("지역업체", "부산업체", "지역상품", "부산상품"))
+    if has_amount and has_contract_object and (has_contract_method or local_intent):
+        score += 0.15
+    if has_amount and local_intent and _has_specific_item_alias(user_message):
+        score += 0.1
 
     if query_tier == 0 and (has_amount or has_contract_method or has_legal_terms):
         reasons.append("tier0_conflicts_with_legal_or_amount_terms")
         score -= 0.25
 
     slots = getattr(router_result, "slots", None)
-    if (has_amount or has_contract_method) and not getattr(slots, "contract_object", None):
+    if (has_amount or has_contract_method) and not getattr(slots, "contract_object", None) and not has_contract_object:
         missing.append("contract_object")
-    if has_contract_method and not getattr(slots, "contract_method", None):
+    if has_contract_method and not getattr(slots, "contract_method", None) and not _has_contract_method(user_message):
         missing.append("contract_method")
     if company_intent and not getattr(slots, "item_name", None) and not _has_specific_item_alias(user_message):
         missing.append("item_name")

@@ -2237,6 +2237,14 @@ def _chat_v144(
 
     if gateway_decision and gateway_decision.route == "company_search":
         print("  [QUERY-GATEWAY] company_search fast track", flush=True)
+        _current_routing_confidence_meta = {
+            "routing_confidence_score": 0.85,
+            "routing_confidence_level": "high",
+            "routing_ambiguous": False,
+            "routing_ambiguity_reasons": [],
+            "routing_required_slots_missing": [],
+            "routing_confidence_action": "gateway_fast_track_company_search",
+        }
         api_status = ApiStatus()
         return _execute_tier_0_fast_track(
             user_message, history, api_status, progress_callback, ["company_search"]
