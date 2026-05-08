@@ -2094,6 +2094,9 @@ def _clean_route_guidance_for_answer(text: str) -> str:
     cleaned = text or ""
     cleaned = cleaned.split("답변 형식 지시:")[0]
     cleaned = cleaned.replace("[구매경로 판단 재료 — 최종 답변은 아래 경로를 조합해 실무형으로 작성]", "검토할 구매 경로")
+    cleaned = cleaned.replace("- 기관유형: local_government", "- 기관유형: 지방자치단체")
+    cleaned = cleaned.replace("- 기관유형: central_government", "- 기관유형: 국가기관")
+    cleaned = cleaned.replace("- 기관유형: public_enterprise", "- 기관유형: 공기업·준정부기관")
     cleaned = re.sub(r"^- 작성 원칙:.*(?:\n|$)", "", cleaned, flags=re.MULTILINE)
     cleaned = re.sub(r"^- 주의:.*(?:\n|$)", "", cleaned, flags=re.MULTILINE)
     return cleaned.strip()
@@ -2109,6 +2112,24 @@ def _clean_catalog_guidance_for_answer(text: str) -> str:
     cleaned = re.sub(r"^- 답변에서는 사용자가 제도를.*(?:\n|$)", "", cleaned, flags=re.MULTILINE)
     cleaned = cleaned.replace("| 제도 | 선택 이유 | 답변에서 다룰 포인트 |", "| 제도 | 검토 이유 | 실무 확인 포인트 |")
     return cleaned.strip()
+
+
+def _company_tool_label(tool_name: str) -> str:
+    """Return a user-facing label for prefetched company/product result blocks."""
+    name = tool_name or ""
+    if "shopping_mall" in name:
+        return "종합쇼핑몰/MAS 후보"
+    if "certified_product" in name:
+        return "기술개발제품·우수조달 등 인증제품 후보"
+    if "innovation_product" in name:
+        return "혁신제품·혁신시제품 후보"
+    if "company_by_license" in name:
+        return "부산 면허·업종 업체 후보"
+    if "local_company" in name:
+        return "부산 지역업체 후보"
+    if "company_by_policy" in name:
+        return "정책기업 후보"
+    return "업체 후보"
 
 
 def _build_direct_article_answer(law_query: str) -> str | None:
@@ -3036,7 +3057,7 @@ def _chat_v144(
                     continue
                 result_text = str(tr.get("result", "") or "").strip()
                 if result_text:
-                    company_sections.append(f"#### {tool_name}\n{result_text[:2500]}")
+                    company_sections.append(f"#### {_company_tool_label(tool_name)}\n{result_text[:2500]}")
 
             route_answer_parts = [
                 "### 판단 요약",
