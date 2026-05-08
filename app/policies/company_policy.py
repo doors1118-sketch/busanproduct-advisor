@@ -126,7 +126,7 @@ def format_company_for_llm(data: dict, max_results: int = 10) -> str:
         # 검색 자체가 실패한 경우와 결과가 없는 경우를 구분
         if data.get("company_search_status") == "failed":
             return "업체 검색 API 호출에 실패했습니다. 잠시 후 다시 시도해주세요."
-        return "검색 결과가 없습니다. 다른 키워드로 검색해 보세요."
+        return "candidate 없음: 검색 결과가 없습니다. 다른 키워드로 검색해 보세요."
 
     # 데이터 갱신 시점 정보
     source_refreshed = meta.get("source_refreshed_at", {})

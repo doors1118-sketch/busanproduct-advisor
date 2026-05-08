@@ -16,12 +16,8 @@ from dataclasses import asdict, dataclass, field
 import re
 from typing import Any
 
-try:
-    from policies.purchase_route_guidance_policy import build_purchase_route_cards
-    from policies.regional_support_catalog import match_regional_support_catalog
-except ImportError:
-    from app.policies.purchase_route_guidance_policy import build_purchase_route_cards
-    from app.policies.regional_support_catalog import match_regional_support_catalog
+from policies.purchase_route_guidance_policy import build_purchase_route_cards
+from policies.regional_support_catalog import match_regional_support_catalog
 
 
 @dataclass(frozen=True)

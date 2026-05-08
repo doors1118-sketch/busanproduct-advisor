@@ -485,15 +485,12 @@ def _augment_with_regional_support_catalog(user_message: str, base_plan: list, a
     plan = list(base_plan or [])
     try:
         from policies.regional_support_catalog import build_catalog_evidence_plan
-    except ImportError:
+    except ImportError as e:
         try:
-            from app.policies.regional_support_catalog import build_catalog_evidence_plan
-        except ImportError as e:
-            try:
-                from regional_support_catalog import build_catalog_evidence_plan
-            except ImportError:
-                print(f"  [REGIONAL-CATALOG] unavailable: {e}")
-                return plan
+            from regional_support_catalog import build_catalog_evidence_plan
+        except ImportError:
+            print(f"  [REGIONAL-CATALOG] unavailable: {e}")
+            return plan
 
     try:
         catalog_plan = build_catalog_evidence_plan(user_message, agency_type=agency_type)

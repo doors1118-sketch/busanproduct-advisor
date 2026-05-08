@@ -9,7 +9,7 @@ def test_regional_restriction_multi_agency():
     assert result.reason == "regional_restriction_standard_fast_answer"
     assert "88억원 미만" in result.answer
     assert "150억원 미만" in result.answer
-    assert "100억원이 아니라" in result.answer
+    assert "기관유형별 기준값" in result.answer
 
 
 def test_sole_contract_standard():

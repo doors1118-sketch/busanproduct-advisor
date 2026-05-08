@@ -23,6 +23,17 @@
     "unmatched_query_terms": [],
     "numeric_parameters": [
       {
+        "parameter_ref": "P_GENERAL_SMALL_DIRECT_CONTRACT_THRESHOLD",
+        "candidate_source_ids": [],
+        "expected_value_hint": null,
+        "resolved_value": 20000000,
+        "requires_manual_numeric_verification": false,
+        "parameter_status": "resolved",
+        "unit": "money_krw",
+        "display_value": "2천만원",
+        "source_text_ref": "compatibility alias for local direct goods/service threshold"
+      },
+      {
         "parameter_ref": "P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD",
         "candidate_source_ids": [],
         "expected_value_hint": null,
@@ -61,6 +72,51 @@
         "resolved_value": 100000000,
         "requires_manual_numeric_verification": false,
         "parameter_status": "resolved"
+      },
+      {
+        "parameter_ref": "P_DIRECT_GENERAL_CONSTRUCTION_THRESHOLD",
+        "label": "종합공사 수의계약 기준",
+        "candidate_source_ids": [
+          "1f0b13d9-650f-4c12-a2a8-f820a2791fdf",
+          "433540d3-ecff-4282-91db-e0118ea7729a"
+        ],
+        "expected_value_hint": null,
+        "resolved_value": 400000000,
+        "unit": "KRW",
+        "display_value": "4억원",
+        "requires_manual_numeric_verification": false,
+        "parameter_status": "resolved",
+        "source_text_ref": "지방계약법 시행령 제25조제1항제5호가목 / 국가계약법 시행령 제26조제1항제5호가목"
+      },
+      {
+        "parameter_ref": "P_DIRECT_SPECIALTY_CONSTRUCTION_THRESHOLD",
+        "label": "전문공사 수의계약 기준",
+        "candidate_source_ids": [
+          "1f0b13d9-650f-4c12-a2a8-f820a2791fdf",
+          "433540d3-ecff-4282-91db-e0118ea7729a"
+        ],
+        "expected_value_hint": null,
+        "resolved_value": 200000000,
+        "unit": "KRW",
+        "display_value": "2억원",
+        "requires_manual_numeric_verification": false,
+        "parameter_status": "resolved",
+        "source_text_ref": "지방계약법 시행령 제25조제1항제5호가목 / 국가계약법 시행령 제26조제1항제5호가목"
+      },
+      {
+        "parameter_ref": "P_DIRECT_OTHER_CONSTRUCTION_THRESHOLD",
+        "label": "그 밖의 공사 수의계약 기준",
+        "candidate_source_ids": [
+          "1f0b13d9-650f-4c12-a2a8-f820a2791fdf",
+          "433540d3-ecff-4282-91db-e0118ea7729a"
+        ],
+        "expected_value_hint": null,
+        "resolved_value": 160000000,
+        "unit": "KRW",
+        "display_value": "1억 6천만원",
+        "requires_manual_numeric_verification": false,
+        "parameter_status": "resolved",
+        "source_text_ref": "지방계약법 시행령 제25조제1항제5호가목 / 국가계약법 시행령 제26조제1항제5호가목"
       }
     ],
     "source_chain_status": "mapped_verified",
@@ -72,7 +128,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 110,
-        "mapping_method": "alias_resolved"
+        "mapping_method": "alias_resolved",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "433540d3-ecff-4282-91db-e0118ea7729a",
@@ -81,7 +140,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 110,
-        "mapping_method": "alias_resolved"
+        "mapping_method": "alias_resolved",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -140,7 +202,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 110,
-        "mapping_method": "alias_resolved"
+        "mapping_method": "alias_resolved",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "1f0b13d9-650f-4c12-a2a8-f820a2791fdf",
@@ -149,7 +214,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 110,
-        "mapping_method": "alias_resolved"
+        "mapping_method": "alias_resolved",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -189,7 +257,10 @@
         "source_type": "admrul_notice",
         "law_category": "enforcement_decree",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       }
     ],
     "related_source_details": [],
@@ -219,7 +290,10 @@
         "source_type": "admrul_notice",
         "law_category": "enforcement_decree",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       }
     ],
     "related_source_details": [],
@@ -306,7 +380,10 @@
         "source_type": "law",
         "law_category": "act",
         "rank_score": 95,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "088cc30c-24c1-429f-9a7e-5c14255b0a47",
@@ -315,7 +392,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 95,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "e45cf17a-8fd2-4ab3-956a-bd90f8737fe8",
@@ -324,7 +404,10 @@
         "source_type": "law",
         "law_category": "act",
         "rank_score": 95,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "4ed16661-e9df-420d-84b4-02d048161859",
@@ -333,7 +416,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 95,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "c13b1dc1-e006-42be-a5ec-36fd64836430",
@@ -342,7 +428,10 @@
         "source_type": "law",
         "law_category": "act",
         "rank_score": 95,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "233b60a7-b053-482d-b31c-95886f7f51d2",
@@ -351,7 +440,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 95,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "fa97298a-583b-40a4-8be3-ac4a60d4add8",
@@ -360,7 +452,10 @@
         "source_type": "law_decree",
         "law_category": "enforcement_decree",
         "rank_score": 65,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "99cc52cb-91b3-45a2-9e52-d4afd81d4b23",
@@ -369,7 +464,10 @@
         "source_type": "law",
         "law_category": "act",
         "rank_score": 65,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "52940b00-5c99-4da3-bbb9-25a3f117c122",
@@ -378,7 +476,10 @@
         "source_type": "law_decree",
         "law_category": "enforcement_decree",
         "rank_score": 65,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "3adac8ba-df19-45c9-a8a0-8fa9a6a673c8",
@@ -387,7 +488,10 @@
         "source_type": "law",
         "law_category": "act",
         "rank_score": 65,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       }
     ],
     "related_source_details": [
@@ -441,7 +545,10 @@
         "source_type": "admrul",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "863f0bf1-76f0-4837-94dd-814acc017ea3",
@@ -450,7 +557,10 @@
         "source_type": "admrul",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "2fdbed57-ef09-4dcf-b1ec-62f6041c5529",
@@ -459,7 +569,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -528,7 +641,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 110,
-        "mapping_method": "alias_resolved"
+        "mapping_method": "alias_resolved",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "433540d3-ecff-4282-91db-e0118ea7729a",
@@ -537,7 +653,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 110,
-        "mapping_method": "alias_resolved"
+        "mapping_method": "alias_resolved",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "a75755ca-622d-4f90-a1ce-5787b1ebd929",
@@ -546,7 +665,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "d31c0b7c-471d-4247-8ecc-8bc39843324c",
@@ -555,7 +677,10 @@
         "source_type": "admrul",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "2fdbed57-ef09-4dcf-b1ec-62f6041c5529",
@@ -564,7 +689,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "fa97298a-583b-40a4-8be3-ac4a60d4add8",
@@ -573,7 +701,10 @@
         "source_type": "law_decree",
         "law_category": "enforcement_decree",
         "rank_score": 65,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "99cc52cb-91b3-45a2-9e52-d4afd81d4b23",
@@ -582,7 +713,10 @@
         "source_type": "law",
         "law_category": "act",
         "rank_score": 65,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       }
     ],
     "related_source_details": [
@@ -723,7 +857,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 110,
-        "mapping_method": "alias_resolved"
+        "mapping_method": "alias_resolved",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "433540d3-ecff-4282-91db-e0118ea7729a",
@@ -732,7 +869,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 110,
-        "mapping_method": "alias_resolved"
+        "mapping_method": "alias_resolved",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -919,7 +1059,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 110,
-        "mapping_method": "alias_resolved"
+        "mapping_method": "alias_resolved",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "433540d3-ecff-4282-91db-e0118ea7729a",
@@ -928,7 +1071,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 110,
-        "mapping_method": "alias_resolved"
+        "mapping_method": "alias_resolved",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "e34672de-21f2-4ead-8afd-39b2a0b9e604",
@@ -937,7 +1083,10 @@
         "source_type": "admrul",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -1109,7 +1258,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 110,
-        "mapping_method": "alias_resolved"
+        "mapping_method": "alias_resolved",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "433540d3-ecff-4282-91db-e0118ea7729a",
@@ -1118,7 +1270,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 110,
-        "mapping_method": "alias_resolved"
+        "mapping_method": "alias_resolved",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [],
@@ -1165,7 +1320,10 @@
         "source_type": "pdf_manual",
         "law_category": "regulation",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -1320,7 +1478,9 @@
         "resolved_value": 40,
         "requires_manual_numeric_verification": false,
         "parameter_status": "resolved",
-        "remaining_gap_reason": "Extracted and verified from relevant law articles/notifications"
+        "remaining_gap_reason": "Extracted and verified from relevant law articles/notifications",
+        "unit": "percent",
+        "display_value": "40%"
       },
       {
         "parameter_ref": "P_LOCAL_JOINT_CONTRACT_MAX_SHARE",
@@ -1331,7 +1491,23 @@
         "resolved_value": 49,
         "requires_manual_numeric_verification": false,
         "parameter_status": "resolved",
-        "remaining_gap_reason": "Extracted and verified from relevant law articles/notifications"
+        "remaining_gap_reason": "Extracted and verified from relevant law articles/notifications",
+        "unit": "percent",
+        "display_value": "49%"
+      },
+      {
+        "parameter_ref": "P_LOCAL_JOINT_CONTRACT_MIN_QUALIFIED_COMPANY_COUNT",
+        "label": "지역의무공동도급 발주 제한 검토 지역업체 수 기준",
+        "candidate_source_ids": [
+          "7df9356d-2c69-4313-9bc7-7e86674203b9"
+        ],
+        "expected_value_hint": null,
+        "resolved_value": 10,
+        "unit": "company_count",
+        "display_value": "10인",
+        "requires_manual_numeric_verification": false,
+        "parameter_status": "resolved",
+        "source_text_ref": "지방자치단체 입찰 및 계약집행기준 공동계약 운영요령 지역의무공동도급 제한 사유"
       }
     ],
     "source_chain_status": "mapped_verified",
@@ -1343,7 +1519,10 @@
         "source_type": "law",
         "law_category": "act",
         "rank_score": 110,
-        "mapping_method": "alias_resolved"
+        "mapping_method": "alias_resolved",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -1399,7 +1578,9 @@
         "resolved_value": 30,
         "requires_manual_numeric_verification": false,
         "parameter_status": "resolved",
-        "remaining_gap_reason": "Extracted and verified from relevant law articles/notifications"
+        "remaining_gap_reason": "Extracted and verified from relevant law articles/notifications",
+        "unit": "percent",
+        "display_value": "30%"
       }
     ],
     "source_chain_status": "mapped_verified",
@@ -1411,7 +1592,10 @@
         "source_type": "law",
         "law_category": "act",
         "rank_score": 110,
-        "mapping_method": "alias_resolved"
+        "mapping_method": "alias_resolved",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -1477,7 +1661,10 @@
         "source_type": "law",
         "law_category": "act",
         "rank_score": 95,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "7556e3a8-4b48-46e9-8f47-b0ade25790bd",
@@ -1486,7 +1673,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 95,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "db406c12-49cf-4f69-991b-557a6daea8a8",
@@ -1495,7 +1685,10 @@
         "source_type": "law_rule",
         "law_category": "admin_rule",
         "rank_score": 65,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       }
     ],
     "related_source_details": [
@@ -1639,7 +1832,10 @@
         "source_type": "admrul_notice",
         "law_category": "regulation",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "34ce45fb-5924-4e68-b9a1-b95782af2948",
@@ -1648,7 +1844,10 @@
         "source_type": "admrul_notice",
         "law_category": "enforcement_decree",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "6c457cce-0558-40e2-94f1-2ba5623dffcf",
@@ -1657,7 +1856,10 @@
         "source_type": "admrul",
         "law_category": "regulation",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "1e08cbe7-84d0-4d87-9f5e-e0144c01f1a2",
@@ -1666,7 +1868,10 @@
         "source_type": "admrul",
         "law_category": "regulation",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "f231f288-21d9-4f95-b6df-9457d9ddccb0",
@@ -1675,7 +1880,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "46e79847-c9a8-4890-b6b4-3a239ad3d72d",
@@ -1684,7 +1892,10 @@
         "source_type": "admrul",
         "law_category": "admin_rule",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       }
     ],
     "related_source_details": [],
@@ -1717,7 +1928,10 @@
         "source_type": "admrul_notice",
         "law_category": "regulation",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "34ce45fb-5924-4e68-b9a1-b95782af2948",
@@ -1726,7 +1940,10 @@
         "source_type": "admrul_notice",
         "law_category": "enforcement_decree",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "937587f9-9df3-422c-9cc3-c295a5a40f0a",
@@ -1735,7 +1952,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "c43d2b56-45aa-4b73-bdeb-c96200cc5be7",
@@ -1744,7 +1964,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       }
     ],
     "related_source_details": [],
@@ -1791,7 +2014,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "d31c0b7c-471d-4247-8ecc-8bc39843324c",
@@ -1800,7 +2026,10 @@
         "source_type": "admrul",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "2fdbed57-ef09-4dcf-b1ec-62f6041c5529",
@@ -1809,7 +2038,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "fa97298a-583b-40a4-8be3-ac4a60d4add8",
@@ -1818,7 +2050,10 @@
         "source_type": "law_decree",
         "law_category": "enforcement_decree",
         "rank_score": 65,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "99cc52cb-91b3-45a2-9e52-d4afd81d4b23",
@@ -1827,7 +2062,10 @@
         "source_type": "law",
         "law_category": "act",
         "rank_score": 65,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       }
     ],
     "related_source_details": [
@@ -1930,6 +2168,7 @@
     "display_name": "용역 평가기준상 지역업체 참여도·가점 확인",
     "category": "participation_points",
     "primary_source_ids": [
+      "ADMIN_LOCAL_BID_AWARD_STANDARD_ANNEX2",
       "cf171376-9772-4dfa-b5ca-956ae10450f8",
       "c1e08761-4a30-4f0f-927b-24cecf272b46",
       "74afa4fe-885b-49cc-ab04-a387a464f7b6",
@@ -1951,9 +2190,72 @@
       "alias_resolved": []
     },
     "unmatched_query_terms": [],
-    "numeric_parameters": [],
-    "source_chain_status": "mapped_candidate",
+    "numeric_parameters": [
+      {
+        "parameter_ref": "P_LOCAL_SERVICE_REGIONAL_PARTICIPATION_FULL_RATE",
+        "label": "기술ㆍ학술용역 지역업체 참여도 만점 기준 참여비율",
+        "resolved_value": 30,
+        "unit": "percent",
+        "display_value": "30%",
+        "parameter_status": "resolved",
+        "requires_manual_numeric_verification": false,
+        "source_text_ref": "지방자치단체 입찰시 낙찰자 결정기준 제2장의2 [별표 2]"
+      },
+      {
+        "parameter_ref": "P_LOCAL_SERVICE_REGIONAL_PARTICIPATION_FULL_SCORE",
+        "label": "기술ㆍ학술용역 지역업체 참여도 만점",
+        "resolved_value": 3,
+        "unit": "score",
+        "display_value": "3점",
+        "parameter_status": "resolved",
+        "requires_manual_numeric_verification": false,
+        "source_text_ref": "지방자치단체 입찰시 낙찰자 결정기준 제2장의2 [별표 2]"
+      },
+      {
+        "parameter_ref": "P_LOCAL_SERVICE_REGIONAL_PARTICIPATION_PARTIAL_RATE",
+        "label": "기술ㆍ학술용역 지역업체 참여도 부분점수 하한 참여비율",
+        "resolved_value": 20,
+        "unit": "percent",
+        "display_value": "20%",
+        "parameter_status": "resolved",
+        "requires_manual_numeric_verification": false,
+        "source_text_ref": "지방자치단체 입찰시 낙찰자 결정기준 제2장의2 [별표 2]"
+      },
+      {
+        "parameter_ref": "P_LOCAL_SERVICE_REGIONAL_PARTICIPATION_PARTIAL_SCORE",
+        "label": "기술ㆍ학술용역 지역업체 참여도 부분점수",
+        "resolved_value": 1,
+        "unit": "score",
+        "display_value": "1점",
+        "parameter_status": "resolved",
+        "requires_manual_numeric_verification": false,
+        "source_text_ref": "지방자치단체 입찰시 낙찰자 결정기준 제2장의2 [별표 2]"
+      },
+      {
+        "parameter_ref": "P_LOCAL_SERVICE_REGIONAL_PARTICIPATION_EXCEPTION_LOW_RATE",
+        "label": "다른 법령 기술용역 분담이행 예외 하한",
+        "resolved_value": 10,
+        "unit": "percent",
+        "display_value": "10%",
+        "parameter_status": "resolved",
+        "requires_manual_numeric_verification": false,
+        "source_text_ref": "지방자치단체 입찰시 낙찰자 결정기준 제2장의2 [별표 2] 주석"
+      }
+    ],
+    "source_chain_status": "mapped_verified",
     "primary_source_details": [
+      {
+        "id": "ADMIN_LOCAL_BID_AWARD_STANDARD_ANNEX2",
+        "title": "지방자치단체 입찰시 낙찰자 결정기준 제2장의2 [별표 2]",
+        "status": "verified",
+        "source_type": "admin_rule",
+        "law_category": "award_criteria",
+        "rank_score": 110,
+        "mapping_method": "internal_db_article_lookup",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
+      },
       {
         "id": "cf171376-9772-4dfa-b5ca-956ae10450f8",
         "title": "건설엔지니어링 적격심사 및 협상에 의한 낙찰자 결정기준",
@@ -1961,7 +2263,10 @@
         "source_type": "admrul_regulation",
         "law_category": "regulation",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "c1e08761-4a30-4f0f-927b-24cecf272b46",
@@ -1970,7 +2275,10 @@
         "source_type": "admrul_regulation",
         "law_category": "regulation",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "74afa4fe-885b-49cc-ab04-a387a464f7b6",
@@ -1979,7 +2287,10 @@
         "source_type": "admrul_instruction",
         "law_category": "instruction",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "0d0fec83-6fc5-4783-91c7-b8f4710c03f9",
@@ -1988,7 +2299,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "39a1decb-7f34-4821-8afc-2a69e313d470",
@@ -1997,7 +2311,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "937587f9-9df3-422c-9cc3-c295a5a40f0a",
@@ -2006,7 +2323,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "c43d2b56-45aa-4b73-bdeb-c96200cc5be7",
@@ -2015,7 +2335,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "4029a250-fc93-4446-a36a-bc624941d23e",
@@ -2024,7 +2347,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "f231f288-21d9-4f95-b6df-9457d9ddccb0",
@@ -2033,7 +2359,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "8db21c63-e0ae-43d8-9b55-9091852951eb",
@@ -2042,7 +2371,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "18022689-4f0d-4835-b5b2-642539368687",
@@ -2051,7 +2383,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "f7c69d97-68d3-480c-99df-301cc6077ae7",
@@ -2060,7 +2395,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "6b8feca8-1b7b-4ec1-8df4-ddbdf1328f01",
@@ -2069,7 +2407,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "20aae559-93dc-43c0-ad3f-63a7bf04e6df",
@@ -2078,12 +2419,15 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       }
     ],
     "related_source_details": [],
-    "high_priority_source_count": 0,
-    "remaining_gap_reason": "Candidate source requires manual review"
+    "high_priority_source_count": 1,
+    "remaining_gap_reason": "Numeric parameters verified from 지방자치단체 입찰시 낙찰자 결정기준 제2장의2 [별표 2]"
   },
   "R_CONSTRUCTION_REGIONAL_POINTS_QUALIFICATION_CHECK": {
     "rule_id": "R_CONSTRUCTION_REGIONAL_POINTS_QUALIFICATION_CHECK",
@@ -2117,7 +2461,10 @@
         "source_type": "admrul_regulation",
         "law_category": "regulation",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "c1e08761-4a30-4f0f-927b-24cecf272b46",
@@ -2126,7 +2473,10 @@
         "source_type": "admrul_regulation",
         "law_category": "regulation",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "74afa4fe-885b-49cc-ab04-a387a464f7b6",
@@ -2135,7 +2485,10 @@
         "source_type": "admrul_instruction",
         "law_category": "instruction",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "0d0fec83-6fc5-4783-91c7-b8f4710c03f9",
@@ -2144,7 +2497,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "39a1decb-7f34-4821-8afc-2a69e313d470",
@@ -2153,7 +2509,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "937587f9-9df3-422c-9cc3-c295a5a40f0a",
@@ -2162,7 +2521,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "c43d2b56-45aa-4b73-bdeb-c96200cc5be7",
@@ -2171,7 +2533,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "4029a250-fc93-4446-a36a-bc624941d23e",
@@ -2180,7 +2545,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "f231f288-21d9-4f95-b6df-9457d9ddccb0",
@@ -2189,7 +2557,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       },
       {
         "id": "8db21c63-e0ae-43d8-9b55-9091852951eb",
@@ -2198,7 +2569,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 55,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "candidate_needs_review"
+        }
       }
     ],
     "related_source_details": [],
@@ -2243,7 +2617,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -2294,7 +2671,10 @@
         "source_type": "admrul",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -2346,7 +2726,10 @@
         "source_type": "law",
         "law_category": "act",
         "rank_score": 95,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "088cc30c-24c1-429f-9a7e-5c14255b0a47",
@@ -2355,7 +2738,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 95,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "e45cf17a-8fd2-4ab3-956a-bd90f8737fe8",
@@ -2364,7 +2750,10 @@
         "source_type": "law",
         "law_category": "act",
         "rank_score": 95,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "4ed16661-e9df-420d-84b4-02d048161859",
@@ -2373,7 +2762,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 95,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "c13b1dc1-e006-42be-a5ec-36fd64836430",
@@ -2382,7 +2774,10 @@
         "source_type": "law",
         "law_category": "act",
         "rank_score": 95,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "233b60a7-b053-482d-b31c-95886f7f51d2",
@@ -2391,7 +2786,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 95,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "863f0bf1-76f0-4837-94dd-814acc017ea3",
@@ -2400,7 +2798,10 @@
         "source_type": "admrul",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -2442,7 +2843,10 @@
         "source_type": "admrul",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -2487,7 +2891,10 @@
         "source_type": "admrul",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "a75755ca-622d-4f90-a1ce-5787b1ebd929",
@@ -2496,7 +2903,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -2538,7 +2948,10 @@
         "source_type": "law",
         "law_category": "enforcement_decree",
         "rank_score": 110,
-        "mapping_method": "alias_resolved"
+        "mapping_method": "alias_resolved",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [],
@@ -2583,7 +2996,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -2650,7 +3066,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "e34672de-21f2-4ead-8afd-39b2a0b9e604",
@@ -2659,7 +3078,10 @@
         "source_type": "admrul",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -2743,7 +3165,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -2795,7 +3220,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -2847,7 +3275,10 @@
         "source_type": "admrul_notice",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -2898,7 +3329,10 @@
         "source_type": "admrul",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -2942,7 +3376,10 @@
         "source_type": "admrul",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -2986,7 +3423,10 @@
         "source_type": "admrul",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       },
       {
         "id": "863f0bf1-76f0-4837-94dd-814acc017ea3",
@@ -2995,7 +3435,10 @@
         "source_type": "admrul",
         "law_category": "notice",
         "rank_score": 85,
-        "mapping_method": "keyword_match"
+        "mapping_method": "keyword_match",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -3109,7 +3552,10 @@
         "source_type": "law",
         "law_category": "act",
         "rank_score": 110,
-        "mapping_method": "alias_resolved"
+        "mapping_method": "alias_resolved",
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "related_source_details": [
@@ -3147,30 +3593,35 @@
   "R_LOCAL_LIMITED_BID_AMOUNT": {
     "rule_id": "R_LOCAL_LIMITED_BID_AMOUNT",
     "display_name": "지역제한 입찰 기준금액",
-    "source_chain_status": "mapped_verified",
+    "source_chain_status": "partial_mapped",
     "law_name": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행규칙",
     "article": "제24조",
-    "effective_date": "2026-01-02",
-    "last_verified_at": "2026-05-05",
+    "effective_date": "2026-04-24",
+    "last_verified_at": "2026-05-09",
     "primary_source_details": [
       {
         "id": "LAW_LOCAL_CONTRACT_RULE_24",
         "title": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행규칙 제24조",
-        "status": "source_verified",
+        "status": "verified",
         "source_type": "law",
-        "law_category": "지방계약법"
+        "law_category": "지방계약법",
+        "rank_score": 100,
+        "score_breakdown": {
+          "review_status": "verified"
+        }
       }
     ],
     "numeric_parameters": [
       {
         "parameter_ref": "P_LOCAL_LIMITED_BID_GENERAL_CONSTRUCTION_THRESHOLD",
         "label": "종합공사",
-        "resolved_value": 10000000000,
+        "resolved_value": 15000000000,
         "unit": "KRW",
-        "display_value": "100억원",
+        "display_value": "150억원",
         "parameter_status": "resolved",
         "requires_manual_numeric_verification": false,
-        "source_text_ref": "제24조 제1호 가목"
+        "source_text_ref": "제24조 제1호 가목",
+        "verification_note": "내부 법령 DB 지방계약법 시행규칙 제24조(시행 2026-04-24)에서 확인"
       },
       {
         "parameter_ref": "P_LOCAL_LIMITED_BID_SPECIALTY_CONSTRUCTION_THRESHOLD",
@@ -3222,6 +3673,28 @@
         "parameter_status": "resolved",
         "requires_manual_numeric_verification": false,
         "source_text_ref": "제24조 제2호 나목 괄호"
+      },
+      {
+        "parameter_ref": "P_NATIONAL_LIMITED_BID_GENERAL_CONSTRUCTION_THRESHOLD",
+        "label": "국가기관 종합공사",
+        "resolved_value": 8800000000,
+        "unit": "KRW",
+        "display_value": "88억원",
+        "parameter_status": "resolved",
+        "requires_manual_numeric_verification": false,
+        "source_text_ref": "국가계약법 시행규칙 제24조제2항제1호가목 + 국가계약법 제4조 고시금액",
+        "verification_note": "국가계약법 시행규칙은 고시금액 연동, 현행 고시금액 기준 88억원으로 관리"
+      },
+      {
+        "parameter_ref": "P_PUBLIC_CORP_LIMITED_BID_GENERAL_CONSTRUCTION_THRESHOLD",
+        "label": "공기업ㆍ준정부기관 종합공사",
+        "resolved_value": 15000000000,
+        "unit": "KRW",
+        "display_value": "150억원",
+        "parameter_status": "resolved",
+        "requires_manual_numeric_verification": false,
+        "source_text_ref": "공기업ㆍ준정부기관 계약사무규칙 제6조제4항제1호가목",
+        "verification_note": "내부 법령 DB 공기업ㆍ준정부기관 계약사무규칙 제6조(시행 2026-04-20)에서 확인"
       }
     ]
   }

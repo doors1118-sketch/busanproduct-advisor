@@ -86,9 +86,12 @@ def repair_slots(user_query: str, router_result: RouterResult) -> RouterResult:
         if repair_msg not in current_reason:
             router_result.reason = current_reason + repair_msg
         
-        if slots.candidate_lookup_requested:
+        if slots.candidate_lookup_requested and slots.item_name:
             router_result.candidate_lookup_required = True
             router_result.company_lookup_required = True
+        elif slots.candidate_lookup_requested and not slots.item_name:
+            router_result.candidate_lookup_required = False
+            router_result.company_lookup_required = False
             
         # 승격(Promotion) 로직
         if router_result.routing_decision in ["clarification_required", "out_of_scope"]:
@@ -121,8 +124,11 @@ def repair_slots(user_query: str, router_result: RouterResult) -> RouterResult:
             if router_result.routing_decision not in ["clarification_required", "out_of_scope"]:
                 router_result.clarification_needed = []
 
-        if router_result.candidate_lookup_required:
+        if router_result.candidate_lookup_required and slots.item_name:
             router_result.company_lookup_required = True
+        elif router_result.candidate_lookup_required and not slots.item_name:
+            router_result.candidate_lookup_required = False
+            router_result.company_lookup_required = False
         if slots.local_supplier_intent or "지역" in user_query or "부산" in user_query:
             router_result.local_purchase_support_required = True
             if "부산 지역상품 구매지원 경로" not in router_result.answer_focus:
@@ -131,7 +137,7 @@ def repair_slots(user_query: str, router_result: RouterResult) -> RouterResult:
             router_result.legal_review_required = True
             if "법령상 계약 가능 범위와 확인 필요사항" not in router_result.answer_focus:
                 router_result.answer_focus.insert(0, "법령상 계약 가능 범위와 확인 필요사항")
-        if router_result.company_lookup_required and "부산 업체·상품 후보 조회" not in router_result.answer_focus:
+        if router_result.company_lookup_required and slots.item_name and "부산 업체·상품 후보 조회" not in router_result.answer_focus:
             router_result.answer_focus.append("부산 업체·상품 후보 조회")
                 
     return router_result

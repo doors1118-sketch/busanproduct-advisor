@@ -1,0 +1,79 @@
+{
+  "generated_at": "2026-05-09T00:48:18",
+  "source_count": 10,
+  "extractable_sources": 9,
+  "card_count": 11,
+  "sources": [
+    {
+      "source": "(25.9.15)지방계약 실무 매뉴얼.pdf",
+      "exists": true,
+      "page_count": 462,
+      "text_pages": 451,
+      "extractable": true
+    },
+    {
+      "source": "「우수조달물품+지정+및+3자단가계약+실무매뉴얼」 (1).pdf",
+      "exists": true,
+      "page_count": 215,
+      "text_pages": 178,
+      "extractable": true
+    },
+    {
+      "source": "1. 공사계약 매뉴얼-내지(3교).pdf",
+      "exists": true,
+      "page_count": 379,
+      "text_pages": 339,
+      "extractable": true
+    },
+    {
+      "source": "2. 용역계약 메뉴얼-내지(3교).pdf",
+      "exists": true,
+      "page_count": 387,
+      "text_pages": 353,
+      "extractable": true
+    },
+    {
+      "source": "2025 조합추천수의계약 제도 안내자료.pdf",
+      "exists": true,
+      "page_count": 28,
+      "text_pages": 0,
+      "extractable": false
+    },
+    {
+      "source": "2025년도 지방계약 우수사례집.pdf",
+      "exists": true,
+      "page_count": 114,
+      "text_pages": 83,
+      "extractable": true
+    },
+    {
+      "source": "감사원_공공계약 실무가이드 2024년 개정판_발간번호.pdf",
+      "exists": true,
+      "page_count": 364,
+      "text_pages": 353,
+      "extractable": true
+    },
+    {
+      "source": "지방자치단체를 당사자로 하는 계약에 관한 법률 시행령의 수의계약 등 한시적 특례 적용기간에 관한 고시(행정안전부고시)(제2025-72호)(20260101).pdf",
+      "exists": true,
+      "page_count": 1,
+      "text_pages": 1,
+      "extractable": true
+    },
+    {
+      "source": "(1권) 2025 공공구매제도 실무가이드.pdf",
+      "exists": true,
+      "page_count": 340,
+      "text_pages": 323,
+      "extractable": true
+    },
+    {
+      "source": "(2권) 중소기업자간 경쟁제품 해설(609개 품목).pdf",
+      "exists": true,
+      "page_count": 615,
+      "text_pages": 612,
+      "extractable": true
+    }
+  ],
+  "output": "C:\\dev\\busanproduct-advisor\\메뉴얼 제작\\app\\data\\practice_manual_cards.json"
+}

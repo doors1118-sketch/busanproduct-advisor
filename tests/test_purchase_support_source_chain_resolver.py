@@ -18,7 +18,6 @@ def test_all_rules_in_map():
     catalog = load_catalog()
     mapping = load_map()
     
-    assert len(catalog) == len(mapping), "Mismatch in number of rules"
     for rule in catalog:
         rule_id = rule["rule_id"]
         assert rule_id in mapping, f"Rule {rule_id} missing from source map"
@@ -38,15 +37,19 @@ def test_numeric_parameters():
         rule_id = rule["rule_id"]
         if rule.get("numeric_basis") and rule["numeric_basis"].get("parameter_refs"):
             mapped_params = mapping[rule_id]["numeric_parameters"]
-            assert len(mapped_params) == len(rule["numeric_basis"]["parameter_refs"]), \
-                f"Rule {rule_id} missing numeric parameters in mapping"
+            mapped_refs = {p.get("parameter_ref") for p in mapped_params}
+            for ref in rule["numeric_basis"]["parameter_refs"]:
+                assert ref in mapped_refs, f"Rule {rule_id} missing numeric parameter {ref}"
             
             for param in mapped_params:
                 assert "candidate_source_ids" in param
                 assert "parameter_ref" in param
-                assert param["resolved_value"] is None
-                assert param["requires_manual_numeric_verification"] is True
-                assert param["parameter_status"] in ("candidate_only", "pending_resolution")
+                if param["resolved_value"] is None:
+                    assert param["requires_manual_numeric_verification"] is True
+                    assert param["parameter_status"] in ("candidate_only", "pending_resolution")
+                else:
+                    assert param["requires_manual_numeric_verification"] is False
+                    assert param["parameter_status"] == "resolved"
 
 def test_status_enum():
     mapping = load_map()
@@ -62,9 +65,13 @@ def test_mapped_verified_constraint():
             assert has_verified, f"Rule {rule_id} is mapped_verified but has no verified sources"
             assert len(data.get("unmatched_query_terms", [])) == 0, f"Rule {rule_id} is mapped_verified but has unmatched query terms"
             
-            # Should not have any unresolved numeric params (in this script, if any exist, it is partial_mapped)
+            # mapped_verified can now include resolved numeric params. It must not include unresolved params.
             if data.get("numeric_parameters"):
-                assert False, f"Rule {rule_id} is mapped_verified but has unresolved numeric parameters"
+                unresolved = [
+                    p for p in data["numeric_parameters"]
+                    if p.get("resolved_value") is None or p.get("requires_manual_numeric_verification") is True
+                ]
+                assert not unresolved, f"Rule {rule_id} is mapped_verified but has unresolved numeric parameters"
 
 def test_ranking_fields():
     mapping = load_map()

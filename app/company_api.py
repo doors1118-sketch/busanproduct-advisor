@@ -13,6 +13,7 @@ except ImportError:  # package import path used in tests
 load_dotenv()
 
 BASE_URL = os.getenv("MONITORING_COMPANY_API_BASE_URL", "http://127.0.0.1:8000")
+ODCLOUD_API_KEY = os.getenv("ODCLOUD_API_KEY", "")
 
 last_search_results: dict = {}
 last_search_query: str = ""
@@ -126,6 +127,56 @@ POLICY_ALIAS_MAP = {
     "청년창업기업": "youth_startup",
     "벤처기업": "venture_company"
 }
+
+
+def verify_business_status(biz_nums):
+    """사업자상태 검증 훅.
+
+    운영 경로에서는 모니터링 시스템/내부 DB의 상태값을 우선 사용한다. 이 함수는
+    레거시 테스트와 향후 NTS 연동 지점을 위한 호환 레이어이며, 외부 조회가
+    구성되지 않은 경우 None을 반환해 fail-closed 처리하게 한다.
+    """
+    return None
+
+
+def filter_active_companies(data: dict) -> dict:
+    """레거시 업체목록 응답에 사업자상태 검증 결과를 덧붙인다."""
+    result = dict(data or {})
+    companies = list(result.get("업체목록") or result.get("candidates") or [])
+    biz_nums = [
+        c.get("사업자번호") or c.get("사업자등록번호") or c.get("businessNo")
+        for c in companies
+        if isinstance(c, dict)
+    ]
+    biz_nums = [b for b in biz_nums if b]
+    verification = verify_business_status(biz_nums)
+
+    if verification is None:
+        result["_사업자상태검증"] = "failed"
+        for company in companies:
+            if isinstance(company, dict):
+                company["_사업자상태"] = "영업상태 확인 필요"
+        if "업체목록" in result:
+            result["업체목록"] = companies
+        else:
+            result["candidates"] = companies
+        return result
+
+    result["_사업자상태검증"] = "success"
+    active = []
+    for company in companies:
+        if not isinstance(company, dict):
+            continue
+        biz_no = company.get("사업자번호") or company.get("사업자등록번호") or company.get("businessNo")
+        status = verification.get(biz_no) if isinstance(verification, dict) else None
+        company["_사업자상태"] = status or "영업상태 확인 필요"
+        if status in (None, "계속사업자", "정상", "영업중", "영업상태 확인 필요"):
+            active.append(company)
+    if "업체목록" in result:
+        result["업체목록"] = active
+    else:
+        result["candidates"] = active
+    return result
 
 def get_company_detail(company_id: str) -> dict:
     """단일 업체 상세 조회 (Master API)"""
@@ -306,7 +357,7 @@ def format_company_results(data: dict, max_results: int = 10) -> str:
         
     candidates = data.get("candidates", [])
     if not candidates:
-        return "검색 결과가 없습니다."
+        return "candidate 없음: 검색 결과가 없습니다."
         
     total = len(candidates)
     lines = [f"부산 지역업체 검색 결과: 총 {total}건 (상위 {min(max_results, total)}건, 정렬기준: 현재 캐시 기준 후보)"]

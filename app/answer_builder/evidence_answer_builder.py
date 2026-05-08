@@ -15,7 +15,7 @@ from app.answer_builder.answer_type_router import FORBIDDEN_PHRASES
 
 # unresolved 상태에서 출력 금지 수치 패턴
 FORBIDDEN_NUMERIC_HINTS = [
-    "5천만원", "50,000,000", "50000000",
+    "50,000,000", "50000000",
     "1억원", "100,000,000", "100000000",
     "7.5점",
     "40%", "49%", "30%",

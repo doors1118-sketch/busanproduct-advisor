@@ -91,8 +91,8 @@ def test_evidence_mode_off_skips_stage():
     assert "근거 기반 검토 상태" not in resp.answer_output.rendered_markdown
 
 
-def test_evidence_default_off():
-    """기본값은 evidence OFF."""
+def test_evidence_default_on():
+    """기본값은 evidence ON: 내부 DB/source map 추적을 기본 활성화한다."""
     req = ChatbotRuntimeRequest(
         user_query="수의계약이 뭐야?",
         mock_gemini_response={
@@ -103,7 +103,7 @@ def test_evidence_default_off():
     resp = run_chatbot_runtime(req)
 
     ec = _get_stage(resp, "evidence_context")
-    assert ec is not None and ec.skipped is True
+    assert ec is not None and ec.status == "success" and ec.skipped is False
 
 
 def test_evidence_mode_candidate_search():

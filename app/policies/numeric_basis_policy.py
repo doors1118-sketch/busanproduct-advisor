@@ -55,13 +55,23 @@ def get_numeric_value(parameter_ref: str) -> int | float | None:
 
 def get_numeric_display(parameter_ref: str) -> str | None:
     row = load_numeric_parameters().get(parameter_ref) or {}
-    display = row.get("display_value")
-    if display:
-        return str(display)
     value = get_numeric_value(parameter_ref)
     if value is None:
         return None
+    display = row.get("display_value")
+    if display:
+        return str(display)
+    unit = str(row.get("unit") or "").lower()
+    if unit in {"percent", "%"}:
+        return f"{value:g}%"
+    if unit in {"score", "point", "points"}:
+        return f"{value:g}점"
     return format_money(value) if isinstance(value, int) else str(value)
+
+
+def find_unresolved_numeric_parameters(parameter_refs: list[str]) -> list[str]:
+    """Return refs that are missing, unresolved, or still manual-review gated."""
+    return [ref for ref in parameter_refs if get_numeric_value(ref) is None]
 
 
 def format_money(value: int | float | None) -> str:

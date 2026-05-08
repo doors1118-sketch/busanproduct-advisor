@@ -9,10 +9,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-try:
-    from policies.numeric_basis_policy import compare_amount, get_numeric_display
-except ImportError:
-    from app.policies.numeric_basis_policy import compare_amount, get_numeric_display
+from policies.numeric_basis_policy import compare_amount, get_numeric_display
 
 
 @dataclass(frozen=True)
