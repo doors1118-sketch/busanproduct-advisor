@@ -47,6 +47,7 @@ _cited_laws = []
 
 # API 레이어용 generation_meta 저장 (매 chat 호출 후 업데이트)
 _last_generation_meta = {}
+_current_routing_confidence_meta = {}
 
 from cachetools import TTLCache
 _mcp_cache = TTLCache(maxsize=100, ttl=3600)
@@ -2173,8 +2174,10 @@ def _chat_v144(
     v1.4.4 Dynamic Prompt Pipeline.
     3단 라우팅 → 동적 프롬프트 조립 → Function-calling loop (MAX=3)
     """
+    global _current_routing_confidence_meta
     request_id = str(uuid.uuid4())[:8]
     routing_start = time.time()
+    _current_routing_confidence_meta = {}
 
     global _cited_laws
     _cited_laws = []
@@ -2347,7 +2350,53 @@ def _chat_v144(
     risk_info = classify_risk(user_message, intent_labels)
     
     query_tier = classify_query_tier(risk_info, intent_labels, user_message, legacy_router_result)
-    print(f"  [ROUTING] risk_level={risk_info.get('risk_level')} query_tier={query_tier}")
+    try:
+        try:
+            from app.router.routing_confidence import assess_routing_confidence
+        except ImportError:
+            from router.routing_confidence import assess_routing_confidence
+        routing_confidence = assess_routing_confidence(
+            user_message,
+            gateway_decision=gateway_decision,
+            keyword_result=keyword_result,
+            router_result=legacy_router_result,
+            intent_labels=intent_labels,
+            query_tier=query_tier,
+        )
+        _current_routing_confidence_meta = {
+            "routing_confidence_score": routing_confidence.score,
+            "routing_confidence_level": routing_confidence.level,
+            "routing_ambiguous": routing_confidence.ambiguous,
+            "routing_ambiguity_reasons": routing_confidence.reasons,
+            "routing_required_slots_missing": routing_confidence.required_slots_missing,
+            "routing_confidence_action": routing_confidence.action,
+        }
+        if routing_confidence.tier_override is not None and routing_confidence.tier_override != query_tier:
+            print(
+                f"  [ROUTING-CONFIDENCE] tier override {query_tier} -> {routing_confidence.tier_override} "
+                f"because {routing_confidence.reasons}",
+                flush=True,
+            )
+            query_tier = routing_confidence.tier_override
+            _current_routing_confidence_meta["routing_tier_overridden"] = True
+            _current_routing_confidence_meta["routing_tier_override_to"] = query_tier
+    except Exception as e:
+        print(f"  [ROUTING-CONFIDENCE] skipped: {e}", flush=True)
+        _current_routing_confidence_meta = {
+            "routing_confidence_score": 0.5,
+            "routing_confidence_level": "unknown",
+            "routing_ambiguous": True,
+            "routing_ambiguity_reasons": [f"confidence_assessment_failed:{e}"],
+            "routing_required_slots_missing": [],
+            "routing_confidence_action": "proceed",
+        }
+    legacy_router_meta["routing_confidence"] = dict(_current_routing_confidence_meta)
+    print(
+        f"  [ROUTING] risk_level={risk_info.get('risk_level')} query_tier={query_tier} "
+        f"confidence={_current_routing_confidence_meta.get('routing_confidence_level')} "
+        f"score={_current_routing_confidence_meta.get('routing_confidence_score')}",
+        flush=True,
+    )
     
     if query_tier == 0:
         print("  [FAST-TRACK] Tier 0 detected. Bypassing Gemini completely.")
@@ -3573,6 +3622,8 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
     _rewrite_start = time.time()
     
     if generation_meta is not None:
+        for _k, _v in (_current_routing_confidence_meta or {}).items():
+            generation_meta.setdefault(_k, _v)
         # deterministic_template_used가 이미 True이면 source를 deterministic으로 초기화
         if generation_meta.get("deterministic_template_used", False):
             generation_meta["final_answer_source"] = "deterministic_fail_closed_template"
@@ -4208,64 +4259,26 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
     # ==========================================
     # Post-Final Scanner (최종 안전 게이트)
     # ==========================================
-    post_scan_forbidden = []
-    # 위에서 이미 정의된 FORBIDDEN_CONFIRM_PATTERNS 재사용 또는 확장
-    post_scan_patterns = [
-        r"수의계약 추진",
-        r"수의계약을 추진",
-        r"수의계약 체결",
-        r"1인 견적 수의계약 체결",
-        r"1인 견적에 의한 수의계약",
-        r"1인 견적 수의계약",
-        r"금액과 상관없이",
-        r"금액 제한 없이",
-        r"금액 한도 없이",
-        r"금액 제한이 없더라도",
-        r"직접 수의계약",
-        r"계약을 추진",
-        r"계약 가능합니다",
-        r"구매 가능합니다",
-        r"해당 업체와 직접 계약",
-        r"직접 계약",
-        r"수의계약을 진행할 수 있습니다",
-        r"수의계약 가능합니다",
-        r"수의계약으로 구매할 수",
-        r"수의계약 대상으로 명시",
-        r"수의계약이 가능하다고",
-        r"수의계약 가능하다고 알려져",
-        r"계약 방식.*수의계약",
-        r"금액 제한이 없지만",
-        r"금액에 관계없이 수의계약",
-        r"바로 계약",
-        r"바로 구매",
-        r"수의계약 진행을 검토",
-        r"수의계약으로 진행",
-        r"수의계약 진행 가능",
-        r"수의계약을 검토해 볼 수",
-    ]
-    for pat in post_scan_patterns:
-        if re.search(pat, answer):
-            post_scan_forbidden.append(pat)
-
-    # 내부 프롬프트/지침 누출 검사
-    prompt_leak_patterns = [
-        r"중요 지침", r"내부 처리", r"초안 답변", r"알겠습니다", 
-        r"수정하겠습니다", r"시스템 지침", r"프롬프트",
-        r"\[MCP_FAILED\]", r"MCP_FAILED", r"RAG 검색",
-        r"RAG 검색 결과", r"조회 실패로 법적 판단",
-        r"확인되지 않았습니다\)", r"MCP 호출",
-    ]
-    prompt_leak_detected = False
-    for pat in prompt_leak_patterns:
-        if re.search(pat, answer):
-            prompt_leak_detected = True
-            break
+    try:
+        from policies.post_scan_policy import scan_final_answer
+    except ImportError:
+        from app.policies.post_scan_policy import scan_final_answer
+    post_scan_result = scan_final_answer(answer)
+    post_scan_forbidden = list(post_scan_result.get("critical_patterns", []))
+    post_scan_warnings = list(post_scan_result.get("warning_patterns", []))
+    post_scan_patterns = post_scan_forbidden
+    prompt_leak_detected = bool(post_scan_result.get("prompt_leak_detected", False))
 
     if generation_meta is not None:
         generation_meta["final_answer_scanned"] = True
         existing_forbidden = generation_meta.get("forbidden_patterns_matched", [])
         combined_forbidden = list(set(existing_forbidden + post_scan_forbidden))
         generation_meta["forbidden_patterns_matched"] = combined_forbidden
+        generation_meta["post_scan_policy_version"] = post_scan_result.get("scanner_policy_version", "graded_v1")
+        generation_meta["post_scan_findings"] = post_scan_result.get("findings", [])
+        generation_meta["post_scan_critical_count"] = post_scan_result.get("critical_count", 0)
+        generation_meta["post_scan_warning_count"] = post_scan_result.get("warning_count", 0)
+        generation_meta["post_scan_warning_patterns"] = post_scan_warnings
         generation_meta["candidate_table_source"] = "server_structured_formatter" if server_table else "none"
         generation_meta["candidate_table_preserved"] = False
         generation_meta["llm_generated_table_discarded"] = False

@@ -27,6 +27,7 @@ os.environ["MCP_ADMIN_RULE_TIMEOUT_SECONDS"] = "15"
 os.environ["MCP_CHAIN_TIMEOUT_SECONDS"] = "15"
 os.environ["MCP_ORDINANCE_TIMEOUT_SECONDS"] = "15"
 os.environ["MCP_DECISION_TIMEOUT_SECONDS"] = "15"
+os.environ["LEGAL_DB_REFRESH_MODE"] = "true"
 
 from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(_root), ".env"))

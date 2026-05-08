@@ -102,6 +102,10 @@ class ChatResponse(BaseModel):
     contract_possible_auto_promoted: bool = False
     forbidden_patterns_remaining_after_rewrite: list = []
     final_answer_scanned: bool = True
+    post_scan_policy_version: str = ""
+    post_scan_critical_count: int = 0
+    post_scan_warning_count: int = 0
+    post_scan_warning_patterns: list = []
     sensitive_fields_detected: list = []
     model_selected: str = ""
     model_decision_reason: str = ""
@@ -179,6 +183,12 @@ class ChatResponse(BaseModel):
     runtime_status: str = ""  # success / degraded / failed
     routing_decision: str = ""
     primary_intent: str = ""
+    routing_confidence_score: float = 0.0
+    routing_confidence_level: str = ""
+    routing_ambiguous: bool = False
+    routing_ambiguity_reasons: list = []
+    routing_required_slots_missing: list = []
+    routing_confidence_action: str = ""
     runtime_stages: list = []
     forbidden_phrase_scan_passed: bool = True
     blocked_phrases_found: list = []
@@ -449,6 +459,10 @@ def _chat_legacy(req: ChatRequest, start: float):
             legal_conclusion_allowed=meta.get("legal_conclusion_allowed", False),
             forbidden_patterns_remaining_after_rewrite=meta.get("forbidden_patterns_remaining_after_rewrite", []),
             final_answer_scanned=meta.get("final_answer_scanned", False),
+            post_scan_policy_version=meta.get("post_scan_policy_version", ""),
+            post_scan_critical_count=meta.get("post_scan_critical_count", 0),
+            post_scan_warning_count=meta.get("post_scan_warning_count", 0),
+            post_scan_warning_patterns=meta.get("post_scan_warning_patterns", []),
             model_selected=meta.get("model_used", os.getenv("GEMINI_MODEL", "gemini-2.5-pro")),
             model_decision_reason=meta.get("model_decision_reason", ""),
             tier_resolved=meta.get("tier_resolved", 1),
@@ -478,6 +492,12 @@ def _chat_legacy(req: ChatRequest, start: float):
             cache_status=meta.get("cache_status", ""),
             route_guidance_provided=meta.get("route_guidance_provided", False),
             regional_route_guidance_provided=meta.get("regional_route_guidance_provided", False),
+            routing_confidence_score=meta.get("routing_confidence_score", 0.0),
+            routing_confidence_level=meta.get("routing_confidence_level", ""),
+            routing_ambiguous=meta.get("routing_ambiguous", False),
+            routing_ambiguity_reasons=meta.get("routing_ambiguity_reasons", []),
+            routing_required_slots_missing=meta.get("routing_required_slots_missing", []),
+            routing_confidence_action=meta.get("routing_confidence_action", ""),
             amount_detected=meta.get("amount_detected"),
             amount_band=meta.get("amount_band"),
             candidate_counts_by_type=meta.get("candidate_counts_by_type", {}),

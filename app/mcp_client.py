@@ -18,12 +18,27 @@ load_dotenv()
 MCP_BASE_URL = os.getenv("MCP_ENDPOINT") or os.getenv("MCP_BASE_URL", "http://49.50.133.160:3000/mcp")
 # .env.example과의 호환: LAW_OC / LAW_API_OC 모두 인식
 OC = os.getenv("LAW_OC") or os.getenv("LAW_API_OC", "busanproduct1")
+MCP_ALLOW_RUNTIME_FALLBACK = os.getenv("MCP_ALLOW_RUNTIME_FALLBACK", "false").lower() in {"1", "true", "yes", "on"}
+LEGAL_DB_REFRESH_MODE = os.getenv("LEGAL_DB_REFRESH_MODE", "false").lower() in {"1", "true", "yes", "on"}
 MCP_HEADERS = {
     "Content-Type": "application/json",
     "Accept": "application/json, text/event-stream",
 }
 
 _request_id = 0
+
+
+def _external_mcp_allowed() -> bool:
+    """External MCP is reserved for DB refresh unless explicitly enabled."""
+    return LEGAL_DB_REFRESH_MODE or MCP_ALLOW_RUNTIME_FALLBACK
+
+
+def _mcp_disabled_text(tool_name: str, query: str = "") -> str:
+    detail = f" query={query}" if query else ""
+    return (
+        f"[외부MCP 비활성] {tool_name}{detail} — 런타임 답변 경로에서는 외부 MCP fallback을 사용하지 않습니다. "
+        "내부 DB 갱신/검증 작업에서만 LEGAL_DB_REFRESH_MODE=true로 실행하세요."
+    )
 
 
 def _mcp_call(tool_name: str, arguments: dict, timeout: int = None) -> dict:
@@ -94,7 +109,9 @@ def search_law(query: str, display: int = 5) -> str:
     except Exception as e:
         print(f"  [search_law] 내부 DB 조회 실패: {e}")
     
-    # ── 2단계: 내부에 없으면 외부 MCP 보완 호출 ──
+    # ── 2단계: 내부에 없으면 외부 MCP 보완 호출 (DB 갱신/명시 허용 시만) ──
+    if not _external_mcp_allowed():
+        return _mcp_disabled_text("search_law", query)
     try:
         result = _mcp_call("search_law", {"query": query, "display": display})
         if result["success"] and result["text"] and "[NOT_FOUND]" not in result["text"]:
@@ -125,7 +142,9 @@ def get_law_text(mst: str = None, law_id: str = None, jo: str = None) -> str:
         except Exception as e:
             print(f"  [get_law_text] 내부 DB 조회 실패: {e}")
     
-    # ── 2단계: 외부 MCP fallback ──
+    # ── 2단계: 외부 MCP fallback (DB 갱신/명시 허용 시만) ──
+    if not _external_mcp_allowed():
+        return _mcp_disabled_text("get_law_text", f"mst={mst or ''} law_id={law_id or ''} jo={jo or ''}")
     args = {}
     if mst:
         args["mst"] = mst
@@ -139,6 +158,8 @@ def get_law_text(mst: str = None, law_id: str = None, jo: str = None) -> str:
 
 def search_interpretations(query: str) -> str:
     """해석례(유권해석) 검색."""
+    if not _external_mcp_allowed():
+        return _mcp_disabled_text("search_interpretations", query)
     result = _mcp_call("search_decisions", {
         "query": query,
         "domain": "interpretation",
@@ -149,6 +170,8 @@ def search_interpretations(query: str) -> str:
 
 def search_decisions(query: str) -> str:
     """판례 검색."""
+    if not _external_mcp_allowed():
+        return _mcp_disabled_text("search_decisions", query)
     result = _mcp_call("search_decisions", {
         "query": query,
         "domain": "precedent",
@@ -170,6 +193,8 @@ def get_annexes(law_name: str, annex_no: str = None) -> str:
     args = {"lawName": law_name}
     if annex_no:
         args["annexNo"] = annex_no
+    if not _external_mcp_allowed():
+        return _mcp_disabled_text("get_annexes", f"{law_name} {annex_no or ''}".strip())
     result = _mcp_call("get_annexes", args)
     return result["text"]
 
@@ -185,7 +210,9 @@ def chain_law_system(query: str) -> str:
     except Exception as e:
         print(f"  [chain_law_system] 내부 DB 실패: {e}")
     
-    # ── 2단계: 내부에 없으면 외부 MCP 보완 ──
+    # ── 2단계: 내부에 없으면 외부 MCP 보완 (DB 갱신/명시 허용 시만) ──
+    if not _external_mcp_allowed():
+        return _mcp_disabled_text("chain_law_system", query)
     try:
         result = _mcp_call("chain_law_system", {"query": query})
         if result["success"]:
@@ -208,25 +235,28 @@ def chain_full_research(query: str) -> str:
     except Exception as e:
         print(f"  [chain_full_research] 내부 DB 실패: {e}")
     
-    # ── 2단계: 판례·해석례 (외부 MCP) ──
-    try:
-        prec = _mcp_call("search_decisions", {"query": query, "domain": "precedent", "display": 3})
-        if prec["success"] and prec["text"] and len(prec["text"]) > 30:
-            parts.append(f"▶ 관련 판례:\n{prec['text']}")
-    except Exception:
-        pass
-    
-    try:
-        interp = _mcp_call("search_decisions", {"query": query, "domain": "interpretation", "display": 3})
-        if interp["success"] and interp["text"] and len(interp["text"]) > 30:
-            parts.append(f"▶ 관련 해석례:\n{interp['text']}")
-    except Exception:
-        pass
-    
+    # ── 2단계: 판례·해석례 (외부 MCP, DB 갱신/명시 허용 시만) ──
+    if _external_mcp_allowed():
+        try:
+            prec = _mcp_call("search_decisions", {"query": query, "domain": "precedent", "display": 3})
+            if prec["success"] and prec["text"] and len(prec["text"]) > 30:
+                parts.append(f"▶ 관련 판례:\n{prec['text']}")
+        except Exception:
+            pass
+
+        try:
+            interp = _mcp_call("search_decisions", {"query": query, "domain": "interpretation", "display": 3})
+            if interp["success"] and interp["text"] and len(interp["text"]) > 30:
+                parts.append(f"▶ 관련 해석례:\n{interp['text']}")
+        except Exception:
+            pass
+
     if parts:
         return "\n\n".join(parts)
     
-    # 전부 실패 시 외부 MCP chain 시도
+    # 전부 실패 시 외부 MCP chain 시도 (DB 갱신/명시 허용 시만)
+    if not _external_mcp_allowed():
+        return _mcp_disabled_text("chain_full_research", query)
     try:
         result = _mcp_call("chain_full_research", {"query": query})
         if result["success"]:
@@ -238,12 +268,16 @@ def chain_full_research(query: str) -> str:
 
 def chain_action_basis(query: str) -> str:
     """처분/허가/인가의 법적 근거 종합 추적."""
+    if not _external_mcp_allowed():
+        return _mcp_disabled_text("chain_action_basis", query)
     result = _mcp_call("chain_action_basis", {"query": query})
     return result["text"]
 
 
 def verify_citations(text: str) -> str:
     """LLM 환각 방지 — 법령 인용 교차검증."""
+    if not _external_mcp_allowed():
+        return _mcp_disabled_text("verify_citations")
     result = _mcp_call("verify_citations", {"text": text})
     return result["text"]
 
@@ -263,7 +297,9 @@ def search_admin_rule(query: str, knd: int = None) -> str:
     except Exception as e:
         print(f"  [search_admin_rule] 내부 DB 조회 실패: {e}")
     
-    # ── 2단계: 외부 MCP 보완 호출 ──
+    # ── 2단계: 외부 MCP 보완 호출 (DB 갱신/명시 허용 시만) ──
+    if not _external_mcp_allowed():
+        return _mcp_disabled_text("search_admin_rule", query)
     try:
         params = {"query": query}
         if knd is not None:
@@ -306,7 +342,9 @@ def get_admin_rule(rule_id: str) -> str:
     except Exception as e:
         print(f"  [get_admin_rule] 내부 DB 조회 실패: {e}")
     
-    # ── 2단계: 외부 MCP fallback ──
+    # ── 2단계: 외부 MCP fallback (DB 갱신/명시 허용 시만) ──
+    if not _external_mcp_allowed():
+        return _mcp_disabled_text("get_admin_rule", rule_id)
     result = _mcp_call("execute_tool", {
         "tool_name": "get_admin_rule",
         "params": {"id": rule_id},
@@ -320,12 +358,16 @@ def get_admin_rule(rule_id: str) -> str:
 
 def chain_procedure_detail(query: str) -> str:
     """절차·비용·서식 안내 (법체계→별표→시행규칙별표)."""
+    if not _external_mcp_allowed():
+        return _mcp_disabled_text("chain_procedure_detail", query)
     result = _mcp_call("chain_procedure_detail", {"query": query})
     return result["text"]
 
 
 def chain_ordinance_compare(query: str) -> str:
     """조례 비교 연구 (상위법→전국 조례 검색). 외부 MCP 사용."""
+    if not _external_mcp_allowed():
+        return _mcp_disabled_text("chain_ordinance_compare", query)
     try:
         result = _mcp_call("chain_ordinance_compare", {"query": query})
         if result["success"]:
@@ -337,12 +379,16 @@ def chain_ordinance_compare(query: str) -> str:
 
 def chain_amendment_track(query: str) -> str:
     """개정 추적 (신구대조+조문이력)."""
+    if not _external_mcp_allowed():
+        return _mcp_disabled_text("chain_amendment_track", query)
     result = _mcp_call("chain_amendment_track", {"query": query})
     return result["text"]
 
 
 def chain_document_review(query: str) -> str:
     """계약서·약관 리스크 분석 (문서분석→관련법령→판례)."""
+    if not _external_mcp_allowed():
+        return _mcp_disabled_text("chain_document_review", query)
     result = _mcp_call("chain_document_review", {"query": query})
     return result["text"]
 
@@ -353,6 +399,8 @@ def chain_document_review(query: str) -> str:
 
 def get_decision_text(decision_id: str, domain: str = "precedent") -> str:
     """판례·해석례 전문 조회. search_decisions 결과에서 얻은 ID 사용."""
+    if not _external_mcp_allowed():
+        return _mcp_disabled_text("get_decision_text", decision_id)
     result = _mcp_call("get_decision_text", {
         "id": decision_id,
         "domain": domain,

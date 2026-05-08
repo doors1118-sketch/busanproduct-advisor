@@ -118,7 +118,12 @@ def _extract_direct_article_query(q_original: str) -> str | None:
 
 def _has_specific_item(q_original: str) -> bool:
     q = _compact(q_original)
-    if any(term in q for term in ("led", "cctv", "컴퓨터", "프린터", "복사기", "에어컨", "냉난방", "가구", "의자", "책상", "차량", "서버", "조명")):
+    if any(term in q for term in (
+        "led", "엘이디", "엘이디등", "엘이디조명", "led등", "led조명",
+        "cctv", "씨씨티비", "영상감시장치",
+        "컴퓨터", "프린터", "복사기", "에어컨", "냉난방", "가구", "의자", "책상", "차량", "서버", "조명",
+        "청소", "경비", "소프트웨어",
+    )):
         return True
     # "물품" and "제품" are contract/object classes, not specific item names.
     return False
