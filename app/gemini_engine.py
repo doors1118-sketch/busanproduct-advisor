@@ -2043,6 +2043,32 @@ def _build_grounded_case_timeout_fallback(user_message: str) -> str:
     ])
 
 
+def _build_simple_amount_contract_answer(user_message: str, amount_detected) -> str | None:
+    """Fast grounded answer for common amount + direct-contract questions."""
+    q = (user_message or "").replace(" ", "")
+    if amount_detected is None:
+        return None
+    if not ("수의계약" in q and "물품" in q):
+        return None
+
+    if amount_detected >= 200_000_000:
+        return "\n".join([
+            "### 판단 요약",
+            "- 질문 조건이 **지방자치단체 기준의 물품 2억원**이라면, 일반적인 소액 물품 수의계약 기준만으로는 바로 수의계약으로 진행하기 어렵습니다.",
+            "- 일반 물품 수의계약은 통상 소액 기준과 견적 방식 제한을 먼저 확인해야 하고, 2억원은 그 범위를 크게 넘는 금액대입니다.",
+            "",
+            "### 근거",
+            "- 「지방계약법」 제9조: 원칙은 일반입찰이고, 예외적으로 지명입찰 또는 수의계약을 할 수 있습니다.",
+            "- 「지방계약법 시행령」 제25조: 수의계약을 할 수 있는 예외 사유를 정합니다.",
+            "- 「지방계약법 시행령」 제30조: 수의계약 대상자 선정과 견적 절차를 정합니다.",
+            "",
+            "### 지역상품 구매 지원 관점",
+            "- 바로 수의계약으로 단정하기보다 **지역제한경쟁입찰**, **종합쇼핑몰/MAS**, **중소기업자간 경쟁제품·직접생산확인**, **기술개발제품·혁신제품·우수조달물품** 여부를 함께 검토하는 방향이 안전합니다.",
+            "- 구체 품목이 있으면 부산업체 후보, 조달등록, 정책기업, 인증제품 여부까지 붙여서 구매 경로를 다시 잡을 수 있습니다.",
+        ])
+    return None
+
+
 def _build_direct_article_answer(law_query: str) -> str | None:
     """Return a compact article explanation from the internal law DB."""
     try:
@@ -2312,6 +2338,49 @@ def _chat_v144(
         and _should_use_grounded_single_pass_llm(user_message, query_tier, amount_detected)
     ):
         grounded_start = time.time()
+        simple_amount_answer = _build_simple_amount_contract_answer(user_message, amount_detected)
+        if simple_amount_answer:
+            grounded_tool_results = [{
+                "tool_name": "chain_full_research",
+                "status": "success",
+                "result": mcp_context,
+                "elapsed_ms": mcp_preflight_elapsed_ms,
+            }]
+            api_status = ApiStatus()
+            _simple_amount_meta = {
+                "model_used": "deterministic_internal_law_db",
+                "model_decision_reason": "simple_amount_contract_fast_answer",
+                "tier_resolved": query_tier,
+                "fast_track_applied": False,
+                "deterministic_template_used": True,
+                "amount_rewrite_bypass": True,
+                "company_table_allowed": False,
+                "legal_conclusion_allowed": True,
+                "candidate_table_source": "none",
+                "answer_schema_version": "simple_amount_contract_v1",
+                "source_status": "mcp_preflight_success",
+                "rag_elapsed_ms": 0,
+                "model_elapsed_ms": int((time.time() - grounded_start) * 1000),
+                "mcp_preflight_elapsed_ms": mcp_preflight_elapsed_ms,
+                "tool_call_count": len(grounded_tool_results),
+                "direct_legal_basis_count": len(mandatory_mcp_executed),
+                "mandatory_mcp_plan": mandatory_mcp_plan,
+                "mandatory_mcp_executed": mandatory_mcp_executed,
+                "mandatory_mcp_missing": mandatory_mcp_missing,
+                "evidence_cards": evidence_cards,
+                "evidence_card_count": cache_stats.get("evidence_card_count", 0),
+                "internal_db_hit_count": cache_stats.get("internal_db_hit_count", 0),
+                "external_mcp_fallback_count": cache_stats.get("external_mcp_fallback_count", 0),
+                "evidence_missing_count": cache_stats.get("evidence_missing_count", 0),
+                "company_search_status": "not_called",
+                "grounded_single_pass_llm": False,
+            }
+            answer, history = _finalize_answer(
+                simple_amount_answer, history, user_message, grounded_tool_results, api_status,
+                progress_callback, generation_meta=_simple_amount_meta
+            )
+            return answer, history
+
         grounded_answer = _generate_grounded_single_pass_answer(
             user_message=user_message,
             mcp_context=mcp_context,
