@@ -87,7 +87,7 @@ def match_deterministic_legal_answer(user_message: str) -> DeterministicLegalAns
 
     if _is_regional_mandatory_joint_contract(q):
         return DeterministicLegalAnswer(
-            answer=_regional_mandatory_joint_contract_answer(),
+            answer=_regional_mandatory_joint_contract_answer(q),
             reason="regional_mandatory_joint_contract_fast_answer",
             schema_version="regional_mandatory_joint_contract_v1",
         )
@@ -96,11 +96,18 @@ def match_deterministic_legal_answer(user_message: str) -> DeterministicLegalAns
 
 
 def _is_regional_restriction(q: str) -> bool:
-    return (
-        ("지역제한" in q or "지역제한경쟁" in q)
-        and ("종합공사" in q or "건설공사" in q)
-        and any(term in q for term in ("기준", "금액", "얼마", "몇억", "100억", "150억", "88억"))
-    )
+    if not ("지역제한" in q or "지역제한경쟁" in q):
+        return False
+    if not any(term in q for term in ("기준", "금액", "얼마", "몇억", "100억", "150억", "88억", "비교")):
+        return False
+    if "종합공사" in q or "건설공사" in q:
+        return True
+    agency_compare = sum([
+        "국가" in q,
+        "공기업" in q or "준정부" in q or "공공기관" in q,
+        "지방" in q or "지방자치단체" in q or "지자체" in q,
+    ]) >= 2
+    return agency_compare
 
 
 def _is_sole_contract(q: str) -> bool:
@@ -397,10 +404,20 @@ def _audit_risk_review_answer() -> str:
     ])
 
 
-def _regional_mandatory_joint_contract_answer() -> str:
+def _regional_mandatory_joint_contract_answer(q: str = "") -> str:
     min_share = _num("P_LOCAL_JOINT_CONTRACT_MIN_SHARE")
     max_share = _num("P_LOCAL_JOINT_CONTRACT_MAX_SHARE")
     min_company_count = _num("P_LOCAL_JOINT_CONTRACT_MIN_QUALIFIED_COMPANY_COUNT")
+    public_corp_note = []
+    if "공기업" in q or "준정부" in q or "공공기관" in q:
+        public_corp_note = [
+            "",
+            "- **공기업ㆍ준정부기관에서의 추가 확인**",
+            "  - 공기업ㆍ준정부기관은 「공기업ㆍ준정부기관 계약사무규칙」과 기관 자체 계약기준, 입찰공고 조건을 함께 확인해야 합니다.",
+            "  - 지역업체 공동도급을 검토할 때도 국가계약법령 준용 여부, 기관 내부 기준, 공사 성격, 공동수급체 구성 가능성을 먼저 확인해야 합니다.",
+            "  - 지방자치단체 기준의 지역의무공동도급 비율을 공기업 계약에 그대로 적용한다고 단정하면 안 됩니다.",
+            "  근거: 「공기업ㆍ준정부기관 계약사무규칙」 및 공동계약 관련 내부 DB 기준",
+        ]
 
     return "\n".join([
         "지역의무공동도급은 지역업체 참여를 강제해 지역 시공 참여를 확보하는 장치입니다. 전기공사 같은 공사에서 검토할 수 있고, 핵심은 **공사에 한해** 적용한다는 점입니다.",
@@ -420,6 +437,7 @@ def _regional_mandatory_joint_contract_answer() -> str:
         f"  - {min_share} 이상 지역업체로 제한할 때 필요한 면허ㆍ등록 자격을 갖춘 지역업체가 {min_company_count} 미만인 경우",
         "  - 품질 저하 우려나 공동수급체 구성이 곤란한 경우",
         "  - 지역업체 수를 과도하게 제한하거나 특정 지역업체 하도급ㆍ자재납품을 의무화하는 방식은 부당 제한이 될 수 있습니다.",
+        *public_corp_note,
         "",
         "지역상품 구매 지원 관점에서는 대형 공사에서 부산 지역업체 참여를 제도적으로 확보하는 데 유용하지만, 입찰공고 단계에서 비율ㆍ면허ㆍ시공능력ㆍ업체 수를 먼저 확인해야 합니다.",
         "⚖️ 본 답변은 내부 DB에 적재된 법령ㆍ행정규칙 기준을 바탕으로 한 참고 안내입니다.",

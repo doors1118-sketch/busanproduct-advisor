@@ -362,11 +362,12 @@ def _is_practice_manual_fast_query(user_message: str) -> bool:
     practice_intent = any(term in q for term in (
         "뜻", "개념", "정의", "용어", "차이", "다르게", "구분", "뭐야", "무슨말",
         "절차", "흐름", "단계", "순서", "프로세스", "쟁점", "체크", "봐야", "확인",
-        "유의", "주의", "어떤계약", "어떻게검토",
+        "유의", "주의", "어떤계약", "어떻게검토", "어떻게", "달라",
     ))
     procurement_context = any(term in q for term in (
         "계약", "입찰", "수의", "견적", "물품", "용역", "공사", "유지보수",
         "종합쇼핑몰", "mas", "제3자단가", "지역제한", "공동도급", "가점",
+        "공동이행", "분담이행", "공동수급", "공동계약", "제안요청서", "과업지시서",
     ))
     return practice_intent and procurement_context
 
@@ -377,22 +378,47 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
         return "", []
 
     agency_key = _normalize_agency_type(agency_type) if agency_type else "default"
+    q = (user_message or "").replace(" ", "").lower()
+    is_joint_method_question = "공동이행" in q or "분담이행" in q
     cards = match_practice_manual_cards(
         user_message,
         contract_object=None,
         agency_type=agency_key,
         max_cards=4,
     )
-    if not cards:
+    if is_joint_method_question:
+        cards = [
+            card for card in cards
+            if "공동" in str(card.get("title") or "")
+            or any("공동" in str(keyword) for keyword in (card.get("keywords") or []))
+        ][:3]
+    if not cards and not is_joint_method_question:
         return "", []
 
-    q = (user_message or "").replace(" ", "").lower()
     sections = [
         "### 1. 질문의도 파악",
         "- 이 질문은 특정 금액의 계약 가능 여부 판단이 아니라, 계약 유형·절차·실무 쟁점을 설명해 달라는 요청으로 분류했습니다.",
     ]
 
-    if "용역" in q and any(term in q for term in ("물품", "구매", "제품")):
+    if is_joint_method_question:
+        sections.extend([
+            "",
+            "### 2. 공동이행방식과 분담이행방식의 차이",
+            "- **공동이행방식**은 공동수급체 구성원이 같은 계약목적물을 함께 이행하고, 지분율에 따라 책임과 실적을 나누는 방식입니다.",
+            "- **분담이행방식**은 구성원별로 맡는 공종·분야·과업을 나누어 각자 담당 부분을 이행하는 방식입니다.",
+            "- 실무상 공동이행은 구성원 간 공동 책임과 지분율 관리가 중요하고, 분담이행은 분담 범위, 면허·자격, 책임 경계가 명확해야 합니다.",
+            "- 지역업체 보호제도와 연결할 때는 공동수급체 구성 가능성, 지역업체 지분율·분담범위, 공고문상 허용 방식부터 확인해야 합니다.",
+        ])
+    elif "제안요청서" in q and "과업지시서" in q:
+        sections.extend([
+            "",
+            "### 2. 제안요청서와 과업지시서의 차이",
+            "- **제안요청서(RFP)**는 협상계약 등에서 제안자가 어떤 내용으로 제안서를 제출해야 하는지, 평가항목·배점·제출서류·제안 조건을 안내하는 문서입니다.",
+            "- **과업지시서**는 계약상 수행해야 할 업무 범위, 산출물, 일정, 인력, 검사·검수 기준을 정하는 과업 수행 기준 문서입니다.",
+            "- 쉽게 말하면 제안요청서는 `어떻게 제안받고 평가할지`, 과업지시서는 `계약 후 무엇을 수행하게 할지`에 더 가깝습니다.",
+            "- 두 문서의 내용이 서로 충돌하면 계약 이행과 분쟁 리스크가 커지므로, 과업 범위·평가기준·성과물·검수조건을 맞춰야 합니다.",
+        ])
+    elif "용역" in q and any(term in q for term in ("물품", "구매", "제품")):
         sections.extend([
             "",
             "### 2. 물품 구매와 용역계약의 핵심 차이",
@@ -2166,6 +2192,26 @@ def _build_simple_amount_contract_answer(user_message: str, amount_detected) -> 
     if not ("수의계약" in q and "물품" in q):
         return None
 
+    if amount_detected <= 50_000_000 and any(term in q for term in ("여성기업", "장애인기업", "사회적기업", "정책기업")):
+        from policies.numeric_basis_policy import get_numeric_display
+        one_quote_policy = get_numeric_display("P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD") or "기준값 확인 필요"
+        policy_contract = get_numeric_display("P_LOCAL_DIRECT_POLICY_COMPANY_THRESHOLD") or "기준값 확인 필요"
+        return "\n".join([
+            "### 판단 요약",
+            f"- 질문 조건이 **정책기업 물품 구매 {amount_detected:,}원 규모**라면, 내부 DB 기준상 정책기업 수의계약 및 1인 견적 검토 범위에 들어올 수 있습니다.",
+            f"- 다만 `여성기업이라는 말만으로 바로 계약`이 아니라, 정책기업 확인서, 직접생산·품목 적합성, 추정가격 산정, 분할발주 금지 여부를 함께 확인해야 합니다.",
+            "",
+            "### 근거",
+            f"- 정책기업 관련 물품·용역 수의계약 검토 기준: **{policy_contract} 이하**",
+            f"- 정책기업 1인 견적 검토 기준: **{one_quote_policy} 이하**",
+            "- 관련 근거는 「지방계약법 시행령」 제25조·제30조 및 여성기업 등 정책기업 관련 법령·행정규칙입니다.",
+            "",
+            "### 실무 확인사항",
+            "- 여성기업확인서 등 정책기업 자격이 유효한지 확인합니다.",
+            "- 구매하려는 물품이 해당 업체의 취급·직접생산·납품 가능 품목인지 확인합니다.",
+            "- 부산 지역상품 구매 지원 목적이라면 부산 소재 정책기업 후보와 조달등록·종합쇼핑몰·인증 여부를 함께 조회하는 것이 좋습니다.",
+        ])
+
     if amount_detected >= 200_000_000:
         from policies.numeric_basis_policy import get_numeric_display
         general_threshold = get_numeric_display("P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD") or "기준값 확인 필요"
@@ -2418,6 +2464,8 @@ def _chat_v144(
             "forbidden_patterns_remaining_after_rewrite": [],
             "practice_manual_card_count": len(practice_fast_cards),
             "pps_qa_card_count": 0,
+            "skip_citation_verify": True,
+            "final_answer_source": "practice_manual_fast_answer",
             "query_gateway_route": gateway_decision.route if gateway_decision else "skipped",
             "query_gateway_reason": gateway_decision.reason if gateway_decision else "",
         }
@@ -4373,11 +4421,21 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
         is_deterministic = generation_meta and generation_meta.get("deterministic_template_used", False)
         is_tier_0 = generation_meta and generation_meta.get("tier_resolved", 1) == 0
         is_amount_route = amount_detected is not None
+        is_practice_manual_fast = generation_meta and (
+            generation_meta.get("model_used") == "practice_manual_fast_gate"
+            or generation_meta.get("source_status") == "practice_manual_cards"
+        )
         
         final_answer_source = generation_meta.get("final_answer_source", "") if generation_meta else ""
         has_deterministic_source = "deterministic" in final_answer_source
         
-        should_bypass_rewrite = is_deterministic or is_tier_0 or is_amount_route or has_deterministic_source
+        should_bypass_rewrite = (
+            is_deterministic
+            or is_tier_0
+            or is_amount_route
+            or has_deterministic_source
+            or is_practice_manual_fast
+        )
         
         if not legal_scope.legal_conclusion_allowed and not should_bypass_rewrite:
             rewrite_prompt = (
