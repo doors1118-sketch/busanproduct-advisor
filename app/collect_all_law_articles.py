@@ -48,6 +48,10 @@ LAW_LIST = [
 def _get_xml(params: dict) -> ET.Element:
     """법제처 API XML 응답 파싱."""
     params["OC"] = OC
+    params["type"] = "XML"
+    resp = requests.get(BASE_URL, params=params, timeout=30)
+    resp.raise_for_status()
+    return ET.fromstring(resp.content)
 
 
 # ── 법령 풀네임 → 약칭 매핑 (참조 추출용) ──
@@ -82,10 +86,6 @@ def _extract_refs(text: str) -> list:
             seen.add(key)
             refs.append({"law": short, "article": art_no, "raw": match.group(0)})
     return refs
-    params["type"] = "XML"
-    resp = requests.get(BASE_URL, params=params, timeout=30)
-    resp.raise_for_status()
-    return ET.fromstring(resp.content)
 
 
 def _clean_html(text: str) -> str:
