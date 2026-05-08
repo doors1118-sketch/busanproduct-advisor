@@ -144,7 +144,7 @@ def build_purchase_route_cards(
             status=policy_1p_status,
             user_label=policy_1p_label,
             practical_meaning=policy_1p_meaning,
-            required_checks=["정책기업 유형", "인증서 유효기간", "견적 방식", "기관유형별 한도"],
+            required_checks=["정책기업 유형", "증빙자료", "견적 방식", "기관유형별 한도"],
             evidence_topics=["여성기업지원법", "장애인기업활동 촉진법", "사회적기업 육성법", "수의계약 운영요령"],
         ),
         PurchaseRouteCard(
@@ -161,8 +161,8 @@ def build_purchase_route_cards(
             title="혁신제품/혁신시제품",
             status=innovation_status,
             user_label=innovation_label,
-            practical_meaning="혁신제품 또는 혁신시제품 후보가 있으면 지정 유효기간과 제품 일치 여부를 확인한 뒤 수의계약 특례 가능성을 검토합니다.",
-            required_checks=["혁신제품 지정 유효기간", "혁신장터 등록 여부", "구매 품목과 지정 제품의 일치", "수요기관 적용 법령"],
+            practical_meaning="혁신제품 또는 혁신시제품 후보가 있으면 지정 상태와 제품 일치 여부를 확인한 뒤 수의계약 특례 가능성을 검토합니다.",
+            required_checks=["혁신제품 지정 상태", "혁신장터 등록 여부", "구매 품목과 지정 제품의 일치", "수요기관 적용 법령"],
             evidence_topics=["혁신제품 구매 운영 규정", "혁신제품 시범구매계약 추가특수조건"],
         ),
         PurchaseRouteCard(
@@ -171,7 +171,7 @@ def build_purchase_route_cards(
             status=cert_status,
             user_label=cert_label,
             practical_meaning="성능인증, NEP, NET, 우수조달물품 등 인증제품 후보가 있으면 우선구매 또는 수의계약 가능성을 검토합니다.",
-            required_checks=["인증 유형", "인증 유효기간", "인증제품명과 구매품목 일치", "조달등록 또는 쇼핑몰 등록 여부"],
+            required_checks=["인증 유형", "인증 상태", "인증제품명과 구매품목 일치", "조달등록 또는 쇼핑몰 등록 여부"],
             evidence_topics=["중소기업제품 구매촉진 및 판로지원법", "중소기업제품 구매촉진법 시행령", "우수조달물품 지정관리 규정"],
         ),
         PurchaseRouteCard(
@@ -234,7 +234,7 @@ def _build_service_route_cards(amount: int | None, item_name: str, counts: dict[
             status=policy_status,
             user_label=policy_label,
             practical_meaning=policy_meaning,
-            required_checks=["정책기업 유형", "인증 유효기간", "용역 수행 가능 업종", "견적 방식"],
+            required_checks=["정책기업 유형", "증빙자료", "용역 수행 가능 업종", "견적 방식"],
             evidence_topics=["여성기업지원법", "장애인기업활동 촉진법", "사회적기업 육성법", "수의계약 운영요령"],
         ),
         PurchaseRouteCard(
@@ -261,7 +261,7 @@ def _build_service_route_cards(amount: int | None, item_name: str, counts: dict[
             status=policy_candidate_status,
             user_label=policy_candidate_label,
             practical_meaning="정책기업 후보가 있으면 용역 수행 업종과 정책기업 지위를 함께 확인해 구매전략에 반영합니다.",
-            required_checks=["정책기업 지위", "용역 수행 업종", "인증 유효기간", "견적 방식"],
+            required_checks=["정책기업 지위", "용역 수행 업종", "증빙자료", "견적 방식"],
             evidence_topics=["정책기업 수의계약", "수의계약 운영요령"],
         ),
     ]

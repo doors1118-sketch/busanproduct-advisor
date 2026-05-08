@@ -285,7 +285,7 @@ REGIONAL_SUPPORT_SCHEMES: tuple[SupportScheme, ...] = (
             _plan("search_admin_rule", "혁신제품 구매 운영 규정"),
             _plan("search_admin_rule", "혁신제품 시범구매계약 추가특수조건"),
         ),
-        answer_guidance="혁신제품은 지정 유효기간, 혁신장터 등록, 조달청 계약 여부를 확인사항으로 붙인다.",
+        answer_guidance="혁신제품은 지정 상태, 혁신장터 등록, 조달청 계약 여부를 확인사항으로 붙인다.",
     ),
     SupportScheme(
         id="sme_competition_direct_production",

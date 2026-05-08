@@ -1057,10 +1057,10 @@ def _parallel_rag_search(query: str, agency_type: str = None) -> dict:
 # ─────────────────────────────────────────────
 _COMMON_PROCUREMENT = (
     "\n[공통 조달 원칙 — 모든 기관 공통 적용]\n"
-    "  · 우수조달물품(시행령 제25조 제1항 제6호 라목): 수의계약 검토 후보 — 적용 조건 및 유효기간 확인 필요\n"
-    "  · 혁신제품(시행령 제25조 제1항 제8호): 수의계약 검토 후보 — 지정 유효기간 및 혁신장터 등록 여부 확인 필요\n"
+    "  · 우수조달물품(시행령 제25조 제1항 제6호 라목): 수의계약 검토 후보 — 적용 조건 및 지정 상태 확인 필요\n"
+    "  · 혁신제품(시행령 제25조 제1항 제8호): 수의계약 검토 후보 — 지정 상태 및 혁신장터 등록 여부 확인 필요\n"
     "  · 직접생산확인증명서: 중소기업 제품 수의계약 시 필수\n"
-    "  · ⛔ 특정 제품(혁신제품, 우선구매 대상 등)에 대해 '금액 제한 없이 수의계약이 가능하다' 또는 '수의계약이 가능합니다'라고 절대 단정짓지 마세요. 반드시 '해당 요건(지정 유효기간, 등록 여부 등)을 확인한 후 수의계약 검토가 가능하다'고 유보적으로 답변하세요.\n"
+    "  · ⛔ 특정 제품(혁신제품, 우선구매 대상 등)에 대해 '금액 제한 없이 수의계약이 가능하다' 또는 '수의계약이 가능합니다'라고 절대 단정짓지 마세요. 반드시 '해당 요건(지정 상태, 등록 여부 등)을 확인한 후 수의계약 검토가 가능하다'고 유보적으로 답변하세요.\n"
 )
 
 _AGENCY_GUIDE_MAP = {
@@ -1244,9 +1244,9 @@ def chat(user_message: str, history: list[dict] = None, progress_callback=None, 
     if rag["manual"]:
         rag_parts.append(f"[참고용 보조자료: 계약 매뉴얼 — MCP 검색 결과와 다르면 MCP가 우선]\n{rag['manual']}")
     if rag["innovation"]:
-        rag_parts.append(f"[부산 지역 혁신제품 — 수의계약 검토 후보, 지정 유효기간·혁신장터 등록 여부 확인 필요]\n{rag['innovation']}")
+        rag_parts.append(f"[부산 지역 혁신제품 — 수의계약 검토 후보, 지정 상태·혁신장터 등록 여부 확인 필요]\n{rag['innovation']}")
     if rag["tech"]:
-        rag_parts.append(f"[부산 지역 기술개발제품 인증 — 우선구매/수의계약 검토 후보, 인증 유효기간 확인 필요]\n{rag['tech']}")
+        rag_parts.append(f"[부산 지역 기술개발제품 인증 — 우선구매/수의계약 검토 후보, 인증 상태 확인 필요]\n{rag['tech']}")
     
     if rag_parts:
         user_text = "\n\n".join(rag_parts) + f"\n\n[사용자 질문]\n{user_message}"
@@ -4111,7 +4111,7 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
         "forbidden_confirmation_detected": "금지어(단정적 표현) 감지",
         "no_direct_legal_basis": "직접적 법적 근거 부족",
         "unsupported_legal_conclusion": "근거 없는 법적 판단 생성",
-        "high_risk_query": "현재 응답에서는 수의계약 가능 여부와 금액 기준을 확정하지 않습니다. 실제 계약 전 혁신제품 지정 유효기간, 혁신장터 등록 여부, 조달청 계약 여부, 수요기관 적용 법령 확인이 필요합니다."
+        "high_risk_query": "현재 응답에서는 수의계약 가능 여부와 금액 기준을 확정하지 않습니다. 실제 계약 전 혁신제품 지정 상태, 혁신장터 등록 여부, 조달청 계약 여부, 수요기관 적용 법령 확인이 필요합니다."
     }
 
     if generation_meta and generation_meta.get("fallback_used", False):
