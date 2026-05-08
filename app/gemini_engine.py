@@ -98,10 +98,18 @@ def _run_legacy_gemini_intent_router(user_message: str):
 def _should_skip_gemini_intent_router(user_message: str, gateway_decision=None) -> bool:
     """Skip LLM intent routing for clear amount/contract questions."""
     compact = (user_message or "").replace(" ", "")
-    has_amount_case = bool(gateway_decision and "amount_case_question" in getattr(gateway_decision, "exclusions", []))
+    has_amount_case = (
+        bool(gateway_decision and "amount_case_question" in getattr(gateway_decision, "exclusions", []))
+        or _parse_amount(user_message) is not None
+    )
     has_contract_method = any(term in compact for term in ("수의계약", "입찰", "지역제한", "견적"))
     has_local_or_company = any(term in compact for term in ("부산업체", "지역업체", "업체후보", "추천", "찾아", "검색"))
-    return has_amount_case and has_contract_method and not has_local_or_company
+    if has_amount_case and has_contract_method and not has_local_or_company:
+        return True
+    if has_amount_case and has_local_or_company:
+        item = _resolve_company_item_query(user_message, None)
+        return _is_specific_item_keyword(item)
+    return False
 
 
 def _router_result_to_meta(router_result) -> dict:
@@ -2081,6 +2089,16 @@ def _build_simple_amount_contract_answer(user_message: str, amount_detected) -> 
     return None
 
 
+def _clean_route_guidance_for_answer(text: str) -> str:
+    """Remove prompt-only instructions from route guidance before user display."""
+    cleaned = text or ""
+    cleaned = cleaned.split("답변 형식 지시:")[0]
+    cleaned = cleaned.replace("[구매경로 판단 재료 — 최종 답변은 아래 경로를 조합해 실무형으로 작성]", "구매경로 판단 재료")
+    cleaned = re.sub(r"^- 작성 원칙:.*(?:\n|$)", "", cleaned, flags=re.MULTILINE)
+    cleaned = re.sub(r"^- 주의:.*(?:\n|$)", "", cleaned, flags=re.MULTILINE)
+    return cleaned.strip()
+
+
 def _build_direct_article_answer(law_query: str) -> str | None:
     """Return a compact article explanation from the internal law DB."""
     try:
@@ -3014,7 +3032,7 @@ def _chat_v144(
                 "- 일반 소액 수의계약만으로 단정하기보다, 금액 기준과 품목 특성을 함께 보면서 지역상품 구매 경로를 나누어 검토하는 편이 안전합니다.",
                 "",
                 "### 구매 경로 검토",
-                route_guidance_context or "- 지역제한, 종합쇼핑몰/MAS, 정책기업, 인증제품 여부를 함께 확인하세요.",
+                _clean_route_guidance_for_answer(route_guidance_context) or "- 지역제한, 종합쇼핑몰/MAS, 정책기업, 인증제품 여부를 함께 확인하세요.",
                 catalog_guidance_context,
                 "",
                 "### 업체 후보 및 확인 포인트",

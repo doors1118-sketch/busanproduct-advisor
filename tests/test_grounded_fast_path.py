@@ -29,4 +29,4 @@ def test_clear_amount_contract_question_skips_gemini_intent_router():
 def test_local_company_amount_question_keeps_gemini_intent_router():
     question = "8천만원 LED 조명을 부산업체로 구매할 방법이 있어?"
 
-    assert _should_skip_gemini_intent_router(question, decide_query_gateway(question)) is False
+    assert _should_skip_gemini_intent_router(question, decide_query_gateway(question)) is True
