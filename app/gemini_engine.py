@@ -2560,6 +2560,50 @@ def _chat_v144(
             )
             return answer, history
 
+        direct_grounded_answer = _build_grounded_case_timeout_fallback(user_message, mcp_context)
+        if direct_grounded_answer and "바로 단정하기 어렵습니다" not in direct_grounded_answer:
+            grounded_tool_results = [{
+                "tool_name": "chain_full_research",
+                "status": "success",
+                "result": mcp_context,
+                "elapsed_ms": mcp_preflight_elapsed_ms,
+            }]
+            api_status = ApiStatus()
+            _direct_grounded_meta = {
+                "model_used": "deterministic_internal_law_db",
+                "model_decision_reason": "clear_grounded_industry_law_fast_answer",
+                "tier_resolved": query_tier,
+                "fast_track_applied": False,
+                "deterministic_template_used": True,
+                "amount_rewrite_bypass": True,
+                "company_table_allowed": False,
+                "legal_conclusion_allowed": True,
+                "candidate_table_source": "none",
+                "answer_schema_version": "clear_grounded_industry_law_v1",
+                "source_status": "mcp_preflight_success",
+                "rag_elapsed_ms": 0,
+                "model_elapsed_ms": 0,
+                "mcp_preflight_elapsed_ms": mcp_preflight_elapsed_ms,
+                "tool_call_count": len(grounded_tool_results),
+                "direct_legal_basis_count": len(mandatory_mcp_executed),
+                "mandatory_mcp_plan": mandatory_mcp_plan,
+                "mandatory_mcp_executed": mandatory_mcp_executed,
+                "mandatory_mcp_missing": mandatory_mcp_missing,
+                "evidence_cards": evidence_cards,
+                "evidence_card_count": cache_stats.get("evidence_card_count", 0),
+                "internal_db_hit_count": cache_stats.get("internal_db_hit_count", 0),
+                "external_mcp_fallback_count": cache_stats.get("external_mcp_fallback_count", 0),
+                "evidence_missing_count": cache_stats.get("evidence_missing_count", 0),
+                "company_search_status": "not_called",
+                "grounded_single_pass_llm": False,
+                "skip_citation_verify": True,
+            }
+            answer, history = _finalize_answer(
+                direct_grounded_answer, history, user_message, grounded_tool_results, api_status,
+                progress_callback, generation_meta=_direct_grounded_meta
+            )
+            return answer, history
+
         grounded_answer = _generate_grounded_single_pass_answer(
             user_message=user_message,
             mcp_context=mcp_context,
