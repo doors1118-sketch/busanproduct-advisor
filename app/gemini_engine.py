@@ -2588,6 +2588,7 @@ def _chat_v144(
                 "mcp_called_for_freshness": cache_stats.get("mcp_called_for_freshness", False),
                 "company_search_status": "not_called",
                 "grounded_single_pass_llm": True,
+                "skip_citation_verify": True,
             }
             answer, history = _finalize_answer(
                 grounded_answer, history, user_message, grounded_tool_results, api_status,
@@ -2629,6 +2630,7 @@ def _chat_v144(
             "company_search_status": "not_called",
             "grounded_single_pass_llm": False,
             "grounded_llm_timeout": True,
+            "skip_citation_verify": True,
             "fallback_used": False,
             "fallback_reason": "",
         }
@@ -3841,6 +3843,13 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
                     supports_claims.append("1인 견적")
                 if "여성기업" in context_snippet and "여성기업" in answer:
                     supports_claims.append("수의계약 대상 여부")
+                if (
+                    any(term in context_snippet for term in ("분리발주", "분리하여 도급", "도급의 분리"))
+                    and any(term in answer for term in ("분리발주", "분리하여 도급", "분리하여 도급하는", "분리 도급", "도급하는 것이 원칙"))
+                ):
+                    supports_claims.append("분리발주 여부")
+                if "기술성" in context_snippet and "기술성" in answer:
+                    supports_claims.append("소프트웨어 기술성 평가")
 
                 amount_values = []
                 for m_ans in re.finditer(amount_pattern, answer):
