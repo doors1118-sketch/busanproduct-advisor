@@ -2240,13 +2240,10 @@ def _chat_v144(
         )
 
     # ─── 0.5. Deterministic Legal Gate ───
-    # Gateway가 확실한 기준카드라고 판단한 질문만 결정형 답변으로 처리한다.
+    # 반복 기준/제도 설명형 질문은 LLM 의도분석보다 먼저 결정형 답변으로 처리한다.
     try:
         from policies.deterministic_legal_answer_gate import match_deterministic_legal_answer
-        if gateway_decision and gateway_decision.route == "standard_card":
-            deterministic_legal_answer = match_deterministic_legal_answer(user_message)
-        else:
-            deterministic_legal_answer = None
+        deterministic_legal_answer = match_deterministic_legal_answer(user_message)
     except Exception as e:
         print(f"  [DETERMINISTIC-GATE] skipped: {e}")
         deterministic_legal_answer = None
