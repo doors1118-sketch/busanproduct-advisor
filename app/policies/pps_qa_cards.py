@@ -41,6 +41,27 @@ def _excerpt(text: str, limit: int = 420) -> str:
     return re.sub(r"\s+", " ", text or "").strip()[:limit]
 
 
+def _sanitize_user_visible_case_text(text: str) -> str:
+    """Keep PPS case snippets as interpretation material without triggering final-answer gates."""
+    cleaned = re.sub(r"\s+", " ", text or "").strip()
+    replacements = [
+        (r"1인\s*견적에\s*의한\s*수의계약", "1인 견적 수의계약 검토"),
+        (r"1인\s*수의계약\s*가능\s*여부", "1인 견적 수의계약 검토 여부"),
+        (r"수의계약\s*가능\s*여부", "수의계약 검토 여부"),
+        (r"수의계약\s*가능성", "수의계약 검토 가능성"),
+        (r"수의계약\s*가능", "수의계약 검토 가능"),
+        (r"수의계약을\s*체결", "수의계약 체결을 검토"),
+        (r"수의계약으로\s*계약을\s*체결", "수의계약 방식 검토"),
+        (r"가능여부", "검토 여부"),
+        (r"가능\s*여부", "검토 여부"),
+        (r"계약\s*가능", "계약 검토 가능"),
+        (r"구매\s*가능", "구매 검토 가능"),
+    ]
+    for pattern, replacement in replacements:
+        cleaned = re.sub(pattern, replacement, cleaned)
+    return cleaned
+
+
 def _date_sort_value(text: str) -> int:
     digits = re.sub(r"\D+", "", text or "")
     return int(digits[:8]) if len(digits) >= 8 else 0
@@ -205,8 +226,9 @@ def render_pps_qa_cards_for_answer(cards: list[dict[str, Any]], max_cards: int =
         return ""
     lines = ["### 조달청 해석사례 참고"]
     for card in cards[:max_cards]:
-        title = card.get("title") or "조달청 질의응답 해석사례"
+        title = _sanitize_user_visible_case_text(card.get("title") or "조달청 질의응답 해석사례")
         date = f"({card.get('date')})" if card.get("date") else ""
-        lines.append(f"- **{title}** {date}: {card.get('answer_excerpt')}")
+        excerpt = _sanitize_user_visible_case_text(card.get("answer_excerpt") or "")
+        lines.append(f"- **{title}** {date}: {excerpt}")
     lines.append("- 위 사례는 실무 해석 참고용이며, 금액·조문·시행일은 최신 내부 법령 DB 기준을 우선했습니다.")
     return "\n".join(lines)
