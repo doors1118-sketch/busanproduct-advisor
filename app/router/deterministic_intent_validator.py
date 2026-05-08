@@ -57,6 +57,18 @@ class DeterministicIntentValidator:
         self.explanation_verbs = [
             "뭐야", "차이가 뭐야", "차이점이 뭐야", "어떤 거야", "무엇인가요", "무엇입니까", "뜻이 뭐야"
         ]
+        try:
+            try:
+                from app.policies.procurement_router_lexicon import validator_keywords
+            except ImportError:
+                from policies.procurement_router_lexicon import validator_keywords
+            self.local_support_keywords += validator_keywords("local_support_keywords")
+            self.eligibility_keywords += validator_keywords("eligibility_keywords")
+            self.route_keywords += validator_keywords("route_keywords")
+            self.legal_review_keywords += validator_keywords("legal_review_keywords")
+            self.explanation_verbs += validator_keywords("explanation_verbs")
+        except Exception:
+            pass
 
     def _add_focus(self, result: RouterResult, focus: str) -> None:
         if focus not in result.answer_focus:

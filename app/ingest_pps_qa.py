@@ -26,6 +26,7 @@ PER_PAGE = 100  # 한 번에 가져오는 건수
 # ChromaDB 설정
 CHROMA_DIR = os.path.join(os.path.dirname(__file__), ".chroma")
 COLLECTION_NAME = "pps_qa"
+JSON_CACHE_PATH = os.path.join(os.path.dirname(__file__), "data", "pps_qa_cases.json")
 
 from embedding import get_passage_embedding_fn, get_query_embedding_fn
 
@@ -142,6 +143,38 @@ def ingest_to_chroma(data: list[dict], update_mode: bool = False):
     print(f"   컬렉션 총 문서: {collection.count()}건")
 
 
+def export_json_cache(data: list[dict]):
+    """Runtime lookup cache for PPS Q&A interpretation cards."""
+    rows = []
+    for item in data:
+        title = item.get("제목", "")
+        question = item.get("질의내용", "")
+        answer = item.get("회신내용", "")
+        public_no = str(item.get("공개번호", ""))
+        rows.append({
+            "id": f"pps_{public_no or item.get('순번', '')}",
+            "document": f"[{title}]\n질의: {question}",
+            "title": title,
+            "question": question[:500],
+            "answer": answer[:2000],
+            "category": f"{item.get('대분류', '')} > {item.get('중분류', '')} > {item.get('소분류', '')}",
+            "date": item.get("회신일자", ""),
+            "public_no": public_no,
+            "views": item.get("조회수", 0),
+        })
+
+    os.makedirs(os.path.dirname(JSON_CACHE_PATH), exist_ok=True)
+    with open(JSON_CACHE_PATH, "w", encoding="utf-8") as f:
+        json.dump({
+            "schema_version": "pps_qa_cases_v1",
+            "source": API_BASE,
+            "usage_policy": "practice_interpretation_only; law_db_and_source_map_take_priority_for_articles_amounts_dates",
+            "row_count": len(rows),
+            "rows": rows,
+        }, f, ensure_ascii=False, indent=2)
+    print(f"  JSON 캐시 저장: {JSON_CACHE_PATH} ({len(rows)}건)")
+
+
 def search_qa(query: str, n_results: int = 3) -> list[dict]:
     """질의와 유사한 Q&A 검색."""
     client = chromadb.PersistentClient(path=CHROMA_DIR)
@@ -190,6 +223,9 @@ if __name__ == "__main__":
     print("[1/2] API 데이터 수집...")
     data = fetch_all_data()
     print(f"  → 총 {len(data)}건 수집 완료\n")
+
+    # 1.5. 런타임 빠른 조회용 JSON 캐시 저장
+    export_json_cache(data)
 
     # 2. ChromaDB에 적재
     print("[2/2] ChromaDB 적재...")

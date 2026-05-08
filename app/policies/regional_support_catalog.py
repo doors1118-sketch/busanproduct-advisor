@@ -11,6 +11,15 @@ from dataclasses import dataclass, field
 import re
 from typing import Mapping
 
+try:
+    try:
+        from policies.procurement_router_lexicon import support_catalog_keywords
+    except ImportError:
+        from app.policies.procurement_router_lexicon import support_catalog_keywords
+except Exception:  # pragma: no cover - package import fallback
+    def support_catalog_keywords(scheme_id: str) -> tuple[str, ...]:
+        return ()
+
 
 @dataclass(frozen=True)
 class SupportScheme:
@@ -356,7 +365,8 @@ def match_regional_support_catalog(
         if scheme.agency_types and agency not in scheme.agency_types:
             continue
 
-        explicit = _has_any(user_message, scheme.trigger_keywords)
+        trigger_keywords = scheme.trigger_keywords + support_catalog_keywords(scheme.id)
+        explicit = _has_any(user_message, trigger_keywords)
         implicit = local_intent and scheme.implicit_when_local_purchase
         if not explicit and not implicit:
             continue

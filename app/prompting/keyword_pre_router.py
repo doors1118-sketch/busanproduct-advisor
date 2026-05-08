@@ -34,6 +34,14 @@ def _load_keyword_map():
             "사업", "조성", "조성사업", "개선", "정비", "운영",
             "유지관리", "구축", "설치", "시스템 구축", "설치 포함",
         ]
+    try:
+        try:
+            from policies.procurement_router_lexicon import merge_keyword_route_extensions
+        except ImportError:
+            from app.policies.procurement_router_lexicon import merge_keyword_route_extensions
+        _keyword_map, _ambiguous_keywords = merge_keyword_route_extensions(_keyword_map, _ambiguous_keywords)
+    except Exception:
+        pass
 
 
 def keyword_pre_route(question: str) -> KeywordRouteResult:

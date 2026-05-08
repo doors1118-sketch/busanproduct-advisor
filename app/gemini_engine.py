@@ -46,6 +46,11 @@ from policies.practice_manual_cards import (
     match_practice_manual_cards,
     render_practice_manual_cards_for_answer,
 )
+from policies.pps_qa_cards import (
+    format_pps_qa_cards_for_llm,
+    match_pps_qa_cards,
+    render_pps_qa_cards_for_answer,
+)
 
 # Legacy regression guard: rag_dict values must be assembled with
 # rag_dict.get(key, "") for key in ["law", "qa", "manual", "innovation", "tech"].
@@ -2488,6 +2493,22 @@ def _chat_v144(
         practice_manual_cards = []
         practice_manual_context = ""
 
+    # ─── 6.6. PPS Q&A Interpretation Cards ───
+    # 조달청 질의응답은 실무 해석 보조자료로만 사용한다.
+    # 금액·조문·시행일·최종 법적 결론은 내부 법령 DB/source_map이 우선한다.
+    pps_qa_cards = []
+    pps_qa_context = ""
+    try:
+        pps_qa_cards = match_pps_qa_cards(user_message, max_cards=3)
+        pps_qa_context = format_pps_qa_cards_for_llm(pps_qa_cards)
+        if pps_qa_context:
+            rag_context = (rag_context + "\n\n" if rag_context else "") + pps_qa_context
+            print(f"  [PPS-QA-CARDS] matched={len(pps_qa_cards)}", flush=True)
+    except Exception as e:
+        print(f"  [PPS-QA-CARDS] skipped: {e}", flush=True)
+        pps_qa_cards = []
+        pps_qa_context = ""
+
     # ─── 5.5. Grounded Single-Pass LLM ───
     # 실제 금액/품목 판단 질문은 결정형 템플릿으로 덮지 않고,
     # 내부 DB preflight 근거만 넣어 LLM이 1회 문장화한다.
@@ -2500,8 +2521,13 @@ def _chat_v144(
         grounded_context = mcp_context
         if practice_manual_context:
             grounded_context = f"{mcp_context}\n\n{practice_manual_context}"
+        if pps_qa_context:
+            grounded_context = f"{grounded_context}\n\n{pps_qa_context}"
         simple_amount_answer = _build_simple_amount_contract_answer(user_message, amount_detected)
         if simple_amount_answer:
+            pps_qa_answer_section = render_pps_qa_cards_for_answer(pps_qa_cards)
+            if pps_qa_answer_section:
+                simple_amount_answer = f"{simple_amount_answer}\n\n{pps_qa_answer_section}"
             grounded_tool_results = [{
                 "tool_name": "chain_full_research",
                 "status": "success",
@@ -2537,6 +2563,7 @@ def _chat_v144(
                 "company_search_status": "not_called",
                 "grounded_single_pass_llm": False,
                 "practice_manual_card_count": len(practice_manual_cards),
+                "pps_qa_card_count": len(pps_qa_cards),
                 "skip_citation_verify": True,
             }
             answer, history = _finalize_answer(
@@ -2547,6 +2574,9 @@ def _chat_v144(
 
         direct_grounded_answer = _build_grounded_case_timeout_fallback(user_message, grounded_context)
         if direct_grounded_answer and "바로 단정하기 어렵습니다" not in direct_grounded_answer:
+            pps_qa_answer_section = render_pps_qa_cards_for_answer(pps_qa_cards)
+            if pps_qa_answer_section:
+                direct_grounded_answer = f"{direct_grounded_answer}\n\n{pps_qa_answer_section}"
             grounded_tool_results = [{
                 "tool_name": "chain_full_research",
                 "status": "success",
@@ -2582,6 +2612,7 @@ def _chat_v144(
                 "company_search_status": "not_called",
                 "grounded_single_pass_llm": False,
                 "practice_manual_card_count": len(practice_manual_cards),
+                "pps_qa_card_count": len(pps_qa_cards),
                 "skip_citation_verify": True,
             }
             answer, history = _finalize_answer(
@@ -2636,6 +2667,7 @@ def _chat_v144(
                 "company_search_status": "not_called",
                 "grounded_single_pass_llm": True,
                 "practice_manual_card_count": len(practice_manual_cards),
+                "pps_qa_card_count": len(pps_qa_cards),
                 "skip_citation_verify": True,
             }
             answer, history = _finalize_answer(
@@ -2679,12 +2711,17 @@ def _chat_v144(
             "grounded_single_pass_llm": False,
             "grounded_llm_timeout": True,
             "practice_manual_card_count": len(practice_manual_cards),
+            "pps_qa_card_count": len(pps_qa_cards),
             "skip_citation_verify": True,
             "fallback_used": False,
             "fallback_reason": "",
         }
+        grounded_fallback_answer = _build_grounded_case_timeout_fallback(user_message, grounded_context)
+        pps_qa_answer_section = render_pps_qa_cards_for_answer(pps_qa_cards)
+        if pps_qa_answer_section:
+            grounded_fallback_answer = f"{grounded_fallback_answer}\n\n{pps_qa_answer_section}"
         answer, history = _finalize_answer(
-            _build_grounded_case_timeout_fallback(user_message, grounded_context),
+            grounded_fallback_answer,
             history,
             user_message,
             grounded_tool_results,
@@ -3186,6 +3223,7 @@ def _chat_v144(
                 catalog_guidance_context,
                 complex_judgment_context,
                 practice_manual_context,
+                pps_qa_context,
                 "\n\n[사전 검색된 업체 데이터 — 아래 데이터를 기반으로 구매 경로별 업체를 그룹핑하여 안내하라]",
                 f"- 표준 품목명: {legacy_router_meta['company_prefetch_canonical_item'] or query}",
                 f"- 보조 검색어: {', '.join(legacy_router_meta['company_prefetch_search_terms'][:6]) or query}",
@@ -3234,6 +3272,7 @@ def _chat_v144(
                 _clean_route_guidance_for_answer(route_guidance_context) or "- 지역제한, 종합쇼핑몰/MAS, 정책기업, 인증제품 여부를 함께 확인하세요.",
                 _clean_catalog_guidance_for_answer(catalog_guidance_context),
                 render_practice_manual_cards_for_answer(practice_manual_cards),
+                render_pps_qa_cards_for_answer(pps_qa_cards),
                 "",
                 "### 업체 후보 및 확인 포인트",
             ]
@@ -3285,6 +3324,7 @@ def _chat_v144(
                 "complex_judgment_cards": complex_judgment_cards,
                 "complex_judgment_card_count": len(complex_judgment_cards),
                 "practice_manual_card_count": len(practice_manual_cards),
+                "pps_qa_card_count": len(pps_qa_cards),
                 "skip_citation_verify": True,
             }
             return _finalize_answer(

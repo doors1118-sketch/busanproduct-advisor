@@ -13,6 +13,7 @@ from typing import Any
 
 
 DATA_PATH = Path(__file__).resolve().parents[1] / "data" / "practice_manual_cards.json"
+_GENERIC_CONCEPT_TERMS = {"뜻", "개념", "정의", "용어", "차이", "구분", "뭐야", "무슨말"}
 
 
 @lru_cache(maxsize=1)
@@ -43,9 +44,16 @@ def _contract_object_from_text(text: str) -> str | None:
 def _score_card(card: dict[str, Any], query: str, contract_object: str | None, agency_type: str | None) -> int:
     q = _compact(query)
     score = 0
+    topical_keyword_hits = 0
+    generic_concept_keywords = {_compact(term) for term in _GENERIC_CONCEPT_TERMS}
     for keyword in card.get("keywords") or []:
-        if _compact(str(keyword)) in q:
-            score += 5
+        compact_keyword = _compact(str(keyword))
+        if compact_keyword in q:
+            if compact_keyword in generic_concept_keywords:
+                continue
+            else:
+                topical_keyword_hits += 1
+                score += 5
     if contract_object and contract_object in (card.get("contract_objects") or []):
         score += 3
     if agency_type and agency_type in (card.get("agency_types") or []):
@@ -65,6 +73,16 @@ def _score_card(card: dict[str, Any], query: str, contract_object: str | None, a
         score += 4
     if any(token in q for token in ("중소기업자간", "중기간", "직접생산")) and card.get("topic") == "sme_competition":
         score += 4
+    if any(token in q for token in ("뜻", "개념", "정의", "용어", "차이", "구분", "뭐야", "무슨말")):
+        if (card.get("concept_group") or str(card.get("topic") or "").startswith("concept_")) and topical_keyword_hits:
+            score += 8
+        else:
+            score -= 2
+    if any(token in q for token in ("절차", "흐름", "단계", "순서", "처음부터", "전체과정", "프로세스")):
+        if card.get("flow_stage") or str(card.get("topic") or "").startswith("lifecycle_"):
+            score += 8
+        else:
+            score -= 1
     return score
 
 
@@ -77,11 +95,15 @@ def match_practice_manual_cards(
 ) -> list[dict[str, Any]]:
     data = load_practice_manual_cards()
     inferred_object = contract_object or _contract_object_from_text(query)
+    q = _compact(query)
+    concept_intent = any(token in q for token in ("뜻", "개념", "정의", "용어", "차이", "구분", "뭐야", "무슨말"))
     scored: list[tuple[int, dict[str, Any]]] = []
     for card in data.get("cards") or []:
         if card.get("numeric_use_allowed") is not False:
             continue
         score = _score_card(card, query, inferred_object, agency_type)
+        if concept_intent and score < 5:
+            continue
         if score <= 0:
             continue
         scored.append((score, card))
@@ -103,12 +125,14 @@ def format_practice_manual_cards_for_llm(cards: list[dict[str, Any]]) -> str:
     ]
     for card in cards:
         checks = ", ".join((card.get("checklist") or [])[:4])
+        scope = "개념·용어" if card.get("concept_group") else ("계약 흐름" if card.get("flow_stage") else "절차·체크리스트")
         sources = ", ".join(
             f"{src.get('source')} p.{src.get('page')}" for src in (card.get("sources") or [])[:2]
         )
         lines.append(
-            "| {title} | 절차·체크리스트 | {summary} | {checks} | {sources} |".format(
+            "| {title} | {scope} | {summary} | {checks} | {sources} |".format(
                 title=str(card.get("title") or "").replace("|", "/"),
+                scope=scope,
                 summary=str(card.get("summary") or "").replace("|", "/"),
                 checks=checks.replace("|", "/"),
                 sources=sources.replace("|", "/") or "매뉴얼 카드",
@@ -122,7 +146,8 @@ def render_practice_manual_cards_for_answer(cards: list[dict[str, Any]], max_car
         return ""
     lines = ["### 실무 매뉴얼 보조 체크포인트"]
     for card in cards[:max_cards]:
-        lines.append(f"- **{card.get('title')}**: {card.get('summary')}")
+        prefix = "개념" if card.get("concept_group") else ("흐름" if card.get("flow_stage") else "실무")
+        lines.append(f"- **[{prefix}] {card.get('title')}**: {card.get('summary')}")
         checks = card.get("checklist") or []
         if checks:
             lines.append(f"  확인: {', '.join(checks[:3])}")
