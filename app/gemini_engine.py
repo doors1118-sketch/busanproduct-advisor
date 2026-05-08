@@ -4331,17 +4331,34 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
         used_sources = []
         is_live = False
         is_cached = False
+        company_tool_used = False
+        local_company_view_available = False
+        try:
+            local_company_view_available = bool(company_api.company_db.get_db_path())
+        except Exception:
+            local_company_view_available = False
         
         for tr in all_tool_results:
             tn = tr.get("tool_name", "")
-            if "search_local_company" in tn or "search_shopping_mall" in tn:
+            if (
+                "search_company" in tn
+                or "search_local_company" in tn
+                or "search_shopping_mall" in tn
+                or "search_certified_product" in tn
+                or "search_innovation_product" in tn
+                or "search_excellent_procurement_product" in tn
+            ):
                 used_sources.append(tn)
-                is_live = True
+                company_tool_used = True
+                if local_company_view_available:
+                    is_cached = True
+                else:
+                    is_live = True
             elif "search_innovation" in tn or "search_tech" in tn:
                 used_sources.append(tn)
                 is_cached = True
 
-        if is_live or is_cached or generation_meta.get("company_search_status") not in ("not_called", None):
+        if company_tool_used or is_live or is_cached or generation_meta.get("company_search_status") not in ("not_called", None):
             if is_live and is_cached:
                 generation_meta["company_source_status"] = "mixed_company_sources"
                 generation_meta["company_source_status_user_label"] = "실시간 업체 조회와 로컬 캐시 혼합 사용"
@@ -4354,8 +4371,12 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
                 generation_meta["company_cache_used"] = False
             elif is_cached:
                 generation_meta["company_source_status"] = "cached_daily"
-                generation_meta["company_source_status_user_label"] = "일 단위 갱신 업체 데이터 사용"
-                generation_meta["company_cache_mode"] = "daily_cache"
+                if local_company_view_available:
+                    generation_meta["company_source_status_user_label"] = "내부 업체 DB VIEW 직접 조회"
+                    generation_meta["company_cache_mode"] = "local_view_db"
+                else:
+                    generation_meta["company_source_status_user_label"] = "일 단위 갱신 업체 데이터 사용"
+                    generation_meta["company_cache_mode"] = "daily_cache"
                 generation_meta["company_cache_used"] = True
             
             # Remove duplicates while preserving order

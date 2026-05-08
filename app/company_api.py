@@ -5,6 +5,11 @@ import os
 import requests
 from dotenv import load_dotenv
 
+try:
+    import company_db
+except ImportError:  # package import path used in tests
+    from app import company_db
+
 load_dotenv()
 
 BASE_URL = os.getenv("MONITORING_COMPANY_API_BASE_URL", "http://127.0.0.1:8000")
@@ -124,23 +129,121 @@ POLICY_ALIAS_MAP = {
 
 def get_company_detail(company_id: str) -> dict:
     """단일 업체 상세 조회 (Master API)"""
+    cached = company_db.get_company_detail(company_id)
+    if cached is not None:
+        return cached
     return _api_get("/api/chatbot/company/detail", {"company_id": company_id}, raw=True)
 
+def _cached_or_live(cached_fn, live_fn) -> dict:
+    cached = cached_fn()
+    if cached is not None:
+        return cached
+    return live_fn()
+
+
 def search_by_license(query: str) -> dict:
+    def live():
+        return _api_get("/api/chatbot/company/license-search", {"license_name": query}, raw=True)
+    res = _cached_or_live(lambda: company_db.search_by_license(query), live)
+    global last_search_results, last_search_query
+    last_search_results = res
+    last_search_query = f"면허: {query}"
+    return res
+
+
+def search_by_product(query: str) -> dict:
+    def live():
+        return _api_get("/api/chatbot/company/product-search", {"product_name": query}, raw=True)
+    res = _cached_or_live(lambda: company_db.search_by_product(query), live)
+    global last_search_results, last_search_query
+    last_search_results = res
+    last_search_query = f"품목: {query}"
+    return res
+
+
+def search_by_policy(query: str) -> dict:
+    mapped_query = POLICY_ALIAS_MAP.get(query, query)
+    def live():
+        return _api_get("/api/chatbot/company/policy-search", {"policy_subtype": mapped_query}, raw=True)
+    res = _cached_or_live(lambda: company_db.search_by_policy(mapped_query), live)
+    global last_search_results, last_search_query
+    last_search_results = res
+    last_search_query = f"정책: {query}"
+    return res
+
+
+def search_shopping_mall_product(product_name: str, contract_type_filter: str = "all", contract_status_filter: str = "active_only") -> dict:
+    def live():
+        return _api_get("/api/chatbot/shopping-mall/product-search", {
+            "product_name": product_name,
+            "contract_type_filter": contract_type_filter,
+            "contract_status_filter": contract_status_filter
+        }, raw=True)
+    res = _cached_or_live(lambda: company_db.search_shopping_mall_product(product_name), live)
+    global last_search_results, last_search_query
+    last_search_results = res
+    last_search_query = f"쇼핑몰상품: {product_name}"
+    return res
+
+
+def search_shopping_mall_supplier(company_keyword: str) -> dict:
+    def live():
+        return _api_get("/api/chatbot/shopping-mall/supplier-search", {"company_keyword": company_keyword}, raw=True)
+    res = _cached_or_live(lambda: company_db.search_shopping_mall_supplier(company_keyword), live)
+    global last_search_results, last_search_query
+    last_search_results = res
+    last_search_query = f"쇼핑몰공급사: {company_keyword}"
+    return res
+
+
+def search_certified_product(product_name: str, certification_type: str = "") -> dict:
+    def live():
+        live_params = {"product_name": product_name}
+        if certification_type:
+            live_params["certification_type"] = certification_type
+        return _api_get("/api/chatbot/product/certified-search", live_params, raw=True)
+    res = _cached_or_live(lambda: company_db.search_certified_product(product_name, certification_type=certification_type), live)
+    global last_search_results, last_search_query
+    last_search_results = res
+    last_search_query = f"인증제품: {product_name}"
+    return res
+
+
+def search_innovation_product(product_name: str) -> dict:
+    def live():
+        return _api_get("/api/chatbot/product/innovation-search", {"product_name": product_name}, raw=True)
+    res = _cached_or_live(lambda: company_db.search_innovation_product(product_name), live)
+    global last_search_results, last_search_query
+    last_search_results = res
+    last_search_query = f"혁신제품: {product_name}"
+    return res
+
+
+def search_excellent_procurement_product(product_name: str) -> dict:
+    def live():
+        return _api_get("/api/chatbot/product/excellent-procurement-search", {"product_name": product_name}, raw=True)
+    res = _cached_or_live(lambda: company_db.search_excellent_procurement_product(product_name), live)
+    global last_search_results, last_search_query
+    last_search_results = res
+    last_search_query = f"우수조달물품: {product_name}"
+    return res
+
+
+def search_by_license_live_legacy(query: str) -> dict:
     res = _api_get("/api/chatbot/company/license-search", {"license_name": query}, raw=True)
     global last_search_results, last_search_query
     last_search_results = res
     last_search_query = f"면허: {query}"
     return res
 
-def search_by_product(query: str) -> dict:
+def search_by_product_live_legacy(query: str) -> dict:
     res = _api_get("/api/chatbot/company/product-search", {"product_name": query}, raw=True)
     global last_search_results, last_search_query
     last_search_results = res
     last_search_query = f"품목: {query}"
     return res
 
-def search_by_policy(query: str) -> dict:
+def search_by_policy_live_legacy(query: str) -> dict:
     mapped_query = POLICY_ALIAS_MAP.get(query, query)
     res = _api_get("/api/chatbot/company/policy-search", {"policy_subtype": mapped_query}, raw=True)
     global last_search_results, last_search_query
@@ -148,7 +251,7 @@ def search_by_policy(query: str) -> dict:
     last_search_query = f"정책: {query}"
     return res
 
-def search_shopping_mall_product(product_name: str, contract_type_filter: str = "all", contract_status_filter: str = "active_only") -> dict:
+def search_shopping_mall_product_live_legacy(product_name: str, contract_type_filter: str = "all", contract_status_filter: str = "active_only") -> dict:
     res = _api_get("/api/chatbot/shopping-mall/product-search", {
         "product_name": product_name,
         "contract_type_filter": contract_type_filter,
@@ -159,14 +262,14 @@ def search_shopping_mall_product(product_name: str, contract_type_filter: str = 
     last_search_query = f"쇼핑몰상품: {product_name}"
     return res
 
-def search_shopping_mall_supplier(company_keyword: str) -> dict:
+def search_shopping_mall_supplier_live_legacy(company_keyword: str) -> dict:
     res = _api_get("/api/chatbot/shopping-mall/supplier-search", {"company_keyword": company_keyword}, raw=True)
     global last_search_results, last_search_query
     last_search_results = res
     last_search_query = f"쇼핑몰공급사: {company_keyword}"
     return res
 
-def search_certified_product(product_name: str, certification_type: str = "") -> dict:
+def search_certified_product_live_legacy(product_name: str, certification_type: str = "") -> dict:
     params = {"product_name": product_name}
     if certification_type:
         params["certification_type"] = certification_type
@@ -176,14 +279,14 @@ def search_certified_product(product_name: str, certification_type: str = "") ->
     last_search_query = f"인증제품: {product_name}"
     return res
 
-def search_innovation_product(product_name: str) -> dict:
+def search_innovation_product_live_legacy(product_name: str) -> dict:
     res = _api_get("/api/chatbot/product/innovation-search", {"product_name": product_name}, raw=True)
     global last_search_results, last_search_query
     last_search_results = res
     last_search_query = f"혁신제품: {product_name}"
     return res
 
-def search_excellent_procurement_product(product_name: str) -> dict:
+def search_excellent_procurement_product_live_legacy(product_name: str) -> dict:
     res = _api_get("/api/chatbot/product/excellent-procurement-search", {"product_name": product_name}, raw=True)
     global last_search_results, last_search_query
     last_search_results = res
