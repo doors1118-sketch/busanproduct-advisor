@@ -2,7 +2,7 @@
 # 법령챗봇 독립 서비스 배포 스크립트
 # cron에서 5분마다 자동 실행
 
-cd /root/advisor
+cd /opt/advisor
 
 # 원격 저장소 상태 업데이트
 git fetch origin main -q
@@ -29,4 +29,7 @@ pip3 install -r requirements.txt --break-system-packages -q >> /tmp/pip_install.
 cp law-chatbot.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable law-chatbot 2>/dev/null
+if systemctl list-unit-files | grep -q '^busan-advisor-pilot.service'; then
+    systemctl restart busan-advisor-pilot
+fi
 systemctl restart law-chatbot

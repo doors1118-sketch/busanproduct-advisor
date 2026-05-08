@@ -52,6 +52,10 @@ class RouterResult(BaseModel):
         ""
     ] = ""
     candidate_lookup_required: bool = False
+    company_lookup_required: bool = False
+    legal_review_required: bool = False
+    local_purchase_support_required: bool = False
+    answer_focus: List[str] = Field(default_factory=list)
     legal_explanation_only: bool = False
     clarification_needed: List[str] = Field(default_factory=list)
     reason: str = ""

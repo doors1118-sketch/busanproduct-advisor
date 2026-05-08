@@ -16,6 +16,22 @@ ROUTER_MODEL = "gemini-2.5-flash"
 GEMINI_MODEL = "gemini-2.5-flash"
 FALLBACK_MODEL = "gemini-2.5-flash"
 MODEL_ROUTING_MODE = os.getenv("MODEL_ROUTING_MODE", "risk_based")
+MCP_PREFLIGHT_MAX_ITEMS = int(os.getenv("MCP_PREFLIGHT_MAX_ITEMS", "32"))
+ADMIN_RULE_KEY_NAMES = (
+    "지방자치단체 입찰 및 계약집행기준",
+    "지방자치단체 입찰시 낙찰자 결정기준",
+    "(계약예규) 정부 입찰·계약 집행기준",
+    "(계약예규) 공동계약운용요령",
+    "공기업ㆍ준정부기관 계약사무규칙",
+    "기타공공기관 계약사무 운영규정",
+    "물품 다수공급자계약 업무처리규정",
+    "국가종합전자조달시스템 종합쇼핑몰 운영규정",
+    "조달청 제조물품 직접생산확인 기준",
+    "혁신제품 구매 운영 규정",
+    "혁신제품 시범구매계약 추가특수조건",
+    "중소기업기술개발제품 우선구매제도 운영 등에 관한 시행세칙",
+    "중소기업자간 경쟁제품 및 공사용자재 직접구매 대상 품목 지정 내역",
+)
 
 
 # ─────────────────────────────────────────────
@@ -273,11 +289,22 @@ def build_routing_log(risk_info: dict,
         "flash_answer_discarded": flash_answer_discarded,
     }
 
-def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str = "") -> int:
+def _is_pure_legal_explanation(router_result=None) -> bool:
+    """Router가 순수 법령·제도 설명으로 판단했는지 확인한다."""
+    if router_result is None:
+        return False
+    return (
+        bool(getattr(router_result, "legal_explanation_only", False))
+        and not bool(getattr(router_result, "candidate_lookup_required", False))
+        and not bool(getattr(router_result, "company_lookup_required", False))
+    )
+
+
+def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str = "", router_result=None) -> int:
     """
     3-Tier 라우팅 구조를 위해 질문의 Tier를 결정합니다.
     Tier 0 (Fast Track): 금액/계약/법령 의도 없고 순수 업체검색.
-    Tier 1 (General): 금액 + 수의계약/계약 가능성 질문, 품목/지역업체 선호 없음.
+    Tier 1 (General/Legal Explanation): 순수 법령·제도 설명 또는 금액 중심 단순 계약 안내.
     Tier 2 (Deep Research): 금액 + 품목 + 지역업체 선호 또는 지역상품 구매전략.
     Tier 3 (Agency Specific): 특정 기관 자체규정(공기업/출자출연/부산교통공사 등)이 명확할 때.
     """
@@ -295,6 +322,14 @@ def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str 
                                                            "수의", "견적", "낙찰", "적격심사",
                                                            "공동계약", "MAS", "다수공급자"])
 
+    # Tier 3: 기관명 패턴이 명확할 때만 (단순 "공사"는 오탐 우려로 제외)
+    if has_agency:
+        return 3
+
+    # Tier 1: 순수 법령·제도 설명은 업체검색/복합검토로 보내지 않는다.
+    if _is_pure_legal_explanation(router_result):
+        return 1
+
     # Tier 0: 금액 관련 법적 제한/한도 판단이 주 목적이 아닌 순수 업체 검색/상세 조회
     fast_track_intents = {"company_search", "policy_candidate_search", "shopping_mall_search", "certified_product_search", "company_detail", "license_search", "mas_search", "innovation_product_search", "excellent_procurement_search"}
     if risk_info.get("risk_level") in ["low", "medium"] and any(i in intent_labels for i in fast_track_intents):
@@ -303,10 +338,6 @@ def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str 
     # Tier 0 키워드 fallback: 품목+지역업체 언급 + 금액/계약방식 없음 → 순수 업체 검색
     if (has_item or has_local) and not has_amount and not has_contract_method and not has_agency:
         return 0
-
-    # Tier 3: 기관명 패턴이 명확할 때만 (단순 "공사"는 오탐 우려로 제외)
-    if has_agency:
-        return 3
 
     # Tier 2: 금액 + 품목, 또는 금액 + 계약방식 (수의계약/입찰 포함 시 반드시 법령 조회)
     if has_amount and (has_item or has_local or has_contract_method):
@@ -329,12 +360,214 @@ def generate_mandatory_mcp_plan(user_message: str, tier: int, agency_type: str =
         from topic_cluster_engine import build_preflight_plan
         cluster_plan = build_preflight_plan(user_message, agency_type)
         if cluster_plan:
-            return cluster_plan
+            plan = _augment_with_internal_discovery(user_message, cluster_plan, agency_type=agency_type)
+            plan = _augment_with_regional_support_catalog(user_message, plan, agency_type=agency_type)
+            plan = _augment_with_tool_orchestration(user_message, plan, agency_type=agency_type)
+            return _limit_mandatory_mcp_plan(plan)
     except Exception as e:
         print(f"  [TOPIC_CLUSTER] Fallback to legacy: {e}")
     
     # ── 2순위: 기존 키워드 매칭 (fallback) ──
-    return _legacy_mandatory_mcp_plan(user_message, tier, agency_type)
+    plan = _augment_with_internal_discovery(
+        user_message,
+        _legacy_mandatory_mcp_plan(user_message, tier, agency_type),
+        agency_type=agency_type,
+    )
+    plan = _augment_with_regional_support_catalog(user_message, plan, agency_type=agency_type)
+    plan = _augment_with_tool_orchestration(user_message, plan, agency_type=agency_type)
+    return _limit_mandatory_mcp_plan(plan)
+
+
+def _plan_identity(item: dict) -> str:
+    args = item.get("args") or {}
+    tool_name = item.get("name")
+    key_value = (
+        args.get("query")
+        or args.get("law_name")
+        or args.get("mst")
+        or args.get("rule_id")
+        or ""
+    )
+    if tool_name == "search_law":
+        match = re.search(r"(.+?제\d+조(?:의\d+)?)", str(key_value))
+        if match:
+            key_value = match.group(1)
+    elif tool_name in ("search_admin_rule", "get_admin_rule"):
+        compact_key = str(key_value).replace(" ", "")
+        for rule_name in ADMIN_RULE_KEY_NAMES:
+            if rule_name.replace(" ", "") in compact_key:
+                key_value = rule_name
+                break
+    key_value = re.sub(r"\s+", " ", str(key_value)).strip()
+    return f"{tool_name}:{key_value}"
+
+
+def _plan_category(item: dict) -> str:
+    reason = item.get("selected_reason", "") or ""
+    if reason.startswith("tool_orchestration:"):
+        return "tool"
+    if reason.startswith("regional_support_catalog:"):
+        return "catalog"
+    if reason.startswith("dynamic_internal_discovery"):
+        return "dynamic"
+    if item.get("name") in ("search_admin_rule", "get_admin_rule"):
+        return "dynamic"
+    return "cluster"
+
+
+def _limit_mandatory_mcp_plan(plan: list, max_items: int | None = None) -> list:
+    """Keep preflight broad enough for quality without letting latency explode."""
+    limit = max_items or MCP_PREFLIGHT_MAX_ITEMS
+    if not plan or len(plan) <= limit:
+        return plan
+
+    budgets = {
+        "cluster": 15,
+        "catalog": 8,
+        "dynamic": 5,
+        "tool": 4,
+    }
+    by_category = {key: [] for key in budgets}
+    for item in plan:
+        by_category.setdefault(_plan_category(item), []).append(item)
+
+    selected = []
+    seen = set()
+
+    def add_item(item: dict) -> bool:
+        if len(selected) >= limit:
+            return False
+        key = _plan_identity(item)
+        if key in seen:
+            return False
+        selected.append(item)
+        seen.add(key)
+        return True
+
+    for category, budget in budgets.items():
+        for item in by_category.get(category, [])[:budget]:
+            add_item(item)
+
+    # Use remaining slots for catalog/tool evidence first, then dynamic discovery,
+    # then any leftover fixed cluster entries.
+    for category in ("catalog", "tool", "dynamic", "cluster"):
+        for item in by_category.get(category, []):
+            if len(selected) >= limit:
+                break
+            add_item(item)
+
+    if len(selected) < len(plan):
+        print(
+            f"  [MCP-PREFLIGHT] trimmed plan: {len(plan)} -> {len(selected)} "
+            f"(limit={limit})",
+            flush=True,
+        )
+    return selected
+
+
+def _augment_with_regional_support_catalog(user_message: str, base_plan: list, agency_type: str = None) -> list:
+    """지역업체 보호·우대제도 카탈로그 매칭 결과로 조회 계획을 보강한다."""
+    plan = list(base_plan or [])
+    try:
+        from policies.regional_support_catalog import build_catalog_evidence_plan
+    except ImportError:
+        try:
+            from app.policies.regional_support_catalog import build_catalog_evidence_plan
+        except ImportError as e:
+            try:
+                from regional_support_catalog import build_catalog_evidence_plan
+            except ImportError:
+                print(f"  [REGIONAL-CATALOG] unavailable: {e}")
+                return plan
+
+    try:
+        catalog_plan = build_catalog_evidence_plan(user_message, agency_type=agency_type)
+    except Exception as e:
+        print(f"  [REGIONAL-CATALOG] failed: {e}")
+        return plan
+
+    seen = {
+        f"{item.get('name')}:{(item.get('args') or {}).get('query') or (item.get('args') or {}).get('law_name') or ''}"
+        for item in plan
+    }
+    added = 0
+    for item in catalog_plan:
+        args = item.get("args") or {}
+        key = f"{item.get('name')}:{args.get('query') or args.get('law_name') or ''}"
+        if key in seen:
+            continue
+        plan.append(item)
+        seen.add(key)
+        added += 1
+
+    if added:
+        print(f"  [REGIONAL-CATALOG] augmented plan: +{added}, total={len(plan)}")
+    return plan
+
+
+def _augment_with_tool_orchestration(user_message: str, base_plan: list, agency_type: str = None) -> list:
+    """체인/종합리서치/별표 도구가 필요한 질문이면 계획을 보강한다."""
+    try:
+        from policies.tool_orchestration_policy import augment_tool_orchestration
+    except ImportError:
+        try:
+            from tool_orchestration_policy import augment_tool_orchestration
+        except ImportError as e:
+            print(f"  [TOOL-ORCH] unavailable: {e}")
+            return base_plan
+
+    try:
+        augmented = augment_tool_orchestration(user_message, base_plan, agency_type=agency_type)
+    except Exception as e:
+        print(f"  [TOOL-ORCH] failed: {e}")
+        return base_plan
+
+    added = len(augmented) - len(base_plan or [])
+    if added:
+        print(f"  [TOOL-ORCH] augmented plan: +{added}, total={len(augmented)}")
+    return augmented
+
+
+def _augment_with_internal_discovery(
+    user_message: str,
+    base_plan: list,
+    agency_type: str = None,
+    max_total: int = 40,
+) -> list:
+    """고정 조문 클러스터를 내부 DB 동적 탐색 결과로 보강한다."""
+    plan = list(base_plan or [])
+    try:
+        from policies.internal_law_discovery import discover_internal_law_plan
+    except ImportError:
+        try:
+            from internal_law_discovery import discover_internal_law_plan
+        except ImportError as e:
+            print(f"  [INTERNAL-DISCOVERY] unavailable: {e}")
+            return plan
+
+    try:
+        extra_plan = discover_internal_law_plan(user_message, agency_type=agency_type)
+    except Exception as e:
+        print(f"  [INTERNAL-DISCOVERY] failed: {e}")
+        return plan
+
+    seen = {
+        f"{item.get('name')}:{(item.get('args') or {}).get('query', '')}"
+        for item in plan
+    }
+    added = 0
+    for item in extra_plan:
+        key = f"{item.get('name')}:{(item.get('args') or {}).get('query', '')}"
+        if key in seen:
+            continue
+        plan.append(item)
+        seen.add(key)
+        added += 1
+        if len(plan) >= max_total:
+            break
+    if added:
+        print(f"  [INTERNAL-DISCOVERY] augmented fixed plan: +{added}, total={len(plan)}")
+    return plan
 
 
 def _legacy_mandatory_mcp_plan(user_message: str, tier: int, agency_type: str = None) -> list:

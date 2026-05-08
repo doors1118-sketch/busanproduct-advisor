@@ -65,6 +65,8 @@ def _build_company_table(rows: list) -> str:
             "shopping_mall_supplier": "쇼핑몰",
             "local_procurement_company": "조달등록",
             "policy_company": "정책기업",
+            "innovation_product": "혁신제품",
+            "priority_purchase_product": "기술개발제품",
         }
         type_label = type_label_map.get(ptype, ptype or "확인 필요")
 
@@ -73,12 +75,25 @@ def _build_company_table(rows: list) -> str:
         prods = ", ".join(r.get("main_products", [])) or "확인 필요"
 
         # 조달등록 여부
-        procurement_reg = "확인" if ptype in ("local_procurement_company", "policy_company") else "확인 필요"
+        candidate_types = r.get("candidate_types", [])
+        procurement_reg = (
+            "확인"
+            if ptype in ("local_procurement_company", "policy_company")
+            or "local_procurement_company" in candidate_types
+            else "확인 필요"
+        )
 
         # 쇼핑몰/MAS 등록
         mall_reg = r.get("shopping_mall_registered")
         if mall_reg is True:
-            mall_str = "확인"
+            labels = r.get("shopping_mall_flag_labels") or []
+            mall_type = r.get("shopping_mall_type")
+            if mall_type:
+                mall_str = mall_type
+            elif labels:
+                mall_str = ", ".join(labels)
+            else:
+                mall_str = "등록 확인"
         elif mall_reg is False:
             mall_str = "해당 없음"
         else:
@@ -91,6 +106,8 @@ def _build_company_table(rows: list) -> str:
 
         # 인증유형
         cert_type = r.get("innovation_product_status") or r.get("certification_type", "")
+        if not cert_type and r.get("certified_product_types"):
+            cert_type = ", ".join(str(v) for v in r.get("certified_product_types", []))
         if not cert_type or cert_type in ("None", "nan"):
             cert_type = "확인 필요"
 
@@ -98,6 +115,8 @@ def _build_company_table(rows: list) -> str:
         validity = r.get("certification_valid_until", "확인 필요")
         if not validity or validity in ("None", "nan", ""):
             validity = "확인 필요"
+        elif r.get("certification_validity_status") == "valid" and validity in ("9999-12-31", "99991231"):
+            validity = "유효"
 
         # 검토 가능 경로 (축약)
         routes = r.get("purchase_routes", [])
@@ -136,17 +155,20 @@ def _build_priority_purchase_table(rows: list) -> str:
     """기술개발제품 13종 후보 행들을 Markdown 표로 변환"""
     if not rows:
         return ""
-    header = "| 제품명 | 업체명 | 인증구분 | 인증번호 | 인증일 | 유효기간 | 비고 |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n"
+    header = "| 제품명 | 업체명 | 소재지 | 인증구분 | 인증번호 | 인증일 | 유효기간 | 비고 |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n"
     lines = []
     for r in rows:
-        prod = r.get("product_name", "")
+        prod = r.get("product_name") or ", ".join(r.get("main_products", [])[:2]) or "제품명 확인 필요"
         company = r.get("company_name", "")
+        loc = r.get("location", "")
         cert_type = r.get("certification_type", "")
         cert_no = r.get("certification_no", "")
         cert_date = r.get("certification_date", "")
         validity = r.get("certification_valid_until", "확인 필요")
-        note = "후보, 인증 유효기간 확인 필요"
-        lines.append(f"| {prod} | {company} | {cert_type} | {cert_no} | {cert_date} | {validity} | {note} |")
+        if r.get("certification_validity_status") == "valid" and validity in ("9999-12-31", "99991231"):
+            validity = "유효"
+        note = "후보, 인증제품명과 구매품목 일치 확인 필요"
+        lines.append(f"| {prod} | {company} | {loc} | {cert_type} | {cert_no} | {cert_date} | {validity} | {note} |")
     return header + "\n".join(lines)
 
 

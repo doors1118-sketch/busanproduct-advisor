@@ -69,12 +69,14 @@ def repair_slots(user_query: str, router_result: RouterResult) -> RouterResult:
         if "부산" in user_query:
             slots.location = "부산"
             repaired_slots.append("location")
+
+    if not slots.local_supplier_intent:
+        if re.search(r"(지역업체|부산업체|부산 업체|지역 업체|지역상품|지역제품|지역제한|지역가점)", user_query):
+            slots.local_supplier_intent = True
+            repaired_slots.append("local_supplier_intent")
             
     if not slots.candidate_lookup_requested:
         if re.search(r"업체.*(찾아|추천|알려|있어|있나|있는지|어디|보여|검색|리스트)", user_query):
-            slots.candidate_lookup_requested = True
-            repaired_slots.append("candidate_lookup_requested")
-        elif re.search(r"(지역업체|부산업체|부산 업체|지역 업체)", user_query):
             slots.candidate_lookup_requested = True
             repaired_slots.append("candidate_lookup_requested")
 
@@ -86,6 +88,7 @@ def repair_slots(user_query: str, router_result: RouterResult) -> RouterResult:
         
         if slots.candidate_lookup_requested:
             router_result.candidate_lookup_required = True
+            router_result.company_lookup_required = True
             
         # 승격(Promotion) 로직
         if router_result.routing_decision in ["clarification_required", "out_of_scope"]:
@@ -117,5 +120,18 @@ def repair_slots(user_query: str, router_result: RouterResult) -> RouterResult:
             # 승격되었다면 clarification_needed 초기화
             if router_result.routing_decision not in ["clarification_required", "out_of_scope"]:
                 router_result.clarification_needed = []
+
+        if router_result.candidate_lookup_required:
+            router_result.company_lookup_required = True
+        if slots.local_supplier_intent or "지역" in user_query or "부산" in user_query:
+            router_result.local_purchase_support_required = True
+            if "부산 지역상품 구매지원 경로" not in router_result.answer_focus:
+                router_result.answer_focus.append("부산 지역상품 구매지원 경로")
+        if slots.amount or slots.contract_method or slots.quote_type or "계약" in user_query or "입찰" in user_query:
+            router_result.legal_review_required = True
+            if "법령상 계약 가능 범위와 확인 필요사항" not in router_result.answer_focus:
+                router_result.answer_focus.insert(0, "법령상 계약 가능 범위와 확인 필요사항")
+        if router_result.company_lookup_required and "부산 업체·상품 후보 조회" not in router_result.answer_focus:
+            router_result.answer_focus.append("부산 업체·상품 후보 조회")
                 
     return router_result

@@ -78,6 +78,11 @@ class GeminiIntentRouter:
 
     def normalize_slots(self, parsed_dict: Dict) -> Dict:
         """Normalize intent and slot aliases."""
+        if "needs_company_search" in parsed_dict and "candidate_lookup_required" not in parsed_dict:
+            parsed_dict["candidate_lookup_required"] = bool(parsed_dict.get("needs_company_search"))
+        if "company_lookup_required" in parsed_dict and "candidate_lookup_required" not in parsed_dict:
+            parsed_dict["candidate_lookup_required"] = bool(parsed_dict.get("company_lookup_required"))
+
         if "primary_intent" in parsed_dict:
             val = parsed_dict["primary_intent"]
             parsed_dict["primary_intent"] = INTENT_ALIASES.get(val, val)

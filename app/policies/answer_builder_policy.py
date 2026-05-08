@@ -65,6 +65,10 @@ def _render_legal_basis_table(mandatory_mcp_executed: list, generation_meta: dic
     """MCP 실행 결과를 사용자용 근거표로 렌더링.
     Returns: (table_text: str, has_cache_hit: bool)
     """
+    evidence_cards = generation_meta.get("evidence_cards") or []
+    if evidence_cards:
+        return _render_evidence_card_table(evidence_cards, generation_meta)
+
     if not mandatory_mcp_executed:
         return "", False
 
@@ -102,6 +106,63 @@ def _render_legal_basis_table(mandatory_mcp_executed: list, generation_meta: dic
 
     header = "| 검토 근거 | 확인 상태 | 실무상 의미 |\n|---|---|---|\n"
     return header + "\n".join(rows) + "\n", has_cache_hit
+
+
+def _render_evidence_card_table(evidence_cards: list, generation_meta: dict) -> tuple:
+    """구조화 근거카드를 사용자용 근거표로 렌더링."""
+    overall_status_key = generation_meta.get("source_status", "mcp_preflight_success")
+    overall_user_status = _SOURCE_STATUS_MAP.get(overall_status_key, "확인")
+    rows = []
+    seen = set()
+    has_cache_hit = False
+
+    for card in evidence_cards:
+        if card.get("status") != "hit":
+            continue
+        label = card.get("law_name") or card.get("query")
+        if not label:
+            continue
+        article = card.get("article_no")
+        if article and article not in label:
+            label = f"{label} {article}"
+        if label in seen:
+            continue
+        seen.add(label)
+        if card.get("from_cache"):
+            has_cache_hit = True
+            row_status = "캐시된 확인 근거 사용"
+        elif card.get("source") == "internal_db":
+            row_status = "내부 DB 확인"
+        elif card.get("source") == "external_mcp":
+            row_status = "외부 MCP 확인"
+        else:
+            row_status = overall_user_status
+
+        meaning = _meaning_from_supports(card.get("supports") or [])
+        date = card.get("effective_date")
+        if date:
+            meaning = f"{meaning} (시행일 {date})"
+        rows.append(f"| {label} | {row_status} | {meaning} |")
+
+    if not rows:
+        return "", has_cache_hit
+    header = "| 검토 근거 | 확인 상태 | 실무상 의미 |\n|---|---|---|\n"
+    return header + "\n".join(rows[:8]) + "\n", has_cache_hit
+
+
+def _meaning_from_supports(supports: list) -> str:
+    mapping = {
+        "direct_contract": "수의계약 가능성 검토",
+        "one_person_quote": "1인 견적 가능성 검토",
+        "amount_threshold": "금액 기준 검토",
+        "regional_restriction": "지역제한 경쟁입찰 검토",
+        "local_company_point": "지역업체 가점 검토",
+        "joint_contract": "공동도급 기준 검토",
+        "mas": "MAS/종합쇼핑몰 경로 검토",
+        "priority_purchase": "우선구매 제도 검토",
+    }
+    labels = [mapping[s] for s in supports if s in mapping]
+    return " · ".join(labels[:2]) if labels else "법령 근거 확인"
 
 
 def strip_raw_tool_names(text: str) -> str:
@@ -175,9 +236,11 @@ def build_simple_company_search_answer(generation_meta: dict, has_candidates: bo
     else:
         template += "(검색 결과에서 유효한 업체 후보를 추출하지 못했습니다.)\n\n"
     template += (
-        "### 3. 확인 필요사항\n"
-        "- 본 안내는 후보 정보 제공이며, 실제 계약 전 품목 적합성, 조달등록 상태, "
-        "인증 유효성, 기관 내부 기준을 확인해야 합니다."
+        "### 3. 바로 할 일\n"
+        "- 후보 업체가 실제 구매 품목을 납품할 수 있는지 품목·규격을 먼저 확인하세요.\n"
+        "- 조달등록, 종합쇼핑몰/MAS 등록, 인증 유효기간, 정책기업 지위를 확인하세요.\n"
+        "- 금액이나 계약방식이 정해져 있다면 별도 법령 검토 후 수의계약·입찰·MAS 경로를 선택하세요.\n"
+        "- 이 표는 후보 발굴용이며, 업체 적격성이나 계약 가능성을 확정하지 않습니다."
     )
     _set_timing(generation_meta, _start)
     return template
@@ -203,10 +266,10 @@ def build_amount_contract_guidance_answer(generation_meta: dict, mandatory_mcp_e
     generation_meta["legal_basis_to_purchase_route_mapped"] = True
 
     template = (
-        "### 1. 질문의도 파악\n"
-        "- 입력하신 질문은 금액 기준에 따른 구매/계약 방식 안내 요청으로 분류했습니다.\n\n"
-        "### 2. 법령 적용 해석\n"
-        f"- 수의계약 한도 등 금액 기준을 검토했습니다. ({user_status})\n"
+        "### 1. 판단 요약\n"
+        f"- 입력 조건을 기준으로 수의계약·견적 방식·경쟁입찰 필요성을 검토했습니다. ({user_status})\n"
+        "- 금액 기준만으로 바로 결론을 확정하지 않고, 기관유형·품목·정책기업/인증 여부를 함께 봐야 합니다.\n\n"
+        "### 2. 확인한 근거\n"
     )
     if basis_table:
         template += f"\n{basis_table}"
@@ -216,13 +279,16 @@ def build_amount_contract_guidance_answer(generation_meta: dict, mandatory_mcp_e
     if has_cache:
         template += _CACHE_NOTICE
     template += (
-        "\n### 3. 구매 방법 안내\n"
-        "- 2천만원, 5천만원 등 수의계약 한도는 기준 검토 용도로 안내됩니다.\n"
-        "- 적용 가능 여부는 기관유형, 추정가격, 품목, 내부 기준에 따라 다르므로 개별 확인이 필요합니다.\n\n"
-        "### 4. 확인 필요사항\n"
-        "- 안내된 사항은 참고용이며, 기관별 자체 규정에 따라 다를 수 있습니다.\n"
-        "- 여성기업, 장애인기업 등 정책기업 요건 충족 시 수의계약 한도가 달라질 수 있으나, "
-        "적용 가능 여부를 반드시 개별 확인해야 합니다."
+        "\n### 3. 실무 실행 경로\n"
+        "- **일반 소액 수의계약 경로**: 추정가격과 1인/2인 이상 견적 기준을 먼저 확인합니다.\n"
+        "- **정책기업 경로**: 여성기업·장애인기업·사회적기업·소기업 등 해당 여부가 있으면 별도 한도와 견적 방식을 검토합니다.\n"
+        "- **인증·우선구매 경로**: 혁신제품, 우수조달물품, 기술개발제품이면 수의계약 특례나 우선구매 가능성을 별도로 확인합니다.\n"
+        "- **경쟁입찰 전환 경로**: 수의계약이 어렵다면 지역제한, MAS 2단계, 평가 가점 등으로 지역상품 구매 가능성을 검토합니다.\n\n"
+        "### 4. 바로 할 일\n"
+        "- 기관유형이 지방자치단체인지, 국가기관인지, 공기업·준정부기관인지 확정하세요.\n"
+        "- 추정가격 기준 금액인지 부가세 포함 총액인지 구분하세요.\n"
+        "- 품목이 중소기업자간 경쟁제품, 직접생산확인 대상, 혁신제품, 우수조달물품인지 확인하세요.\n"
+        "- 수의계약을 검토한다면 1인 견적 가능 여부와 2인 이상 견적 필요 여부를 따로 확인하세요."
     )
     _set_timing(generation_meta, _start)
     return template
@@ -248,9 +314,10 @@ def build_regional_procurement_answer(generation_meta: dict, mandatory_mcp_execu
     generation_meta["legal_basis_to_purchase_route_mapped"] = True
 
     template = (
-        "### 1. 질문의도 파악\n"
-        "- 입력하신 금액 및 조건에 따라 지역상품 우선구매 전략을 검토했습니다.\n\n"
-        "### 2. 법령 적용 해석\n"
+        "### 1. 판단 요약\n"
+        "- 입력하신 조건을 기준으로 지역상품·지역업체로 연결할 수 있는 구매 경로를 검토했습니다.\n"
+        "- 법령상 바로 어려운 경로가 있더라도, 지역제한·MAS·정책기업·인증제품 경로를 순서대로 검토합니다.\n\n"
+        "### 2. 확인한 근거\n"
     )
     if basis_table:
         template += f"\n{basis_table}"
@@ -260,18 +327,20 @@ def build_regional_procurement_answer(generation_meta: dict, mandatory_mcp_execu
     if has_cache:
         template += _CACHE_NOTICE
     template += (
-        "\n### 3. 지역상품 구매 방법 안내\n"
-        "- 구매 금액과 품목에 따라 지역제한 제한경쟁입찰, MAS 2단계 경쟁, "
-        "또는 정책기업 수의계약 검토 경로가 있습니다.\n"
-        "- 지역제한 적용 가능 여부는 기관유형, 추정가격, 품목, 내부 기준에 따라 다르므로 "
-        "개별 확인이 필요합니다.\n\n"
-        "### 4. 지역업체 후보 소개\n"
-        "- 아래 후보는 조달등록 여부를 기준으로 정리한 검토 후보입니다.\n\n"
+        "\n### 3. 지역상품 구매 실행 경로\n"
+        "- **지역제한 입찰**: 금액·계약유형 기준에 맞으면 부산 지역업체 제한 가능성을 우선 검토합니다.\n"
+        "- **MAS/종합쇼핑몰 경로**: 쇼핑몰 등록 품목이면 2단계 경쟁, 납품지역, 평가방식에서 지역 요소를 확인합니다.\n"
+        "- **정책기업 수의계약 경로**: 여성기업·장애인기업·사회적기업 등 정책기업이면 금액 한도와 견적 방식을 분리해 검토합니다.\n"
+        "- **인증제품 경로**: 혁신제품·우수조달·기술개발제품이면 해당 지정·인증 유효성을 확인하고 특례 가능성을 검토합니다.\n"
+        "- **일반 지역업체 후보 발굴**: 법령상 계약방식이 정해진 뒤, 실제 납품 가능한 부산 업체 후보를 비교합니다.\n\n"
+        "### 4. 부산 지역업체 후보\n"
+        "- 아래 후보는 조달등록·정책기업·쇼핑몰/MAS·인증 여부를 기준으로 정리한 검토 후보입니다.\n\n"
         "[SERVER_TABLE_PLACEHOLDER]\n\n"
-        "### 5. 확인 필요사항 및 주의사항\n"
-        "- 실제 계약 시 관련 법령 및 부산시 조례, 기관 내부 규정에 따른 절차를 거쳐야 합니다.\n"
-        "- 기관유형, 추정가격, 품목, 내부 기준 확인이 필요합니다.\n"
-        "- 본 안내는 검토 경로 제시이며, 계약 가능 여부를 확정하지 않습니다."
+        "### 5. 바로 할 일\n"
+        "- 품목 규격과 세부품명을 확정한 뒤, 쇼핑몰/MAS 등록 여부를 확인하세요.\n"
+        "- 후보 업체의 조달등록, 인증 유효기간, 직접생산확인, 정책기업 지위를 확인하세요.\n"
+        "- 수의계약이 어려우면 지역제한 입찰 또는 MAS 2단계 경쟁에서 지역요소를 반영할 수 있는지 검토하세요.\n"
+        "- 본 안내는 실행 경로 제시이며, 최종 계약 가능 여부는 기관 내부 검토로 확정해야 합니다."
     )
     _set_timing(generation_meta, _start)
     return template

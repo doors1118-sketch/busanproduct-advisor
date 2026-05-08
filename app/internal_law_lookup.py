@@ -6,19 +6,26 @@ MCP preflight 및 LLM 도구 호출 시 외부 법제처 API 대신
 내부 DB를 우선 조회하고, 내부 DB에 없을 때만 외부 MCP를 보완적으로 호출.
 
 내부 데이터 소스:
-  1. law_articles_db.json — 13종 핵심 법령 전체 조문 (243개 조문, 73,696자)
-  2. key_articles.json — 레거시 핵심 조문 (7종, 보완용)
+  1. law_articles_db.json — 법률·시행령·시행규칙 조문
+  2. admin_rules_db.json — 예규·고시·훈령·집행기준 조문/첨부 원문
+  3. key_articles.json — 레거시 핵심 조문 (7종, 보완용)
+  ※ ordinances_db.json — 조례/자치법규는 참고 보관용이며 4단계 체인 기본 조회에서 제외
 
 조회 흐름:
-  law_articles_db.json (조문번호 매칭) → key_articles.json (보완) → 외부 MCP (fallback)
+  law_articles_db.json + admin_rules_db.json 통합 인덱스
+  → key_articles.json (보완) → 외부 MCP (fallback)
 """
 import os
 import re
 import json
+import threading
 from typing import Optional, List, Tuple
 
 _ROOT = os.path.dirname(os.path.abspath(__file__))
 _LAW_DB_PATH = os.path.join(_ROOT, "data", "law_articles_db.json")
+_ADMIN_RULES_DB_PATH = os.path.join(_ROOT, "data", "admin_rules_db.json")
+_LAW_ANNEX_DB_PATH = os.path.join(_ROOT, "data", "law_annexes_db.json")
+_ADMIN_RULE_ANNEX_DB_PATH = os.path.join(_ROOT, "data", "admin_rule_annexes_db.json")
 _KEY_ARTICLES_PATH = os.path.join(_ROOT, "data", "key_articles.json")
 
 # ─────────────────────────────────────────────
@@ -30,37 +37,89 @@ _key_articles_cache: dict = None
 _lookup_index: dict = None
 # MST → short_name 역매핑 (get_law_text 내부 DB 지원용)
 _mst_to_short: dict = None
+_annex_db_cache: dict = None
+_load_lock = threading.RLock()
+_annex_load_lock = threading.RLock()
 
 
 def _load_law_db() -> dict:
-    global _law_db_cache, _lookup_index
+    global _law_db_cache, _lookup_index, _mst_to_short
     if _law_db_cache is not None:
         return _law_db_cache
-    try:
-        with open(_LAW_DB_PATH, "r", encoding="utf-8") as f:
-            _law_db_cache = json.load(f)
-        # 조회용 인덱스 구축
-        _lookup_index = {}
-        global _mst_to_short
-        _mst_to_short = {}
-        total_articles = 0
-        for short_name, law_data in _law_db_cache.items():
-            # MST 역매핑
-            mst = law_data.get("mst", "")
-            if mst:
-                _mst_to_short[str(mst)] = short_name
-            articles = law_data.get("articles", {})
-            for article_no, article_data in articles.items():
-                # "지방계약법 시행령 제25조" → 조문 텍스트
-                lookup_key = f"{short_name} {article_no}"
-                _lookup_index[lookup_key] = article_data.get("text", "")
-                total_articles += 1
-        print(f"  [INTERNAL_LAW] law_articles_db.json 로드: {len(_law_db_cache)}개 법령, {total_articles}개 조문")
-    except Exception as e:
-        print(f"  [INTERNAL_LAW] law_articles_db.json 로드 실패: {e}")
-        _law_db_cache = {}
-        _lookup_index = {}
+    with _load_lock:
+        if _law_db_cache is not None:
+            return _law_db_cache
+
+        loaded_sources = []
+        try:
+            merged_db = {}
+            for source_path, source_label in (
+                (_LAW_DB_PATH, "law_articles_db.json"),
+                (_ADMIN_RULES_DB_PATH, "admin_rules_db.json"),
+            ):
+                if not os.path.exists(source_path):
+                    continue
+                with open(source_path, "r", encoding="utf-8") as f:
+                    source_db = json.load(f)
+                if isinstance(source_db, dict):
+                    merged_db.update(source_db)
+                    loaded_sources.append(f"{source_label}:{len(source_db)}")
+
+            lookup_index = {}
+            mst_to_short = {}
+            total_articles = 0
+            for short_name, law_data in merged_db.items():
+                # MST 역매핑
+                mst = law_data.get("mst", "")
+                if mst:
+                    mst_to_short[str(mst)] = short_name
+                articles = law_data.get("articles", {})
+                for article_no, article_data in articles.items():
+                    # "지방계약법 시행령 제25조" → 조문 텍스트
+                    lookup_key = f"{short_name} {article_no}"
+                    lookup_index[lookup_key] = article_data.get("text", "")
+                    total_articles += 1
+
+            _law_db_cache = merged_db
+            _lookup_index = lookup_index
+            _mst_to_short = mst_to_short
+            source_note = ", ".join(loaded_sources) if loaded_sources else "no source files"
+            print(f"  [INTERNAL_LAW] 내부 법령 통합 DB 로드: {len(_law_db_cache)}개 소스, {total_articles}개 조문 ({source_note})")
+        except Exception as e:
+            print(f"  [INTERNAL_LAW] 내부 법령 통합 DB 로드 실패: {e}")
+            _law_db_cache = {}
+            _lookup_index = {}
+            _mst_to_short = {}
     return _law_db_cache
+
+
+def _load_annex_db() -> dict:
+    global _annex_db_cache
+    if _annex_db_cache is not None:
+        return _annex_db_cache
+    with _annex_load_lock:
+        if _annex_db_cache is not None:
+            return _annex_db_cache
+        merged = {}
+        loaded = []
+        for path, label in (
+            (_LAW_ANNEX_DB_PATH, "law_annexes_db.json"),
+            (_ADMIN_RULE_ANNEX_DB_PATH, "admin_rule_annexes_db.json"),
+        ):
+            if not os.path.exists(path):
+                continue
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if isinstance(data, dict):
+                    merged.update(data)
+                    loaded.append(f"{label}:{len(data)}")
+            except Exception as e:
+                print(f"  [INTERNAL_LAW] annex DB 로드 실패({label}): {e}")
+        _annex_db_cache = merged
+        if loaded:
+            print(f"  [INTERNAL_LAW] 내부 별표 DB 로드: {len(merged)}개 소스 ({', '.join(loaded)})")
+        return _annex_db_cache
 
 
 def _load_key_articles() -> dict:
@@ -85,14 +144,21 @@ _SHORT_NAME_MAP = {
     "국가계약법 시행규칙": "국가계약법 시행규칙",
     "국가계약법 시행령": "국가계약법 시행령",
     "국가계약법": "국가계약법",
+    "중소기업제품 구매촉진 및 판로지원법 시행령": "중소기업제품 구매촉진법 시행령",
+    "중소기업제품 구매촉진 및 판로지원법": "중소기업제품 구매촉진 및 판로지원법",
+    "중소기업제품 구매촉진법 시행령": "중소기업제품 구매촉진법 시행령",
+    "중소기업제품 구매촉진법": "중소기업제품 구매촉진 및 판로지원법",
     "중소기업구매촉진법 시행규칙": "중소기업구매촉진법 시행규칙",
-    "중소기업구매촉진법 시행령": "중소기업구매촉진법 시행령",
-    "중소기업구매촉진법": "중소기업구매촉진법",
+    "중소기업구매촉진법 시행령": "중소기업제품 구매촉진법 시행령",
+    "중소기업구매촉진법": "중소기업제품 구매촉진 및 판로지원법",
     "조달사업법 시행규칙": "조달사업법 시행규칙",
     "조달사업법 시행령": "조달사업법 시행령",
     "조달사업법": "조달사업법",
-    "공기업계약사무규칙": "공기업계약사무규칙",
-    "계약사무규칙": "공기업계약사무규칙",
+    "공기업ㆍ준정부기관 계약사무규칙": "공기업ㆍ준정부기관 계약사무규칙",
+    "공기업및준정부기관 계약사무규칙": "공기업ㆍ준정부기관 계약사무규칙",
+    "공기업 및 준정부기관 계약사무규칙": "공기업ㆍ준정부기관 계약사무규칙",
+    "공기업계약사무규칙": "공기업ㆍ준정부기관 계약사무규칙",
+    "계약사무규칙": "공기업ㆍ준정부기관 계약사무규칙",
 }
 
 
@@ -150,7 +216,7 @@ def _search_law_db(query: str) -> Optional[str]:
         # 정확 매칭: "지방계약법 시행령 제25조"
         lookup_key = f"{short_name} {article_no}"
         text = _lookup_index.get(lookup_key)
-        if text and len(text) > 10:
+        if text and text.strip():
             print(f"  [INTERNAL_LAW] law_db HIT: {lookup_key} ({len(text)} chars)")
             return f"[내부DB] [{lookup_key}]\n{text}"
     
@@ -218,13 +284,24 @@ def search_internal_admin_rule(query: str) -> Optional[str]:
     _load_law_db()
     if not _law_db_cache:
         return None
+    if "조례" in query or "자치법규" in query:
+        print("  [INTERNAL_LAW] admin_rule SKIP: ordinance query is excluded from 4-step chain")
+        return None
+
+    def _is_rule_like(short_name: str, law_data: dict) -> bool:
+        source = law_data.get("source", "")
+        source_type = law_data.get("source_type", "")
+        return (
+            "행정규칙" in source
+            or source_type == "admin_rule"
+            or any(token in short_name for token in (
+                "예규", "규정", "요령", "기준", "유의서", "세칙", "내역"
+            ))
+        )
     
     # 행정규칙명 직접 매칭
     for short_name, law_data in _law_db_cache.items():
-        source = law_data.get("source", "")
-        if "행정규칙" not in source and "예규" not in short_name and "규정" not in short_name \
-           and "요령" not in short_name and "기준" not in short_name and "유의서" not in short_name \
-           and "세칙" not in short_name and "내역" not in short_name:
+        if not _is_rule_like(short_name, law_data):
             continue
         # 쿼리 키워드가 행정규칙명에 포함되는지
         query_clean = query.replace(" ", "").replace("·", "")
@@ -243,8 +320,7 @@ def search_internal_admin_rule(query: str) -> Optional[str]:
     best = None
     best_score = 0
     for short_name, law_data in _law_db_cache.items():
-        source = law_data.get("source", "")
-        if "행정규칙" not in source and "예규" not in short_name and "규정" not in short_name:
+        if not _is_rule_like(short_name, law_data):
             continue
         articles = law_data.get("articles", {})
         for art_no, art_data in articles.items():
@@ -260,6 +336,167 @@ def search_internal_admin_rule(query: str) -> Optional[str]:
         return f"[내부DB] [{name}]\n{text[:3000]}"
     
     return None
+
+
+def _compact_name(value: str) -> str:
+    return (value or "").replace(" ", "").replace("ㆍ", "").replace("·", "").lower()
+
+
+def search_internal_annexes(law_name: str, annex_no: str = None) -> Optional[str]:
+    """
+    내부 DB에서 법령/행정규칙 별표·서식 정보를 우선 조회한다.
+
+    law_annexes_db.json / admin_rule_annexes_db.json이 있으면 이를 우선 사용하고,
+    아직 별표 DB가 없는 행정규칙은 기존 admin_rules_db의 첨부 메타데이터로 보완한다.
+    """
+    _load_law_db()
+    annex_db = _load_annex_db()
+    if not law_name:
+        return None
+
+    query_clean = _compact_name(law_name)
+
+    def _match_source(db: dict) -> tuple[str, dict] | None:
+        for short_name, law_data in sorted(db.items(), key=lambda item: len(_compact_name(item[0])), reverse=True):
+            name_clean = _compact_name(short_name)
+            full_clean = _compact_name(law_data.get("full_name", ""))
+            short_clean = _compact_name(law_data.get("short_name", ""))
+            if (
+                query_clean in name_clean or name_clean in query_clean
+                or (full_clean and (query_clean in full_clean or full_clean in query_clean))
+                or (short_clean and (query_clean in short_clean or short_clean in query_clean))
+            ):
+                return short_name, law_data
+        return None
+
+    matched = _match_source(annex_db or {})
+    if matched:
+        short_name, law_data = matched
+        annexes = law_data.get("annexes") or {}
+        attachment_links = law_data.get("attachment_links") or []
+        attachment_paths = law_data.get("attachment_paths") or []
+        attachment_refs = law_data.get("attachment_references") or []
+
+        filtered_annexes = []
+        for key, annex in annexes.items():
+            title = annex.get("title", "")
+            text = annex.get("text", "")
+            no = str(annex.get("annex_no", ""))
+            if annex_no and annex_no not in no and annex_no not in title and annex_no not in text[:500]:
+                continue
+            filtered_annexes.append((key, annex))
+
+        if filtered_annexes or attachment_links or attachment_paths or attachment_refs:
+            lines = [
+                f"[내부DB] {short_name} 별표/서식",
+                f"자료유형: {law_data.get('source_type', '')}",
+            ]
+            effective_date = law_data.get("effective_date")
+            if effective_date:
+                lines.append(f"시행일자: {effective_date}")
+
+            if filtered_annexes:
+                lines.append("▶ 별표/서식 원문")
+                limit = 8 if annex_no else 4
+                text_limit = 5000 if annex_no else 2500
+                for key, annex in filtered_annexes[:limit]:
+                    title = annex.get("title") or annex.get("annex_no") or key
+                    related = ", ".join(annex.get("related_articles") or [])
+                    lines.append(f"[{title}]")
+                    if related:
+                        lines.append(f"관련 조문: {related}")
+                    body = annex.get("text", "")
+                    lines.append(body[:text_limit] if body else "(별표 제목만 수집됨)")
+                    lines.append("")
+
+            if attachment_links:
+                lines.append("▶ 첨부파일 링크")
+                for link in attachment_links[:5]:
+                    name = link.get("name", "")
+                    url = link.get("url", "")
+                    lines.append(f"- {name}: {url}")
+
+            if attachment_paths:
+                lines.append("▶ 내부 보관 파일")
+                for path in attachment_paths[:5]:
+                    lines.append(f"- {path}")
+
+            if attachment_refs:
+                lines.append("▶ 첨부/별표 언급 조문")
+                for ref in attachment_refs[:5]:
+                    label = f"{short_name} {ref.get('article_no', '')}".strip()
+                    lines.append(f"[{label}]")
+                    lines.append((ref.get("text") or "")[:1500])
+                    lines.append("")
+
+            result = "\n".join(lines).strip()
+            print(f"  [INTERNAL_LAW] annex DB HIT: {short_name} ({len(result)} chars)")
+            return result
+
+    if not _law_db_cache:
+        return None
+
+    # 별표 DB가 아직 없거나 비어 있는 행정규칙은 기존 통합 DB의 첨부 메타데이터로 보완한다.
+    matched = None
+    for short_name, law_data in sorted(_law_db_cache.items(), key=lambda item: len(_compact_name(item[0])), reverse=True):
+        name_clean = _compact_name(short_name)
+        full_clean = _compact_name(law_data.get("full_name", ""))
+        if query_clean in name_clean or name_clean in query_clean or (full_clean and (query_clean in full_clean or full_clean in query_clean)):
+            matched = (short_name, law_data)
+            break
+
+    if not matched:
+        return None
+
+    short_name, law_data = matched
+    attachment_links = law_data.get("attachment_links") or []
+    attachment_paths = law_data.get("attachment_paths") or []
+    if not attachment_links and not attachment_paths:
+        return None
+
+    annex_terms = ["별표", "별지", "서식"]
+    if annex_no:
+        annex_terms.append(str(annex_no))
+
+    lines = [
+        f"[내부DB] {short_name} 별표/서식 첨부 정보",
+        "※ 행정규칙 첨부파일과 첨부 원문 추출 텍스트 기준입니다.",
+    ]
+    effective_date = law_data.get("effective_date")
+    if effective_date:
+        lines.append(f"시행일자: {effective_date}")
+
+    if attachment_links:
+        lines.append("▶ 첨부파일 링크")
+        for link in attachment_links[:5]:
+            name = link.get("name", "")
+            url = link.get("url", "")
+            lines.append(f"- {name}: {url}")
+
+    if attachment_paths:
+        lines.append("▶ 내부 보관 파일")
+        for path in attachment_paths[:5]:
+            lines.append(f"- {path}")
+
+    articles = law_data.get("articles", {})
+    matched_articles = []
+    for art_no, art_data in articles.items():
+        text = art_data.get("text", "")
+        if any(term in text for term in annex_terms):
+            matched_articles.append((art_no, text))
+        if len(matched_articles) >= 5:
+            break
+
+    if matched_articles:
+        lines.append("▶ 별표/서식 언급 조문 및 추출 텍스트")
+        for art_no, text in matched_articles:
+            lines.append(f"[{short_name} {art_no}]")
+            lines.append(text[:1500])
+            lines.append("")
+
+    result = "\n".join(lines).strip()
+    print(f"  [INTERNAL_LAW] annex HIT: {short_name} ({len(result)} chars)")
+    return result
 
 
 # ─────────────────────────────────────────────
@@ -289,8 +526,8 @@ _LAW_SYSTEM_MAP = {
         ],
     },
     "중소기업구매촉진법": {
-        "법률": "중소기업구매촉진법",
-        "시행령": "중소기업구매촉진법 시행령",
+        "법률": "중소기업제품 구매촉진 및 판로지원법",
+        "시행령": "중소기업제품 구매촉진법 시행령",
         "시행규칙": "중소기업구매촉진법 시행규칙",
         "행정규칙": [
             "중소기업자간 경쟁제품 및 공사용자재 직접구매 대상 품목 지정 내역",
@@ -312,7 +549,7 @@ _LAW_SYSTEM_MAP = {
     "공기업계약": {
         "법률": None,
         "시행령": None,
-        "시행규칙": "공기업계약사무규칙",
+        "시행규칙": "공기업ㆍ준정부기관 계약사무규칙",
         "행정규칙": [
             "기타공공기관 계약사무 운영규정",
         ],

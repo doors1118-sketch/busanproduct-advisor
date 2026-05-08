@@ -11,9 +11,15 @@ def apply_guardrail_sanity_check(
     """질문 내용 기반으로 누락 가드레일 보정"""
     final = set(selected)
     q = question.lower()
+    is_definition_query = any(kw in q for kw in [
+        "정의", "뜻", "의미", "무슨 말", "무엇", "뭐야", "요건", "기준"
+    ]) and any(kw in q for kw in [
+        "법", "시행령", "시행규칙", "예규", "고시", "훈령", "조례",
+        "계약집행기준", "낙찰자 결정기준", "조문", "제"
+    ])
 
     # 업체/추천 키워드 → company_search 보정
-    if any(kw in q for kw in ["업체", "추천", "살 수 있", "공급"]):
+    if not is_definition_query and any(kw in q for kw in ["업체", "추천", "살 수 있", "공급"]):
         final.add("company_search")
 
     # 공사+물품 혼합 → mixed_contract 보정
@@ -42,5 +48,8 @@ def apply_guardrail_sanity_check(
         final.add("item_purchase")
     if any(kw in q for kw in ["mas", "종합쇼핑몰", "쇼핑몰", "다수공급자"]):
         final.add("mas_shopping_mall")
+
+    if is_definition_query:
+        final.discard("company_search")
 
     return sorted(final)

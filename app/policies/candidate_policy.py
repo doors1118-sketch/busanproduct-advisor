@@ -56,7 +56,7 @@ CANDIDATE_TYPES = {
     "innovation_product": {
         "source_label": "혁신제품·혁신시제품 수의계약 검토 후보",
         "purchase_routes": ["혁신제품 수의계약 검토", "혁신장터 구매", "조달청 시범구매", "우선구매 검토"],
-        "display_enabled": False,  # 런타임 통합 검증 완료 전까지 staging_only
+        "display_enabled": True,
         "default_note": "후보, 지정 유효기간·혁신장터 등록 여부 확인 필요",
         "required_checks": [
             "지정 유효기간 확인",
@@ -75,7 +75,7 @@ CANDIDATE_TYPES = {
     "priority_purchase_product": {
         "source_label": "기술개발제품 13종 인증 보유 부산업체 우선구매 검토 후보",
         "purchase_routes": ["기술개발제품 우선구매 검토", "해당 인증제품 구매 검토", "수의계약 가능성 검토", "입찰·수의계약 검토"],
-        "display_enabled": False,  # 실제 검색·조인·필터링 검증 후 true로 전환
+        "display_enabled": True,
         "default_note": "후보, 인증 유효기간·제품 적합성 확인 필요",
         "required_checks": [
             "인증 유효기간 확인",
@@ -95,6 +95,45 @@ CANDIDATE_TYPES = {
 
 # 정책기업 태그 목록
 POLICY_TAGS = ["여성기업", "장애인기업", "사회적기업", "사회적협동조합", "자활기업", "마을기업"]
+
+POLICY_TYPE_LABELS = {
+    "women_company": "여성기업",
+    "disabled_company": "장애인기업",
+    "social_enterprise": "사회적기업",
+    "social_cooperative": "사회적협동조합",
+    "self_support_company": "자활기업",
+    "village_company": "마을기업",
+    "sme": "중소기업",
+    "small_business": "소상공인",
+    "startup": "창업기업",
+    "youth_startup": "청년창업기업",
+    "venture_company": "벤처기업",
+}
+
+CERT_TYPE_LABELS = {
+    "nep_product": "NEP(신제품)",
+    "net_certified_product": "NET(신기술)",
+    "performance_certification": "성능인증",
+    "green_technology_product": "녹색기술",
+    "gs_certified_product": "GS인증",
+    "innovation_product": "혁신제품",
+    "innovation_prototype_product": "혁신시제품",
+    "excellent_procurement_product": "우수조달물품",
+    "quality_assured_procurement_product": "품질보증조달물품",
+    "excellent_invention_product": "우수발명품",
+}
+
+SHOPPING_FLAG_LABELS = {
+    "mas": "MAS",
+    "mas_registered": "MAS",
+    "third_party_unit_price": "제3자단가",
+    "third_party_unit_price_registered": "제3자단가",
+    "excellent_procurement": "우수조달",
+    "excellent_procurement_registered": "우수조달",
+    "general_unit_price": "일반단가",
+    "general_unit_price_registered": "일반단가",
+    "shopping_mall_registered": "종합쇼핑몰",
+}
 
 
 def _parse_company_line(line: str) -> Optional[dict]:
@@ -118,6 +157,110 @@ def _parse_company_line(line: str) -> Optional[dict]:
     return {"name": name, "loc": loc, "prod": prod, "policy_tags": policy}
 
 
+def _as_list(value) -> list:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, str):
+        return [value]
+    return [str(value)]
+
+
+def _label_many(values: list, labels: dict) -> list:
+    out = []
+    for value in _as_list(values):
+        label = labels.get(str(value), str(value))
+        if label and label not in out:
+            out.append(label)
+    return out
+
+
+def _first_summary(summaries: list) -> dict:
+    for item in _as_list(summaries):
+        if isinstance(item, dict):
+            return item
+    return {}
+
+
+def _summary_product_names(*summary_keys) -> list:
+    names = []
+    for summaries in summary_keys:
+        for item in _as_list(summaries):
+            if isinstance(item, dict):
+                name = item.get("product_name") or item.get("name")
+                if name and name not in names:
+                    names.append(name)
+    return names
+
+
+def _normalize_structured_candidate(cand: dict, candidate_type: str) -> dict:
+    """API 구조화 후보를 표 생성기가 기대하는 필드로 보강한다."""
+    row = dict(cand)
+    meta = CANDIDATE_TYPES[candidate_type]
+    row["primary_candidate_type"] = candidate_type
+    c_types = _as_list(row.get("candidate_types"))
+    if candidate_type not in c_types:
+        c_types.append(candidate_type)
+    row["candidate_types"] = c_types
+    row["source_label"] = meta["source_label"]
+    row["purchase_routes"] = meta["purchase_routes"]
+    row["required_checks"] = meta["required_checks"]
+    row["note"] = meta["default_note"]
+    row["contract_possible_auto_promoted"] = False
+    row.setdefault("legal_eligibility_status", "확인 필요")
+    row.setdefault("display_status", "후보")
+
+    policy_labels = _label_many(row.get("policy_subtypes") or row.get("policy_tags"), POLICY_TYPE_LABELS)
+    row["policy_tags"] = policy_labels
+
+    shopping_flags = _as_list(row.get("shopping_mall_flags"))
+    row["shopping_mall_flag_labels"] = _label_many(shopping_flags, SHOPPING_FLAG_LABELS)
+    row["shopping_mall_registered"] = bool(
+        candidate_type == "shopping_mall_supplier"
+        or "shopping_mall_registered" in shopping_flags
+        or "mas_registered" in shopping_flags
+        or "third_party_unit_price_registered" in shopping_flags
+    )
+
+    cert_types = _as_list(row.get("certified_product_types"))
+    cert_labels = _label_many(cert_types, CERT_TYPE_LABELS)
+    cert_summary = _first_summary(row.get("certified_product_summary"))
+    if cert_summary:
+        cert_type = cert_summary.get("certification_type") or cert_summary.get("cert_type")
+        if cert_type:
+            row["certification_type"] = CERT_TYPE_LABELS.get(cert_type, cert_type)
+        row["product_name"] = row.get("product_name") or cert_summary.get("product_name")
+        row["certification_valid_until"] = (
+            row.get("certification_valid_until")
+            or cert_summary.get("expiration_date")
+            or cert_summary.get("valid_until")
+        )
+        if cert_summary.get("validity_status"):
+            row["certification_validity_status"] = cert_summary.get("validity_status")
+    elif cert_labels:
+        row["certification_type"] = ", ".join(cert_labels)
+
+    if candidate_type == "innovation_product":
+        row["innovation_product_status"] = row.get("innovation_product_status") or row.get("innovation_type") or "혁신제품 후보"
+
+    if candidate_type == "shopping_mall_supplier":
+        product_names = _summary_product_names(row.get("shopping_mall_product_summary"), row.get("mas_product_summary"))
+        if product_names:
+            row["main_products"] = product_names[:3]
+        if row["shopping_mall_flag_labels"]:
+            row["shopping_mall_type"] = ", ".join(row["shopping_mall_flag_labels"])
+
+    if candidate_type == "priority_purchase_product":
+        product_names = _summary_product_names(row.get("certified_product_summary"))
+        if product_names:
+            row["product_name"] = row.get("product_name") or product_names[0]
+        if not row.get("certification_type") and cert_labels:
+            row["certification_type"] = ", ".join(cert_labels)
+
+    return row
+
+
 def classify_candidates(tool_results: list, user_message: str = "") -> dict:
     classified = {k: [] for k in CANDIDATE_TYPES}
     seen = {k: set() for k in CANDIDATE_TYPES}
@@ -134,16 +277,15 @@ def classify_candidates(tool_results: list, user_message: str = "") -> dict:
                 cands = data.get("candidates", data.get("data", []))
                 if cands:
                     for cand in cands:
+                        if not isinstance(cand, dict):
+                            continue
                         c_types = cand.get("candidate_types", [])
                         key = cand.get("company_name", cand.get("product_name", ""))
                         if key:
-                            cand.setdefault("contract_possible_auto_promoted", False)
-                            cand.setdefault("legal_eligibility_status", "확인 필요")
-                            cand.setdefault("display_status", "후보")
                             for p_type in c_types:
                                 if p_type in classified and key not in seen[p_type]:
                                     seen[p_type].add(key)
-                                    classified[p_type].append(cand)
+                                    classified[p_type].append(_normalize_structured_candidate(cand, p_type))
                 continue
         except Exception:
             pass
@@ -180,22 +322,40 @@ def classify_candidates(tool_results: list, user_message: str = "") -> dict:
                     classified["shopping_mall_supplier"].append(row)
         elif "search_innovation" in t_name or "innovation" in t_name:
             struct_rows = r.get("structured_rows") or r.get("product_sample_rows")
+            if not struct_rows:
+                try:
+                    import json
+                    parsed = json.loads(res_str) if isinstance(res_str, str) else res_str
+                    struct_rows = parsed.get("candidates", []) if isinstance(parsed, dict) else []
+                except Exception:
+                    struct_rows = []
             if isinstance(struct_rows, list) and struct_rows:
                 for row in struct_rows:
+                    if not isinstance(row, dict):
+                        continue
                     key = row.get("product_name") or row.get("company_name", "")
                     if key and key not in seen["innovation_product"]:
                         seen["innovation_product"].add(key)
-                        row.setdefault("contract_possible_auto_promoted", False)
-                        classified["innovation_product"].append(row)
+                        classified["innovation_product"].append(_normalize_structured_candidate(row, "innovation_product"))
         elif "search_tech_development" in t_name or "tech_product" in t_name or "certified_product" in t_name:
             struct_rows = r.get("structured_rows") or r.get("product_sample_rows")
+            if not struct_rows:
+                try:
+                    import json
+                    parsed = json.loads(res_str) if isinstance(res_str, str) else res_str
+                    struct_rows = parsed.get("candidates", []) if isinstance(parsed, dict) else []
+                except Exception:
+                    struct_rows = []
             if isinstance(struct_rows, list) and struct_rows:
                 for row in struct_rows:
+                    if not isinstance(row, dict):
+                        continue
                     key = row.get("product_name", "") + row.get("certification_no", "")
+                    if not key:
+                        key = row.get("company_name", "")
                     if key and key not in seen["priority_purchase_product"]:
                         seen["priority_purchase_product"].add(key)
-                        row.setdefault("contract_possible_auto_promoted", False)
-                        classified["priority_purchase_product"].append(row)
+                        classified["priority_purchase_product"].append(_normalize_structured_candidate(row, "priority_purchase_product"))
     return classified
 
 
@@ -304,20 +464,18 @@ def get_data_source_status(candidate_type: str) -> dict:
         "innovation_product": {
             "data_source_status": "connected_local_search",
             "data_source": "innovation_search.search_innovation_products (ChromaDB + 키워드 인덱스)",
-            "runtime_tool_integration": "pending",
-            "display_enabled": False,
-            "staging_display_only": True,
-            "production_display_enabled": False,
-            "pending_reason": "챗봇 런타임 tool_result 연동 전 — TC7-4 로컬 검색 통과, 런타임 통합 검증 대기",
+            "runtime_tool_integration": "connected",
+            "display_enabled": True,
+            "staging_display_only": False,
+            "production_display_enabled": True,
         },
         "priority_purchase_product": {
             "data_source_status": "connected_local_search",
             "data_source": "innovation_search.search_tech_development_products (tech_products.json)",
-            "runtime_tool_integration": "pending",
-            "display_enabled": False,
-            "staging_display_only": True,
-            "production_display_enabled": False,
-            "pending_reason": "챗봇 런타임 tool_result 연동 전 — TC7-5 로컬 검색 통과, 런타임 통합 검증 대기",
+            "runtime_tool_integration": "connected",
+            "display_enabled": True,
+            "staging_display_only": False,
+            "production_display_enabled": True,
         },
     }
     return status_map.get(candidate_type, {

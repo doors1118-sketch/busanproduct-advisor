@@ -40,8 +40,15 @@ class DeterministicIntentValidator:
             "제3자를 위한 단가계약", "2단계경쟁", "납품요구",
             "나라장터", "조달청"
         ]
+
+        # 5. Legal review triggers
+        self.legal_review_keywords = [
+            "수의계약", "입찰", "계약", "견적", "가능", "가능해",
+            "기준", "법령", "시행령", "시행규칙", "예규", "조례",
+            "검토", "위반", "제한", "금액", "한도"
+        ]
         
-        # 5. Execution verbs for contract_review
+        # 6. Execution verbs for contract_review
         self.execution_verbs = [
             "구매하려고", "발주하려고", "계약하려고", "어떻게 해야 해", "어떻게 해", "살 수 있나"
         ]
@@ -50,6 +57,10 @@ class DeterministicIntentValidator:
         self.explanation_verbs = [
             "뭐야", "차이가 뭐야", "차이점이 뭐야", "어떤 거야", "무엇인가요", "무엇입니까", "뜻이 뭐야"
         ]
+
+    def _add_focus(self, result: RouterResult, focus: str) -> None:
+        if focus not in result.answer_focus:
+            result.answer_focus.append(focus)
         
     def validate(self, text: str, parsed_json: Dict[str, Any]) -> RouterResult:
         try:
@@ -71,6 +82,7 @@ class DeterministicIntentValidator:
         has_candidate_kw = any(kw in text or kw.replace(" ", "") in text_no_space for kw in self.candidate_keywords)
         has_eligibility_kw = any(kw in text or kw.replace(" ", "") in text_no_space for kw in self.eligibility_keywords)
         has_route_kw = any(kw in text or kw.replace(" ", "") in text_no_space for kw in self.route_keywords)
+        has_legal_kw = any(kw in text or kw.replace(" ", "") in text_no_space for kw in self.legal_review_keywords)
         
         if has_local_kw:
             if "local_purchase_support" not in result.secondary_intents and result.primary_intent != "local_purchase_support":
@@ -154,6 +166,7 @@ class DeterministicIntentValidator:
             result.candidate_lookup_required = True
         else:
             result.candidate_lookup_required = False
+        result.company_lookup_required = result.candidate_lookup_required
             
         # item_name clarification ONLY if NOT a pure explanation query
         has_local_or_candidate = any(i in [result.primary_intent] + result.secondary_intents for i in ["candidate_search", "local_purchase_support"])
@@ -161,6 +174,7 @@ class DeterministicIntentValidator:
             if "item_name" not in result.clarification_needed:
                 result.clarification_needed.append("item_name")
             result.candidate_lookup_required = False
+            result.company_lookup_required = False
             
         # ── 6. legal_explanation_only ──
         
@@ -170,6 +184,37 @@ class DeterministicIntentValidator:
             result.legal_explanation_only = True
         else:
             result.legal_explanation_only = False
+
+        # ── 6.5. Answer purpose flags ──
+        intents = [result.primary_intent] + list(result.secondary_intents)
+        result.legal_review_required = (
+            result.primary_intent == "legal_explanation"
+            or "contract_review" in intents
+            or "procurement_route_review" in intents
+            or "item_eligibility" in intents
+            or has_legal_kw
+            or bool(slots.amount or slots.contract_method or slots.quote_type)
+        )
+        result.local_purchase_support_required = (
+            "local_purchase_support" in intents
+            or bool(slots.local_supplier_intent)
+            or has_local_kw
+            or (("contract_review" in intents or result.primary_intent == "contract_review") and has_object and not is_pure_explanation)
+        )
+        result.company_lookup_required = result.candidate_lookup_required
+
+        if result.legal_review_required:
+            self._add_focus(result, "법령상 계약 가능 범위와 확인 필요사항")
+        if result.local_purchase_support_required:
+            self._add_focus(result, "부산 지역상품 구매지원 경로")
+        if "procurement_route_review" in intents:
+            self._add_focus(result, "MAS·종합쇼핑몰·조달청 구매경로")
+        if "item_eligibility" in intents:
+            self._add_focus(result, "중기경쟁제품·직접생산확인 등 품목 자격")
+        if result.company_lookup_required:
+            self._add_focus(result, "부산 업체·상품 후보 조회")
+        if not result.answer_focus and result.primary_intent == "out_of_scope":
+            self._add_focus(result, "지원 범위 확인")
             
         # ── 7. Confidence fallback ──
         

@@ -158,7 +158,15 @@ def search_decisions(query: str) -> str:
 
 
 def get_annexes(law_name: str, annex_no: str = None) -> str:
-    """별표/서식 조회."""
+    """별표/서식 조회. 행정규칙 첨부는 내부 DB 우선 → 외부 MCP 보완."""
+    try:
+        from internal_law_lookup import search_internal_annexes
+        internal_result = search_internal_annexes(law_name, annex_no=annex_no)
+        if internal_result:
+            return internal_result
+    except Exception as e:
+        print(f"  [get_annexes] 내부 DB 실패: {e}")
+
     args = {"lawName": law_name}
     if annex_no:
         args["annexNo"] = annex_no

@@ -134,6 +134,11 @@ class ChatResponse(BaseModel):
     mandatory_mcp_plan: list = []
     mandatory_mcp_executed: list = []
     mandatory_mcp_missing: list = []
+    evidence_cards: list = []
+    evidence_card_count: int = 0
+    internal_db_hit_count: int = 0
+    external_mcp_fallback_count: int = 0
+    evidence_missing_count: int = 0
     mcp_chain_statuses: dict = {}
     admin_rule_call_statuses: dict = {}
     pps_rule_call_statuses: dict = {}
@@ -287,7 +292,9 @@ def rag_status():
     return _get_rag_status()
 
 
-USE_ORCHESTRATOR_CHAT = os.getenv("USE_ORCHESTRATOR_CHAT", "true").lower() == "true"
+# 운영 기준은 legacy_gemini 경로다. Orchestrator는 아직 gateway/rule/legal
+# preflight 일부가 stub이므로, 명시적으로 켠 경우에만 실험 경로로 사용한다.
+USE_ORCHESTRATOR_CHAT = os.getenv("USE_ORCHESTRATOR_CHAT", "false").lower() == "true"
 DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
 
 # ─────────────────────────────────────────────
@@ -448,6 +455,11 @@ def _chat_legacy(req: ChatRequest, start: float):
             mandatory_mcp_plan=meta.get("mandatory_mcp_plan", []),
             mandatory_mcp_executed=meta.get("mandatory_mcp_executed", []),
             mandatory_mcp_missing=meta.get("mandatory_mcp_missing", []),
+            evidence_cards=meta.get("evidence_cards", []),
+            evidence_card_count=meta.get("evidence_card_count", 0),
+            internal_db_hit_count=meta.get("internal_db_hit_count", 0),
+            external_mcp_fallback_count=meta.get("external_mcp_fallback_count", 0),
+            evidence_missing_count=meta.get("evidence_missing_count", 0),
             mcp_preflight_elapsed_ms=meta.get("mcp_preflight_elapsed_ms", 0),
             tool_call_count=meta.get("tool_call_count", 0),
         )
@@ -473,6 +485,10 @@ def _chat_legacy(req: ChatRequest, start: float):
                     "model_elapsed_ms": meta.get("model_elapsed_ms"),
                     "legal_basis_cache_hit_count": meta.get("legal_basis_cache_hit_count"),
                     "legal_basis_cache_miss_count": meta.get("legal_basis_cache_miss_count"),
+                    "evidence_card_count": meta.get("evidence_card_count"),
+                    "internal_db_hit_count": meta.get("internal_db_hit_count"),
+                    "external_mcp_fallback_count": meta.get("external_mcp_fallback_count"),
+                    "evidence_missing_count": meta.get("evidence_missing_count"),
                     "deterministic_template_used": meta.get("deterministic_template_used"),
                     "source_status": meta.get("source_status"),
                 },

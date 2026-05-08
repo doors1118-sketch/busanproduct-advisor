@@ -125,3 +125,49 @@ def test_case_8_7_route_explanation():
     assert result.legal_explanation_only is True
     assert "item_name" not in result.clarification_needed
     assert result.routing_decision == "legal_explanation_flow"
+
+def test_legal_amount_question_does_not_request_company_lookup():
+    router = GeminiIntentRouter()
+    query = "2억 물품 수의계약 가능해?"
+    mock_json = {
+        "primary_intent": "contract_review",
+        "confidence": 0.9,
+        "slots": {
+            "contract_object": "goods",
+            "amount": 200000000,
+            "contract_method": "direct_contract"
+        }
+    }
+    result = router.parse_gemini_response(query, json.dumps(mock_json))
+
+    assert result.legal_review_required is True
+    assert result.company_lookup_required is False
+    assert result.candidate_lookup_required is False
+    assert result.local_purchase_support_required is True
+    assert "법령상 계약 가능 범위와 확인 필요사항" in result.answer_focus
+    assert "부산 업체·상품 후보 조회" not in result.answer_focus
+
+def test_specific_item_local_purchase_question_requests_both_legal_and_company_support():
+    router = GeminiIntentRouter()
+    query = "LED 조명 2억인데 부산업체 활용 방법 있어?"
+    mock_json = {
+        "primary_intent": "contract_review",
+        "secondary_intents": ["local_purchase_support"],
+        "confidence": 0.9,
+        "slots": {
+            "contract_object": "goods",
+            "item_name": "LED 조명",
+            "amount": 200000000,
+            "location": "부산",
+            "local_supplier_intent": True
+        }
+    }
+    result = router.parse_gemini_response(query, json.dumps(mock_json))
+
+    assert result.legal_review_required is True
+    assert result.local_purchase_support_required is True
+    assert result.company_lookup_required is True
+    assert result.candidate_lookup_required is True
+    assert "법령상 계약 가능 범위와 확인 필요사항" in result.answer_focus
+    assert "부산 지역상품 구매지원 경로" in result.answer_focus
+    assert "부산 업체·상품 후보 조회" in result.answer_focus
