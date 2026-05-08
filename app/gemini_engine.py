@@ -2093,9 +2093,21 @@ def _clean_route_guidance_for_answer(text: str) -> str:
     """Remove prompt-only instructions from route guidance before user display."""
     cleaned = text or ""
     cleaned = cleaned.split("답변 형식 지시:")[0]
-    cleaned = cleaned.replace("[구매경로 판단 재료 — 최종 답변은 아래 경로를 조합해 실무형으로 작성]", "구매경로 판단 재료")
+    cleaned = cleaned.replace("[구매경로 판단 재료 — 최종 답변은 아래 경로를 조합해 실무형으로 작성]", "검토할 구매 경로")
     cleaned = re.sub(r"^- 작성 원칙:.*(?:\n|$)", "", cleaned, flags=re.MULTILINE)
     cleaned = re.sub(r"^- 주의:.*(?:\n|$)", "", cleaned, flags=re.MULTILINE)
+    return cleaned.strip()
+
+
+def _clean_catalog_guidance_for_answer(text: str) -> str:
+    """Convert catalog guidance from prompt context into user-facing notes."""
+    cleaned = text or ""
+    if not cleaned.strip():
+        return ""
+    cleaned = cleaned.replace("[지역업체 보호·우대제도 카탈로그 매칭]", "추가로 검토할 지역업체 우대제도")
+    cleaned = re.sub(r"^- 아래 제도는 질문 조건에서.*(?:\n|$)", "", cleaned, flags=re.MULTILINE)
+    cleaned = re.sub(r"^- 답변에서는 사용자가 제도를.*(?:\n|$)", "", cleaned, flags=re.MULTILINE)
+    cleaned = cleaned.replace("| 제도 | 선택 이유 | 답변에서 다룰 포인트 |", "| 제도 | 검토 이유 | 실무 확인 포인트 |")
     return cleaned.strip()
 
 
@@ -3033,7 +3045,7 @@ def _chat_v144(
                 "",
                 "### 구매 경로 검토",
                 _clean_route_guidance_for_answer(route_guidance_context) or "- 지역제한, 종합쇼핑몰/MAS, 정책기업, 인증제품 여부를 함께 확인하세요.",
-                catalog_guidance_context,
+                _clean_catalog_guidance_for_answer(catalog_guidance_context),
                 "",
                 "### 업체 후보 및 확인 포인트",
             ]
