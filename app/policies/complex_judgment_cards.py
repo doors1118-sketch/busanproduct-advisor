@@ -185,19 +185,40 @@ def build_complex_judgment_cards(
 def render_complex_judgment_cards(cards: list[dict[str, Any]], max_cards: int = 14) -> str:
     if not cards:
         return ""
+    status_labels = {
+        "basis_found": "근거 확보",
+        "basis_needs_check": "근거 보강 필요",
+        "not_viable": "우선 적용 어려움",
+        "viable_check": "조건부 검토",
+        "needs_amount_check": "금액 확인 필요",
+        "needs_lookup": "조회 필요",
+        "candidate_found": "후보 확인",
+        "no_candidate_found": "후보 미확인",
+        "not_found": "후보 미확인",
+        "needs_check": "확인 필요",
+        "matched": "검토 대상",
+    }
+    type_labels = {
+        "legal_basis": "법령근거",
+        "purchase_route": "구매경로",
+        "support_scheme": "지원제도",
+        "candidate_source": "업체/제품",
+    }
     lines = [
         "",
         "[복합질문 판단 카드]",
-        "- 아래 카드는 법령 근거, 구매경로, 지원제도, 업체후보 조회 결과를 구조화한 것이다.",
-        "- 최종 답변은 status가 not_viable인 경로를 먼저 배제하고, candidate_found/viable_check 경로를 실무 대안으로 설명한다.",
+        "- 법령 근거, 구매경로, 지원제도, 업체·제품 후보를 한 번에 비교한 요약입니다.",
+        "- '우선 적용 어려움' 경로는 배제하고, '조건부 검토' 또는 '후보 확인' 경로를 중심으로 후속 확인을 진행하면 됩니다.",
         "",
-        "| 유형 | 항목 | 상태 | 요약 | 확인사항 |",
+        "| 유형 | 항목 | 판단 | 요약 | 확인사항 |",
         "|---|---|---|---|---|",
     ]
     for card in cards[:max_cards]:
         checks = ", ".join((card.get("required_checks") or [])[:3])
         summary = str(card.get("summary") or "").replace("|", "/")
+        status = status_labels.get(str(card.get("status") or ""), str(card.get("status") or "확인 필요"))
+        card_type = type_labels.get(str(card.get("card_type") or ""), str(card.get("card_type") or "기타"))
         lines.append(
-            f"| {card.get('card_type')} | {card.get('title')} | {card.get('status')} | {summary} | {checks} |"
+            f"| {card_type} | {card.get('title')} | {status} | {summary} | {checks} |"
         )
     return "\n".join(lines)
