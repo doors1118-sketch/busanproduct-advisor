@@ -3177,11 +3177,32 @@ def _chat_v144(
                 contract_object=contract_object_for_prefetch,
                 agency_type=_normalize_agency_type(agency_type) if agency_type else None,
             )
+            try:
+                from policies.complex_judgment_cards import (
+                    build_complex_judgment_cards,
+                    render_complex_judgment_cards,
+                )
+            except ImportError:
+                from app.policies.complex_judgment_cards import (
+                    build_complex_judgment_cards,
+                    render_complex_judgment_cards,
+                )
+            complex_judgment_cards = build_complex_judgment_cards(
+                user_message=user_message,
+                amount=amount_detected,
+                item_name=legacy_router_meta["company_prefetch_canonical_item"] or query,
+                contract_object=contract_object_for_prefetch,
+                agency_type=_normalize_agency_type(agency_type) if agency_type else None,
+                tool_results=all_tool_results,
+                evidence_cards=evidence_cards if 'evidence_cards' in locals() else [],
+            )
+            complex_judgment_context = render_complex_judgment_cards(complex_judgment_cards)
 
             # 사전 검색 결과를 LLM 컨텍스트에 주입 (LLM이 분석·그룹핑)
             prefetch_parts = [
                 route_guidance_context,
                 catalog_guidance_context,
+                complex_judgment_context,
                 "\n\n[사전 검색된 업체 데이터 — 아래 데이터를 기반으로 구매 경로별 업체를 그룹핑하여 안내하라]",
                 f"- 표준 품목명: {legacy_router_meta['company_prefetch_canonical_item'] or query}",
                 f"- 보조 검색어: {', '.join(legacy_router_meta['company_prefetch_search_terms'][:6]) or query}",
@@ -3223,6 +3244,7 @@ def _chat_v144(
                 "- 일반 소액 수의계약만으로 단정하기보다, 금액 기준과 품목 특성을 함께 보면서 지역상품 구매 경로를 나누어 검토하는 편이 안전합니다.",
                 "",
                 "### 구매 경로 검토",
+                complex_judgment_context,
                 _clean_route_guidance_for_answer(route_guidance_context) or "- 지역제한, 종합쇼핑몰/MAS, 정책기업, 인증제품 여부를 함께 확인하세요.",
                 _clean_catalog_guidance_for_answer(catalog_guidance_context),
                 "",
@@ -3268,6 +3290,8 @@ def _chat_v144(
                 "company_search_status": "success",
                 "company_prefetch_query": query,
                 "company_prefetch_canonical_item": legacy_router_meta["company_prefetch_canonical_item"],
+                "complex_judgment_cards": complex_judgment_cards,
+                "complex_judgment_card_count": len(complex_judgment_cards),
                 "skip_citation_verify": True,
             }
             return _finalize_answer(
