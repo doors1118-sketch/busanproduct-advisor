@@ -64,6 +64,20 @@ def match_deterministic_legal_answer(user_message: str) -> DeterministicLegalAns
             schema_version="local_company_point_standard_v1",
         )
 
+    if _is_excellent_procurement_or_third_party(q):
+        return DeterministicLegalAnswer(
+            answer=_excellent_procurement_or_third_party_answer(),
+            reason="excellent_procurement_third_party_fast_answer",
+            schema_version="excellent_procurement_third_party_v1",
+        )
+
+    if _is_audit_risk_review(q):
+        return DeterministicLegalAnswer(
+            answer=_audit_risk_review_answer(),
+            reason="audit_risk_fast_answer",
+            schema_version="audit_risk_v1",
+        )
+
     if _is_mas_regional_review(q):
         return DeterministicLegalAnswer(
             answer=_mas_regional_review_answer(q),
@@ -120,6 +134,20 @@ def _is_mas_regional_review(q: str) -> bool:
     has_region = any(term in q for term in ("지역업체", "부산업체", "부산", "지역", "우대", "가점"))
     has_review = any(term in q for term in ("2단계", "경쟁", "우대", "가점", "고려", "활용", "가능", "살수", "구매"))
     return has_mas and has_region and has_review
+
+
+def _is_excellent_procurement_or_third_party(q: str) -> bool:
+    return (
+        any(term in q for term in ("우수조달", "제3자단가", "3자단가", "제3자를위한단가"))
+        and any(term in q for term in ("부산", "지역상품", "지역업체", "활용", "도움", "구매"))
+    )
+
+
+def _is_audit_risk_review(q: str) -> bool:
+    return (
+        any(term in q for term in ("감사", "지적", "문제되지", "특혜", "부당"))
+        and any(term in q for term in ("부산업체", "지역업체", "지역상품", "지역제한", "수의계약", "활용"))
+    )
 
 
 def _regional_restriction_answer(q: str) -> str:
@@ -320,6 +348,52 @@ def _mas_regional_review_answer(q: str) -> str:
         "정리하면, **MAS에서 부산업체를 직접 우대한다고 단정하기보다는, 부산 MAS 등록업체를 후보로 발굴하고 납기ㆍA/Sㆍ현장지원 등 정당한 평가요소로 연결하는 방식**이 안전합니다.",
         "근거: 「조달사업에 관한 법률」, 「국가종합전자조달시스템 종합쇼핑몰 운영규정」, 「물품 다수공급자계약 업무처리규정」",
         "⚖️ 본 답변은 내부 DB에 적재된 조달 관련 행정규칙 기준을 바탕으로 한 참고 안내입니다.",
+    ])
+
+
+def _excellent_procurement_or_third_party_answer() -> str:
+    return "\n".join([
+        "우수조달물품이나 **제3자단가계약** 제품은 부산 지역상품 구매지원에 도움이 될 수 있습니다. 다만 `부산업체라서 바로 수의계약 가능`으로 보지 말고, 제품 지정ㆍ계약상태ㆍ납품요구 가능 여부를 순서대로 확인해야 합니다.",
+        "",
+        "- **우수조달물품**",
+        "  - 조달청 우수조달물품 지정 제품인지, 지정 유효기간이 살아 있는지 확인합니다.",
+        "  - 구매하려는 규격과 우수조달 지정 제품명이 같은지 확인해야 합니다.",
+        "  - 부산업체 제품이면 지역상품 구매 취지와 연결할 수 있지만, 우수조달 지정 자체와 부산 소재 여부는 별도 요건입니다.",
+        "",
+        "- **제3자단가계약/종합쇼핑몰 경로**",
+        "  - 나라장터 종합쇼핑몰 등록 여부, 계약기간, 납품 가능 지역, 납품요구 한도와 2단계 경쟁 대상 여부를 확인합니다.",
+        "  - 부산 공급업체가 있으면 시장조사와 후보 검토 자료로 활용하되, 특정 업체를 미리 정한 것처럼 공고ㆍ평가를 설계하면 안 됩니다.",
+        "",
+        "- **실무 처리 방향**",
+        "  - 품목명이 정해지면 부산업체 후보, 쇼핑몰/MAS 등록, 우수조달ㆍ혁신제품ㆍ성능인증 여부를 함께 조회합니다.",
+        "  - 답변에는 `계약 가능` 단정 대신 `등록상태, 유효기간, 규격 일치, 기관유형별 절차 확인 후 검토 가능`으로 표시하는 것이 안전합니다.",
+        "",
+        "⚖️ 본 답변은 내부 DB와 구매지원 카탈로그 기준의 실무 안내입니다.",
+    ])
+
+
+def _audit_risk_review_answer() -> str:
+    return "\n".join([
+        "부산업체를 활용할 때 감사에서 문제되지 않게 하려면 핵심은 **지역상품 구매지원 목적**과 **계약법상 경쟁성ㆍ공정성**을 함께 남기는 것입니다.",
+        "",
+        "- **1. 특정 업체를 먼저 정하지 않기**",
+        "  - 시장조사는 가능하지만, 공고조건ㆍ규격ㆍ평가항목이 특정 부산업체만 맞출 수 있게 작성되면 특혜 시비가 생길 수 있습니다.",
+        "  - 업체 후보표는 `검토 후보`로 관리하고, 계약 가능 여부는 별도 확인으로 남깁니다.",
+        "",
+        "- **2. 지역제한ㆍ지역의무공동도급ㆍ지역업체 가점은 제도별 요건 확인**",
+        "  - 지역제한은 계약목적물과 금액 기준, 본점 소재지, 경쟁 가능한 업체 수를 확인해야 합니다.",
+        "  - 지역의무공동도급은 주로 공사에서 검토하며, 지역업체 수와 공동수급체 구성 가능성을 확인해야 합니다.",
+        "  - 가점ㆍ참여도는 기관유형과 낙찰자 결정기준, 입찰공고 평가항목에 근거가 있어야 합니다.",
+        "",
+        "- **3. 수의계약은 금액ㆍ사유ㆍ견적방식을 문서화**",
+        "  - 소액수의, 정책기업, 기술개발제품, 우수조달물품 등은 각각 근거와 한도가 다릅니다.",
+        "  - `부산업체라서 수의계약`이 아니라, 해당 법령상 사유와 금액 기준을 먼저 확인해야 합니다.",
+        "",
+        "- **4. 남겨야 할 확인 자료**",
+        "  - 적용 법령 조문, 기준금액 산정 근거, 세부품명/규격 결정 이유, 후보업체 비교표, 인증ㆍ쇼핑몰 등록 유효기간, 견적 또는 평가 기록을 남깁니다.",
+        "  - 내부 검토서에는 `지역상품 구매지원 목적`, `경쟁성 확보 방식`, `특정업체 배제ㆍ특혜 방지 조치`를 함께 적는 것이 좋습니다.",
+        "",
+        "정리하면, 부산업체 활용 자체가 문제라기보다 **근거 없는 제한, 특정업체 맞춤 규격, 수의계약 사유 누락, 후보 검증 미기록**이 감사 리스크입니다.",
     ])
 
 

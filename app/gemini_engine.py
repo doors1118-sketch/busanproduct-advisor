@@ -3208,6 +3208,7 @@ def _chat_v144(
         print(f"  [MULTI-ROUTE] tier=2, amount={amount_detected}, query='{query}', prefetched={len(all_tool_results)} tools", flush=True)
         if should_prefetch_company and os.getenv("BYPASS_MULTI_ROUTE_LLM", "true").lower() == "true":
             company_sections = []
+            policy_company_sections_skipped = False
             for tr in all_tool_results:
                 tool_name = tr.get("tool_name", "")
                 if not (
@@ -3216,6 +3217,9 @@ def _chat_v144(
                     or "certified_product" in tool_name
                     or "innovation_product" in tool_name
                 ):
+                    continue
+                if "company_by_policy" in tool_name:
+                    policy_company_sections_skipped = True
                     continue
                 result_text = str(tr.get("result", "") or "").strip()
                 if result_text:
@@ -3236,6 +3240,11 @@ def _chat_v144(
             ]
             if company_sections:
                 route_answer_parts.extend(company_sections)
+                if policy_company_sections_skipped:
+                    route_answer_parts.append(
+                        "- 정책기업 전체목록은 품목 매칭 결과가 아니므로 후보표에서 제외했습니다. "
+                        "후보 업체 상세조회에서 여성기업ㆍ장애인기업ㆍ사회적기업 등 정책기업 여부를 별도 확인하세요."
+                    )
             else:
                 route_answer_parts.append("- 현재 사전검색 결과에서 바로 표시할 업체 후보가 부족합니다. 품목명 또는 세부 규격을 더 구체화해 재검색하세요.")
             route_answer_parts.extend([
