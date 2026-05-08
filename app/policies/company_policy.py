@@ -38,7 +38,11 @@ _CERT_TYPE_LABEL = {
     "excellent_procurement_product": "우수조달물품",
     "quality_assured_procurement_product": "품질보증조달물품",
     "excellent_invention_product": "우수발명품",
+    "disaster_safety_certified_product": "재난안전제품",
+    "priority_purchase_product": "기술개발제품",
 }
+
+_HIDDEN_INTERNAL_CERT_TYPES = {"smpp_tech_product_api", "mas_excel_bootstrap"}
 
 # ── 정책업체 유형 한글 라벨 ──
 _POLICY_TYPE_LABEL = {
@@ -98,8 +102,17 @@ def _format_tags(result: CompanyResult) -> str:
 
     # 인증제품
     if result.certified_product_types:
-        labels = [_CERT_TYPE_LABEL.get(c, c) for c in result.certified_product_types[:3]]
-        tags.append(f"인증: {', '.join(labels)}")
+        labels = []
+        for c in result.certified_product_types:
+            if c in _HIDDEN_INTERNAL_CERT_TYPES:
+                continue
+            label = _CERT_TYPE_LABEL.get(c, c)
+            if label and label not in labels:
+                labels.append(label)
+            if len(labels) >= 3:
+                break
+        if labels:
+            tags.append(f"인증: {', '.join(labels)}")
 
     # 쇼핑몰 등록
     if result.shopping_mall_flags:

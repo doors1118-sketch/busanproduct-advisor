@@ -69,7 +69,9 @@ def test_shopping_mall_candidate_preserves_mas_policy_and_cert_metadata():
     assert "통합교통시스템 v1.0" in table
     assert "| 쇼핑몰 | 주식회사 유니시큐 | 부산광역시 | 광송신기또는수신기 | 확인 |" in table
     assert "| 정책기업 | 주식회사 유니시큐" in table
-    assert "| 유효 |" in table
+    assert "9999-12-31" not in table
+    assert "smpp_tech_product_api" not in table
+    assert "priority_purchase_product" not in table
 
 
 def test_certified_product_candidates_are_displayed_in_production():
