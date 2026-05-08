@@ -3231,7 +3231,6 @@ def _chat_v144(
                 "- 일반 소액 수의계약만으로 단정하기보다, 금액 기준과 품목 특성을 함께 보면서 지역상품 구매 경로를 나누어 검토하는 편이 안전합니다.",
                 "",
                 "### 구매 경로 검토",
-                complex_judgment_context,
                 _clean_route_guidance_for_answer(route_guidance_context) or "- 지역제한, 종합쇼핑몰/MAS, 정책기업, 인증제품 여부를 함께 확인하세요.",
                 _clean_catalog_guidance_for_answer(catalog_guidance_context),
                 render_practice_manual_cards_for_answer(practice_manual_cards),
