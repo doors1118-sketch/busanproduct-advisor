@@ -1967,7 +1967,10 @@ def _should_use_grounded_single_pass_llm(user_message: str, query_tier: int, amo
     q = (user_message or "").replace(" ", "").lower()
     has_contract_method = any(term in q for term in ("수의계약", "1인견적", "견적", "입찰", "지역제한"))
     has_contract_object = any(term in q for term in ("물품", "용역", "공사", "구매", "사려", "살건데", "납품"))
-    asks_case_judgment = any(term in q for term in ("가능", "될까", "되나", "해도", "살건데", "사려"))
+    asks_case_judgment = any(term in q for term in (
+        "가능", "될까", "되나", "해도", "살건데", "사려",
+        "살수있", "할수있", "할수있어", "살수있어",
+    ))
     needs_company_lookup = any(term in q for term in ("부산업체", "지역업체", "업체추천", "후보", "찾아", "검색"))
 
     return has_contract_method and has_contract_object and asks_case_judgment and not needs_company_lookup
