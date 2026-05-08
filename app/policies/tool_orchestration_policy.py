@@ -36,6 +36,9 @@ CHAIN_TOPIC_TRIGGERS = (
     "지역제한", "지역 제한", "제한경쟁", "지역의무공동도급", "의무공동도급",
     "공동도급", "공동계약", "가점", "배점", "평가", "적격심사",
     "예정가격", "원가계산",
+    "전기공사", "정보통신공사", "통신공사", "소프트웨어", "SW",
+    "소프트웨어사업", "기술성 평가", "건설공사", "건설업",
+    "건설사업관리", "소방시설", "소방공사",
 )
 
 SPECIAL_DIRECT_CONTRACT_TRIGGERS = (
@@ -71,6 +74,24 @@ def _has_any(text: str, words: tuple[str, ...]) -> bool:
 def _normalize_agency(agency_type: str | None) -> str:
     key = (agency_type or "").strip()
     return LAW_SYSTEM_BY_AGENCY.get(key) or LAW_SYSTEM_BY_AGENCY.get(key.lower()) or "지방계약법"
+
+
+def _detect_industry_law_system(user_message: str) -> str | None:
+    compact = _compact(user_message)
+    upper = (user_message or "").upper()
+    if "전기공사" in compact:
+        return "전기공사업법"
+    if "정보통신공사" in compact or "통신공사" in compact:
+        return "정보통신공사업법"
+    if "소프트웨어" in compact or "상용소프트웨어" in compact or "SW" in upper:
+        return "소프트웨어"
+    if "건설기술" in compact or "건설사업관리" in compact or "건설감리" in compact:
+        return "건설기술진흥법"
+    if "건설산업" in compact or "건설업" in compact or "건설공사" in compact or "토목" in compact or "건축공사" in compact:
+        return "건설산업기본법"
+    if "소방시설" in compact or "소방공사" in compact:
+        return "소방시설공사업법"
+    return None
 
 
 def _plan_key(item: dict[str, Any]) -> str:
@@ -123,6 +144,10 @@ def _extract_law_names_from_plan(plan: list[dict[str, Any]], limit: int = 3) -> 
 
 
 def _build_chain_query(user_message: str, agency_type: str | None) -> str:
+    industry_system = _detect_industry_law_system(user_message)
+    if industry_system:
+        return f"{industry_system} {user_message[:80]} 법령 시행령 시행규칙 행정규칙 체계"
+
     base_law = _normalize_agency(agency_type)
     if _has_any(user_message, ("지역제한", "지역 제한", "제한경쟁")):
         return f"{base_law} 지역제한 제한경쟁 법령 행정규칙 체계"

@@ -1,5 +1,5 @@
 """
-37종 법령·행정규칙 재수집 파이프라인.
+핵심 계약법령·업역별 법령·행정규칙 재수집 파이프라인.
 
 출력:
   app/data/law_articles_db.json   - 법률/시행령/시행규칙
@@ -84,6 +84,32 @@ SEEDS: list[dict[str, Any]] = [
     {"id": "public_institution_decree", "name": "공공기관의 운영에 관한 법률 시행령", "query": "공공기관의 운영에 관한 법률 시행령", "type": "law", "group": "F"},
     {"id": "public_corp_contract_rule", "name": "공기업ㆍ준정부기관 계약사무규칙", "query": "공기업ㆍ준정부기관 계약사무규칙", "type": "law", "group": "F"},
     {"id": "public_corp_accounting_rule", "name": "공기업ㆍ준정부기관 회계사무규칙", "query": "공기업ㆍ준정부기관 회계사무규칙", "type": "law", "group": "F"},
+    # G. 전기공사
+    {"id": "electric_construction_act", "name": "전기공사업법", "query": "전기공사업법", "type": "law", "group": "G"},
+    {"id": "electric_construction_decree", "name": "전기공사업법 시행령", "query": "전기공사업법 시행령", "type": "law", "group": "G"},
+    {"id": "electric_construction_rule", "name": "전기공사업법 시행규칙", "query": "전기공사업법 시행규칙", "type": "law", "group": "G"},
+    # H. 정보통신공사
+    {"id": "info_communication_construction_act", "name": "정보통신공사업법", "query": "정보통신공사업법", "type": "law", "group": "H"},
+    {"id": "info_communication_construction_decree", "name": "정보통신공사업법 시행령", "query": "정보통신공사업법 시행령", "type": "law", "group": "H"},
+    {"id": "info_communication_construction_rule", "name": "정보통신공사업법 시행규칙", "query": "정보통신공사업법 시행규칙", "type": "law", "group": "H"},
+    # I. 소프트웨어
+    {"id": "software_promotion_act", "name": "소프트웨어 진흥법", "query": "소프트웨어 진흥법", "type": "law", "group": "I"},
+    {"id": "software_promotion_decree", "name": "소프트웨어 진흥법 시행령", "query": "소프트웨어 진흥법 시행령", "type": "law", "group": "I"},
+    {"id": "software_promotion_rule", "name": "소프트웨어 진흥법 시행규칙", "query": "소프트웨어 진흥법 시행규칙", "type": "law", "group": "I"},
+    {"id": "software_contract_supervision_guideline", "name": "소프트웨어사업 계약 및 관리감독에 관한 지침", "query": "소프트웨어사업 계약 및 관리감독에 관한 지침", "type": "admrul", "group": "I"},
+    {"id": "software_technical_evaluation_guideline", "name": "소프트웨어 기술성 평가기준 지침", "query": "소프트웨어 기술성 평가기준 지침", "type": "admrul", "group": "I"},
+    # J. 건설
+    {"id": "construction_industry_act", "name": "건설산업기본법", "query": "건설산업기본법", "type": "law", "group": "J"},
+    {"id": "construction_industry_decree", "name": "건설산업기본법 시행령", "query": "건설산업기본법 시행령", "type": "law", "group": "J"},
+    {"id": "construction_industry_rule", "name": "건설산업기본법 시행규칙", "query": "건설산업기본법 시행규칙", "type": "law", "group": "J"},
+    {"id": "construction_technology_act", "name": "건설기술 진흥법", "query": "건설기술 진흥법", "type": "law", "group": "J"},
+    {"id": "construction_technology_decree", "name": "건설기술 진흥법 시행령", "query": "건설기술 진흥법 시행령", "type": "law", "group": "J"},
+    {"id": "construction_technology_rule", "name": "건설기술 진흥법 시행규칙", "query": "건설기술 진흥법 시행규칙", "type": "law", "group": "J"},
+    {"id": "construction_order_detail_standard", "name": "건설공사 발주 세부기준", "query": "건설공사 발주 세부기준", "type": "admrul", "group": "J"},
+    # K. 소방시설공사
+    {"id": "fire_facility_construction_act", "name": "소방시설공사업법", "query": "소방시설공사업법", "type": "law", "group": "K"},
+    {"id": "fire_facility_construction_decree", "name": "소방시설공사업법 시행령", "query": "소방시설공사업법 시행령", "type": "law", "group": "K"},
+    {"id": "fire_facility_construction_rule", "name": "소방시설공사업법 시행규칙", "query": "소방시설공사업법 시행규칙", "type": "law", "group": "K"},
 ]
 
 
@@ -130,6 +156,14 @@ def article_key_from_seq(seq: int, text: str) -> str:
     if chapter:
         return f"{chapter.group(1)}_{seq:03d}"
     return f"본문_{seq:03d}"
+
+
+def is_structural_heading(text: str, title: str = "") -> bool:
+    """법제처 XML에 섞여 들어오는 편/장/절/관 제목은 조문 DB에서 제외한다."""
+    if title:
+        return False
+    compact = clean(text)
+    return bool(re.match(r"^제\d+(?:편|장|절|관)\s+", compact))
 
 
 def unique_key(base: str, existing: dict[str, Any]) -> str:
@@ -211,12 +245,15 @@ def collect_law(seed: dict[str, Any]) -> tuple[str, dict[str, Any], dict[str, An
         text = clean("\n".join(p for p in body_parts if p))
         if not text:
             continue
+        title = xt(jo, "조문제목")
+        if is_structural_heading(text, title):
+            continue
         key = article_key_from_text(text, xt(jo, "조문번호"), xt(jo, "조문가지번호"))
         if not key:
             continue
         key = unique_key(key, articles)
         articles[key] = {
-            "title": xt(jo, "조문제목"),
+            "title": title,
             "text": text,
             "lookup_key": f"{seed['name']} {key}",
             "cross_refs": extract_refs(text),
@@ -429,7 +466,7 @@ def main() -> int:
     admin_db: dict[str, Any] = {}
     ordinance_db: dict[str, Any] = {}
     rows: list[dict[str, Any]] = []
-    print(f"37종 법령·행정규칙 재수집 시작 / OC={OC}")
+    print(f"핵심 법령·행정규칙 {len(SEEDS)}종 재수집 시작 / OC={OC}")
     for i, seed in enumerate(SEEDS, 1):
         print(f"[{i:02d}/{len(SEEDS)}] {seed['group']} {seed['type']} {seed['name']}")
         row = {"seed_id": seed["id"], "seed_name": seed["name"], "type": seed["type"], "group": seed["group"], "status": "pending"}
