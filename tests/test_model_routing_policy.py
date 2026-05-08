@@ -66,6 +66,26 @@ def test_specific_company_search_stays_tier_0():
     assert tier == 0
 
 
+def test_company_search_label_does_not_override_amount_contract_review():
+    router_result = RouterResult(
+        primary_intent="contract_review",
+        legal_explanation_only=False,
+        legal_review_required=True,
+        candidate_lookup_required=True,
+        company_lookup_required=True,
+        slots=RouterSlots(item_name="물품"),
+    )
+
+    tier = classify_query_tier(
+        _risk("medium"),
+        ["company_search"],
+        "2억 물품을 수의계약으로 살 수 있어?",
+        router_result,
+    )
+
+    assert tier == 2
+
+
 def test_agency_specific_question_still_tier_3():
     router_result = RouterResult(
         primary_intent="legal_explanation",

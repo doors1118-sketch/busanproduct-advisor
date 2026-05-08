@@ -332,7 +332,12 @@ def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str 
 
     # Tier 0: 금액 관련 법적 제한/한도 판단이 주 목적이 아닌 순수 업체 검색/상세 조회
     fast_track_intents = {"company_search", "policy_candidate_search", "shopping_mall_search", "certified_product_search", "company_detail", "license_search", "mas_search", "innovation_product_search", "excellent_procurement_search"}
-    if risk_info.get("risk_level") in ["low", "medium"] and any(i in intent_labels for i in fast_track_intents):
+    if (
+        risk_info.get("risk_level") in ["low", "medium"]
+        and any(i in intent_labels for i in fast_track_intents)
+        and not has_amount
+        and not has_contract_method
+    ):
         return 0
 
     # Tier 0 키워드 fallback: 품목+지역업체 언급 + 금액/계약방식 없음 → 순수 업체 검색
