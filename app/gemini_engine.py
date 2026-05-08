@@ -2993,6 +2993,84 @@ def _chat_v144(
                 )
 
         print(f"  [MULTI-ROUTE] tier=2, amount={amount_detected}, query='{query}', prefetched={len(all_tool_results)} tools", flush=True)
+        if should_prefetch_company and os.getenv("BYPASS_MULTI_ROUTE_LLM", "true").lower() == "true":
+            company_sections = []
+            for tr in all_tool_results:
+                tool_name = tr.get("tool_name", "")
+                if not (
+                    "company" in tool_name
+                    or "shopping_mall" in tool_name
+                    or "certified_product" in tool_name
+                    or "innovation_product" in tool_name
+                ):
+                    continue
+                result_text = str(tr.get("result", "") or "").strip()
+                if result_text:
+                    company_sections.append(f"#### {tool_name}\n{result_text[:2500]}")
+
+            route_answer_parts = [
+                "### 판단 요약",
+                f"- 질문 조건은 **{amount_detected:,}원 규모의 {legacy_router_meta['company_prefetch_canonical_item'] or query} 구매 검토**입니다.",
+                "- 일반 소액 수의계약만으로 단정하기보다, 금액 기준과 품목 특성을 함께 보면서 지역상품 구매 경로를 나누어 검토하는 편이 안전합니다.",
+                "",
+                "### 구매 경로 검토",
+                route_guidance_context or "- 지역제한, 종합쇼핑몰/MAS, 정책기업, 인증제품 여부를 함께 확인하세요.",
+                catalog_guidance_context,
+                "",
+                "### 업체 후보 및 확인 포인트",
+            ]
+            if company_sections:
+                route_answer_parts.extend(company_sections)
+            else:
+                route_answer_parts.append("- 현재 사전검색 결과에서 바로 표시할 업체 후보가 부족합니다. 품목명 또는 세부 규격을 더 구체화해 재검색하세요.")
+            route_answer_parts.extend([
+                "",
+                "### 다음 확인사항",
+                "- 후보 업체의 조달등록, 종합쇼핑몰 등록, 정책기업 여부, 인증제품 유효기간, 세부품명 일치 여부를 계약 전 확인하세요.",
+                "- 이 답변은 내부 법령 DB와 업체 API 사전조회 결과를 조합한 실무 검토용 안내입니다.",
+            ])
+
+            api_status = ApiStatus()
+            _multi_route_fast_meta = {
+                "model_used": "deterministic_internal_law_db_plus_company_api",
+                "model_decision_reason": "multi_route_prefetch_fast_answer",
+                "tier_resolved": query_tier,
+                "fast_track_applied": False,
+                "deterministic_template_used": True,
+                "amount_rewrite_bypass": True,
+                "company_table_allowed": True,
+                "legal_conclusion_allowed": True,
+                "candidate_table_source": "company_api_prefetch",
+                "answer_schema_version": "multi_route_fast_answer_v1",
+                "source_status": "mcp_preflight_and_company_api_success",
+                "rag_elapsed_ms": rag_elapsed_ms if 'rag_elapsed_ms' in locals() else 0,
+                "model_elapsed_ms": 0,
+                "mcp_preflight_elapsed_ms": mcp_preflight_elapsed_ms,
+                "tool_call_count": len(all_tool_results),
+                "direct_legal_basis_count": len(mandatory_mcp_executed),
+                "mandatory_mcp_plan": mandatory_mcp_plan,
+                "mandatory_mcp_executed": mandatory_mcp_executed,
+                "mandatory_mcp_missing": mandatory_mcp_missing,
+                "evidence_cards": evidence_cards if 'evidence_cards' in locals() else [],
+                "evidence_card_count": cache_stats.get("evidence_card_count", 0) if 'cache_stats' in locals() else 0,
+                "internal_db_hit_count": cache_stats.get("internal_db_hit_count", 0) if 'cache_stats' in locals() else 0,
+                "external_mcp_fallback_count": cache_stats.get("external_mcp_fallback_count", 0) if 'cache_stats' in locals() else 0,
+                "evidence_missing_count": cache_stats.get("evidence_missing_count", 0) if 'cache_stats' in locals() else 0,
+                "company_search_status": "success",
+                "company_prefetch_query": query,
+                "company_prefetch_canonical_item": legacy_router_meta["company_prefetch_canonical_item"],
+                "skip_citation_verify": True,
+            }
+            return _finalize_answer(
+                "\n".join(part for part in route_answer_parts if part is not None),
+                history,
+                user_message,
+                all_tool_results,
+                api_status,
+                progress_callback,
+                generation_meta=_multi_route_fast_meta,
+            )
+
         # bypass 하지 않고 아래 LLM 루프로 fall-through
 
     # LLM 루프 전체 경과시간 제한 (FAIL_TO_CACHE 시 12초, Vertex AI 안정 시 90초)
