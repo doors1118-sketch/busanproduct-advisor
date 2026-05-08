@@ -406,6 +406,21 @@ else:
 MODEL_ID = "gemini-2.5-flash"
 FALLBACK_MODEL = "gemini-2.5-flash"
 
+GEMINI_THINKING_BUDGET_ENABLED = os.getenv("GEMINI_THINKING_BUDGET_ENABLED", "true").lower() == "true"
+GEMINI_GROUNDED_THINKING_BUDGET = int(os.getenv("GEMINI_GROUNDED_THINKING_BUDGET", "256"))
+GEMINI_COMPLEX_THINKING_BUDGET = int(os.getenv("GEMINI_COMPLEX_THINKING_BUDGET", "512"))
+GEMINI_REWRITE_THINKING_BUDGET = int(os.getenv("GEMINI_REWRITE_THINKING_BUDGET", "0"))
+
+
+def _thinking_config_for(budget: int):
+    if not GEMINI_THINKING_BUDGET_ENABLED:
+        return None
+    try:
+        return types.ThinkingConfig(thinking_budget=budget)
+    except Exception as e:
+        print(f"[INIT] ThinkingConfig disabled: {e}", flush=True)
+        return None
+
 # ─────────────────────────────────────────────
 # Function Calling 도구 정의
 # ─────────────────────────────────────────────
@@ -1311,6 +1326,7 @@ def chat(user_message: str, history: list[dict] = None, progress_callback=None, 
         system_instruction=SYSTEM_PROMPT + date_instruction,
         tools=law_tools,
         temperature=0.1,  # 법률 도메인 — 강제 규칙 준수 + 사실 기반 답변 (0.0에 가까울수록 결정적)
+        thinking_config=_thinking_config_for(GEMINI_COMPLEX_THINKING_BUDGET),
     )
 
     # Function calling 루프 (최대 8회 — 병렬 호출 + 6회차 마무리 강제)
@@ -2040,6 +2056,7 @@ def _generate_grounded_single_pass_answer(user_message: str, mcp_context: str, a
             config=types.GenerateContentConfig(
                 temperature=0.1,
                 max_output_tokens=1200,
+                thinking_config=_thinking_config_for(GEMINI_GROUNDED_THINKING_BUDGET),
             ),
         )
         return response.text.strip() if getattr(response, "text", None) else None
@@ -2858,6 +2875,7 @@ def _chat_v144(
         system_instruction=assembled.core_prompt,  # Core만 (불변)
         tools=dynamic_tools,
         temperature=0.1,
+        thinking_config=_thinking_config_for(GEMINI_COMPLEX_THINKING_BUDGET),
     )
 
     # 대화 이력 + dynamic context
@@ -4170,7 +4188,10 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
                 rewrite_response = client.models.generate_content(
                     model=rewrite_model,
                     contents=[types.Content(role="user", parts=[types.Part.from_text(text=rewrite_prompt)])],
-                    config=types.GenerateContentConfig(temperature=0.1)
+                    config=types.GenerateContentConfig(
+                        temperature=0.1,
+                        thinking_config=_thinking_config_for(GEMINI_REWRITE_THINKING_BUDGET),
+                    )
                 )
                 answer = rewrite_response.text if rewrite_response.text else answer
             except Exception as e:

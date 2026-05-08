@@ -3,7 +3,8 @@ import logging
 import os
 from typing import Dict, Any, Optional
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 from app.router.intent_schema import RouterResult, RouterSlots
 from app.router.router_prompt import SYSTEM_PROMPT
@@ -69,12 +70,13 @@ PROCUREMENT_ROUTE_ALIASES = {
 class GeminiIntentRouter:
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
-        if self.api_key:
-            genai.configure(api_key=self.api_key)
+        self.client = genai.Client(api_key=self.api_key) if self.api_key else None
         self.validator = DeterministicIntentValidator()
         self.pro_fallback_enabled = os.environ.get("GEMINI_PRO_FALLBACK_ENABLED", "true").lower() == "true"
         self.flash_model = os.environ.get("GEMINI_ROUTER_MODEL", "gemini-2.5-flash")
         self.pro_model = os.environ.get("GEMINI_FALLBACK_MODEL", "gemini-2.5-pro")
+        self.thinking_budget = int(os.environ.get("GEMINI_ROUTER_THINKING_BUDGET", "0"))
+        self.pro_thinking_budget = int(os.environ.get("GEMINI_ROUTER_PRO_THINKING_BUDGET", "128"))
 
     def normalize_slots(self, parsed_dict: Dict) -> Dict:
         """Normalize intent and slot aliases."""
@@ -144,16 +146,18 @@ class GeminiIntentRouter:
         return self.validator.validate(query, parsed_dict)
 
     def _call_gemini(self, query: str, model_name: str) -> str:
-        if not self.api_key:
+        if not self.client:
             return '{"primary_intent": "out_of_scope", "routing_decision": "clarification_required", "reason": "No API Key"}'
         
         prompt = f"{SYSTEM_PROMPT}\n\n사용자 질의: {query}"
-        model = genai.GenerativeModel(model_name)
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                response_mime_type="application/json"
-            )
+        budget = self.pro_thinking_budget if "pro" in model_name.lower() else self.thinking_budget
+        response = self.client.models.generate_content(
+            model=model_name,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                thinking_config=types.ThinkingConfig(thinking_budget=budget),
+            ),
         )
         return response.text
 
