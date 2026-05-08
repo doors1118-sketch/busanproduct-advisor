@@ -95,6 +95,15 @@ def _run_legacy_gemini_intent_router(user_message: str):
         return None
 
 
+def _should_skip_gemini_intent_router(user_message: str, gateway_decision=None) -> bool:
+    """Skip LLM intent routing for clear amount/contract questions."""
+    compact = (user_message or "").replace(" ", "")
+    has_amount_case = bool(gateway_decision and "amount_case_question" in getattr(gateway_decision, "exclusions", []))
+    has_contract_method = any(term in compact for term in ("수의계약", "입찰", "지역제한", "견적"))
+    has_local_or_company = any(term in compact for term in ("부산업체", "지역업체", "업체후보", "추천", "찾아", "검색"))
+    return has_amount_case and has_contract_method and not has_local_or_company
+
+
 def _router_result_to_meta(router_result) -> dict:
     if router_result is None:
         return {"enabled": USE_GEMINI_INTENT_ROUTER_IN_LEGACY, "status": "not_available"}
@@ -2232,7 +2241,11 @@ def _chat_v144(
 
     # ─── 1.5. Gemini Intent Router (보조 분석) ───
     # 운영 안정성을 위해 legacy keyword router를 대체하지 않고, 문맥 판단 보조값으로만 사용한다.
-    legacy_router_result = _run_legacy_gemini_intent_router(user_message)
+    if _should_skip_gemini_intent_router(user_message, gateway_decision):
+        print("  [GEMINI-INTENT] skipped for clear amount/contract question", flush=True)
+        legacy_router_result = None
+    else:
+        legacy_router_result = _run_legacy_gemini_intent_router(user_message)
     legacy_router_meta = _router_result_to_meta(legacy_router_result)
 
     # ─── 2. 의도 분류 (키워드 기반, LLM 호출 없음) ───
