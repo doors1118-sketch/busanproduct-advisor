@@ -108,8 +108,8 @@ ADJACENT_CORE_ONLY = {
         "national": [("decree", ["제7조", "제9조"])],
     },
     "excellence": {
-        "local": [("조달사업법", ["제9조의2"])],
-        "national": [("조달사업법", ["제9조의2"])],
+        "local": [("조달사업법", ["제26조"])],
+        "national": [("조달사업법", ["제26조"])],
     },
     "policy_company": {
         "local": [("decree", ["제25조", "제30조"])],
