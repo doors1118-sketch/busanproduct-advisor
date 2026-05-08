@@ -85,3 +85,29 @@ def test_catalog_llm_context_tells_llm_to_surface_implicit_schemes():
     assert "지역업체 보호·우대제도 카탈로그 매칭" in context
     assert "사용자가 제도를 직접 언급하지 않았더라도" in context
     assert "지역제한경쟁입찰" in context
+
+
+def test_catalog_evidence_plan_switches_to_national_contract_sources():
+    plan = build_catalog_evidence_plan(
+        "8천만원 청소용역을 부산업체로 맡길 방법이 있어?",
+        contract_object="service",
+        agency_type="national_agency",
+    )
+
+    queries = [(item.get("args") or {}).get("query", "") for item in plan]
+    assert any("국가계약법 시행령 제26조" in query for query in queries)
+    assert any("국가계약법 시행령 제21조" in query for query in queries)
+    assert any(item.get("catalog_agency_type") == "national_agency" for item in plan)
+
+
+def test_catalog_evidence_plan_switches_to_public_corporation_sources():
+    plan = build_catalog_evidence_plan(
+        "20억원 건설공사에 지역업체 공동도급과 가점을 검토해줘",
+        contract_object="construction",
+        agency_type="public_corporation",
+    )
+
+    queries = [(item.get("args") or {}).get("query", "") for item in plan]
+    assert any("공기업 준정부기관 계약사무규칙" in query for query in queries)
+    assert any("국가계약법 시행령 제72조" in query for query in queries)
+    assert any(item.get("catalog_agency_type") == "public_corporation" for item in plan)
