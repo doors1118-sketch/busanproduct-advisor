@@ -344,6 +344,82 @@ def _try_regional_restriction_standard_fast_answer(user_message: str) -> str:
     answer = match_deterministic_legal_answer(user_message)
     return answer.answer if answer else ""
 
+
+def _is_practice_manual_fast_query(user_message: str) -> bool:
+    """실무 매뉴얼 카드로 빠르게 답할 수 있는 설명/비교/절차형 질문인지 판별한다."""
+    q = (user_message or "").replace(" ", "").lower()
+    if not q:
+        return False
+    if _parse_amount(user_message) is not None:
+        return False
+    if any(term in q for term in ("부산업체", "지역업체", "업체추천", "업체후보", "업체있", "찾아", "검색")):
+        return False
+    if any(term in q for term in ("가능", "되나", "될까", "해도", "할수", "계약해도")) and any(
+        method in q for method in ("수의계약", "지역제한", "공동도급", "입찰", "가점")
+    ):
+        return False
+
+    practice_intent = any(term in q for term in (
+        "뜻", "개념", "정의", "용어", "차이", "다르게", "구분", "뭐야", "무슨말",
+        "절차", "흐름", "단계", "순서", "프로세스", "쟁점", "체크", "봐야", "확인",
+        "유의", "주의", "어떤계약", "어떻게검토",
+    ))
+    procurement_context = any(term in q for term in (
+        "계약", "입찰", "수의", "견적", "물품", "용역", "공사", "유지보수",
+        "종합쇼핑몰", "mas", "제3자단가", "지역제한", "공동도급", "가점",
+    ))
+    return practice_intent and procurement_context
+
+
+def _build_practice_manual_fast_answer(user_message: str, agency_type: str | None) -> tuple[str, list[dict]]:
+    """매뉴얼 카드 기반 설명형 답변을 만든다. 금액/법적 결론은 포함하지 않는다."""
+    if not _is_practice_manual_fast_query(user_message):
+        return "", []
+
+    agency_key = _normalize_agency_type(agency_type) if agency_type else "default"
+    cards = match_practice_manual_cards(
+        user_message,
+        contract_object=None,
+        agency_type=agency_key,
+        max_cards=4,
+    )
+    if not cards:
+        return "", []
+
+    q = (user_message or "").replace(" ", "").lower()
+    sections = [
+        "### 1. 질문의도 파악",
+        "- 이 질문은 특정 금액의 계약 가능 여부 판단이 아니라, 계약 유형·절차·실무 쟁점을 설명해 달라는 요청으로 분류했습니다.",
+    ]
+
+    if "용역" in q and any(term in q for term in ("물품", "구매", "제품")):
+        sections.extend([
+            "",
+            "### 2. 물품 구매와 용역계약의 핵심 차이",
+            "- **물품 구매**는 규격, 납품 가능 여부, 조달등록·종합쇼핑몰/MAS, 직접생산·인증·검수 조건을 먼저 봅니다.",
+            "- **용역계약**은 과업 범위, 수행 인력·자격, 성과물, 기간, 보안·저작권, 검사·검수 방식, 계속 수행 필요성을 먼저 봅니다.",
+            "- **유지보수 용역**은 장애 대응시간, 정기점검 범위, 부품·라이선스 포함 여부, 보안 준수, 재위탁 가능 여부, 기존 시스템과의 연속성을 계약조건에 명확히 두는 것이 중요합니다.",
+        ])
+    else:
+        sections.extend([
+            "",
+            "### 2. 먼저 볼 실무 쟁점",
+            "- 계약 목적물이 물품·용역·공사 중 어디에 가까운지 먼저 정리합니다.",
+            "- 그다음 계약방법, 참가자격, 낙찰자 결정방법, 가격 산정, 검사·검수, 사후관리 쟁점을 순서대로 확인합니다.",
+        ])
+
+    manual_section = render_practice_manual_cards_for_answer(cards, max_cards=4)
+    if manual_section:
+        sections.extend(["", manual_section])
+
+    sections.extend([
+        "",
+        "### 3. 다음 단계",
+        "- 금액, 기관유형, 구체 품목·과업범위가 정해지면 최신 법령 DB 기준으로 수의계약, 입찰, 지역제한, 지역업체 우대제도 적용 가능성을 별도로 검토해야 합니다.",
+        "- 이 답변은 실무 매뉴얼 카드에 기반한 설명입니다. 금액 기준·조문·시행일은 내부 법령 DB와 source map 기준을 우선합니다.",
+    ])
+    return "\n".join(sections), cards
+
 # ─────────────────────────────────────────────
 # Gemini 클라이언트 초기화 — Vertex AI (SLA 99.9%, 503 방지)
 # ─────────────────────────────────────────────
@@ -2307,6 +2383,47 @@ def _chat_v144(
         answer, history = _finalize_answer(
             deterministic_legal_answer.answer, history, user_message, [], api_status,
             progress_callback, generation_meta=_deterministic_gate_meta
+        )
+        return answer, history
+
+    # ─── 0.7. Practice Manual Fast Gate ───
+    # 개념/차이/절차/쟁점 설명형 질문은 전체 LLM 도구호출 루프 전에
+    # 사전 생성된 실무 매뉴얼 카드로 답한다. 금액·법적 결론 질문은 제외한다.
+    try:
+        practice_fast_answer, practice_fast_cards = _build_practice_manual_fast_answer(user_message, agency_type)
+    except Exception as e:
+        print(f"  [PRACTICE-FAST] skipped: {e}", flush=True)
+        practice_fast_answer, practice_fast_cards = "", []
+
+    if practice_fast_answer:
+        api_status = ApiStatus()
+        _practice_fast_meta = {
+            "model_used": "practice_manual_fast_gate",
+            "model_decision_reason": "practice_manual_explanation_fast_answer",
+            "tier_resolved": 1,
+            "fast_track_applied": True,
+            "deterministic_template_used": False,
+            "company_table_allowed": False,
+            "legal_conclusion_allowed": False,
+            "candidate_table_source": "none",
+            "answer_schema_version": "practice_manual_explanation_v1",
+            "source_status": "practice_manual_cards",
+            "rag_elapsed_ms": 0,
+            "model_elapsed_ms": 0,
+            "mcp_preflight_elapsed_ms": 0,
+            "tool_call_count": 0,
+            "company_search_status": "not_called",
+            "amount_rewrite_bypass": True,
+            "final_answer_scanned": True,
+            "forbidden_patterns_remaining_after_rewrite": [],
+            "practice_manual_card_count": len(practice_fast_cards),
+            "pps_qa_card_count": 0,
+            "query_gateway_route": gateway_decision.route if gateway_decision else "skipped",
+            "query_gateway_reason": gateway_decision.reason if gateway_decision else "",
+        }
+        answer, history = _finalize_answer(
+            practice_fast_answer, history, user_message, [], api_status,
+            progress_callback, generation_meta=_practice_fast_meta
         )
         return answer, history
 

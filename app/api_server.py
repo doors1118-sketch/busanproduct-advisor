@@ -178,6 +178,7 @@ class ChatResponse(BaseModel):
     answer_builder_elapsed_ms: int = 0
     answer_builder_network_call_count: int = 0
     practice_manual_card_count: int = 0
+    pps_qa_card_count: int = 0
 
     # Phase 11: Orchestrator Pipeline Metadata
     pipeline_mode: str = ""  # orchestrator / legacy_gemini
@@ -516,6 +517,7 @@ def _chat_legacy(req: ChatRequest, start: float):
             candidate_section_position=meta.get("candidate_section_position", -1),
             legal_basis_section_rendered=meta.get("legal_basis_section_rendered", False),
             practice_manual_card_count=meta.get("practice_manual_card_count", 0),
+            pps_qa_card_count=meta.get("pps_qa_card_count", 0),
         )
 
         # ── QA 테스트 로그 자동 저장 ──
@@ -546,6 +548,7 @@ def _chat_legacy(req: ChatRequest, start: float):
                     "deterministic_template_used": meta.get("deterministic_template_used"),
                     "source_status": meta.get("source_status"),
                     "practice_manual_card_count": meta.get("practice_manual_card_count", 0),
+                    "pps_qa_card_count": meta.get("pps_qa_card_count", 0),
                 },
             )
         except Exception as log_err:
