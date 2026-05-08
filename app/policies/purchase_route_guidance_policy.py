@@ -9,6 +9,11 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+try:
+    from policies.numeric_basis_policy import compare_amount, get_numeric_display
+except ImportError:
+    from app.policies.numeric_basis_policy import compare_amount, get_numeric_display
+
 
 @dataclass(frozen=True)
 class PurchaseRouteCard:
@@ -85,7 +90,6 @@ def build_purchase_route_cards(
     """금액·품목·조회 결과를 경로별 판단 카드로 만든다."""
     object_type = (contract_object or "goods").lower()
     counts = _tool_counts(tool_results)
-    amount_known = amount is not None
 
     if object_type == "service":
         return _build_service_route_cards(amount, item_name, counts)
@@ -95,26 +99,32 @@ def build_purchase_route_cards(
     general_status = "needs_amount_check"
     general_label = "금액 확인 필요"
     general_meaning = "일반 소액 수의계약 가능 여부는 추정가격 기준 금액과 견적 방식 확인이 필요합니다."
-    if amount_known and amount > 20_000_000:
+    general_ref = "P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD"
+    general_threshold = get_numeric_display(general_ref)
+    general_compare = compare_amount(amount, general_ref)
+    if general_compare == "above":
         general_status = "not_viable"
-        general_label = "일반 2천만원 소액수의 경로는 어려움"
-        general_meaning = "8천만원처럼 2천만원을 초과하는 물품 구매는 일반적인 1인 견적 소액수의 경로로 바로 처리하기 어렵습니다."
-    elif amount_known:
+        general_label = f"일반 {general_threshold} 소액수의 경로는 어려움"
+        general_meaning = f"질문 금액은 내부 source map의 일반 소액수의 기준({general_threshold})을 초과하므로 일반적인 1인 견적 소액수의 경로로 바로 처리하기 어렵습니다."
+    elif general_compare == "below_or_equal":
         general_status = "viable_check"
         general_label = "일반 소액수의 검토 가능"
-        general_meaning = "2천만원 이하라면 일반 소액수의 및 견적 방식 검토 대상입니다."
+        general_meaning = f"내부 source map 기준({general_threshold}) 이하라면 일반 소액수의 및 견적 방식 검토 대상입니다."
 
     policy_1p_status = "needs_amount_check"
     policy_1p_label = "금액 확인 필요"
     policy_1p_meaning = "정책기업 경로는 기업유형, 추정가격, 1인/2인 이상 견적 방식을 분리해 봐야 합니다."
-    if amount_known and amount > 50_000_000:
+    policy_ref = "P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD"
+    policy_threshold = get_numeric_display(policy_ref)
+    policy_compare = compare_amount(amount, policy_ref)
+    if policy_compare == "above":
         policy_1p_status = "not_viable"
-        policy_1p_label = "5천만원 1인 견적 경로는 어려움"
-        policy_1p_meaning = "여성기업·장애인기업·사회적기업 등 정책기업이라도 5천만원 이하 1인 견적 경로로 8천만원을 바로 처리하기는 어렵습니다. 다만 정책기업 관련 다른 수의계약/견적 경로는 별도 검토가 필요합니다."
-    elif amount_known:
+        policy_1p_label = f"{policy_threshold} 1인 견적 경로는 어려움"
+        policy_1p_meaning = f"여성기업·장애인기업·사회적기업 등 정책기업이라도 내부 source map의 1인 견적 기준({policy_threshold})을 초과하면 해당 경로로 바로 처리하기 어렵습니다. 다만 정책기업 관련 다른 수의계약/견적 경로는 별도 검토가 필요합니다."
+    elif policy_compare == "below_or_equal":
         policy_1p_status = "viable_check"
         policy_1p_label = "정책기업 1인 견적 검토 가능"
-        policy_1p_meaning = "5천만원 이하라면 정책기업 1인 견적 가능성을 검토할 수 있습니다."
+        policy_1p_meaning = f"내부 source map 기준({policy_threshold}) 이하라면 정책기업 1인 견적 가능성을 검토할 수 있습니다."
 
     shopping_status, shopping_label = _candidate_status(counts["shopping_mall"])
     cert_status, cert_label = _candidate_status(counts["certified_product"])
@@ -180,26 +190,31 @@ def build_purchase_route_cards(
 
 
 def _build_service_route_cards(amount: int | None, item_name: str, counts: dict[str, int | None]) -> list[PurchaseRouteCard]:
-    amount_known = amount is not None
     general_status = "needs_amount_check"
     general_label = "금액·견적 방식 확인 필요"
     general_meaning = "용역 수의계약은 추정가격, 1인/2인 이상 견적, 용역 종류에 따라 가능 범위가 달라집니다."
-    if amount_known and amount > 20_000_000:
+    general_ref = "P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD"
+    general_threshold = get_numeric_display(general_ref)
+    general_compare = compare_amount(amount, general_ref)
+    if general_compare == "above":
         general_status = "not_viable"
-        general_label = "일반 2천만원 소액수의 경로는 어려움"
-        general_meaning = "2천만원을 초과하는 용역은 일반적인 1인 견적 소액수의 경로로 바로 처리하기 어렵고, 2인 이상 견적·경쟁입찰·특례 여부를 나눠 봐야 합니다."
-    elif amount_known:
+        general_label = f"일반 {general_threshold} 소액수의 경로는 어려움"
+        general_meaning = f"내부 source map의 일반 소액수의 기준({general_threshold})을 초과하는 용역은 일반적인 1인 견적 소액수의 경로로 바로 처리하기 어렵고, 2인 이상 견적·경쟁입찰·특례 여부를 나눠 봐야 합니다."
+    elif general_compare == "below_or_equal":
         general_status = "viable_check"
         general_label = "일반 소액수의 검토 가능"
 
     policy_status = "needs_amount_check"
     policy_label = "정책기업 경로 확인 필요"
     policy_meaning = "여성기업·장애인기업·사회적기업 등 정책기업 경로는 용역에도 검토될 수 있으나, 금액과 견적 방식 확인이 필요합니다."
-    if amount_known and amount > 50_000_000:
+    policy_ref = "P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD"
+    policy_threshold = get_numeric_display(policy_ref)
+    policy_compare = compare_amount(amount, policy_ref)
+    if policy_compare == "above":
         policy_status = "not_viable"
-        policy_label = "5천만원 1인 견적 경로는 어려움"
-        policy_meaning = "정책기업이라도 5천만원 이하 1인 견적 경로로는 처리하기 어렵고, 2인 이상 견적이나 경쟁 방식 전환을 검토해야 합니다."
-    elif amount_known:
+        policy_label = f"{policy_threshold} 1인 견적 경로는 어려움"
+        policy_meaning = f"정책기업이라도 내부 source map의 1인 견적 기준({policy_threshold})을 초과하면 해당 경로로는 처리하기 어렵고, 2인 이상 견적이나 경쟁 방식 전환을 검토해야 합니다."
+    elif policy_compare == "below_or_equal":
         policy_status = "viable_check"
         policy_label = "정책기업 1인 견적 검토 가능"
 
@@ -256,15 +271,17 @@ def _build_service_route_cards(amount: int | None, item_name: str, counts: dict[
 
 
 def _build_construction_route_cards(amount: int | None, item_name: str, counts: dict[str, int | None]) -> list[PurchaseRouteCard]:
-    amount_known = amount is not None
     direct_status = "needs_amount_check"
     direct_label = "금액·공종 확인 필요"
     direct_meaning = "공사는 공종, 추정가격, 전문/종합 여부에 따라 수의계약·지역제한·공동도급 검토 방식이 달라집니다."
-    if amount_known and amount > 20_000_000:
+    general_ref = "P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD"
+    general_threshold = get_numeric_display(general_ref)
+    general_compare = compare_amount(amount, general_ref)
+    if general_compare == "above":
         direct_status = "not_viable"
         direct_label = "일반 소액수의 경로는 보수적 검토 필요"
-        direct_meaning = "2천만원을 초과하는 공사는 일반 소액수의로 바로 단정하기 어렵고, 공종별 한도와 예외사유를 확인해야 합니다."
-    elif amount_known:
+        direct_meaning = f"내부 source map의 일반 소액수의 기준({general_threshold})을 초과하는 공사는 일반 소액수의로 바로 단정하기 어렵고, 공종별 한도와 예외사유를 확인해야 합니다."
+    elif general_compare == "below_or_equal":
         direct_status = "viable_check"
         direct_label = "소액수의 검토 가능"
 
