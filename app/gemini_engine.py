@@ -2377,6 +2377,7 @@ def _chat_v144(
                 "evidence_missing_count": cache_stats.get("evidence_missing_count", 0),
                 "company_search_status": "not_called",
                 "grounded_single_pass_llm": False,
+                "skip_citation_verify": True,
             }
             answer, history = _finalize_answer(
                 simple_amount_answer, history, user_message, grounded_tool_results, api_status,
@@ -3524,7 +3525,8 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
         progress_callback("✅ 법령 인용 검증 중...")
     
     # fallback_answer인 경우 verify를 패스해도 됨
-    if "반복 한도 초과하여 답변이 유보되었습니다" not in answer:
+    skip_citation_verify = bool(generation_meta and generation_meta.get("skip_citation_verify", False))
+    if "반복 한도 초과하여 답변이 유보되었습니다" not in answer and not skip_citation_verify:
         answer = _verify_and_annotate_v144(answer, all_tool_results)
 
     # 승인 조건 4: blocked_scope를 최종 답변에 실제 반영
