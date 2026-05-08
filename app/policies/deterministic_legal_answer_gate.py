@@ -45,6 +45,13 @@ def match_deterministic_legal_answer(user_message: str) -> DeterministicLegalAns
             schema_version="local_company_point_standard_v1",
         )
 
+    if _is_mas_regional_review(q):
+        return DeterministicLegalAnswer(
+            answer=_mas_regional_review_answer(q),
+            reason="mas_regional_review_fast_answer",
+            schema_version="mas_regional_review_v1",
+        )
+
     if _is_regional_mandatory_joint_contract(q):
         return DeterministicLegalAnswer(
             answer=_regional_mandatory_joint_contract_answer(),
@@ -87,6 +94,13 @@ def _is_regional_mandatory_joint_contract(q: str) -> bool:
         ("지역의무" in q or "의무공동" in q or ("공동도급" in q and "지역" in q))
         and any(term in q for term in ("기준", "비율", "몇", "가능", "공사", "발주", "공동도급"))
     )
+
+
+def _is_mas_regional_review(q: str) -> bool:
+    has_mas = any(term in q for term in ("mas", "종합쇼핑몰", "다수공급자", "제3자단가", "3자단가"))
+    has_region = any(term in q for term in ("지역업체", "부산업체", "부산", "지역", "우대", "가점"))
+    has_review = any(term in q for term in ("2단계", "경쟁", "우대", "가점", "고려", "활용", "가능", "살수", "구매"))
+    return has_mas and has_region and has_review
 
 
 def _regional_restriction_answer(q: str) -> str:
@@ -242,9 +256,37 @@ def _local_company_point_answer(q: str) -> str:
     return "\n".join(lines)
 
 
+def _mas_regional_review_answer(q: str) -> str:
+    return "\n".join([
+        "종합쇼핑몰/MAS 2단계 경쟁에서는 **부산업체라는 이유만으로 지역제한을 걸거나 별도 가점을 주는 방식은 신중해야 합니다.**",
+        "다만 부산 지역상품 구매 지원 관점에서 활용할 수 있는 실무 경로는 있습니다.",
+        "",
+        "- **1. 부산 MAS 등록업체를 후보군으로 먼저 찾기**",
+        "  - 구매 품목을 확정한 뒤 종합쇼핑몰에서 부산 소재 공급업체, 납품 가능 지역, 계약상태, 규격 일치 여부를 확인합니다.",
+        "  - 이는 특정 업체 특혜가 아니라 제안요청 전 후보 탐색과 시장조사 단계로 정리하는 것이 안전합니다.",
+        "",
+        "- **2. 2단계 경쟁에서는 평가항목 안에서만 지역 장점을 반영**",
+        "  - 지역업체 자체를 독립 가점으로 두기보다 납기, 사후관리, 현장지원, 유지보수 대응 같은 정당한 평가요소와 연결해야 합니다.",
+        "  - 부산 업체가 빠른 A/S나 납품 대응을 제안서에 제시하면, 그 내용이 공고된 평가항목과 맞는 범위에서 검토될 수 있습니다.",
+        "",
+        "- **3. 지역제한경쟁입찰과 MAS 2단계 경쟁은 구분**",
+        "  - 지방계약법령상 지역제한은 일반 경쟁입찰의 참가자격 제한 장치입니다.",
+        "  - MAS 2단계 경쟁에서는 조달청 다수공급자계약 체계와 종합쇼핑몰 운영규정, 물품 다수공급자계약 업무처리규정을 우선 확인해야 합니다.",
+        "",
+        "- **4. 품목이 정해졌다면 업체 후보까지 붙여야 실무 답변이 됩니다**",
+        "  - 예: LED, CCTV, 사무가구처럼 세부품명이 있으면 부산 MAS 등록업체, 조달등록 여부, 인증제품 여부를 함께 조회해 구매 경로를 정리합니다.",
+        "  - 품목이 없는 제도 질문이면 여기서는 원칙과 확인 순서까지만 안내하는 것이 적절합니다.",
+        "",
+        "정리하면, **MAS에서 부산업체를 직접 우대한다고 단정하기보다는, 부산 MAS 등록업체를 후보로 발굴하고 납기ㆍA/Sㆍ현장지원 등 정당한 평가요소로 연결하는 방식**이 안전합니다.",
+        "근거: 「조달사업에 관한 법률」, 「국가종합전자조달시스템 종합쇼핑몰 운영규정」, 「물품 다수공급자계약 업무처리규정」",
+        "⚖️ 본 답변은 내부 DB에 적재된 조달 관련 행정규칙 기준을 바탕으로 한 참고 안내입니다.",
+    ])
+
+
 def _regional_mandatory_joint_contract_answer() -> str:
     return "\n".join([
-        "지역의무공동도급은 지역업체 참여를 강제해 지역 시공 참여를 확보하는 장치입니다. 핵심은 **공사에 한해** 적용한다는 점입니다.",
+        "지역의무공동도급은 지역업체 참여를 강제해 지역 시공 참여를 확보하는 장치입니다. 전기공사 같은 공사에서 검토할 수 있고, 핵심은 **공사에 한해** 적용한다는 점입니다.",
+        "지역제한은 참가자격을 지역으로 제한하는 장치이고, 지역의무공동도급은 공동수급체 안에 지역업체 참여비율을 두는 장치라서 서로 구분해 검토해야 합니다.",
         "",
         "- **적용 대상**",
         "  - 지방계약에서 공동계약을 체결하는 경우, 지역경제 활성화를 위해 지역업체 참여비율을 정할 수 있습니다.",

@@ -54,9 +54,22 @@ def test_regional_mandatory_joint_contract_standard():
     result = match_deterministic_legal_answer("지역의무공동도급 기준과 비율 알려줘")
     assert result is not None
     assert result.reason == "regional_mandatory_joint_contract_fast_answer"
+    assert "지역제한" in result.answer
+    assert "전기공사" in result.answer
     assert "공사의 경우에만" in result.answer
     assert "40%" in result.answer
     assert "49%" in result.answer
+
+
+def test_mas_regional_review_fast_answer():
+    result = match_deterministic_legal_answer(
+        "종합쇼핑몰 MAS 2단계 경쟁에서 부산업체를 우대하거나 지역업체를 고려할 수 있어?"
+    )
+    assert result is not None
+    assert result.reason == "mas_regional_review_fast_answer"
+    assert "부산 MAS 등록업체" in result.answer
+    assert "지역제한" in result.answer
+    assert "물품 다수공급자계약 업무처리규정" in result.answer
 
 
 def test_specific_company_search_does_not_match():
