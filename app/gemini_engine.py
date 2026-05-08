@@ -1979,7 +1979,7 @@ def _should_use_grounded_single_pass_llm(user_message: str, query_tier: int, amo
     This keeps deterministic templates narrow while avoiding the full function-calling
     loop for common questions such as "2억 물품 수의계약 가능해?".
     """
-    if amount_detected is None or query_tier not in (1, 2):
+    if query_tier not in (1, 2):
         return False
 
     q = (user_message or "").replace(" ", "").lower()
@@ -1991,7 +1991,19 @@ def _should_use_grounded_single_pass_llm(user_message: str, query_tier: int, amo
     ))
     needs_company_lookup = any(term in q for term in ("부산업체", "지역업체", "업체추천", "후보", "찾아", "검색"))
 
-    return has_contract_method and has_contract_object and asks_case_judgment and not needs_company_lookup
+    if amount_detected is not None:
+        return has_contract_method and has_contract_object and asks_case_judgment and not needs_company_lookup
+
+    industry_legal_terms = (
+        "전기공사", "정보통신공사", "통신공사", "소프트웨어", "sw",
+        "소프트웨어사업", "건설공사", "건설업", "건설사업관리",
+        "소방공사", "소방시설",
+    )
+    asks_industry_legal_review = any(term in q for term in industry_legal_terms) and any(term in q for term in (
+        "분리발주", "분리도급", "기술성평가", "평가기준", "발주기준",
+        "관련법령", "근거", "기준", "설명", "검토", "해야", "가능", "여부",
+    ))
+    return asks_industry_legal_review and not needs_company_lookup
 
 
 def _generate_grounded_single_pass_answer(user_message: str, mcp_context: str, agency_type: str | None, timeout_sec: int = 25) -> str | None:
@@ -2044,9 +2056,37 @@ def _generate_grounded_single_pass_answer(user_message: str, mcp_context: str, a
         executor.shutdown(wait=False, cancel_futures=True)
 
 
-def _build_grounded_case_timeout_fallback(user_message: str) -> str:
+def _build_grounded_case_timeout_fallback(user_message: str, mcp_context: str = "") -> str:
     """Short fallback when DB was read but the one-pass LLM call is delayed."""
     q = (user_message or "").replace(" ", "")
+    context = mcp_context or ""
+    if ("정보통신공사" in q or "통신공사" in q) and "분리발주" in q:
+        return "\n".join([
+            "내부 DB 근거는 조회되었지만 LLM 문장화가 지연되어 핵심 기준만 먼저 안내합니다.",
+            "",
+            "정보통신공사는 원칙적으로 건설공사·전기공사 등 다른 공사와 분리하여 도급하는 기준을 먼저 검토해야 합니다.",
+            "근거: 「정보통신공사업법」 제25조는 공사를 다른 공사와 분리하여 도급하도록 정하고, 공사의 성질상 또는 기술관리상 분리 도급이 곤란한 경우 예외를 둘 수 있다고 규정합니다.",
+            "",
+            "실무적으로는 발주 설계서에서 정보통신공사 범위가 별도로 산정되는지, 예외사유가 있는지, 관련 시행령상 예외 요건에 해당하는지를 먼저 확인하는 흐름이 안전합니다.",
+        ])
+    if "전기공사" in q and "분리발주" in q:
+        return "\n".join([
+            "내부 DB 근거는 조회되었지만 LLM 문장화가 지연되어 핵심 기준만 먼저 안내합니다.",
+            "",
+            "전기공사는 원칙적으로 다른 업종의 공사와 분리발주하는 기준을 먼저 검토해야 합니다.",
+            "근거: 「전기공사업법」 제11조는 전기공사 및 시공책임형 전기공사관리를 다른 업종의 공사와 분리발주하도록 정하고, 긴급복구·기밀 유지·기술관리상 곤란한 경우 등 예외를 둡니다.",
+            "",
+            "실무적으로는 공사 내역서에서 전기공사 범위를 분리 산정하고, 예외 적용이 필요한 경우 사유를 문서화하는 방향이 안전합니다.",
+        ])
+    if ("소프트웨어" in q or "SW" in (user_message or "").upper()) and ("기술성평가" in q or "기술성" in q):
+        return "\n".join([
+            "내부 DB 근거는 조회되었지만 LLM 문장화가 지연되어 핵심 기준만 먼저 안내합니다.",
+            "",
+            "소프트웨어 용역은 가격만으로 판단하기보다 기술성 평가 기준을 함께 적용하는 구조를 검토해야 합니다.",
+            "근거: 「소프트웨어 진흥법」 제49조는 국가기관등의 소프트웨어사업 계약과 기술성 평가 기준 적용을 규정하고, 세부 기준은 「소프트웨어 기술성 평가기준 지침」 및 「소프트웨어사업 계약 및 관리감독에 관한 지침」에서 확인해야 합니다.",
+            "",
+            "실무적으로는 제안요청서의 평가항목, 기술능력 평가비중, 과업심의·요구사항 명확화 여부를 함께 확인하는 것이 좋습니다.",
+        ])
     if "수의계약" in q and "물품" in q and ("2억" in q or "200000000" in q):
         return "\n".join([
             "내부 DB 근거는 조회되었지만 LLM 문장화가 지연되어 핵심 기준만 먼저 안내합니다.",
@@ -2593,7 +2633,7 @@ def _chat_v144(
             "fallback_reason": "",
         }
         answer, history = _finalize_answer(
-            _build_grounded_case_timeout_fallback(user_message),
+            _build_grounded_case_timeout_fallback(user_message, mcp_context),
             history,
             user_message,
             grounded_tool_results,
