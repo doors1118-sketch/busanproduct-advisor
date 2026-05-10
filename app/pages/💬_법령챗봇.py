@@ -25,6 +25,55 @@ import requests
 
 from system_prompt import EXAMPLE_QUESTIONS
 
+
+def _feedback_api_url() -> str:
+    api_url = os.getenv("CHATBOT_API_URL", "http://127.0.0.1:8001/chat")
+    return api_url.rsplit("/", 1)[0] + "/qa-feedback"
+
+
+def _routing_health_api_url() -> str:
+    api_url = os.getenv("CHATBOT_API_URL", "http://127.0.0.1:8001/chat")
+    return api_url.rsplit("/", 1)[0] + "/admin/health/routing"
+
+
+def _api_headers() -> dict:
+    headers = {}
+    admin_token = os.getenv("ADMIN_HEALTH_TOKEN", "").strip()
+    if admin_token:
+        headers["X-Admin-Token"] = admin_token
+
+    auth_user = os.getenv("PILOT_AUTH_USER", "admin")
+    auth_pass = os.getenv("PILOT_AUTH_PASSWORD", "pilot123!")
+    if auth_user and auth_pass:
+        token = base64.b64encode(f"{auth_user}:{auth_pass}".encode("utf-8")).decode("utf-8")
+        headers["Authorization"] = f"Basic {token}"
+    return headers
+
+
+def _load_routing_health() -> dict:
+    response = requests.get(
+        _routing_health_api_url(),
+        headers=_api_headers(),
+        timeout=5,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def _submit_feedback(qa_log_id: str, rating: int, satisfied: bool, issue_tags: list[str], comment: str):
+    payload = {
+        "qa_log_id": qa_log_id,
+        "rating": rating,
+        "satisfied": satisfied,
+        "issue_tags": issue_tags,
+        "comment": comment,
+        "source": "streamlit_user",
+    }
+    headers = _api_headers()
+    response = requests.post(_feedback_api_url(), json=payload, headers=headers, timeout=10)
+    response.raise_for_status()
+    return response.json()
+
 # ── 스타일 ──
 st.markdown("""
 <style>
@@ -114,6 +163,38 @@ with st.sidebar:
         st.session_state.chat_history = []
         st.rerun()
 
+    with st.expander("운영 상태"):
+        st.caption("라우팅·RAG·도구루프 상태를 서버에서 점검합니다.")
+        if st.button("상태 새로고침", use_container_width=True):
+            try:
+                st.session_state["_routing_health"] = _load_routing_health()
+            except Exception as exc:
+                st.session_state["_routing_health_error"] = str(exc)
+        if st.session_state.get("_routing_health_error"):
+            st.warning(st.session_state.pop("_routing_health_error"))
+        health = st.session_state.get("_routing_health")
+        if health:
+            status = health.get("status", "unknown")
+            if status == "ok":
+                st.success("라우팅 상태 정상")
+            elif status == "warning":
+                st.warning("라우팅 상태 주의")
+            else:
+                st.error("라우팅 상태 위험")
+            settings = health.get("settings", {})
+            recent = health.get("recent_routing", {})
+            intent_rag = health.get("intent_rag", {})
+            st.caption(f"commit: {health.get('commit_hash', 'unknown')}")
+            c1, c2 = st.columns(2)
+            c1.metric("Intent RAG", intent_rag.get("record_count", 0))
+            c2.metric("최근 평균 지연", recent.get("avg_latency_ms", 0))
+            st.caption(
+                "adjudicator "
+                f"{'on' if settings.get('llm_adjudicator_enabled') else 'off'} / "
+                f"called {recent.get('llm_adjudicator_called_count', 0)} / "
+                f"timeout {recent.get('llm_adjudicator_timeout_count', 0)}"
+            )
+
 # ── 세션 상태 초기화 ──
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -170,6 +251,31 @@ if not st.session_state.messages:
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"], avatar="🧑‍💼" if msg["role"] == "user" else "⚖️"):
         st.markdown(msg["content"])
+        qa_log_id = msg.get("qa_log_id")
+        if msg["role"] == "assistant" and qa_log_id:
+            sent_key = f"feedback_sent_{qa_log_id}"
+            if st.session_state.get(sent_key):
+                st.caption("피드백이 저장되었습니다.")
+            else:
+                with st.expander("답변 평가"):
+                    rating = st.slider("만족도", 1, 5, 4, key=f"rating_{qa_log_id}")
+                    issue_tags = st.multiselect(
+                        "보완 태그",
+                        ["의도틀림", "근거부족", "응답느림", "업체검색오류", "답변너무김", "답변부족", "좋은답변"],
+                        key=f"tags_{qa_log_id}",
+                    )
+                    comment = st.text_area("의견", key=f"comment_{qa_log_id}", height=80)
+                    col_ok, col_bad = st.columns(2)
+                    with col_ok:
+                        if st.button("만족", key=f"sat_{qa_log_id}", use_container_width=True):
+                            _submit_feedback(qa_log_id, rating, True, issue_tags, comment)
+                            st.session_state[sent_key] = True
+                            st.rerun()
+                    with col_bad:
+                        if st.button("불만족", key=f"unsat_{qa_log_id}", use_container_width=True):
+                            _submit_feedback(qa_log_id, rating, False, issue_tags, comment)
+                            st.session_state[sent_key] = True
+                            st.rerun()
 
 # ── 사용자 입력 처리 ──
 user_input = st.chat_input("계약·조달 법령에 대해 질문하세요...")
@@ -269,7 +375,29 @@ _(잘 모르시겠다면 **'1번'** 또는 **'건너뛰기'**를 입력하시면
             
             # 마크다운 렌더링
             st.markdown(answer)
-            st.session_state.messages.append({"role": "assistant", "content": answer})
+            qa_log_id = data.get("qa_log_id", "")
+            st.session_state.messages.append({"role": "assistant", "content": answer, "qa_log_id": qa_log_id})
+
+            if qa_log_id:
+                with st.expander("답변 평가"):
+                    rating = st.slider("만족도", 1, 5, 4, key=f"rating_{qa_log_id}")
+                    issue_tags = st.multiselect(
+                        "보완 태그",
+                        ["의도틀림", "근거부족", "응답느림", "업체검색오류", "답변너무김", "답변부족", "좋은답변"],
+                        key=f"tags_{qa_log_id}",
+                    )
+                    comment = st.text_area("의견", key=f"comment_{qa_log_id}", height=80)
+                    col_ok, col_bad = st.columns(2)
+                    with col_ok:
+                        if st.button("만족", key=f"sat_{qa_log_id}", use_container_width=True):
+                            _submit_feedback(qa_log_id, rating, True, issue_tags, comment)
+                            st.session_state[f"feedback_sent_{qa_log_id}"] = True
+                            st.rerun()
+                    with col_bad:
+                        if st.button("불만족", key=f"unsat_{qa_log_id}", use_container_width=True):
+                            _submit_feedback(qa_log_id, rating, False, issue_tags, comment)
+                            st.session_state[f"feedback_sent_{qa_log_id}"] = True
+                            st.rerun()
             
             # 디버그 정보 표시 (운영 환경에서도 테스트 확인용)
             with st.expander("🛠️ 시스템 처리 로그 (검증용)"):

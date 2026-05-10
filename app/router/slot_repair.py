@@ -1,30 +1,40 @@
 import re
 from app.router.intent_schema import RouterResult
 
+try:
+    from app.router.intent_normalization import normalize_query_intent
+except Exception:  # Runtime path when app/ is on sys.path.
+    from router.intent_normalization import normalize_query_intent
+
 def repair_slots(user_query: str, router_result: RouterResult) -> RouterResult:
     """LLM이 누락한 주요 슬롯을 정규식/키워드 기반으로 보정한다."""
+    norm = normalize_query_intent(user_query)
     slots = router_result.slots
     repaired_slots = []
     
     # 1. 금액 파싱 (비어있을 때만)
     if not slots.amount:
-        # 가장 흔한 금액 패턴을 앞쪽에 배치
-        amount_patterns = [
-            (r"100,000,000\s*원?", 100000000),
-            (r"1억\s*원?", 100000000),
-            (r"50,000,000\s*원?", 50000000),
-            (r"5천만\s*원?", 50000000),
-            (r"40,000,000\s*원?", 40000000),
-            (r"4천만\s*원?", 40000000),
-            (r"30,000,000\s*원?", 30000000),
-            (r"3천만\s*원?", 30000000),
-            (r"3000만\s*원?", 30000000),
-        ]
-        for pattern, val in amount_patterns:
-            if re.search(pattern, user_query):
-                slots.amount = val
-                repaired_slots.append("amount")
-                break
+        if norm.amount is not None:
+            slots.amount = norm.amount
+            repaired_slots.append("amount")
+        else:
+            # 가장 흔한 금액 패턴을 앞쪽에 배치
+            amount_patterns = [
+                (r"100,000,000\s*원?", 100000000),
+                (r"1억\s*원?", 100000000),
+                (r"50,000,000\s*원?", 50000000),
+                (r"5천만\s*원?", 50000000),
+                (r"40,000,000\s*원?", 40000000),
+                (r"4천만\s*원?", 40000000),
+                (r"30,000,000\s*원?", 30000000),
+                (r"3천만\s*원?", 30000000),
+                (r"3000만\s*원?", 30000000),
+            ]
+            for pattern, val in amount_patterns:
+                if re.search(pattern, user_query):
+                    slots.amount = val
+                    repaired_slots.append("amount")
+                    break
                 
     # 2. 기업 유형 (비어있을 때만)
     if not slots.company_type:
@@ -48,6 +58,15 @@ def repair_slots(user_query: str, router_result: RouterResult) -> RouterResult:
             repaired_slots.append("quote_type")
             
     # 4. 품목명 및 계약목적물
+    if norm.item_name:
+        normalized_slot_item = "LED조명" if norm.item_name == "LED 조명" else norm.item_name
+        if not slots.item_name:
+            slots.item_name = normalized_slot_item
+            repaired_slots.append("item_name")
+        if not slots.contract_object and norm.contract_object:
+            slots.contract_object = norm.contract_object
+            repaired_slots.append("contract_object")
+
     items = [
         ("LED조명", "LED조명"), ("LED 조명", "LED 조명"), ("LED", "LED"),
         ("컴퓨터", "컴퓨터"), ("CCTV", "CCTV"),
@@ -55,6 +74,8 @@ def repair_slots(user_query: str, router_result: RouterResult) -> RouterResult:
         ("가구", "가구"), ("차량", "차량"), ("서버", "서버"),
     ]
     for keyword, item_name_val in items:
+        if slots.item_name:
+            break
         if keyword in user_query:
             if not slots.item_name:
                 slots.item_name = item_name_val
@@ -71,12 +92,19 @@ def repair_slots(user_query: str, router_result: RouterResult) -> RouterResult:
             repaired_slots.append("location")
 
     if not slots.local_supplier_intent:
-        if re.search(r"(지역업체|부산업체|부산 업체|지역 업체|지역상품|지역제품|지역제한|지역가점)", user_query):
+        if norm.local_support_requested or re.search(r"(지역업체|부산업체|부산 업체|지역 업체|지역상품|지역제품|지역제한|지역가점)", user_query):
             slots.local_supplier_intent = True
             repaired_slots.append("local_supplier_intent")
             
-    if not slots.candidate_lookup_requested:
-        if re.search(r"업체.*(찾아|추천|알려|있어|있나|있는지|어디|보여|검색|리스트)", user_query):
+    if norm.company_lookup_blocked:
+        if slots.candidate_lookup_requested:
+            slots.candidate_lookup_requested = False
+            repaired_slots.append("candidate_lookup_blocked")
+        router_result.candidate_lookup_required = False
+        router_result.company_lookup_required = False
+
+    if not norm.company_lookup_blocked and not slots.candidate_lookup_requested:
+        if norm.company_lookup_requested or re.search(r"업체.*(찾아|추천|알려|있어|있나|있는지|어디|보여|검색|리스트)", user_query):
             slots.candidate_lookup_requested = True
             repaired_slots.append("candidate_lookup_requested")
 

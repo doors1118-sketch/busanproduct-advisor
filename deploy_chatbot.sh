@@ -27,9 +27,11 @@ pip3 install -r requirements.txt --break-system-packages -q >> /tmp/pip_install.
 
 # 서비스 파일 업데이트
 cp law-chatbot.service /etc/systemd/system/
+cp busan-advisor-pilot.service /etc/systemd/system/
+chmod +x warmup.sh 2>/dev/null || true
+chmod +x scripts/server_preflight.py 2>/dev/null || true
 systemctl daemon-reload
 systemctl enable law-chatbot 2>/dev/null
-if systemctl list-unit-files | grep -q '^busan-advisor-pilot.service'; then
-    systemctl restart busan-advisor-pilot
-fi
+systemctl enable busan-advisor-pilot 2>/dev/null
+systemctl restart busan-advisor-pilot
 systemctl restart law-chatbot

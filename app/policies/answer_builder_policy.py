@@ -210,6 +210,17 @@ def _set_timing(generation_meta: dict, start: float):
     generation_meta["answer_builder_network_call_count"] = 0
 
 
+def _compact_item_query_label(query: str) -> str:
+    query = (query or "").strip()
+    for term in (
+        "냉난방기", "보안용카메라", "컴퓨터", "노트북", "프린터", "서버",
+        "전기공사", "정보통신공사", "조경공사", "포장공사", "행사용역",
+    ):
+        if term in query:
+            return term
+    return query[:30].strip()
+
+
 # ─────────────────────────────────────────────
 # Tier 0: 단순 업체 검색
 # ─────────────────────────────────────────────
@@ -224,17 +235,19 @@ def build_simple_company_search_answer(generation_meta: dict, has_candidates: bo
     generation_meta["source_status_user_label"] = "법령조회 불필요"
     generation_meta["legal_basis_table_rendered"] = False
     generation_meta["legal_basis_to_purchase_route_mapped"] = False
+    item_query = _compact_item_query_label(str(generation_meta.get("company_search_query") or ""))
+    item_label = f" ({item_query} 기준)" if item_query else ""
 
     template = (
         "### 1. 질문의도 파악\n"
         "- 입력하신 질문은 법적 계약 가능 여부 판단이 아니라, 부산 지역업체 후보 검색 요청으로 분류했습니다.\n\n"
         "### 2. 지역업체 후보 소개\n"
-        "- 아래 후보는 조달등록·정책기업·쇼핑몰/MAS·인증 여부를 기준으로 정리한 검토 후보입니다.\n\n"
+        f"- 아래 후보는 조달등록·정책기업·쇼핑몰/MAS·인증 여부를 기준으로 정리한 검토 후보입니다{item_label}.\n\n"
     )
     if has_candidates:
         template += "[SERVER_TABLE_PLACEHOLDER]\n\n"
     else:
-        template += "(검색 결과에서 유효한 업체 후보를 추출하지 못했습니다.)\n\n"
+        template += f"(검색 결과에서 유효한 업체 후보를 추출하지 못했습니다{item_label}.)\n\n"
     template += (
         "### 3. 바로 할 일\n"
         "- 후보 업체가 실제 구매 품목을 납품할 수 있는지 품목·규격을 먼저 확인하세요.\n"

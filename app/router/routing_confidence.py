@@ -11,6 +11,11 @@ from dataclasses import asdict, dataclass, field
 import re
 from typing import Any
 
+try:
+    from app.router.intent_normalization import normalize_query_intent
+except Exception:  # Runtime path when app/ is on sys.path.
+    from router.intent_normalization import normalize_query_intent
+
 
 @dataclass
 class RoutingConfidence:
@@ -27,7 +32,7 @@ class RoutingConfidence:
 
 
 def _has_amount(text: str) -> bool:
-    return bool(re.search(r"\d+(?:\.\d+)?\s*(?:억|천만|백만|만원|원)", text or ""))
+    return normalize_query_intent(text or "").amount is not None or bool(re.search(r"\d+(?:\.\d+)?\s*(?:억|천만|백만|만원|원)", text or ""))
 
 
 def _has_contract_method(text: str) -> bool:
@@ -49,6 +54,8 @@ def _has_legal_terms(text: str) -> bool:
 
 
 def _has_specific_item_alias(text: str) -> bool:
+    if normalize_query_intent(text or "").item_name:
+        return True
     compact = (text or "").replace(" ", "").lower()
     return any(term in compact for term in (
         "led", "led등", "led조명", "엘이디", "엘이디등", "엘이디조명",
@@ -76,6 +83,7 @@ def assess_routing_confidence(
     router_result=None,
     intent_labels: list[str] | None = None,
     query_tier: int = 1,
+    intent_rag_result=None,
 ) -> RoutingConfidence:
     """Score routing certainty from deterministic and LLM-assisted signals."""
     intent_labels = intent_labels or []
@@ -117,6 +125,28 @@ def assess_routing_confidence(
         score += (rc - 0.5) * 0.35
         if rc < 0.65:
             reasons.append(f"llm_router_low_confidence:{rc:.2f}")
+
+    intent_rag_confidence = None
+    if intent_rag_result is not None:
+        try:
+            intent_rag_confidence = float(getattr(intent_rag_result, "confidence", 0.0) or 0.0)
+        except Exception:
+            intent_rag_confidence = None
+    if intent_rag_confidence is not None:
+        if intent_rag_confidence >= 0.78:
+            score += 0.16
+        elif intent_rag_confidence >= 0.58:
+            score += 0.08
+        else:
+            reasons.append(f"intent_rag_low_confidence:{intent_rag_confidence:.2f}")
+            score -= 0.03
+
+        if bool(getattr(intent_rag_result, "company_search_blocked", False)) and "company_search" in intent_labels:
+            reasons.append("intent_rag_blocks_company_search_but_label_present")
+            score -= 0.12
+        if bool(getattr(intent_rag_result, "company_search_required", False)) and "company_search" not in intent_labels:
+            reasons.append("intent_rag_company_search_missing_from_labels")
+            score -= 0.08
 
     company_intent = any(label in intent_labels for label in (
         "company_search", "policy_candidate_search", "shopping_mall_search",

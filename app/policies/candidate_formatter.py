@@ -110,6 +110,20 @@ def _determine_display_order(user_message: str) -> list:
     return sorted(DEFAULT_ORDER, key=lambda ct: (-scores[ct], DEFAULT_ORDER.index(ct)))
 
 
+def _merge_preferred_order(base_order: list, preferred_order: list | None) -> list:
+    preferred = [ct for ct in (preferred_order or []) if ct in DEFAULT_ORDER]
+    merged = []
+    for ct in preferred + base_order:
+        if ct not in merged:
+            merged.append(ct)
+    return merged
+
+
+def _has_explicit_candidate_intent(candidate_type: str, user_message: str) -> bool:
+    text = user_message or ""
+    return any(keyword in text for keyword in KEYWORD_MAP.get(candidate_type, []))
+
+
 def _build_company_table(rows: list) -> str:
     """업체 후보 행들을 Markdown 표로 변환."""
     if not rows:
@@ -221,8 +235,14 @@ def _build_priority_purchase_table(rows: list) -> str:
     return header + "\n".join(lines)
 
 
-def format_candidate_tables(classified: dict, user_message: str = "",
-                            safe_template: str = "", is_staging: bool = False) -> str:
+def format_candidate_tables(
+    classified: dict,
+    user_message: str = "",
+    safe_template: str = "",
+    is_staging: bool = False,
+    hidden_candidate_types: list[str] | set[str] | tuple[str, ...] | None = None,
+    preferred_order: list[str] | tuple[str, ...] | None = None,
+) -> str:
     """
     분류된 후보군을 구매 경로별 Markdown 표로 변환.
     Pro 경로/Flash fallback 경로 공용.
@@ -232,15 +252,20 @@ def format_candidate_tables(classified: dict, user_message: str = "",
         user_message: 사용자 원문 (표시 순서 결정용)
         safe_template: 안전 템플릿 (확인 필요 사항)
         is_staging: 스테이징 환경 여부 (display_enabled=False라도 staging_display_only면 생성)
+        hidden_candidate_types: 구매경로 판단상 전용 표를 생략할 후보 유형
+        preferred_order: 구매경로 판단상 우선 노출할 후보 유형 순서
 
     Returns:
         최종 답변 문자열
     """
-    order = _determine_display_order(user_message)
+    order = _merge_preferred_order(_determine_display_order(user_message), list(preferred_order or []))
+    hidden = set(hidden_candidate_types or [])
 
     # 표시할 후보군이 하나라도 있는지 확인
     has_any = False
     for ct in order:
+        if ct in hidden and not _has_explicit_candidate_intent(ct, user_message):
+            continue
         meta = CANDIDATE_TYPES[ct]
         # is_staging일 때는 get_data_source_status 기준 staging_display_only=True면 허용
         ds = get_data_source_status(ct)
@@ -258,6 +283,8 @@ def format_candidate_tables(classified: dict, user_message: str = "",
     tbl_num = 1
 
     for ct in order:
+        if ct in hidden and not _has_explicit_candidate_intent(ct, user_message):
+            continue
         meta = CANDIDATE_TYPES[ct]
         rows = classified.get(ct, [])
 

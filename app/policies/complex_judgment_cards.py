@@ -16,8 +16,16 @@ from dataclasses import asdict, dataclass, field
 import re
 from typing import Any
 
-from policies.purchase_route_guidance_policy import build_purchase_route_cards
-from policies.regional_support_catalog import match_regional_support_catalog
+try:
+    from policies.purchase_route_guidance_policy import build_purchase_route_cards
+    from policies.regional_support_catalog import match_regional_support_catalog
+except ImportError:  # package import path: app.policies.complex_judgment_cards
+    from importlib import import_module
+
+    _purchase_route_guidance_policy = import_module("app.policies.purchase_route_guidance_policy")
+    _regional_support_catalog = import_module("app.policies.regional_support_catalog")
+    build_purchase_route_cards = _purchase_route_guidance_policy.build_purchase_route_cards
+    match_regional_support_catalog = _regional_support_catalog.match_regional_support_catalog
 
 
 @dataclass(frozen=True)

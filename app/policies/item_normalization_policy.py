@@ -65,6 +65,42 @@ _ITEM_SYNONYM_GROUPS: list[dict] = [
         "aliases": ["노트북", "랩톱", "랩탑", "휴대용 컴퓨터"],
     },
     {
+        "canonical_name": "프린터",
+        "primary_search_term": "프린터",
+        "search_terms": ["프린터", "프린터기", "인쇄기"],
+        "aliases": ["프린터", "프린터기", "인쇄기"],
+    },
+    {
+        "canonical_name": "복사기",
+        "primary_search_term": "복사기",
+        "search_terms": ["복사기", "복합기", "디지털복합기"],
+        "aliases": ["복사기", "복합기", "디지털 복합기", "디지털복합기"],
+    },
+    {
+        "canonical_name": "냉난방기",
+        "primary_search_term": "냉난방기",
+        "search_terms": ["냉난방기", "냉난방", "에어컨", "공기조화기"],
+        "aliases": ["냉난방기", "냉난방", "에어컨", "공기조화기"],
+    },
+    {
+        "canonical_name": "가구",
+        "primary_search_term": "가구",
+        "search_terms": ["가구", "책상", "의자", "사무용가구"],
+        "aliases": ["가구", "책상", "의자", "사무용 가구", "사무용가구"],
+    },
+    {
+        "canonical_name": "서버",
+        "primary_search_term": "서버",
+        "search_terms": ["서버", "전산서버", "서버장비"],
+        "aliases": ["서버", "전산 서버", "전산서버", "서버장비"],
+    },
+    {
+        "canonical_name": "소프트웨어",
+        "primary_search_term": "소프트웨어",
+        "search_terms": ["소프트웨어", "SW", "상용소프트웨어", "패키지소프트웨어"],
+        "aliases": ["소프트웨어", "sw", "상용 소프트웨어", "상용소프트웨어", "패키지 소프트웨어", "패키지소프트웨어"],
+    },
+    {
         "canonical_name": "청소용역",
         "primary_search_term": "청소용역",
         "search_terms": ["청소용역", "건물청소", "환경미화", "청소"],

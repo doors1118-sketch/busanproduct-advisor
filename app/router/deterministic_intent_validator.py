@@ -59,7 +59,11 @@ class DeterministicIntentValidator:
         ]
         try:
             try:
-                from app.policies.procurement_router_lexicon import validator_keywords
+                from importlib import import_module
+
+                validator_keywords = import_module(
+                    "app.policies.procurement_router_lexicon"
+                ).validator_keywords
             except ImportError:
                 from policies.procurement_router_lexicon import validator_keywords
             self.local_support_keywords += validator_keywords("local_support_keywords")

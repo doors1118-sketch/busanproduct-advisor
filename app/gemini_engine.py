@@ -8,7 +8,8 @@ import re
 import json
 import time
 import uuid
-from typing import Optional
+import html
+from typing import Optional, Any
 from dotenv import load_dotenv
 import company_api
 
@@ -39,11 +40,18 @@ from policies.item_normalization_policy import (
     extract_item_keyword_with_synonyms,
     normalize_item_query,
 )
-from policies.purchase_route_guidance_policy import format_purchase_route_guidance_for_llm
+from policies.purchase_route_guidance_policy import (
+    build_purchase_route_cards,
+    derive_candidate_table_display_options,
+    format_purchase_route_guidance_for_llm,
+)
 from policies.regional_support_catalog import format_catalog_matches_for_llm
 from policies.practice_manual_cards import (
     format_practice_manual_cards_for_llm,
+    is_contract_procedure_query,
+    match_contract_lifecycle_cards,
     match_practice_manual_cards,
+    render_contract_lifecycle_for_answer,
     render_practice_manual_cards_for_answer,
 )
 from policies.pps_qa_cards import (
@@ -51,6 +59,7 @@ from policies.pps_qa_cards import (
     match_pps_qa_cards,
     render_pps_qa_cards_for_answer,
 )
+from policies.tool_loop_gate import assess_tool_loop_gate
 
 # Legacy regression guard: rag_dict values must be assembled with
 # rag_dict.get(key, "") for key in ["law", "qa", "manual", "innovation", "tech"].
@@ -61,6 +70,10 @@ _cited_laws = []
 # API 레이어용 generation_meta 저장 (매 chat 호출 후 업데이트)
 _last_generation_meta = {}
 _current_routing_confidence_meta = {}
+_current_tool_loop_gate_meta = {}
+_current_intent_rag_meta = {}
+_current_evidence_context_meta = {}
+_current_llm_payload_meta = {}
 
 from cachetools import TTLCache
 _mcp_cache = TTLCache(maxsize=100, ttl=3600)
@@ -71,6 +84,11 @@ _mcp_cache = TTLCache(maxsize=100, ttl=3600)
 USE_GEMINI_INTENT_ROUTER_IN_LEGACY = os.getenv(
     "USE_GEMINI_INTENT_ROUTER_IN_LEGACY", "true"
 ).lower() == "true"
+USE_GEMINI_ROUTE_ADJUDICATOR = os.getenv(
+    "USE_GEMINI_ROUTE_ADJUDICATOR",
+    os.getenv("USE_GEMINI_INTENT_ROUTER_IN_LEGACY", "true"),
+).lower() == "true"
+GEMINI_ROUTE_ADJUDICATOR_TIMEOUT_SEC = float(os.getenv("GEMINI_ROUTE_ADJUDICATOR_TIMEOUT_SEC", "3"))
 
 GENERIC_ITEM_TERMS = {
     "물품", "제품", "상품", "품목", "용역", "공사", "서비스", "장비", "비품",
@@ -79,6 +97,234 @@ GENERIC_ITEM_TERMS = {
     "다수공급자계약", "종합쇼핑몰", "나라장터", "제3자단가", "활용", "방법",
     "살", "사", "수", "있나", "있어", "있는지", "에서", "으로", "로",
 }
+
+LEGAL_EVIDENCE_TOOL_NAMES = {
+    "search_law",
+    "get_law_text",
+    "search_interpretations",
+    "search_decisions",
+    "get_annexes",
+    "chain_full_research",
+    "chain_action_basis",
+    "chain_law_system",
+    "search_admin_rule",
+    "get_admin_rule",
+    "chain_procedure_detail",
+    "chain_ordinance_compare",
+    "chain_amendment_track",
+    "chain_document_review",
+    "get_decision_text",
+}
+
+
+def _env_int_value(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+
+
+def _normalize_evidence_context_mode(value: str | None) -> str:
+    mode = (value or "shadow").strip().lower()
+    aliases = {
+        "legacy": "raw",
+        "off": "raw",
+        "none": "raw",
+        "cards": "card",
+        "compressed": "card",
+        "evidence_card": "card",
+        "evidence_cards": "card",
+        "card_only": "card",
+        "raw_plus_card": "dual",
+        "card_plus_raw": "dual",
+        "compare": "shadow",
+    }
+    mode = aliases.get(mode, mode)
+    if mode not in {"raw", "shadow", "card", "dual"}:
+        return "shadow"
+    return mode
+
+
+def _evidence_context_mode(env_name: str = "EVIDENCE_CONTEXT_MODE") -> str:
+    return _normalize_evidence_context_mode(os.getenv(env_name, os.getenv("EVIDENCE_CONTEXT_MODE", "shadow")))
+
+
+def _select_evidence_context(
+    *,
+    raw_context: str,
+    card_context: str,
+    mode: str,
+    prefix: str,
+    cards: list[dict[str, Any]] | None = None,
+) -> tuple[str, dict[str, Any]]:
+    """Choose what the LLM sees while keeping raw/card comparison telemetry."""
+    raw_context = raw_context or ""
+    card_context = card_context or ""
+    requested_mode = _normalize_evidence_context_mode(mode)
+    dual_raw_limit = _env_int_value("EVIDENCE_CONTEXT_DUAL_RAW_CHARS", 3000)
+    min_raw_chars_for_card = _env_int_value("EVIDENCE_CONTEXT_MIN_RAW_CHARS", 2000)
+    allow_longer_card = os.getenv("EVIDENCE_CONTEXT_ALLOW_LONGER_CARD", "false").lower() == "true"
+    card_is_useful = bool(card_context) and (
+        allow_longer_card
+        or len(card_context) < len(raw_context)
+        or len(raw_context) >= min_raw_chars_for_card
+    )
+
+    if requested_mode == "card" and card_is_useful:
+        selected = card_context
+        applied_mode = "card"
+    elif requested_mode == "dual" and card_context:
+        raw_tail = raw_context[:dual_raw_limit]
+        selected = (
+            f"{card_context}\n\n"
+            f"### [원문 대조 발췌 — QA 비교용, 최대 {dual_raw_limit}자]\n{raw_tail}"
+        ).strip()
+        applied_mode = "dual"
+    else:
+        selected = raw_context
+        if requested_mode in {"raw", "shadow"}:
+            applied_mode = "raw"
+        elif not card_context:
+            applied_mode = "raw_fallback_no_card"
+        else:
+            applied_mode = "raw_fallback_card_not_shorter"
+
+    raw_chars = len(raw_context)
+    card_chars = len(card_context)
+    selected_chars = len(selected)
+    hit_count = sum(1 for card in cards or [] if card.get("status") == "hit")
+    miss_count = sum(1 for card in cards or [] if card.get("status") != "hit")
+    compression_ratio = round(card_chars / raw_chars, 3) if raw_chars else 0.0
+    savings_pct = round((1 - (selected_chars / raw_chars)) * 100, 1) if raw_chars else 0.0
+
+    return selected, {
+        f"{prefix}_mode_requested": requested_mode,
+        f"{prefix}_mode_applied": applied_mode,
+        f"{prefix}_comparison_enabled": requested_mode in {"shadow", "card", "dual"},
+        f"{prefix}_raw_chars": raw_chars,
+        f"{prefix}_card_chars": card_chars,
+        f"{prefix}_llm_chars": selected_chars,
+        f"{prefix}_card_to_raw_ratio": compression_ratio,
+        f"{prefix}_char_savings_pct": savings_pct,
+        f"{prefix}_card_hit_count": hit_count,
+        f"{prefix}_card_miss_count": miss_count,
+        f"{prefix}_card_allowed_when_longer": allow_longer_card,
+        f"{prefix}_min_raw_chars_for_card": min_raw_chars_for_card,
+    }
+
+
+def _function_args_dict(function_call) -> dict[str, Any]:
+    try:
+        return dict(function_call.args) if function_call.args else {}
+    except Exception:
+        return {}
+
+
+def _text_char_len(value) -> int:
+    return len(value or "") if isinstance(value, str) else len(str(value or ""))
+
+
+def _content_text_chars(contents) -> int:
+    total = 0
+    for content in contents or []:
+        for part in getattr(content, "parts", []) or []:
+            text = getattr(part, "text", None)
+            if text:
+                total += len(text)
+            function_response = getattr(part, "function_response", None)
+            if function_response is not None:
+                total += len(str(function_response))
+            function_call = getattr(part, "function_call", None)
+            if function_call is not None:
+                total += len(str(function_call))
+    return total
+
+
+def _is_legal_evidence_tool(tool_name: str) -> bool:
+    return (tool_name or "") in LEGAL_EVIDENCE_TOOL_NAMES
+
+
+def _build_llm_tool_response(
+    function_call,
+    result_str: str,
+    *,
+    selected_reason: str = "llm_tool_loop",
+) -> tuple[str, dict[str, Any] | None, dict[str, Any]]:
+    """Return the tool payload for Gemini plus compact comparison metadata.
+
+    ``result_str`` remains the server-side raw result in all_tool_results.  Only
+    the payload sent back into Gemini is switched by EVIDENCE_TOOL_RESPONSE_MODE.
+    """
+    tool_name = getattr(function_call, "name", "")
+    if not _is_legal_evidence_tool(tool_name):
+        return result_str, None, {}
+
+    args = _function_args_dict(function_call)
+    evidence_card = None
+    card_context = ""
+    try:
+        from policies.legal_evidence_cards import build_evidence_card, render_evidence_card_context
+
+        evidence_card = build_evidence_card(
+            tool_name=tool_name,
+            args=args,
+            result=result_str,
+            from_cache=False,
+            elapsed_ms=0,
+            selected_reason=selected_reason,
+        )
+        card_context = render_evidence_card_context(
+            [evidence_card],
+            max_cards=1,
+            excerpt_limit=_env_int_value("EVIDENCE_CONTEXT_EXCERPT_CHARS", 450),
+        )
+    except Exception as e:
+        print(f"  [EVIDENCE-CONTEXT] tool response card skipped: {e}", flush=True)
+
+    mode = _evidence_context_mode("EVIDENCE_TOOL_RESPONSE_MODE")
+    selected, meta = _select_evidence_context(
+        raw_context=result_str,
+        card_context=card_context,
+        mode=mode,
+        prefix="tool_response_context",
+        cards=[evidence_card] if evidence_card else [],
+    )
+    meta["tool_response_context_tool_name"] = tool_name
+    meta["tool_response_context_compressed_for_llm"] = selected != (result_str or "")
+    return selected, evidence_card, meta
+
+
+def _summarize_tool_response_context(all_tool_results: list[dict[str, Any]]) -> dict[str, Any]:
+    raw_chars = 0
+    llm_chars = 0
+    card_count = 0
+    compressed_count = 0
+    modes: dict[str, int] = {}
+
+    for item in all_tool_results or []:
+        raw_len = int(item.get("raw_result_chars", len(str(item.get("result", ""))) if item.get("result") is not None else 0) or 0)
+        llm_len = int(item.get("llm_result_chars", raw_len) or 0)
+        raw_chars += raw_len
+        llm_chars += llm_len
+        if item.get("evidence_card"):
+            card_count += 1
+        if item.get("tool_response_context_compressed_for_llm"):
+            compressed_count += 1
+        mode = item.get("tool_response_context_mode_applied")
+        if mode:
+            modes[mode] = modes.get(mode, 0) + 1
+
+    if not raw_chars and not llm_chars:
+        return {}
+
+    return {
+        "tool_response_context_raw_chars": raw_chars,
+        "tool_response_context_llm_chars": llm_chars,
+        "tool_response_context_char_savings_pct": round((1 - (llm_chars / raw_chars)) * 100, 1) if raw_chars else 0.0,
+        "tool_response_context_card_count": card_count,
+        "tool_response_context_compressed_count": compressed_count,
+        "tool_response_context_modes": modes,
+    }
 
 
 def _run_legacy_gemini_intent_router(user_message: str):
@@ -107,6 +353,172 @@ def _run_legacy_gemini_intent_router(user_message: str):
     except Exception as e:
         print(f"  [GEMINI-INTENT] skipped: {e}")
         return None
+
+
+def _run_llm_route_adjudicator(user_message: str, context_card: dict):
+    """Run Gemini as a latency-bounded final route adjudicator."""
+    if not USE_GEMINI_ROUTE_ADJUDICATOR:
+        return None, {
+            "enabled": False,
+            "called": False,
+            "status": "disabled",
+        }
+
+    start = time.time()
+    executor = None
+    try:
+        try:
+            from app.router.gemini_intent_router import GeminiIntentRouter
+        except ImportError:
+            from router.gemini_intent_router import GeminiIntentRouter
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+
+        executor = ThreadPoolExecutor(max_workers=1)
+        future = executor.submit(
+            lambda: GeminiIntentRouter().route_with_context_card(user_message, context_card)
+        )
+        try:
+            result = future.result(timeout=GEMINI_ROUTE_ADJUDICATOR_TIMEOUT_SEC)
+        except FutureTimeout:
+            future.cancel()
+            elapsed_ms = int((time.time() - start) * 1000)
+            print(
+                f"  [LLM-ADJUDICATOR] timeout after {elapsed_ms}ms",
+                flush=True,
+            )
+            return None, {
+                "enabled": True,
+                "called": True,
+                "status": "timeout",
+                "elapsed_ms": elapsed_ms,
+                "timeout_sec": GEMINI_ROUTE_ADJUDICATOR_TIMEOUT_SEC,
+            }
+
+        elapsed_ms = int((time.time() - start) * 1000)
+        result_reason = str(getattr(result, "reason", "") or "")
+        if (
+            "GEMINI_API_KEY is not set" in result_reason
+            or "Gemini router client is not configured" in result_reason
+            or "Gemini adjudicator API error" in result_reason
+        ):
+            print(
+                f"  [LLM-ADJUDICATOR] unavailable: {result_reason[:120]}",
+                flush=True,
+            )
+            return None, {
+                "enabled": True,
+                "called": True,
+                "status": "unavailable",
+                "elapsed_ms": elapsed_ms,
+                "reason": result_reason[:300],
+            }
+        print(
+            "  [LLM-ADJUDICATOR] "
+            f"primary={getattr(result, 'primary_intent', '')} "
+            f"secondary={list(getattr(result, 'secondary_intents', []) or [])} "
+            f"decision={getattr(result, 'routing_decision', '')} "
+            f"candidate_lookup={bool(getattr(result, 'candidate_lookup_required', False))} "
+            f"elapsed_ms={elapsed_ms}",
+            flush=True,
+        )
+        return result, {
+            "enabled": True,
+            "called": True,
+            "status": "success",
+            "elapsed_ms": elapsed_ms,
+            "timeout_sec": GEMINI_ROUTE_ADJUDICATOR_TIMEOUT_SEC,
+        }
+    except Exception as e:
+        elapsed_ms = int((time.time() - start) * 1000)
+        print(f"  [LLM-ADJUDICATOR] failed: {e}", flush=True)
+        return None, {
+            "enabled": True,
+            "called": True,
+            "status": "failed",
+            "elapsed_ms": elapsed_ms,
+            "error": str(e)[:300],
+        }
+    finally:
+        if executor is not None:
+            executor.shutdown(wait=False, cancel_futures=True)
+
+
+def _labels_from_router_adjudication(router_result, user_message: str = "") -> list[str]:
+    """Translate RouterResult intents into legacy routing labels."""
+    if router_result is None:
+        return []
+
+    labels: list[str] = []
+
+    def add(*values: str) -> None:
+        for value in values:
+            if value and value not in labels:
+                labels.append(value)
+
+    intents = [getattr(router_result, "primary_intent", "")] + list(getattr(router_result, "secondary_intents", []) or [])
+    for intent in intents:
+        if intent == "legal_explanation":
+            add("legal_explanation", "common_procurement")
+        elif intent == "contract_review":
+            add("contract_review")
+        elif intent == "local_purchase_support":
+            add("local_purchase_support")
+        elif intent == "candidate_search":
+            add("company_search")
+        elif intent == "item_eligibility":
+            add("item_eligibility", "certified_product_search")
+        elif intent == "procurement_route_review":
+            add("procurement_route_review", "mas_shopping_mall")
+        elif intent == "mixed":
+            add("mixed_contract")
+
+    slots = getattr(router_result, "slots", None)
+    contract_object = getattr(slots, "contract_object", None) if slots else None
+    if contract_object == "goods":
+        add("item_purchase")
+    elif contract_object == "service":
+        add("service_contract")
+    elif contract_object == "construction":
+        add("construction_contract")
+
+    if bool(getattr(router_result, "candidate_lookup_required", False)) and not _is_legal_definition_query(user_message):
+        add("company_search")
+
+    return labels
+
+
+def _apply_router_adjudication_to_labels(intent_labels: list[str], router_result, user_message: str) -> tuple[list[str], dict]:
+    """Apply validated LLM adjudication as final routing signal."""
+    before = list(intent_labels or [])
+    labels = list(dict.fromkeys(before))
+    additions = _labels_from_router_adjudication(router_result, user_message)
+    for label in additions:
+        if label not in labels:
+            labels.append(label)
+
+    removed: list[str] = []
+    if router_result is not None:
+        router_intents = [getattr(router_result, "primary_intent", "")] + list(getattr(router_result, "secondary_intents", []) or [])
+        candidate_intent = "candidate_search" in router_intents or bool(getattr(router_result, "candidate_lookup_required", False))
+        if not candidate_intent and "company_search" in labels:
+            try:
+                try:
+                    from app.router.intent_normalization import normalize_query_intent
+                except ImportError:
+                    from router.intent_normalization import normalize_query_intent
+                norm = normalize_query_intent(user_message)
+                if norm.company_lookup_blocked or not norm.company_lookup_requested:
+                    labels = [label for label in labels if label != "company_search"]
+                    removed.append("company_search")
+            except Exception:
+                pass
+
+    return labels, {
+        "labels_before": before,
+        "labels_added": [label for label in additions if label not in before],
+        "labels_removed": removed,
+        "labels_after": labels,
+    }
 
 
 def _should_skip_gemini_intent_router(user_message: str, gateway_decision=None) -> bool:
@@ -148,6 +560,79 @@ def _router_result_to_meta(router_result) -> dict:
         "contract_method": getattr(slots, "contract_method", None) if slots else None,
         "location": getattr(slots, "location", None) if slots else None,
     }
+
+
+def _resolve_intent_rag_context(user_message: str):
+    """Resolve local Intent RAG context. Fail-open to existing routing."""
+    try:
+        try:
+            from router.intent_rag_resolver import resolve_intent_context
+        except ImportError:
+            from app.router.intent_rag_resolver import resolve_intent_context
+        decision = resolve_intent_context(user_message)
+        print(
+            "  [INTENT-RAG] "
+            f"primary={decision.primary_intent} "
+            f"labels={list(decision.intent_labels)} "
+            f"mode={decision.answer_mode} "
+            f"confidence={decision.confidence:.2f} "
+            f"company_required={decision.company_search_required} "
+            f"blocked={decision.company_search_blocked}",
+            flush=True,
+        )
+        return decision
+    except Exception as e:
+        print(f"  [INTENT-RAG] skipped: {e}", flush=True)
+        return None
+
+
+def _intent_rag_prefixed_meta(decision) -> dict:
+    if decision is None:
+        return {
+            "intent_rag_enabled": True,
+            "intent_rag_status": "not_available",
+        }
+    try:
+        raw = decision.to_meta()
+    except Exception:
+        return {
+            "intent_rag_enabled": True,
+            "intent_rag_status": "serialize_failed",
+        }
+    return {
+        "intent_rag_enabled": bool(raw.get("enabled", True)),
+        "intent_rag_status": raw.get("status", ""),
+        "intent_rag_primary_intent": raw.get("primary_intent", ""),
+        "intent_rag_labels": raw.get("intent_labels", []),
+        "intent_rag_sub_intents": raw.get("sub_intents", []),
+        "intent_rag_answer_mode": raw.get("answer_mode", ""),
+        "intent_rag_confidence": raw.get("confidence", 0.0),
+        "intent_rag_confidence_level": raw.get("confidence_level", ""),
+        "intent_rag_company_search_required": raw.get("company_search_required", False),
+        "intent_rag_company_search_blocked": raw.get("company_search_blocked", False),
+        "intent_rag_local_purchase_support_required": raw.get("local_purchase_support_required", False),
+        "intent_rag_contract_review_required": raw.get("contract_review_required", False),
+        "intent_rag_procedure_required": raw.get("procedure_required", False),
+        "intent_rag_legal_basis_required": raw.get("legal_basis_required", False),
+        "intent_rag_llm_router_required": raw.get("llm_router_required", True),
+        "intent_rag_corpus_record_count": raw.get("corpus_record_count", 0),
+        "intent_rag_item_name": raw.get("item_name", ""),
+        "intent_rag_contract_object": raw.get("contract_object", ""),
+        "intent_rag_amount": raw.get("amount"),
+        "intent_rag_reasons": raw.get("reasons", []),
+        "intent_rag_matched_examples": raw.get("matched_examples", []),
+    }
+
+
+def _build_intent_rag_guidance_context(decision) -> str:
+    try:
+        try:
+            from router.intent_rag_resolver import format_intent_context_for_llm
+        except ImportError:
+            from app.router.intent_rag_resolver import format_intent_context_for_llm
+        return format_intent_context_for_llm(decision)
+    except Exception:
+        return ""
 
 
 def _is_specific_item_keyword(value: str) -> bool:
@@ -240,7 +725,39 @@ def _resolve_company_item_query(user_message: str, router_result=None) -> str:
     return ""
 
 
-def _should_prefetch_company_routes(user_message: str, router_result=None) -> tuple[bool, str, str]:
+def _is_explicit_company_lookup(user_message: str) -> bool:
+    """사용자가 업체 후보/목록 조회를 명시했는지 보수적으로 판단한다."""
+    try:
+        from app.router.intent_normalization import normalize_query_intent
+    except Exception:
+        try:
+            from router.intent_normalization import normalize_query_intent
+        except Exception:
+            normalize_query_intent = None
+
+    if normalize_query_intent is not None:
+        norm = normalize_query_intent(user_message)
+        return bool(norm.company_lookup_requested and not norm.company_lookup_blocked)
+
+    compact = re.sub(r"\s+", "", user_message or "").lower()
+    if not compact:
+        return False
+    if re.search(r"(업체명|업체추천|업체후보|후보|목록|리스트|업체검색|검색|조회)(?:은|는)?(?:필요없|빼|제외|말고|하지마)", compact):
+        return False
+    explicit_terms = (
+        "업체추천", "기업추천", "업체후보", "기업후보", "후보추천",
+        "업체목록", "기업목록", "업체리스트", "기업리스트", "업체명",
+        "공급업체", "납품업체", "등록업체", "조달등록업체",
+    )
+    if any(term in compact for term in explicit_terms):
+        return True
+    has_company_subject = any(term in compact for term in ("업체", "기업", "공급사", "납품사"))
+    has_lookup_verb = any(term in compact for term in ("추천", "후보", "목록", "리스트", "찾아", "검색", "조회", "보여"))
+    strategy_terms = ("방법", "제도", "검토", "참여", "활용", "우대", "가점", "지역제한", "어떻게")
+    return bool(has_company_subject and has_lookup_verb and not any(term in compact for term in strategy_terms))
+
+
+def _should_prefetch_company_routes(user_message: str, router_result=None, intent_rag_decision=None, route_plan=None) -> tuple[bool, str, str]:
     """Tier 2 업체 멀티검색 실행 여부를 결정한다.
 
     원칙: 구체 품목이 있고, 사용자가 지역업체/후보/구매전략을 묻는 경우만 업체 검색한다.
@@ -248,6 +765,27 @@ def _should_prefetch_company_routes(user_message: str, router_result=None) -> tu
     query = _resolve_company_item_query(user_message, router_result)
     if not query:
         return False, "", "no_specific_item"
+
+    if route_plan is not None:
+        company_mode = getattr(route_plan, "company_search_mode", "none")
+        if company_mode in ("candidates_only", "route_relevant_candidates"):
+            return True, query, f"route_plan_company_prefetch:{company_mode}"
+        if company_mode == "none" and not _is_explicit_company_lookup(user_message):
+            return False, query, "route_plan_no_company_lookup"
+
+    if intent_rag_decision is not None:
+        intent_confidence = float(getattr(intent_rag_decision, "confidence", 0.0) or 0.0)
+        if (
+            intent_confidence >= 0.6
+            and bool(getattr(intent_rag_decision, "company_search_required", False))
+        ):
+            return True, query, "intent_rag_company_prefetch_required"
+        if (
+            intent_confidence >= 0.7
+            and bool(getattr(intent_rag_decision, "company_search_blocked", False))
+            and not _is_explicit_company_lookup(user_message)
+        ):
+            return False, query, "intent_rag_blocks_company_lookup"
 
     fallback_company_intent = any(
         kw in user_message
@@ -285,6 +823,50 @@ def _should_prefetch_company_routes(user_message: str, router_result=None) -> tu
     if fallback_purchase_case_intent:
         return True, query, "amount_item_purchase_case_support"
     return False, query, "fallback_no_company_intent"
+
+
+def _route_plan_needs(route_plan, *needs: str) -> bool:
+    if route_plan is None:
+        return False
+    retrieval_needs = set(getattr(route_plan, "retrieval_needs", ()) or ())
+    return any(need in retrieval_needs for need in needs)
+
+
+def _route_plan_execution_mode(route_plan) -> str:
+    return str(getattr(route_plan, "execution_mode", "") or "")
+
+
+def _should_fast_track_from_route_plan(route_plan, routing_confidence_meta: dict, query_tier: int) -> bool:
+    if route_plan is None:
+        return query_tier == 0
+    if routing_confidence_meta.get("routing_confidence_action") == "avoid_fast_track":
+        return False
+    return (
+        bool(getattr(route_plan, "use_fast_track", False))
+        and _route_plan_execution_mode(route_plan) == "company_fast_track"
+        and getattr(route_plan, "company_search_mode", "") == "candidates_only"
+    )
+
+
+def _should_run_legal_preflight_from_route_plan(route_plan, query_tier: int) -> bool:
+    if route_plan is None:
+        return query_tier in (1, 2)
+    return (
+        bool(getattr(route_plan, "legal_review_required", False))
+        or _route_plan_needs(route_plan, "legal_basis", "regional_support_catalog")
+        or _route_plan_execution_mode(route_plan) in {"evidence_prefetch", "agency_specific"}
+    )
+
+
+def _should_run_multi_route_prefetch_from_route_plan(route_plan, query_tier: int, amount_detected) -> bool:
+    if amount_detected is None:
+        return False
+    if route_plan is None:
+        return query_tier == 2
+    return (
+        getattr(route_plan, "company_search_mode", "") == "route_relevant_candidates"
+        or _route_plan_needs(route_plan, "purchase_route_cards", "company_candidates")
+    )
 
 
 def _is_legal_definition_query(user_message: str) -> bool:
@@ -345,6 +927,101 @@ def _try_regional_restriction_standard_fast_answer(user_message: str) -> str:
     return answer.answer if answer else ""
 
 
+def _is_practice_priority_question(user_message: str) -> bool:
+    """Questions that should use practice/RoutePlan guidance before PPS Q&A."""
+    q = (user_message or "").replace(" ", "").lower()
+    if not q:
+        return False
+    checks = [
+        ("디자인" in q and "인쇄" in q),
+        (any(term in q for term in ("분리발주", "분할발주", "쪼개기", "나눠발주", "묶어발주"))),
+        ("부대공사" in q),
+        (any(term in q for term in ("공사용자재", "관급자재", "직접구매"))),
+        (any(term in q for term in ("특정브랜드", "특정상표", "브랜드")) and any(term in q for term in ("규격서", "동등", "부당제한"))),
+        (all(term in q for term in ("추정가격", "예정가격"))),
+        (any(term in q for term in ("계약절차", "구매절차", "흐름", "단계", "순서", "처음부터"))),
+        (any(term in q for term in ("소방시설공사", "정보통신공사", "조경공사", "포장공사"))),
+        (any(term in q for term in ("국가기관", "국가계약", "공기업", "준정부", "공공기관")) and "지방계약" in q),
+    ]
+    return any(checks)
+
+
+def _build_pps_qa_interpretation_fast_answer(user_message: str, intent_rag_decision=None) -> tuple[str, list[dict]]:
+    """조달청 Q&A 해석사례형 질문은 LLM 루프 전에 카드 기반으로 답한다."""
+    if _is_practice_priority_question(user_message):
+        return "", []
+    if intent_rag_decision is None:
+        return "", []
+    if getattr(intent_rag_decision, "answer_mode", "") != "pps_qa_interpretation":
+        return "", []
+    if float(getattr(intent_rag_decision, "confidence", 0.0) or 0.0) < 0.58:
+        return "", []
+
+    cards = match_pps_qa_cards(user_message, max_cards=3)
+    if not cards:
+        return "", []
+
+    q = (user_message or "").replace(" ", "").lower()
+    lines = [
+        "### 1. 질문의도 파악",
+        "- 이 질문은 단순 조문 조회가 아니라, 기존 조달청 질의응답·실무 해석사례와 유사한 쟁점을 설명해 달라는 요청으로 분류했습니다.",
+        "- 아래 사례는 실무 해석 보조자료이며, 최종 법적 결론은 적용 기관, 계약문서, 내부 법령 DB와 source map으로 다시 확인해야 합니다.",
+        "",
+        "### 2. 유사 해석사례 요지",
+    ]
+    for card in cards[:3]:
+        title = str(card.get("title") or "조달청 질의응답 해석사례")
+        date = f" ({card.get('date')})" if card.get("date") else ""
+        excerpt = html.unescape(re.sub(r"\s+", " ", str(card.get("answer_excerpt") or "")).strip())
+        excerpt = re.sub(r"^\d+\.\s*안녕하십니까\?\s*", "", excerpt)
+        excerpt = re.sub(r"귀하께서 국민신문고를 통해 신청하신 민원[^.。]*[.。]\s*", "", excerpt)
+        excerpt = re.sub(r"^\d+\.\s*", "", excerpt).strip()
+        if len(excerpt) > 360:
+            excerpt = excerpt[:360].rstrip() + "..."
+        lines.append(f"- **{title}**{date}: {excerpt}")
+
+    lines.extend(["", "### 3. 실무 검토 순서"])
+    if "자동연장" in q or "계약기간" in q:
+        lines.extend([
+            "- 자동연장 조항은 특별한 사유 없이 반복 갱신되는 구조인지 먼저 봅니다.",
+            "- 업무 공백을 막기 위한 단기간 잠정 연장인지, 사실상 경쟁절차를 회피하는 구조인지 구분합니다.",
+            "- 차기 계약 절차 착수 시점, 장기계속계약 활용 가능성, 계약문서상 연장 근거를 함께 확인합니다.",
+        ])
+    elif "간접비" in q or "공사기간" in q or "공기연장" in q:
+        lines.extend([
+            "- 공사기간 연장 원인이 발주기관 사정, 불가항력, 계약상대자 책임 여부 중 어디에 해당하는지 먼저 구분합니다.",
+            "- 연장 기간과 실제 추가 지출 사이의 관련성을 자료로 남깁니다.",
+            "- **간접비**는 항목명만으로 자동 인정하지 말고, 숙소비·임차료·현장관리비 등 실제 발생비용과 계약조건·실비 산정자료를 함께 보아 조정 대상 여부를 검토합니다.",
+            "- 지방계약 사안이면 국가계약 해석사례를 그대로 결론으로 쓰지 말고 지방계약 법령·예규 기준으로 다시 대조합니다.",
+        ])
+    else:
+        lines.extend([
+            "- 기관유형과 적용 법체계를 먼저 확정합니다.",
+            "- 계약문서, 공고문, 과업지시서, 산출내역서 등 사실관계 자료를 확인합니다.",
+            "- 유사 해석사례는 판단 방향을 잡는 데 쓰고, 금액·조문·기한은 최신 내부 법령 DB 기준으로 재확인합니다.",
+        ])
+
+    lines.extend([
+        "",
+        "### 4. 확인 필요사항",
+        "- 유사 조달청 Q&A는 법적 구속력이 있는 최종 근거가 아니라 실무 해석 참고자료입니다.",
+        "- 실제 처리 전에는 해당 기관의 계약담당자 판단, 계약문서, 적용 법령·행정규칙 원문을 함께 확인하세요.",
+        "- 금액 기준, 조문 번호, 시행일은 매뉴얼·Q&A가 아니라 내부 법령 DB와 source map 기준을 우선합니다.",
+    ])
+    return "\n".join(lines), cards
+
+
+def _display_amount_for_answer(amount: int | None, user_message: str) -> str:
+    if amount is None:
+        return "금액 미확인"
+    compact = (user_message or "").replace(" ", "").replace(",", "")
+    original = re.search(r"\d+(?:\.\d+)?(?:천만원|백만원|억원|억|천만|백만|만원|원)", compact)
+    numeric = f"{amount:,}원"
+    if original:
+        return f"{original.group(0)}({numeric})"
+    return numeric
+
+
 def _is_practice_manual_fast_query(user_message: str) -> bool:
     """실무 매뉴얼 카드로 빠르게 답할 수 있는 설명/비교/절차형 질문인지 판별한다."""
     q = (user_message or "").replace(" ", "").lower()
@@ -352,24 +1029,39 @@ def _is_practice_manual_fast_query(user_message: str) -> bool:
         return False
     if _parse_amount(user_message) is not None:
         return False
-    if any(term in q for term in ("부산업체", "지역업체", "업체추천", "업체후보", "업체있", "찾아", "검색")):
+    if any(term in q for term in ("업체추천", "업체후보", "업체있", "찾아", "검색")) and not (
+        ("면허" in q and "공사" in q)
+        or "직접생산" in q
+        or "중소기업자간" in q
+    ):
         return False
-    if any(term in q for term in ("가능", "되나", "될까", "해도", "할수", "계약해도")) and any(
+    explanatory_possible_question = (
+        "용역" in q
+        and "지역제한" in q
+        and any(term in q for term in ("부산", "지역업체", "설명", "관점"))
+    )
+    if (
+        not explanatory_possible_question
+        and any(term in q for term in ("가능", "되나", "될까", "해도", "할수", "계약해도"))
+    ) and any(
         method in q for method in ("수의계약", "지역제한", "공동도급", "입찰", "가점")
     ):
         return False
 
     practice_intent = any(term in q for term in (
         "뜻", "개념", "정의", "용어", "차이", "다르게", "구분", "뭐야", "무슨말",
-        "절차", "흐름", "단계", "순서", "프로세스", "쟁점", "체크", "봐야", "확인",
+        "절차", "흐름", "단계", "순서", "프로세스", "쟁점", "체크", "봐야", "확인", "검토", "방법", "알려",
         "유의", "주의", "어떤계약", "어떻게검토", "어떻게", "달라", "예시", "설명",
-        "정리", "한번에", "전체",
+        "정리", "한번에", "전체", "문제", "리스크", "분리발주", "분할발주", "쪼개기",
+        "나눠발주", "나누어발주", "묶어발주", "기준", "공고문", "입찰공고",
     ))
     procurement_context = any(term in q for term in (
         "계약", "입찰", "수의", "견적", "물품", "용역", "공사", "유지보수",
         "종합쇼핑몰", "mas", "제3자단가", "지역제한", "공동도급", "가점",
         "공동이행", "분담이행", "공동수급", "공동계약", "제안요청서", "과업지시서",
-        "중소기업자간", "직접생산", "지역상품", "구매지원", "지원제도",
+        "중소기업자간", "직접생산", "지역상품", "구매", "제품", "공공구매", "우선구매", "구매지원", "지원제도",
+        "추정가격", "예정가격", "기초금액", "추정금액", "규격서", "브랜드", "부당제한", "동등이상",
+        "지체상금", "지연배상금",
     ))
     return practice_intent and procurement_context
 
@@ -381,7 +1073,161 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
 
     agency_key = _normalize_agency_type(agency_type) if agency_type else "default"
     q = (user_message or "").replace(" ", "").lower()
+    item_hint = next(
+        (
+            term
+            for term in (
+                "보안용카메라", "냉난방기", "경비용역", "청소용역", "포장공사", "전기공사", "행사용역",
+                "컴퓨터", "노트북", "프린터", "서버", "근무복", "단체복",
+            )
+            if term in (user_message or "")
+        ),
+        "",
+    )
     is_joint_method_question = "공동이행" in q or "분담이행" in q
+    contract_object = _get_router_contract_object(None, user_message)
+    agency_for_cards = agency_key if agency_key != "default" else None
+    is_public_purchase_question = any(term in q for term in ("공공구매", "우선구매")) and any(term in q for term in ("부산업체", "지역업체", "부산", "지역상품"))
+    is_construction_material_question = any(term in q for term in ("공사용자재", "관급자재", "직접구매"))
+    is_split_procurement_question = (
+        any(term in q for term in ("분리발주", "분할발주", "쪼개기", "나눠발주", "나누어발주", "묶어발주"))
+        and any(term in q for term in ("공사", "물품", "용역", "발주", "구매"))
+    )
+    is_design_print_mixed_question = "디자인" in q and "인쇄" in q and any(term in q for term in ("용역", "물품", "발주", "구매"))
+    is_incidental_work_question = "부대공사" in q or ("주된공사" in q and "부대" in q)
+    is_bid_notice_local_company_question = (
+        any(term in q for term in ("입찰공고문", "입찰공고", "공고문"))
+        and any(term in q for term in ("지역업체", "부산업체", "지역상품", "부산"))
+        and any(term in q for term in ("확인", "항목", "체크", "활용", "작성", "만들"))
+    )
+    is_construction_license_basis_question = (
+        any(term in q for term in ("전기공사", "소방공사", "정보통신공사", "공사업체"))
+        and any(term in q for term in ("부산업체", "지역업체", "후보"))
+        and "면허" in q
+    )
+    is_road_pavement_regional_strategy_question = (
+        "포장공사" in q
+        and any(term in q for term in ("지역제한", "공동도급", "적격심사", "지역업체"))
+    )
+    is_event_service_regional_question = (
+        "행사용역" in q
+        and any(term in q for term in ("부산업체", "지역업체", "참가자격", "발주"))
+    )
+    is_service_regional_restriction_question = (
+        "용역" in q
+        and "지역제한" in q
+        and any(term in q for term in ("부산업체", "지역업체", "부산", "활용", "설명"))
+    )
+    is_service_local_participation_question = (
+        "용역" in q
+        and any(term in q for term in ("부산업체", "지역업체", "부산", "지역상품"))
+        and any(term in q for term in ("참여", "활용", "방법", "가능한방법", "계약하려면", "발주하려면", "어떻게"))
+    )
+    is_price_terms_question = all(term in q for term in ("추정가격", "예정가격", "기초금액")) or (
+        "추정금액" in q and any(term in q for term in ("차이", "구분", "뭐야"))
+    )
+    is_delay_penalty_question = "지체상금" in q and "지연배상금" in q
+    is_specific_brand_spec_question = (
+        any(term in q for term in ("특정브랜드", "특정상표", "브랜드"))
+        and any(term in q for term in ("규격서", "동등", "부당제한", "노트북"))
+    )
+    is_private_school_subsidy_question = (
+        "사립대학교" in q
+        and any(term in q for term in ("국고보조금", "보조금"))
+        and any(term in q for term in ("국가계약", "용역", "발주", "절차"))
+    )
+    is_landscape_construction_regional_question = (
+        "조경공사" in q
+        and any(term in q for term in ("부산업체", "부산", "지역제한", "면허"))
+    )
+    is_invested_institution_local_law_question = (
+        any(term in q for term in ("출자출연기관", "출자·출연기관", "출연기관"))
+        and any(term in q for term in ("지방계약", "지방계약법", "지역업체", "그대로"))
+    )
+    is_info_telecom_construction_question = (
+        "정보통신공사" in q
+        and any(term in q for term in ("종합공사", "전문공사", "기준", "구분"))
+    )
+    is_agency_law_conflict_question = (
+        any(term in q for term in ("국가기관", "국가계약", "공기업", "준정부", "공공기관"))
+        and any(term in q for term in ("지방계약", "지방자치단체", "지자체"))
+        and any(term in q for term in ("그대로", "다르", "안되", "안되지", "혼동", "기준", "우대", "지역제한"))
+    )
+    is_fire_facility_construction_question = (
+        ("소방시설공사" in q or ("소방" in q and "공사" in q))
+        and any(term in q for term in ("전문공사", "지역제한", "기준", "면허", "공종"))
+    )
+    is_cloud_software_question = "클라우드" in q or "소프트웨어" in q
+    is_server_mixed_question = "서버" in q and any(term in q for term in ("설치", "용역", "장비", "소프트웨어"))
+    is_translation_question = "번역" in q
+    special_practice_question = any((
+        is_public_purchase_question,
+        is_construction_material_question,
+        is_split_procurement_question,
+        is_design_print_mixed_question,
+        is_incidental_work_question,
+        is_bid_notice_local_company_question,
+        is_construction_license_basis_question,
+        is_road_pavement_regional_strategy_question,
+        is_event_service_regional_question,
+        is_service_regional_restriction_question,
+        is_service_local_participation_question,
+        is_price_terms_question,
+        is_delay_penalty_question,
+        is_specific_brand_spec_question,
+        is_private_school_subsidy_question,
+        is_landscape_construction_regional_question,
+        is_invested_institution_local_law_question,
+        is_info_telecom_construction_question,
+        is_agency_law_conflict_question,
+        is_fire_facility_construction_question,
+        is_cloud_software_question,
+        is_server_mixed_question,
+        is_translation_question,
+    ))
+    is_lifecycle_procedure_question = (
+        not special_practice_question
+        and is_contract_procedure_query(user_message)
+        and any(term in q for term in (
+        "계약절차",
+        "구매절차",
+        "계약업무흐름",
+        "절차를안내",
+        "절차알려",
+        "처음부터",
+        "전체과정",
+        "전체흐름",
+        "흐름",
+        "단계",
+        "순서",
+        "프로세스",
+        ))
+    )
+    if is_lifecycle_procedure_question:
+        lifecycle_cards = match_contract_lifecycle_cards(
+            user_message,
+            contract_object=contract_object,
+            agency_type=agency_for_cards,
+            max_cards=13,
+        )
+        if lifecycle_cards:
+            sections = [
+                "### 1. 질문의도 파악",
+                "- 이 질문은 특정 금액의 가능/불가능 판단이 아니라, 계약 절차와 실무 확인순서를 안내해 달라는 요청으로 분류했습니다.",
+                "- 절차의 뼈대는 실무 매뉴얼 카드에서 가져오고, 금액 기준·수의계약 가능 여부·지역제한 기준 같은 법적 판단 지점은 최신 법령 DB와 source map으로 별도 검증해야 합니다.",
+                "",
+                render_contract_lifecycle_for_answer(
+                    lifecycle_cards,
+                    contract_object=contract_object,
+                    max_cards=13,
+                ),
+                "",
+                "### 4. 다음 단계",
+                "- 실제 사안에서는 금액, 기관유형, 세부품명·과업범위·공종을 확정한 뒤 계약방법 판단 카드와 법령 근거카드를 붙여야 합니다.",
+                "- 지역상품 구매를 확대하려면 절차 중 `계약방법 결정`, `규격·과업·참가자격 설계`, `낙찰자 결정`, `검사·검수` 단계에서 지역업체 보호제도를 연결하는 방식이 좋습니다.",
+            ]
+            return "\n".join(sections), lifecycle_cards
+
     cards = match_practice_manual_cards(
         user_message,
         contract_object=None,
@@ -394,7 +1240,7 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
             if "공동" in str(card.get("title") or "")
             or any("공동" in str(keyword) for keyword in (card.get("keywords") or []))
         ][:3]
-    if not cards and not is_joint_method_question:
+    if not cards and not is_joint_method_question and not special_practice_question:
         return "", []
 
     sections = [
@@ -403,10 +1249,11 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
     ]
 
     if "중소기업자간" in q or "직접생산" in q:
+        subject = f"**{item_hint}** 같은 " if item_hint else ""
         sections.extend([
             "",
             "### 2. 중소기업자간 경쟁제품과 직접생산확인",
-            "- 중소기업자간 경쟁제품은 해당 품목을 중소기업자 간 경쟁으로 구매하도록 관리하는 품목군입니다.",
+            f"- {subject}중소기업자간 경쟁제품은 해당 품목을 중소기업자 간 경쟁으로 구매하도록 관리하는 품목군입니다.",
             "- 이 품목을 구매할 때는 단순히 중소기업인지뿐 아니라, 해당 업체가 그 세부품명에 대해 **직접생산확인증명서**를 갖고 있는지 확인해야 합니다.",
             "- 실무 확인은 공공구매종합정보망(SMPP) 또는 관련 증명서로 세부품명, 유효기간, 업체명, 사업자번호, 직접생산 확인 범위가 구매하려는 규격과 맞는지 대조하는 방식으로 진행합니다.",
             "- 지역상품 구매지원 관점에서는 부산 업체 후보를 찾더라도 직접생산확인 대상 품목이면 부산 소재 여부보다 직접생산 확인과 세부품명 일치가 먼저입니다.",
@@ -421,6 +1268,184 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
             "- **종합쇼핑몰/MAS·제3자단가**: 부산 업체가 등록된 품목이면 납품요구, 2단계 경쟁, 현장지원·A/S 같은 정당한 평가요소로 지역상품 활용 가능성을 검토합니다.",
             "- **정책기업·기술개발제품·우수조달·혁신제품**: 여성기업, 장애인기업, 사회적기업, 기술개발제품 등은 별도 우대·수의계약·우선구매 경로와 연결될 수 있으므로 인증·지정·유효상태를 확인합니다.",
             "- **중소기업자간 경쟁제품·직접생산확인**: 해당 품목이면 부산업체 후보라도 직접생산확인과 세부품명 일치 여부가 우선 확인사항입니다.",
+        ])
+    elif is_public_purchase_question:
+        sections.extend([
+            "",
+            "### 2. 공공구매·우선구매 제도와 부산업체 연결",
+            "- **공공구매 우선구매**는 특정 업체를 바로 지정하는 장치가 아니라, 법령·제도상 우선구매 대상 제품인지 확인하고 구매전략에 반영하는 실무 검토 축입니다.",
+            "- 먼저 품목이 **중소기업자간 경쟁제품**인지, **직접생산확인** 대상인지 확인합니다. 해당되면 부산업체 후보도 세부품명과 직접생산확인 범위가 맞아야 합니다.",
+            "- 다음으로 **기술개발제품, 우수조달물품, 혁신제품, 녹색제품, 창업기업제품, 장애인기업·여성기업·사회적기업 제품** 등 우선구매·수의계약·가점과 연결될 수 있는 지위를 확인합니다.",
+            "- 종합쇼핑몰/MAS 등록 품목이면 납품요구, 2단계 경쟁, 납품 가능 지역, A/S·현장지원 같은 정당한 평가요소로 부산업체 활용 가능성을 검토합니다.",
+            "- 답변이나 공고문에는 `부산업체라서 가능`이 아니라 `제도 요건, 품목 적합성, 조달등록, 인증·지정 상태, 경쟁성`을 근거로 남기는 방식이 안전합니다.",
+        ])
+    elif is_construction_material_question:
+        sections.extend([
+            "",
+            "### 2. 공사용자재 직접구매·관급자재 검토",
+            "- 공사에 포함되는 자재라도 일정 품목은 **공사용자재 직접구매** 또는 관급자재 구매로 따로 검토해야 할 수 있습니다.",
+            "- 먼저 공종과 자재의 세부품명, 직접구매 대상 여부, 중소기업자간 경쟁제품 해당 여부, 직접생산확인 필요 여부를 확인합니다.",
+            "- 관급자재로 분리할 경우 공사 시공범위, 납품·설치 책임, 하자책임, 공정 지연 위험, 검사·검수 주체를 공사계약 조건과 맞춰야 합니다.",
+            "- 정보통신공사·전기공사·소방공사처럼 면허와 자재가 함께 얽히는 사안은 공사계약, 물품구매, 직접구매 대상 품목을 동시에 비교해야 합니다.",
+        ])
+    elif is_split_procurement_question:
+        sections.extend([
+            "",
+            "### 2. 분리발주·쪼개기 발주 위험 검토",
+            "- **공사**와 **물품** 또는 용역을 나눠 발주할 때는 정당한 **분리발주**인지, 금액 기준이나 경쟁 절차를 피하려는 **쪼개기 발주**로 보일 수 있는지 먼저 구분합니다.",
+            "- 분리발주가 필요한 경우에는 공사 범위, 관급자재·물품 납품 범위, 설치 책임, 하자책임, 검사·검수 주체, 공정 간섭 위험을 문서로 남깁니다.",
+            "- 같은 목적·같은 시기·같은 부서의 수요를 인위적으로 나누면 분할발주 또는 쪼개기 수의계약 지적을 받을 수 있으므로, 수요 취합과 추정가격 산정 근거를 보관해야 합니다.",
+            "- 지역업체 활용 목적이 있더라도 분리 자체의 필요성, 경쟁성 확보 방식, 특정업체 유리 조건 배제 여부를 함께 설명하는 편이 안전합니다.",
+        ])
+    elif is_design_print_mixed_question:
+        sections.extend([
+            "",
+            "### 2. 디자인·인쇄 혼합 사업의 계약대상 구분",
+            "- **디자인** 기획, 편집, 저작권 처리, 수정·검수, 결과물 제작관리가 중심이면 용역 성격이 강합니다.",
+            "- **인쇄** 물량, 규격, 납품, 검수, 종이·후가공 사양이 중심이면 물품 제조·구매 성격을 함께 봐야 합니다.",
+            "- 하나로 발주할 때는 디자인 산출물과 인쇄 납품물의 책임, 저작권·원본파일 제공, 교정 횟수, 납품기한, 검사·검수 기준을 과업지시서와 규격서에 나눠 적습니다.",
+            "- 지역업체 활용은 특정 업체 지정보다 디자인 수행능력, 인쇄 설비·납기, 현장 대응, 유사실적 같은 객관적 평가요소로 연결하는 편이 안전합니다.",
+        ])
+    elif is_incidental_work_question:
+        sections.extend([
+            "",
+            "### 2. 부대공사 판단자료",
+            "- **부대공사**로 묶을 수 있는지는 주된 공사와의 목적·장소·공정·기능상 연계성을 자료로 확인해야 합니다.",
+            "- 설계서, 시방서, 내역서, 공종별 금액, 면허·업종 요건, 현장 여건, 분리 시 공정 간섭이나 하자책임 문제가 생기는지를 함께 봅니다.",
+            "- 부대공사라는 이유로 별도 면허나 분리발주 필요성을 생략하면 부당제한·무면허 시공 논란이 생길 수 있으므로, 주된 공사와 부대 범위를 문서화합니다.",
+            "- 금액 기준이나 법령상 허용 범위는 최신 법령 DB와 source map에서 별도로 검증해야 합니다.",
+        ])
+    elif is_bid_notice_local_company_question:
+        sections.extend([
+            "",
+            "### 2. 입찰공고문 지역업체 활용 체크리스트",
+            "- **입찰공고문**에는 지역업체 활용 취지보다 먼저 계약유형, 추정가격, 참가자격, 낙찰자 결정방법, 평가항목의 근거를 분리해 적어야 합니다.",
+            "- **지역업체** 또는 부산업체 관련 조건은 지역제한, 지역의무공동도급, 지역업체 참여도·가점, 현장 대응성, 납품·A/S 조건 중 어떤 제도에 근거하는지 구분합니다.",
+            "- 금액 기준, 비율, 점수, 적용 대상은 공고문 문안에 바로 쓰기 전에 최신 법령 DB와 **source map resolved_value**로 확인합니다.",
+            "- 특정 부산업체만 맞출 수 있는 규격·실적·인력·장비 조건은 부당제한 리스크가 있으므로, 시장조사 자료와 경쟁 가능한 업체 수를 함께 남깁니다.",
+            "- 물품은 종합쇼핑몰/MAS, 중소기업자간 경쟁제품, 직접생산확인, 인증제품 여부를 공고·제안요청 조건과 충돌하지 않게 확인합니다.",
+        ])
+    elif is_construction_license_basis_question:
+        sections.extend([
+            "",
+            "### 2. 공사업체 후보는 면허 기준으로 확인",
+            "- **전기공사** 같은 공사업체 후보는 제품명이 아니라 해당 공종의 **면허·업종 등록** 기준으로 먼저 찾아야 합니다.",
+            "- 부산업체 후보를 볼 때도 본점 소재지, 전기공사업 등록 여부, 면허 유효성, 시공 가능 범위, 실적·기술인력, 하도급 제한 여부를 확인합니다.",
+            "- 물품 구매처럼 종합쇼핑몰 상품명만으로 판단하면 안 되고, 공사계약의 참가자격과 면허 요건을 공고문에 객관적으로 적어야 합니다.",
+            "- 금액 기준, 지역제한, 공동도급, 적격심사 적용 여부는 최신 법령 DB와 source map 기준으로 별도 검증합니다.",
+        ])
+    elif is_road_pavement_regional_strategy_question:
+        sections.extend([
+            "",
+            "### 2. 포장공사 지역업체 참여 전략",
+            "- **도로 포장공사**는 공종·면허와 추정가격을 먼저 확인한 뒤, 지역제한, 공동도급, 적격심사를 순서대로 연결합니다.",
+            "- 지역제한은 입찰참가자격 단계에서 부산 등 지역 범위를 제한할 수 있는지 보는 장치이고, 금액·공종 기준은 source map으로 확인해야 합니다.",
+            "- **공동도급**은 지역업체가 공동수급체 구성원으로 참여할 수 있는지, 지분율·분담범위·시공능력을 확인하는 장치입니다.",
+            "- 적격심사나 평가 단계에서는 지역업체 참여도, 시공경험, 기술능력, 신인도 항목을 공고문·평가기준과 맞춰야 합니다.",
+        ])
+    elif is_event_service_regional_question:
+        sections.extend([
+            "",
+            "### 2. 행사용역 참가자격 설계",
+            "- **행사용역**을 부산업체 중심으로 검토하더라도 참가자격은 과업 수행에 필요한 범위에서 객관적으로 설계해야 합니다.",
+            "- 부산업체 활용은 지역제한 가능성, 현장 대응성, 유사 행사 수행경험, 안전관리, 장비·인력 투입계획, 긴급 대응체계 같은 정당한 요소로 연결합니다.",
+            "- 특정 업체만 충족할 수 있는 과도한 실적, 특정 장소·거래처 경험, 불필요한 장비 보유 조건은 부당제한 리스크가 큽니다.",
+            "- 제안평가를 쓰는 경우 지역업체 여부 자체보다 수행계획, 현장 운영능력, 지역 이해도, 안전·민원 대응을 평가항목으로 정리하는 편이 안전합니다.",
+        ])
+    elif is_service_regional_restriction_question or is_service_local_participation_question:
+        service_subject = item_hint or "용역"
+        sections.extend([
+            "",
+            f"### 2. {service_subject}에서 지역업체 참여를 늘리는 검토 경로",
+            f"- **{service_subject}**은 과업 성격, 면허·등록 요건, 수행 장소, 현장 대응 필요성을 먼저 확정한 뒤 지역업체 참여 방식을 설계합니다.",
+            "- **지역제한경쟁입찰**: 계약유형, 추정가격, 과업 성격, 부산 지역 내 경쟁 가능한 업체 수를 확인한 뒤 검토합니다. 공사 기준을 그대로 가져오면 안 됩니다.",
+            "- **지역업체 참여도·가점**: 적격심사, 협상계약, 제안평가 등 평가방식에서 지역업체 참여도, 현장 대응성, 지역 내 수행체계 같은 객관적 항목으로 연결할 수 있는지 봅니다.",
+            "- **공동수급 허용**: 단독 수행이 어렵거나 전문 분야가 섞인 용역이면 공동이행·분담이행을 허용해 부산업체가 구성원으로 참여할 여지를 검토합니다.",
+            "- **수의계약·견적 방식**: 금액, 수의계약 사유, 정책기업 여부가 맞는 경우에만 검토합니다. 지역업체라는 이유만으로 바로 수의계약 결론을 내리면 안 됩니다.",
+            "- **참가자격·과업 설계**: 면허·등록, 실적, 인력, 장비, 현장 대응 요건은 과업 수행에 필요한 범위로 쓰고 특정 업체만 유리한 조건은 피해야 합니다.",
+            "- 확인할 근거 축은 지방계약법 시행령 제20조·제25조·제30조, 지방계약법 시행규칙 제24조, 지방자치단체 입찰 및 계약집행기준, 지방자치단체 입찰시 낙찰자 결정기준입니다.",
+        ])
+    elif is_price_terms_question:
+        sections.extend([
+            "",
+            "### 2. 가격 용어 구분",
+            "- **추정가격**은 계약방법, 국제입찰, 지역제한, 수의계약 기준 등을 판단할 때 쓰는 기준 금액입니다.",
+            "- **예정가격**은 입찰·계약에서 낙찰자 결정과 계약금액 산정의 기준이 되는 가격입니다.",
+            "- **기초금액**은 예정가격 작성을 위해 공개하거나 산정하는 기초 자료 성격의 금액입니다.",
+            "- **추정금액**은 공사 등에서 추정가격에 관급자재 등 관련 금액을 더해 사업 규모를 볼 때 쓰이는 경우가 많습니다.",
+            "- 실무에서는 어떤 금액을 기준으로 법령 한도를 판단하는지 혼동하면 안 되므로, 금액 기준은 source map에서 용어별로 확인합니다.",
+        ])
+    elif is_delay_penalty_question:
+        sections.extend([
+            "",
+            "### 2. 지체상금과 지연배상금 설명",
+            "- **지체상금**은 실무에서 오래 쓰인 표현이고, **지연배상금**은 계약 이행 지연에 대해 계약상대자가 부담하는 배상 성격의 금액을 설명할 때 쓰는 표현입니다.",
+            "- 실무 안내에서는 `지연배상금(실무상 지체상금이라고 부르는 경우가 있음)`처럼 병기하면 혼동을 줄일 수 있습니다.",
+            "- 핵심은 명칭보다 지체 사유, 귀책 여부, 지체일수 산정, 계약서상 약정, 감액·면제 사유를 확인하는 것입니다.",
+            "- 배상금률, 한도, 제외일수 같은 숫자 기준은 최신 법령 DB와 source map 기준으로 별도 확인해야 합니다.",
+        ])
+    elif is_specific_brand_spec_question:
+        sections.extend([
+            "",
+            "### 2. 특정 브랜드·동등 이상 규격서 작성",
+            "- 노트북 같은 물품 규격서에 **특정 브랜드**나 특정 모델만 사실상 충족할 수 있는 조건을 쓰면 **부당제한** 문제가 생길 수 있습니다.",
+            "- 필요한 성능은 CPU, 메모리, 저장장치, 화면, 보안, A/S, 호환성처럼 객관적 기준으로 쓰고, 특정 상표가 필요하면 예외 사유를 문서화해야 합니다.",
+            "- `동등 이상` 표현을 쓸 때도 비교 가능한 성능·규격·인증 기준을 함께 적어야 하며, 특정 제조사 고유 기능만 요구하지 않도록 점검합니다.",
+            "- 시장조사 자료, 복수 제품 비교표, 업무 필요성, 예산 산출근거를 감사 대응 자료로 남기는 편이 안전합니다.",
+        ])
+    elif is_private_school_subsidy_question:
+        sections.extend([
+            "",
+            "### 2. 사립대학교 국고보조금 발주 확인",
+            "- **사립대학교**가 **국고보조금**으로 용역을 발주한다고 해서 곧바로 모든 절차가 국가계약법으로 자동 전환된다고 단정하면 안 됩니다.",
+            "- 먼저 보조금 교부조건, 위탁·대행 여부, 보조사업 정산지침, 대학 자체 계약규정, 사업 주관기관 지침을 함께 확인합니다.",
+            "- 교부조건이나 사업지침에서 **국가계약법** 또는 조달 절차 준용을 요구하는지, 자체 규정을 우선하는지 문서로 남겨야 합니다.",
+            "- 공고문에는 적용 규정, 예산 재원, 정산·검사 기준, 이해충돌·특혜 방지 기준을 분명히 적는 편이 안전합니다.",
+        ])
+    elif is_landscape_construction_regional_question:
+        sections.extend([
+            "",
+            "### 2. 조경공사 지역제한·면허 설계",
+            "- **조경공사**를 부산업체 중심으로 발주하려면 먼저 공종과 면허·업종 요건을 확정합니다.",
+            "- 지역제한은 추정가격, 공사 종류, 본점 소재지, 부산 지역 내 경쟁 가능한 업체 수를 source map 기준으로 확인한 뒤 공고문에 반영합니다.",
+            "- 면허요건은 공사 목적 달성에 필요한 범위로 제한하고, 불필요하게 높은 실적·장비·인력 조건을 붙이면 부당제한 문제가 생길 수 있습니다.",
+            "- 부산업체 활용 목적은 지역제한, 공동도급, 적격심사 평가요소 등 법령상 허용되는 장치와 연결해 문서화합니다.",
+        ])
+    elif is_invested_institution_local_law_question:
+        sections.extend([
+            "",
+            "### 2. 출자·출연기관의 지방계약법 적용 확인",
+            "- 부산 **출자출연기관**은 지방자치단체 본청과 같은 방식으로 **지방계약법**을 그대로 적용한다고 단정하지 말고, 설립 근거와 자체 계약규정을 먼저 봐야 합니다.",
+            "- 지방계약법령 준용 조항, 조례·정관·내부 계약규정, 위탁사업 또는 보조사업 조건이 있는지 확인합니다.",
+            "- 지역업체 활용은 기관 자체 규정에서 허용하는 지역제한, 평가항목, 수의계약 사유, 종합쇼핑몰/MAS 이용 가능성을 구분해 검토합니다.",
+            "- 답변이나 검토서에는 `지방계약법 그대로 적용`이 아니라 `준용 여부와 내부규정 확인 후 적용`으로 남기는 편이 안전합니다.",
+        ])
+    elif is_info_telecom_construction_question:
+        sections.extend([
+            "",
+            "### 2. 정보통신공사 공종 기준 구분",
+            "- **정보통신공사**는 건설산업기본법상 종합공사·전문공사 구분과 별도로, 정보통신공사업 관련 면허·업종 기준을 먼저 확인해야 합니다.",
+            "- 종합공사·전문공사 금액 기준을 기계적으로 적용하기 전에 해당 공사가 정보통신공사업 범위인지, 다른 공종과 분리해야 하는지 봅니다.",
+            "- 발주 시에는 공종, 면허, 설계·시방, 관급자재, 하자책임, 분리발주 필요성을 함께 정리합니다.",
+            "- 지역제한이나 수의계약 금액 기준은 최신 법령 DB와 source map 기준으로 별도 검증해야 합니다.",
+        ])
+    elif is_agency_law_conflict_question:
+        sections.extend([
+            "",
+            "### 2. 기관유형 충돌 확인",
+            "- **국가기관**이 발주하는 경우에는 원칙적으로 국가계약법령과 해당 기관의 계약예규·조달 관련 규정을 먼저 봐야 합니다.",
+            "- **지방계약** 지역제한 기준은 지방자치단체 발주를 전제로 한 기준이므로, 국가기관 컴퓨터 구매에 그대로 적용한다고 보기는 어렵습니다.",
+            "- 부산 지역업체를 고려하려면 국가기관 기준에서 허용되는 종합쇼핑몰/MAS, 제3자단가, 중소기업자간 경쟁제품, 직접생산확인, 우수조달·혁신제품, 평가항목 설계 가능성을 따로 검토합니다.",
+            "- 업체 후보표는 구매전략 보조자료로는 쓸 수 있지만, 기관유형에 맞는 법적 근거 없이 `부산업체 우대` 결론으로 바로 연결하면 안 됩니다.",
+        ])
+    elif is_fire_facility_construction_question:
+        sections.extend([
+            "",
+            "### 2. 소방시설공사 기준 확인 순서",
+            "- **소방시설공사**는 공사계약 안에서도 공종, 면허, 분리발주 여부, 전문공사 해당 여부를 먼저 확인해야 합니다.",
+            "- **전문공사 기준**은 공사의 세부 공종과 적용 업종을 나눈 뒤, 해당 면허·등록 요건과 추정가격 기준을 source map으로 대조합니다.",
+            "- **지역제한 기준**은 기관유형, 공사 종류, 추정가격, 본점 소재지, 지역 내 경쟁 가능한 업체 수를 함께 봐야 합니다.",
+            "- 지역업체 활용은 `부산업체 지정`이 아니라 지역제한 가능성, 공동도급, 적격심사 평가요소, 면허 충족 여부를 문서화하는 방식으로 설계합니다.",
         ])
     elif "입찰참가자격" in q and any(term in q for term in ("좁", "부당", "제한", "특혜", "예시")):
         sections.extend([
@@ -448,6 +1473,33 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
             "- **과업지시서**는 계약상 수행해야 할 업무 범위, 산출물, 일정, 인력, 검사·검수 기준을 정하는 과업 수행 기준 문서입니다.",
             "- 쉽게 말하면 제안요청서는 `어떻게 제안받고 평가할지`, 과업지시서는 `계약 후 무엇을 수행하게 할지`에 더 가깝습니다.",
             "- 두 문서의 내용이 서로 충돌하면 계약 이행과 분쟁 리스크가 커지므로, 과업 범위·평가기준·성과물·검수조건을 맞춰야 합니다.",
+        ])
+    elif is_cloud_software_question:
+        sections.extend([
+            "",
+            "### 2. 클라우드·소프트웨어 구매의 계약대상 구분",
+            "- 클라우드 서비스 구독은 단순 물품 납품보다 **서비스 이용권·운영지원·보안·장애 대응** 요소가 커서 용역 또는 소프트웨어 구매 성격을 함께 봐야 합니다.",
+            "- 상용소프트웨어 라이선스 구매라면 조달등록, 디지털서비스몰·종합쇼핑몰, 제3자단가계약, 유지보수 포함 여부를 확인합니다.",
+            "- 구축·설치·운영지원이 함께 있으면 과업지시서, SLA, 보안 요구사항, 데이터 이전·반환, 저작권·사용권 범위를 계약조건에 분리해 적어야 합니다.",
+            "- 금액과 계약방법 판단은 기관유형, 조달 등록 경로, 소프트웨어 사업 관련 규정, 수의계약 사유를 별도로 확인한 뒤 확정해야 합니다.",
+        ])
+    elif is_server_mixed_question:
+        sections.extend([
+            "",
+            "### 2. 서버 장비와 설치·구축 용역이 섞인 경우",
+            "- 서버 장비 자체는 물품 구매 성격이 강하지만, 설치·이전·환경설정·보안설정·유지보수가 포함되면 용역 요소가 함께 생깁니다.",
+            "- 먼저 주된 계약목적이 장비 납품인지, 시스템 구축·운영지원인지 구분하고, 규격서와 과업지시서를 서로 충돌하지 않게 나눕니다.",
+            "- 종합쇼핑몰/MAS 등록 장비인지, 소프트웨어 라이선스가 포함되는지, 기술지원확약서나 특정 제조사 조건이 부당제한이 되는지 확인해야 합니다.",
+            "- 부산업체 활용은 조달등록, 납품 가능 지역, 설치·A/S 수행능력, 기술지원 체계 같은 객관적 조건으로 연결하는 편이 안전합니다.",
+        ])
+    elif is_translation_question:
+        sections.extend([
+            "",
+            "### 2. 번역 용역의 계약방법 검토",
+            "- 번역은 일반적으로 용역 성격이 강하므로 과업 범위, 언어쌍, 분량, 납기, 검수 기준, 보안·비밀유지 조건을 먼저 정리합니다.",
+            "- 수의계약이나 2인 이상 견적을 검토할 때는 추정가격, 견적 방식, 참가자격 제한 필요성, 수행실적 요구의 적정성을 분리해 봐야 합니다.",
+            "- 특정 번역사나 특정 실적만 요구하면 부당제한 문제가 생길 수 있으므로, 필요한 경우 전문분야 경험·품질관리 방식·보안서약 등 객관적 요건으로 설계합니다.",
+            "- 지역업체를 고려하더라도 번역 품질과 과업수행 가능성을 중심으로 평가하고, 금액 기준은 최신 법령 DB와 source map으로 별도 확인해야 합니다.",
         ])
     elif "용역" in q and any(term in q for term in ("물품", "구매", "제품")):
         sections.extend([
@@ -481,25 +1533,29 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
 # Gemini 클라이언트 초기화 — Vertex AI (SLA 99.9%, 503 방지)
 # ─────────────────────────────────────────────
 # GOOGLE_APPLICATION_CREDENTIALS 환경변수로 서비스 계정 JSON 키 인증
+GEMINI_HTTP_TIMEOUT_MS = int(os.getenv("GEMINI_HTTP_TIMEOUT_MS", "20000"))
+_gemini_http_options = types.HttpOptions(timeout=GEMINI_HTTP_TIMEOUT_MS)
 _use_vertex = os.path.exists(os.getenv("GOOGLE_APPLICATION_CREDENTIALS", ""))
 if _use_vertex:
     client = genai.Client(
         vertexai=True,
         project="carbide-team-457809-a8",
         location="asia-northeast3",  # 서울 리전
+        http_options=_gemini_http_options,
     )
     print("[INIT] Vertex AI 클라이언트 (서울 리전, SLA 99.9%)")
 else:
     # Fallback: Vertex AI 키가 없으면 기존 AI Studio 사용
-    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"), http_options=_gemini_http_options)
     print("[INIT] AI Studio 클라이언트 (fallback)")
 # Flash 전용 — 응답속도·비용·품질 종합 고려 시 Flash로 충분 (Pro 제거)
 MODEL_ID = "gemini-2.5-flash"
 FALLBACK_MODEL = "gemini-2.5-flash"
 
 GEMINI_THINKING_BUDGET_ENABLED = os.getenv("GEMINI_THINKING_BUDGET_ENABLED", "true").lower() == "true"
-GEMINI_GROUNDED_THINKING_BUDGET = int(os.getenv("GEMINI_GROUNDED_THINKING_BUDGET", "256"))
-GEMINI_COMPLEX_THINKING_BUDGET = int(os.getenv("GEMINI_COMPLEX_THINKING_BUDGET", "512"))
+GEMINI_GROUNDED_THINKING_BUDGET = int(os.getenv("GEMINI_GROUNDED_THINKING_BUDGET", "0"))
+GEMINI_COMPLEX_THINKING_BUDGET = int(os.getenv("GEMINI_COMPLEX_THINKING_BUDGET", "0"))
+GEMINI_EXCEPTION_THINKING_BUDGET = int(os.getenv("GEMINI_EXCEPTION_THINKING_BUDGET", "128"))
 GEMINI_REWRITE_THINKING_BUDGET = int(os.getenv("GEMINI_REWRITE_THINKING_BUDGET", "0"))
 
 
@@ -511,6 +1567,88 @@ def _thinking_config_for(budget: int):
     except Exception as e:
         print(f"[INIT] ThinkingConfig disabled: {e}", flush=True)
         return None
+
+
+def _answer_thinking_budget_for(
+    user_message: str,
+    *,
+    base_budget: int | None = None,
+    exception_budget: int | None = None,
+) -> tuple[int, str]:
+    """Choose answer-writing thinking budget.
+
+    Most DB-grounded answers are faster and sufficiently stable with thinking
+    disabled. Narrow exception cases keep a small budget because the answer must
+    reconcile legal-system conflicts or mixed contract-object reasoning.
+    """
+    base = GEMINI_GROUNDED_THINKING_BUDGET if base_budget is None else int(base_budget)
+    exception = GEMINI_EXCEPTION_THINKING_BUDGET if exception_budget is None else int(exception_budget)
+    text = (user_message or "").replace(" ", "").lower()
+    reasons: list[str] = []
+
+    if "국가기관" in text and any(term in text for term in ("지방계약", "지역제한", "부산지역", "지역업체")):
+        reasons.append("agency_law_conflict")
+    if any(term in text for term in (
+        "물품이야공사",
+        "공사야물품",
+        "물품인지공사",
+        "용역인지물품",
+        "물품인지용역",
+        "납품설치",
+        "설치포함",
+        "디자인인쇄",
+        "편집인쇄",
+        "혼합계약",
+        "주된계약목적",
+    )):
+        reasons.append("mixed_contract_object")
+    if any(term in text for term in (
+        "분리발주",
+        "쪼개기",
+        "나눠발주",
+        "부대공사",
+        "간접비",
+        "공사기간",
+        "계약변경",
+    )):
+        reasons.append("complex_contract_issue")
+
+    if reasons:
+        return max(base, exception), ",".join(dict.fromkeys(reasons))
+    return base, "default_fast"
+
+
+def _generate_content_bounded(*, model: str, contents, config, timeout_sec: float, label: str):
+    """Run a Gemini call with a local wall-clock timeout."""
+    import concurrent.futures
+
+    request_config = config
+    try:
+        request_config = config.model_copy(
+            update={"http_options": types.HttpOptions(timeout=max(10000, int(max(1.0, timeout_sec) * 1000)))}
+        )
+    except Exception:
+        try:
+            request_config.http_options = types.HttpOptions(timeout=max(10000, int(max(1.0, timeout_sec) * 1000)))
+        except Exception:
+            request_config = config
+
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(
+        lambda: client.models.generate_content(
+            model=model,
+            contents=contents,
+            config=request_config,
+        )
+    )
+    try:
+        return future.result(timeout=timeout_sec)
+    except concurrent.futures.TimeoutError as e:
+        future.cancel()
+        print(f"  [MODEL_TIMEOUT] {label} exceeded {timeout_sec:.1f}s", flush=True)
+        raise TimeoutError(f"{label} model call exceeded {timeout_sec:.1f}s") from e
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
 
 # ─────────────────────────────────────────────
 # Function Calling 도구 정의
@@ -1345,8 +2483,9 @@ def chat(user_message: str, history: list[dict] = None, progress_callback=None, 
         return _chat_v144(user_message, history, progress_callback, agency_type)
     # else: legacy 모드 (기존 로직 그대로)
     
-    global _cited_laws
+    global _cited_laws, _current_evidence_context_meta
     _cited_laws = []  # 매 답변마다 초기화
+    _current_evidence_context_meta = {}
 
     # ── 대화 이력 윈도잉 (Rate Limit + 비용 방지) ──
     # 최근 10턴(user+model 20메시지)만 유지, 오래된 이력은 자동 삭제
@@ -1375,15 +2514,15 @@ def chat(user_message: str, history: list[dict] = None, progress_callback=None, 
     # 현재 사용자 메시지 추가 (RAG 컨텍스트 포함)
     user_text = user_message
     rag_parts = []
-    if rag["law"]:
+    if rag.get("law"):
         rag_parts.append(f"[참고용 보조자료: 법령 조문 — MCP 검색 결과와 다르면 MCP가 우선]\n{rag['law']}")
-    if rag["qa"]:
+    if rag.get("qa"):
         rag_parts.append(f"[참고용 보조자료: 조달청 질의응답 — MCP 검색 결과와 다르면 MCP가 우선]\n{rag['qa']}")
-    if rag["manual"]:
+    if rag.get("manual"):
         rag_parts.append(f"[참고용 보조자료: 계약 매뉴얼 — MCP 검색 결과와 다르면 MCP가 우선]\n{rag['manual']}")
-    if rag["innovation"]:
+    if rag.get("innovation"):
         rag_parts.append(f"[부산 지역 혁신제품 — 수의계약 검토 후보, 지정 상태·혁신장터 등록 여부 확인 필요]\n{rag['innovation']}")
-    if rag["tech"]:
+    if rag.get("tech"):
         rag_parts.append(f"[부산 지역 기술개발제품 인증 — 우선구매/수의계약 검토 후보, 인증 상태 확인 필요]\n{rag['tech']}")
     
     if rag_parts:
@@ -1505,10 +2644,11 @@ def chat(user_message: str, history: list[dict] = None, progress_callback=None, 
                             result_str = future.result(timeout=35)
                         except Exception as e:
                             result_str = json.dumps({"error": str(e)}, ensure_ascii=False)
+                        llm_result_str, _, _ = _build_llm_tool_response(fc, result_str)
                         response_parts.append(
                             types.Part.from_function_response(
                                 name=fc.name,
-                                response={"result": result_str}
+                                response={"result": llm_result_str}
                             )
                         )
                     contents.append(types.Content(role="user", parts=response_parts))
@@ -1526,7 +2666,7 @@ def chat(user_message: str, history: list[dict] = None, progress_callback=None, 
                         role="user",
                         parts=[types.Part.from_function_response(
                             name=fc.name,
-                            response={"result": result_str}
+                            response={"result": _build_llm_tool_response(fc, result_str)[0]}
                         )]
                     )
                 )
@@ -1851,7 +2991,8 @@ def _execute_tier_0_fast_track(user_message: str, history: list, api_status, pro
     else:
         classified = classify_candidates(all_tool_results, user_message)
         counts = get_candidate_counts(classified)
-        formatted = format_candidate_tables(classified, user_message, "")
+        route_candidate_options = _route_candidate_display_options_for_answer(user_message, all_tool_results)
+        formatted = format_candidate_tables(classified, user_message, "", **route_candidate_options)
         candidate_table_source = "server_structured_formatter" if formatted else "none"
         _detail_api_keys = []
 
@@ -1891,6 +3032,7 @@ def _execute_tier_0_fast_track(user_message: str, history: list, api_status, pro
         "tool_elapsed_ms_by_name": _tool_elapsed_by_name,
         "tool_args_log": _tool_args_log,
         "detail_api_response_keys": _detail_api_keys if is_detail_view else [],
+        "company_search_query": query,
     }
 
     if is_detail_view:
@@ -1981,7 +3123,7 @@ def _execute_tier_2_mandatory_mcp(user_message: str, plan: list, progress_callba
 
     executed = []
     missing = []
-    results = []
+    raw_results = []
     evidence_cards = []
     
     cache_stats = {
@@ -2047,9 +3189,9 @@ def _execute_tier_2_mandatory_mcp(user_message: str, plan: list, progress_callba
                 
             # 실패 응답은 LLM context에 안전 placeholder로 대체
             if is_mcp_error(res_str) and not from_cache:
-                results.append(f"[{tool_key}]\n{_MCP_FAILED_PLACEHOLDER}")
+                raw_results.append(f"[{tool_key}]\n{_MCP_FAILED_PLACEHOLDER}")
             else:
-                results.append(f"[{tool_key} (Cache: {from_cache})]\n{res_str}")
+                raw_results.append(f"[{tool_key} (Cache: {from_cache})]\n{res_str}")
 
             try:
                 from policies.legal_evidence_cards import build_evidence_card
@@ -2066,27 +3208,69 @@ def _execute_tier_2_mandatory_mcp(user_message: str, plan: list, progress_callba
                 print(f"  [EVIDENCE-CARD] build skipped: {e}", flush=True)
             
     try:
-        from policies.legal_evidence_cards import render_evidence_context, summarize_evidence_counts
+        from policies.legal_evidence_cards import render_evidence_card_context, render_evidence_context, summarize_evidence_counts
 
-        evidence_summary = render_evidence_context(evidence_cards)
-        if evidence_summary:
-            results.insert(0, evidence_summary)
+        evidence_max_cards = _env_int_value("EVIDENCE_CONTEXT_MAX_CARDS", 14)
+        evidence_excerpt_chars = _env_int_value("EVIDENCE_CONTEXT_EXCERPT_CHARS", 450)
+        evidence_summary = render_evidence_context(evidence_cards, max_cards=evidence_max_cards)
+        card_context = render_evidence_card_context(
+            evidence_cards,
+            max_cards=evidence_max_cards,
+            excerpt_limit=evidence_excerpt_chars,
+        )
         cache_stats.update(summarize_evidence_counts(evidence_cards))
         cache_stats["evidence_cards"] = evidence_cards
+        cache_stats["mcp_context_card_max_cards"] = evidence_max_cards
+        cache_stats["mcp_context_card_excerpt_chars"] = evidence_excerpt_chars
+        raw_context = "\n\n".join(([evidence_summary] if evidence_summary else []) + raw_results)
+        selected_context, context_meta = _select_evidence_context(
+            raw_context=raw_context,
+            card_context=card_context,
+            mode=_evidence_context_mode("EVIDENCE_CONTEXT_MODE"),
+            prefix="mcp_context",
+            cards=evidence_cards,
+        )
+        cache_stats.update(context_meta)
+        cache_stats["evidence_context_card_excerpts_included"] = bool(card_context)
+        print(
+            "  [EVIDENCE-CONTEXT] "
+            f"mode={context_meta.get('mcp_context_mode_applied')} "
+            f"raw={context_meta.get('mcp_context_raw_chars')} "
+            f"card={context_meta.get('mcp_context_card_chars')} "
+            f"llm={context_meta.get('mcp_context_llm_chars')} "
+            f"savings={context_meta.get('mcp_context_char_savings_pct')}%",
+            flush=True,
+        )
+        return selected_context, plan, executed, missing, cache_stats
     except Exception as e:
         print(f"  [EVIDENCE-CARD] summarize skipped: {e}", flush=True)
 
-    mcp_context = "\n\n".join(results)
+    mcp_context = "\n\n".join(raw_results)
+    cache_stats.update({
+        "mcp_context_mode_requested": _evidence_context_mode("EVIDENCE_CONTEXT_MODE"),
+        "mcp_context_mode_applied": "raw_fallback_card_build_failed",
+        "mcp_context_comparison_enabled": True,
+        "mcp_context_raw_chars": len(mcp_context),
+        "mcp_context_card_chars": 0,
+        "mcp_context_llm_chars": len(mcp_context),
+        "mcp_context_card_to_raw_ratio": 0.0,
+        "mcp_context_char_savings_pct": 0.0,
+        "mcp_context_card_hit_count": 0,
+        "mcp_context_card_miss_count": 0,
+    })
     return mcp_context, plan, executed, missing, cache_stats
 
 
-def _should_use_grounded_single_pass_llm(user_message: str, query_tier: int, amount_detected) -> bool:
+def _should_use_grounded_single_pass_llm(user_message: str, query_tier: int, amount_detected, route_plan=None) -> bool:
     """Use a short DB-grounded LLM pass for real amount/case questions.
 
     This keeps deterministic templates narrow while avoiding the full function-calling
     loop for common questions such as "2억 물품 수의계약 가능해?".
     """
-    if query_tier not in (1, 2):
+    if route_plan is not None:
+        if not _route_plan_needs(route_plan, "legal_basis"):
+            return False
+    elif query_tier not in (1, 2):
         return False
 
     q = (user_message or "").replace(" ", "").lower()
@@ -2116,8 +3300,19 @@ def _should_use_grounded_single_pass_llm(user_message: str, query_tier: int, amo
 def _generate_grounded_single_pass_answer(user_message: str, mcp_context: str, agency_type: str | None, timeout_sec: int = 25) -> str | None:
     """Generate one LLM answer from internal law/admin-rule context, without tools."""
     import concurrent.futures
+    global _current_llm_payload_meta
 
     agency_label = agency_type or "미지정"
+    answer_budget, answer_budget_reason = _answer_thinking_budget_for(
+        user_message,
+        base_budget=GEMINI_GROUNDED_THINKING_BUDGET,
+    )
+    _current_llm_payload_meta["llm_answer_thinking_budget"] = answer_budget
+    _current_llm_payload_meta["llm_answer_thinking_budget_reason"] = answer_budget_reason
+    print(
+        f"  [ANSWER-BUDGET] grounded budget={answer_budget} reason={answer_budget_reason}",
+        flush=True,
+    )
     prompt = f"""
 당신은 공공계약 담당자를 돕는 실무형 법령 상담 챗봇입니다.
 
@@ -2147,7 +3342,7 @@ def _generate_grounded_single_pass_answer(user_message: str, mcp_context: str, a
             config=types.GenerateContentConfig(
                 temperature=0.1,
                 max_output_tokens=1200,
-                thinking_config=_thinking_config_for(GEMINI_GROUNDED_THINKING_BUDGET),
+                thinking_config=_thinking_config_for(answer_budget),
             ),
         )
         return response.text.strip() if getattr(response, "text", None) else None
@@ -2209,6 +3404,34 @@ def _build_grounded_case_timeout_fallback(user_message: str, mcp_context: str = 
             "지역상품 구매 지원 관점에서는 부산 업체를 특정해 바로 수의계약으로 단정하기보다, 지역제한경쟁입찰, 2인 이상 견적, MAS/종합쇼핑몰, 직접생산ㆍ인증제품 활용 가능성을 함께 검토하는 방향이 안전합니다.",
             "근거: 「지방계약법 시행령」 제25조ㆍ제30조 및 내부 DB 사전조회 결과",
         ])
+    if (
+        any(term in q for term in ("구매", "물품", "노트북", "컴퓨터", "냉난방기", "보안용카메라", "cctv"))
+        and any(term in q for term in ("1인견적", "2인견적", "견적", "종합쇼핑몰", "mas", "다수공급자"))
+    ):
+        from policies.numeric_basis_policy import get_numeric_display
+
+        amount = _parse_amount(user_message)
+        item_name = _extract_item_keyword(user_message) or "해당 물품"
+        one_quote_general = get_numeric_display("P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD") or "기준값 확인 필요"
+        general_threshold = get_numeric_display("P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD") or "기준값 확인 필요"
+        one_quote_policy = get_numeric_display("P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD") or "기준값 확인 필요"
+        amount_label = f"{amount:,}원" if amount else "질문 금액"
+        return "\n".join([
+            "### 판단 요약",
+            f"- **{item_name} {amount_label} 구매**는 먼저 **종합쇼핑몰/MAS 등록 여부와 2인 이상 견적 가능 구간**을 같이 봐야 합니다.",
+            f"- 일반 1인 견적은 통상 **추정가격 {one_quote_general} 이하** 구간을 먼저 보므로, 질문 금액이 이를 넘는다면 1인 견적을 우선 경로로 두기 어렵습니다.",
+            f"- 일반 물품 수의계약 검토는 **{general_threshold} 이하** 여부와 견적 방식, 품목 특례를 나눠 봐야 합니다.",
+            "",
+            "### 실무 순서",
+            f"1. **{item_name}이 나라장터 종합쇼핑몰/MAS에 등록되어 있는지** 먼저 확인합니다. 등록되어 있으면 쇼핑몰 구매 또는 MAS 2단계 경쟁 대상 여부를 봅니다.",
+            "2. 종합쇼핑몰 경로가 맞지 않으면 **2인 이상 견적 수의계약** 가능 여부를 확인합니다. 금액, 추정가격 산정, 동일·유사 수요 통합 여부를 함께 남겨야 합니다.",
+            f"3. **1인 견적**은 일반 물품 기준으로는 {one_quote_general} 이하가 핵심입니다. 다만 여성기업·장애인기업 등 정책기업은 별도 1인 견적 기준({one_quote_policy} 이하)을 검토할 수 있습니다.",
+            "4. 중소기업자간 경쟁제품, 직접생산확인, 혁신제품·우수조달물품 같은 품목 특례가 있으면 별도 경로로 다시 확인합니다.",
+            "",
+            "### 확인한 근거",
+            "- 내부 DB 사전조회: 「지방계약법」 제9조, 「지방계약법 시행령」 제25조·제30조, 물품 다수공급자계약/종합쇼핑몰 관련 행정규칙",
+            "- 이 답변은 Gemini 생성 호출이 지연되어 내부 DB 근거카드 기반으로 요약한 fallback입니다. 실제 집행 전 최신 조문과 기관 내부 기준은 다시 확인해야 합니다.",
+        ])
     return "\n".join([
         "내부 DB 근거 기준으로는 바로 단정하기 어렵습니다.",
         "질문하신 사안은 금액, 계약종류, 소속기관에 따라 결론이 달라질 수 있으므로 내부 DB 근거를 바탕으로 재시도해 주세요.",
@@ -2243,6 +3466,26 @@ def _build_simple_amount_contract_answer(user_message: str, amount_detected) -> 
             "- 부산 지역상품 구매 지원 목적이라면 부산 소재 정책기업 후보와 조달등록·종합쇼핑몰·인증 여부를 함께 조회하는 것이 좋습니다.",
         ])
 
+    if amount_detected <= 20_000_000:
+        from policies.numeric_basis_policy import get_numeric_display
+        general_threshold = get_numeric_display("P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD") or "기준값 확인 필요"
+        one_quote_general = get_numeric_display("P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD") or "기준값 확인 필요"
+        return "\n".join([
+            "### 판단 요약",
+            f"- 질문 조건이 **2천만원 물품 구매**라면, 내부 DB 기준상 일반 물품 소액 수의계약과 1인 견적 방식의 검토 범위에 들어옵니다.",
+            "- 다만 실제 처리는 추정가격 산정, 부가가치세 포함 여부, 동일·유사 물품 분할발주 여부, 품목별 직접생산·조달등록 여부를 함께 확인한 뒤 문서화해야 합니다.",
+            "",
+            "### 근거",
+            f"- 일반 물품·용역 수의계약 검토 기준: **추정가격 {general_threshold} 이하**",
+            f"- 일반 물품·용역 1인 견적 검토 기준: **추정가격 {one_quote_general} 이하**",
+            "- 관련 근거는 「지방계약법 시행령」 제25조·제30조 및 수의계약 운영 관련 행정규칙입니다.",
+            "",
+            "### 실무 확인사항",
+            "- 2천만원은 경계 금액이므로 추정가격 기준인지, 부가가치세 포함 총액인지 구분합니다.",
+            "- 같은 물품을 기간·부서별로 나누는 구조라면 분할발주로 보일 수 있어 수요 취합과 산출근거를 남깁니다.",
+            "- 부산 지역상품 구매지원 관점에서는 지역업체 후보, 종합쇼핑몰/MAS 등록, 중소기업자간 경쟁제품·직접생산확인 여부를 함께 확인하는 편이 좋습니다.",
+        ])
+
     if amount_detected >= 200_000_000:
         from policies.numeric_basis_policy import get_numeric_display
         general_threshold = get_numeric_display("P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD") or "기준값 확인 필요"
@@ -2274,6 +3517,43 @@ def _clean_route_guidance_for_answer(text: str) -> str:
     cleaned = re.sub(r"^- 작성 원칙:.*(?:\n|$)", "", cleaned, flags=re.MULTILINE)
     cleaned = re.sub(r"^- 주의:.*(?:\n|$)", "", cleaned, flags=re.MULTILINE)
     return cleaned.strip()
+
+
+def _route_candidate_display_options_for_answer(
+    user_message: str,
+    all_tool_results: list,
+    generation_meta: dict | None = None,
+) -> dict:
+    """Derive candidate-table visibility from amount/object route cards."""
+    try:
+        amount = _parse_amount(user_message)
+        contract_object = None
+        item_name = user_message
+        if generation_meta:
+            contract_object = generation_meta.get("company_prefetch_contract_object")
+            item_name = generation_meta.get("company_prefetch_canonical_item") or item_name
+        contract_object = contract_object or _get_router_contract_object(None, user_message)
+        cards = build_purchase_route_cards(
+            amount=amount,
+            item_name=item_name,
+            contract_object=contract_object,
+            tool_results=all_tool_results,
+        )
+        options = derive_candidate_table_display_options(cards)
+        result = {
+            "hidden_candidate_types": options.get("hidden_candidate_types", []),
+            "preferred_order": options.get("preferred_candidate_order", []),
+        }
+        if generation_meta is not None:
+            generation_meta["purchase_route_hidden_candidate_types"] = result["hidden_candidate_types"]
+            generation_meta["purchase_route_preferred_candidate_order"] = result["preferred_order"]
+            generation_meta["purchase_route_policy_company_table_hidden"] = "policy_company" in result["hidden_candidate_types"]
+            generation_meta["purchase_route_card_count"] = len(cards)
+        return result
+    except Exception as exc:
+        if generation_meta is not None:
+            generation_meta["purchase_route_candidate_display_error"] = str(exc)[:300]
+        return {"hidden_candidate_types": [], "preferred_order": []}
 
 
 def _clean_catalog_guidance_for_answer(text: str) -> str:
@@ -2347,10 +3627,14 @@ def _chat_v144(
     v1.4.4 Dynamic Prompt Pipeline.
     3단 라우팅 → 동적 프롬프트 조립 → Function-calling loop (MAX=3)
     """
-    global _current_routing_confidence_meta
+    global _current_routing_confidence_meta, _current_tool_loop_gate_meta, _current_intent_rag_meta, _current_evidence_context_meta, _current_llm_payload_meta
     request_id = str(uuid.uuid4())[:8]
     routing_start = time.time()
     _current_routing_confidence_meta = {}
+    _current_tool_loop_gate_meta = {}
+    _current_intent_rag_meta = {}
+    _current_evidence_context_meta = {}
+    _current_llm_payload_meta = {}
 
     global _cited_laws
     _cited_laws = []
@@ -2423,6 +3707,12 @@ def _chat_v144(
             user_message, history, api_status, progress_callback, ["company_search"]
         )
 
+    # ─── 0.2. Intent RAG Context Resolver ───
+    # Gateway가 확실히 종료하지 못한 질문만 여기서 본격적으로 의도를 보강한다.
+    # Tier와 답변모드는 이 뒤의 Keyword Router/RAG/보조 Router 조합으로 결정한다.
+    intent_rag_decision = _resolve_intent_rag_context(user_message)
+    _current_intent_rag_meta = _intent_rag_prefixed_meta(intent_rag_decision)
+
     # ─── 0.5. Deterministic Legal Gate ───
     # 반복 기준/제도 설명형 질문은 LLM 의도분석보다 먼저 결정형 답변으로 처리한다.
     try:
@@ -2460,6 +3750,51 @@ def _chat_v144(
         answer, history = _finalize_answer(
             deterministic_legal_answer.answer, history, user_message, [], api_status,
             progress_callback, generation_meta=_deterministic_gate_meta
+        )
+        return answer, history
+
+    # ─── 0.6. Intent RAG / PPS Q&A Interpretation Fast Gate ───
+    # 조달청 질의응답·실무 해석사례형 질문은 비법령 RAG 카드로 먼저 답한다.
+    try:
+        pps_fast_answer, pps_fast_cards = _build_pps_qa_interpretation_fast_answer(
+            user_message,
+            intent_rag_decision,
+        )
+    except Exception as e:
+        print(f"  [PPS-QA-FAST] skipped: {e}", flush=True)
+        pps_fast_answer, pps_fast_cards = "", []
+
+    if pps_fast_answer:
+        api_status = ApiStatus()
+        _pps_fast_meta = {
+            "model_used": "intent_rag_pps_qa_fast_gate",
+            "model_decision_reason": "intent_rag_pps_qa_interpretation_fast_answer",
+            "tier_resolved": 1,
+            "fast_track_applied": True,
+            "deterministic_template_used": False,
+            "company_table_allowed": False,
+            "legal_conclusion_allowed": False,
+            "candidate_table_source": "none",
+            "answer_schema_version": "pps_qa_interpretation_fast_v1",
+            "source_status": "intent_rag_pps_qa_cards",
+            "rag_elapsed_ms": 0,
+            "model_elapsed_ms": 0,
+            "mcp_preflight_elapsed_ms": 0,
+            "tool_call_count": 0,
+            "company_search_status": "not_called",
+            "amount_rewrite_bypass": True,
+            "final_answer_scanned": True,
+            "forbidden_patterns_remaining_after_rewrite": [],
+            "practice_manual_card_count": 0,
+            "pps_qa_card_count": len(pps_fast_cards),
+            "skip_citation_verify": True,
+            "final_answer_source": "intent_rag_pps_qa_fast_answer",
+            "query_gateway_route": gateway_decision.route if gateway_decision else "skipped",
+            "query_gateway_reason": gateway_decision.reason if gateway_decision else "",
+        }
+        answer, history = _finalize_answer(
+            pps_fast_answer, history, user_message, [], api_status,
+            progress_callback, generation_meta=_pps_fast_meta
         )
         return answer, history
 
@@ -2510,22 +3845,27 @@ def _chat_v144(
     if progress_callback:
         progress_callback("🔄 질문 분석 중...")
     keyword_result = keyword_pre_route(user_message)
+    try:
+        try:
+            from router.intent_rag_resolver import augment_keyword_route
+        except ImportError:
+            from app.router.intent_rag_resolver import augment_keyword_route
+        keyword_result = augment_keyword_route(keyword_result, intent_rag_decision)
+    except Exception as e:
+        print(f"  [INTENT-RAG] keyword merge skipped: {e}", flush=True)
     print(f"  [PRE-ROUTER] matched={keyword_result.matched_categories} "
           f"ambiguous={keyword_result.ambiguous_keywords} "
           f"unambiguous={keyword_result.is_unambiguous}")
 
-    # ─── 1.5. Gemini Intent Router (보조 분석) ───
-    # 운영 안정성을 위해 legacy keyword router를 대체하지 않고, 문맥 판단 보조값으로만 사용한다.
-    if _should_skip_gemini_intent_router(user_message, gateway_decision):
-        print("  [GEMINI-INTENT] skipped for clear amount/contract question", flush=True)
-        legacy_router_result = None
-    else:
-        legacy_router_result = _run_legacy_gemini_intent_router(user_message)
-    legacy_router_meta = _router_result_to_meta(legacy_router_result)
-
     # ─── 2. 의도 분류 (키워드 기반, LLM 호출 없음) ───
     # Pre-Router의 키워드 매칭 결과를 직접 사용
-    # LLM 의도분류 제거 이유: 키워드 95% 커버 + 관대한 조문 세트가 안전망
+    # LLM은 상시 1차 분류자가 아니라, 아래 3개 신호가 충돌/저신뢰일 때만 최종 검수자로 개입한다.
+    legacy_router_result = None
+    adjudicator_meta = {
+        "enabled": USE_GEMINI_ROUTE_ADJUDICATOR,
+        "called": False,
+        "status": "not_required",
+    }
     intent_labels = [cat for cat in keyword_result.matched_categories if cat != "unclear"]
     if not intent_labels:
         intent_labels = ["common_procurement"]
@@ -2537,20 +3877,117 @@ def _chat_v144(
         if "common_procurement" not in intent_labels:
             intent_labels.append("common_procurement")
 
-    # Gemini Router가 명시적 업체 검색/지역구매 의도를 잡았을 때만 legacy label에 보강한다.
-    # 법적 판단 질문을 업체검색으로 승격시키지 않도록 candidate_lookup_required를 함께 확인한다.
-    if legacy_router_result is not None:
-        if (
-            legacy_router_result.candidate_lookup_required
-            and not _is_legal_definition_query(user_message)
-            and "company_search" not in intent_labels
-        ):
-            intent_labels.append("company_search")
-        if (
-            legacy_router_result.primary_intent == "procurement_route_review"
-            or "procurement_route_review" in legacy_router_result.secondary_intents
-        ) and "mas_shopping_mall" not in intent_labels:
-            intent_labels.append("mas_shopping_mall")
+    # Intent RAG는 LLM Router와 독립된 보조 판정이다. 신뢰도가 충분할 때만
+    # label을 보강하고, 업체 목록 요청이 아닌 지역구매지원 질문은 company_search를 제거한다.
+    if intent_rag_decision is not None and getattr(intent_rag_decision, "confidence", 0.0) >= 0.55:
+        if getattr(intent_rag_decision, "company_search_blocked", False):
+            intent_labels = [label for label in intent_labels if label != "company_search"]
+        for label in getattr(intent_rag_decision, "intent_labels", []) or []:
+            if label == "company_search" and not getattr(intent_rag_decision, "company_search_required", False):
+                continue
+            if label not in intent_labels:
+                intent_labels.append(label)
+
+    # ─── 2.5. Conditional LLM Route Adjudicator ───
+    # 정규화 엔진 + Keyword Router + Intent RAG 결과가 명확하면 LLM을 부르지 않는다.
+    # 충돌/저신뢰/슬롯 누락/복합 신호가 있을 때만 카드 기반 최종 라우팅 검수자로 사용한다.
+    try:
+        try:
+            from router.llm_route_adjudicator import (
+                build_llm_adjudication_card,
+                evaluate_llm_adjudication_need,
+            )
+        except ImportError:
+            from app.router.llm_route_adjudicator import (
+                build_llm_adjudication_card,
+                evaluate_llm_adjudication_need,
+            )
+        adjudication_need = evaluate_llm_adjudication_need(
+            user_message,
+            gateway_decision=gateway_decision,
+            keyword_result=keyword_result,
+            intent_rag_decision=intent_rag_decision,
+            intent_labels=intent_labels,
+        )
+        adjudicator_meta.update({
+            "required": adjudication_need.required,
+            "reasons": list(adjudication_need.reasons),
+            "conflicts": list(adjudication_need.conflicts),
+            "missing_slots": list(adjudication_need.missing_slots),
+            "complex_signal_count": adjudication_need.complex_signal_count,
+            "rag_confidence": adjudication_need.rag_confidence,
+            "keyword_unambiguous": adjudication_need.keyword_unambiguous,
+            "bypass_reason": adjudication_need.bypass_reason,
+        })
+        if adjudication_need.required and USE_GEMINI_ROUTE_ADJUDICATOR:
+            adjudication_card = build_llm_adjudication_card(
+                user_message,
+                gateway_decision=gateway_decision,
+                keyword_result=keyword_result,
+                intent_rag_decision=intent_rag_decision,
+                intent_labels=intent_labels,
+                need=adjudication_need,
+            )
+            legacy_router_result, call_meta = _run_llm_route_adjudicator(user_message, adjudication_card)
+            adjudicator_meta.update(call_meta)
+            if legacy_router_result is not None:
+                intent_labels, label_meta = _apply_router_adjudication_to_labels(
+                    intent_labels,
+                    legacy_router_result,
+                    user_message,
+                )
+                adjudicator_meta.update(label_meta)
+        else:
+            print(
+                f"  [LLM-ADJUDICATOR] skipped: {adjudication_need.bypass_reason or 'not_required'}",
+                flush=True,
+            )
+    except Exception as e:
+        print(f"  [LLM-ADJUDICATOR] evaluation skipped: {e}", flush=True)
+        adjudicator_meta.update({
+            "status": "evaluation_failed",
+            "error": str(e)[:300],
+        })
+
+    legacy_router_meta = _router_result_to_meta(legacy_router_result)
+    legacy_router_meta["mode"] = "conditional_route_adjudicator"
+    legacy_router_meta["enabled"] = USE_GEMINI_ROUTE_ADJUDICATOR
+    legacy_router_meta["adjudicator"] = dict(adjudicator_meta)
+
+    # ─── 2.7. Intent Frame → Route Plan ───
+    # 여기서부터는 질문을 다시 분류하지 않는다. 앞단 신호를 하나의
+    # IntentFrame으로 확정하고, RoutePlan은 그 결과를 실행계획으로만 번역한다.
+    intent_frame = None
+    route_plan = None
+    try:
+        try:
+            from router.route_resolver import build_intent_frame, resolve_route_plan
+        except ImportError:
+            from app.router.route_resolver import build_intent_frame, resolve_route_plan
+        intent_frame = build_intent_frame(
+            user_message,
+            gateway_decision=gateway_decision,
+            keyword_result=keyword_result,
+            intent_rag_decision=intent_rag_decision,
+            router_result=legacy_router_result,
+            intent_labels=intent_labels,
+        )
+        route_plan = resolve_route_plan(intent_frame)
+        intent_labels = list(intent_frame.labels)
+        legacy_router_meta["intent_frame"] = intent_frame.to_meta()
+        legacy_router_meta["route_plan"] = route_plan.to_meta()
+        legacy_router_meta["route_plan_mode"] = "intent_frame_resolver"
+        print(
+            f"  [ROUTE-RESOLVER] mode={route_plan.execution_mode} "
+            f"legacy_tier={route_plan.query_tier} "
+            f"sections={list(route_plan.answer_sections)} "
+            f"retrieval={list(route_plan.retrieval_needs)}",
+            flush=True,
+        )
+    except Exception as e:
+        print(f"  [ROUTE-RESOLVER] skipped: {e}", flush=True)
+        legacy_router_meta["route_plan_mode"] = "fallback_legacy_tier"
+        legacy_router_meta["route_plan_error"] = str(e)[:300]
     
     # IntentRouteResult 호환 객체 생성 (guardrail_selector 호환용)
     from prompting.schemas import IntentRouteResult, IntentCandidate
@@ -2559,9 +3996,9 @@ def _chat_v144(
         agency_type="local_government",
         needs_clarification=None,
         mcp_required=True,
-        router_status="keyword_only",
+        router_status="llm_adjudicated" if legacy_router_result is not None else "keyword_rag_only",
     )
-    print(f"  [INTENT] labels={intent_labels} (keyword-based, no LLM call)")
+    print(f"  [INTENT] labels={intent_labels} ({intent_result.router_status})")
 
     # ─── 3. Guardrail 선택 + Sanity Check ───
     initial_guardrails = select_guardrails(intent_result, keyword_result)
@@ -2569,11 +4006,16 @@ def _chat_v144(
     sanity_added = list(set(guardrails) - set(initial_guardrails))
     print(f"  [GUARDRAILS] {guardrails} (Sanity added: {sanity_added})")
 
-    # ─── 4. Tier 분류 ───
-    from policies.model_routing_policy import classify_risk, classify_query_tier
+    # ─── 4. Risk + Legacy Tier 호환값 ───
+    # 실제 실행 판단은 RoutePlan의 execution_mode/retrieval_needs/company_search_mode가 담당한다.
+    # query_tier는 기존 로그·후처리·레거시 함수 호환용 숫자로만 유지한다.
+    from policies.model_routing_policy import classify_risk
     risk_info = classify_risk(user_message, intent_labels)
-    
-    query_tier = classify_query_tier(risk_info, intent_labels, user_message, legacy_router_result)
+    if route_plan is not None:
+        query_tier = route_plan.query_tier
+    else:
+        from policies.model_routing_policy import classify_query_tier
+        query_tier = classify_query_tier(risk_info, intent_labels, user_message, legacy_router_result)
     try:
         try:
             from app.router.routing_confidence import assess_routing_confidence
@@ -2586,6 +4028,7 @@ def _chat_v144(
             router_result=legacy_router_result,
             intent_labels=intent_labels,
             query_tier=query_tier,
+            intent_rag_result=intent_rag_decision,
         )
         _current_routing_confidence_meta = {
             "routing_confidence_score": routing_confidence.score,
@@ -2615,15 +4058,27 @@ def _chat_v144(
             "routing_confidence_action": "proceed",
         }
     legacy_router_meta["routing_confidence"] = dict(_current_routing_confidence_meta)
+    legal_preflight_required = _should_run_legal_preflight_from_route_plan(
+        route_plan if 'route_plan' in locals() else None,
+        query_tier,
+    )
+    fast_track_required = _should_fast_track_from_route_plan(
+        route_plan if 'route_plan' in locals() else None,
+        _current_routing_confidence_meta,
+        query_tier,
+    )
     print(
-        f"  [ROUTING] risk_level={risk_info.get('risk_level')} query_tier={query_tier} "
+        f"  [ROUTING] risk_level={risk_info.get('risk_level')} "
+        f"execution_mode={_route_plan_execution_mode(route_plan) if 'route_plan' in locals() else ''} "
+        f"legacy_tier={query_tier} "
+        f"legal_preflight={legal_preflight_required} "
         f"confidence={_current_routing_confidence_meta.get('routing_confidence_level')} "
         f"score={_current_routing_confidence_meta.get('routing_confidence_score')}",
         flush=True,
     )
     
-    if query_tier == 0:
-        print("  [FAST-TRACK] Tier 0 detected. Bypassing Gemini completely.")
+    if fast_track_required:
+        print("  [FAST-TRACK] RoutePlan company_fast_track detected. Bypassing Gemini completely.")
         api_status = ApiStatus()
         return _execute_tier_0_fast_track(user_message, history, api_status, progress_callback, intent_labels)
         
@@ -2644,18 +4099,32 @@ def _chat_v144(
     mcp_preflight_elapsed_ms = 0
     cache_stats = {}
     
-    if query_tier in (1, 2):
+    if legal_preflight_required:
         from policies.model_routing_policy import generate_mandatory_mcp_plan
         agency_key_for_mcp = _normalize_agency_type(agency_type) if agency_type else "default"
-        mandatory_mcp_plan = generate_mandatory_mcp_plan(user_message, query_tier, agency_type=agency_key_for_mcp)
+        mandatory_mcp_plan = generate_mandatory_mcp_plan(
+            user_message,
+            query_tier,
+            agency_type=agency_key_for_mcp,
+            route_plan=route_plan if 'route_plan' in locals() else None,
+        )
         if mandatory_mcp_plan:
-            print(f"  [MCP-PREFLIGHT] Starting: tier={query_tier}, agency={agency_key_for_mcp}, plan={len(mandatory_mcp_plan)} items", flush=True)
+            print(
+                f"  [MCP-PREFLIGHT] Starting: mode={_route_plan_execution_mode(route_plan) if 'route_plan' in locals() else 'legacy'} "
+                f"legacy_tier={query_tier}, agency={agency_key_for_mcp}, plan={len(mandatory_mcp_plan)} items",
+                flush=True,
+            )
             preflight_start = time.time()
             mcp_context, _, mandatory_mcp_executed, mandatory_mcp_missing, cache_stats = _execute_tier_2_mandatory_mcp(
                 user_message, mandatory_mcp_plan, progress_callback
             )
             mcp_preflight_elapsed_ms = int((time.time() - preflight_start) * 1000)
             evidence_cards = cache_stats.get("evidence_cards", [])
+            _current_evidence_context_meta = {
+                key: value
+                for key, value in cache_stats.items()
+                if key.startswith("mcp_context_") or key.startswith("evidence_context_")
+            }
             print(f"  [MCP-PREFLIGHT] Done: executed={len(mandatory_mcp_executed)}, missing={len(mandatory_mcp_missing)}, elapsed={mcp_preflight_elapsed_ms}ms", flush=True)
 
     # ─── 6. RAG 완전 제거 — 법령은 MCP, 매뉴얼은 Phase 2에서 법령DB로 통합 예정 ───
@@ -2663,7 +4132,7 @@ def _chat_v144(
     rag_elapsed_ms = 0
 
     # MCP 법령 결과를 컨텍스트로 주입
-    if query_tier in (1, 2) and mandatory_mcp_plan and 'mcp_context' in locals():
+    if legal_preflight_required and mandatory_mcp_plan and 'mcp_context' in locals():
         rag_context = f"### [법령 근거 — 최신 법령 기반, 법적 판단 우선]\n{mcp_context}"
 
     # ─── 6.5. Practice Manual Cards (precomputed, no PDF/runtime embedding) ───
@@ -2705,13 +4174,57 @@ def _chat_v144(
         pps_qa_cards = []
         pps_qa_context = ""
 
+    # ─── 6.7. Tool Loop Gate (shadow by default) ───
+    # LLM 도구 루프를 제거하지 않고, 내부 사전수집 근거가 충분한지 먼저 기록한다.
+    # 기본 TOOL_LOOP_GATE_MODE=shadow에서는 동작을 바꾸지 않고 QA 메타데이터만 남긴다.
+    try:
+        tool_loop_gate_decision = assess_tool_loop_gate(
+            user_message=user_message,
+            query_tier=query_tier,
+            mandatory_mcp_plan=mandatory_mcp_plan,
+            mandatory_mcp_executed=mandatory_mcp_executed,
+            mandatory_mcp_missing=mandatory_mcp_missing,
+            evidence_cards=evidence_cards,
+            practice_manual_cards=practice_manual_cards,
+            pps_qa_cards=pps_qa_cards,
+            routing_confidence=_current_routing_confidence_meta,
+            gateway_route=gateway_decision.route if gateway_decision else None,
+            has_amount=amount_detected is not None,
+            route_plan=route_plan if 'route_plan' in locals() else None,
+        )
+        _current_tool_loop_gate_meta = tool_loop_gate_decision.to_meta()
+        print(
+            "  [TOOL-LOOP-GATE] "
+            f"mode={tool_loop_gate_decision.mode} "
+            f"recommendation={tool_loop_gate_decision.recommendation} "
+            f"score={tool_loop_gate_decision.evidence_sufficiency_score} "
+            f"blockers={tool_loop_gate_decision.blockers}",
+            flush=True,
+        )
+    except Exception as e:
+        _current_tool_loop_gate_meta = {
+            "tool_loop_gate_mode": os.getenv("TOOL_LOOP_GATE_MODE", "shadow").lower(),
+            "tool_loop_gate_recommendation": "gate_failed_open",
+            "tool_loop_gate_evidence_sufficiency_score": 0.0,
+            "tool_loop_gate_should_allow_loop": True,
+            "tool_loop_gate_can_use_writer_only": False,
+            "tool_loop_gate_reasons": [f"gate_failed:{e}"],
+            "tool_loop_gate_blockers": ["gate_failed"],
+        }
+        print(f"  [TOOL-LOOP-GATE] failed-open: {e}", flush=True)
+
     # ─── 5.5. Grounded Single-Pass LLM ───
     # 실제 금액/품목 판단 질문은 결정형 템플릿으로 덮지 않고,
     # 내부 DB preflight 근거만 넣어 LLM이 1회 문장화한다.
     if (
         'mcp_context' in locals()
         and mandatory_mcp_executed
-        and _should_use_grounded_single_pass_llm(user_message, query_tier, amount_detected)
+        and _should_use_grounded_single_pass_llm(
+            user_message,
+            query_tier,
+            amount_detected,
+            route_plan if 'route_plan' in locals() else None,
+        )
     ):
         grounded_start = time.time()
         grounded_context = mcp_context
@@ -3064,9 +4577,42 @@ def _chat_v144(
     router_guidance_context = _build_router_guidance_context(
         legacy_router_result if 'legacy_router_result' in locals() else None
     )
+    intent_rag_guidance_context = _build_intent_rag_guidance_context(
+        intent_rag_decision if 'intent_rag_decision' in locals() else None
+    )
+    route_plan_guidance_context = ""
+    if 'intent_frame' in locals() and intent_frame is not None and 'route_plan' in locals() and route_plan is not None:
+        try:
+            try:
+                from router.route_resolver import format_route_plan_for_llm
+            except ImportError:
+                from app.router.route_resolver import format_route_plan_for_llm
+            route_plan_guidance_context = format_route_plan_for_llm(intent_frame, route_plan)
+        except Exception as e:
+            print(f"  [ROUTE-RESOLVER] guidance skipped: {e}", flush=True)
     dynamic_context = assembled.dynamic_context
-    if router_guidance_context:
+    if intent_rag_guidance_context:
+        dynamic_context = intent_rag_guidance_context + "\n\n" + dynamic_context
+    if route_plan_guidance_context:
+        dynamic_context = route_plan_guidance_context + "\n\n" + dynamic_context
+    if router_guidance_context and not route_plan_guidance_context:
         dynamic_context = router_guidance_context + "\n\n" + dynamic_context
+
+    _current_llm_payload_meta = {
+        "llm_payload_core_prompt_chars": _text_char_len(assembled.core_prompt),
+        "llm_payload_dynamic_context_chars": _text_char_len(dynamic_context),
+        "llm_payload_rag_context_chars": _text_char_len(rag_context),
+        "llm_payload_mcp_context_chars": _text_char_len(mcp_context if 'mcp_context' in locals() else ""),
+        "llm_payload_practice_context_chars": _text_char_len(practice_manual_context if 'practice_manual_context' in locals() else ""),
+        "llm_payload_pps_qa_context_chars": _text_char_len(pps_qa_context if 'pps_qa_context' in locals() else ""),
+        "llm_payload_route_plan_guidance_chars": _text_char_len(route_plan_guidance_context),
+        "llm_payload_intent_rag_guidance_chars": _text_char_len(intent_rag_guidance_context),
+        "llm_payload_router_guidance_chars": _text_char_len(router_guidance_context),
+        "llm_payload_tool_count_available": len(filtered_funcs) if 'filtered_funcs' in locals() else 0,
+        "llm_payload_model_round_count": 0,
+        "llm_payload_model_timeout_count": 0,
+        "llm_payload_model_error_statuses": [],
+    }
 
     routing_elapsed = int((time.time() - routing_start) * 1000)
 
@@ -3097,6 +4643,12 @@ def _chat_v144(
     policy_company_tools = ["search_company_by_policy"]
     product_tools = ["search_certified_product", "search_innovation_product", "search_innovation_products", 
                       "search_tech_development_products", "search_excellent_procurement_product"]
+    tool_loop_gate_mode = _current_tool_loop_gate_meta.get("tool_loop_gate_mode", "shadow")
+    tool_loop_gate_writer_only_enforced = (
+        tool_loop_gate_mode in ("enforce", "writer_only", "writer_only_enforce")
+        and _current_tool_loop_gate_meta.get("tool_loop_gate_recommendation") == "writer_only_candidate"
+        and _current_tool_loop_gate_meta.get("tool_loop_gate_can_use_writer_only") is True
+    )
     
     # low-risk company_search일 경우 법령 도구 스킵하여 지연 최소화
     skip_law_tools = risk_info.get("risk_level") == "low" and "company_search" in guardrails
@@ -3108,6 +4660,13 @@ def _chat_v144(
         # 업체 7개도 사전 호출 완료 → LLM에서 업체 도구도 제거 (중복 호출 방지)
         skip_company_tools = True
         print("  [TOOL_FILTER] tier=2 사전호출 완료 → 법령+업체 도구 제거, LLM은 종합·작문만 수행")
+    if tool_loop_gate_writer_only_enforced:
+        skip_law_tools = True
+        skip_company_tools = True
+        _current_tool_loop_gate_meta["tool_loop_gate_enforced"] = True
+        print("  [TOOL-LOOP-GATE] enforce writer-only → all tools removed for this turn", flush=True)
+    else:
+        _current_tool_loop_gate_meta.setdefault("tool_loop_gate_enforced", False)
     law_tools_to_skip = ["chain_full_research", "chain_action_basis", "search_law", "get_law_text", "search_interpretations", "get_annexes", "chain_procedure_detail", "chain_ordinance_compare", "chain_document_review", "chain_law_system", "search_admin_rule", "get_admin_rule", "chain_amendment_track"]
     company_tools_to_skip = company_tools + shopping_tools + policy_company_tools + product_tools
     
@@ -3135,12 +4694,24 @@ def _chat_v144(
         dynamic_tools = [types.Tool(function_declarations=filtered_funcs)]
     else:
         dynamic_tools = []
+    _current_llm_payload_meta["llm_payload_tool_count_available"] = len(filtered_funcs)
+
+    answer_budget, answer_budget_reason = _answer_thinking_budget_for(
+        user_message,
+        base_budget=GEMINI_COMPLEX_THINKING_BUDGET,
+    )
+    _current_llm_payload_meta["llm_answer_thinking_budget"] = answer_budget
+    _current_llm_payload_meta["llm_answer_thinking_budget_reason"] = answer_budget_reason
+    print(
+        f"  [ANSWER-BUDGET] main budget={answer_budget} reason={answer_budget_reason}",
+        flush=True,
+    )
 
     config = types.GenerateContentConfig(
         system_instruction=assembled.core_prompt,  # Core만 (불변)
         tools=dynamic_tools,
         temperature=0.1,
-        thinking_config=_thinking_config_for(GEMINI_COMPLEX_THINKING_BUDGET),
+        thinking_config=_thinking_config_for(answer_budget),
     )
 
     # 대화 이력 + dynamic context
@@ -3156,6 +4727,8 @@ def _chat_v144(
         role="user",
         parts=[types.Part.from_text(text=dynamic_context)]
     ))
+    _current_llm_payload_meta["llm_payload_initial_contents_chars"] = _content_text_chars(contents)
+    _current_llm_payload_meta["llm_payload_max_contents_chars"] = _current_llm_payload_meta["llm_payload_initial_contents_chars"]
 
     # ─── 7. Function-calling loop (MAX_TOOL_CALL_ROUNDS=3) ───
     called_tools = set()  # 중복 호출 차단
@@ -3280,8 +4853,22 @@ def _chat_v144(
     model_start = time.time()
     
     amount_detected = _parse_amount(user_message)
-    if query_tier == 1 and amount_detected is not None:
-        # tier 1(단순 금액 질문, 품목 없음)만 bypass 유지
+    current_route_plan = route_plan if 'route_plan' in locals() else None
+    current_intent_frame = intent_frame if 'intent_frame' in locals() else None
+    simple_amount_bypass_required = (
+        amount_detected is not None
+        and (
+            (
+                current_route_plan is not None
+                and _route_plan_execution_mode(current_route_plan) == "evidence_prefetch"
+                and getattr(current_route_plan, "company_search_mode", "none") == "none"
+                and not getattr(current_intent_frame, "item_name", "")
+            )
+            or (current_route_plan is None and query_tier == 1)
+        )
+    )
+    if simple_amount_bypass_required:
+        # 단순 금액 질문(구체 품목 없음)은 실행계획 기준으로 템플릿/후처리 경로를 유지한다.
         if progress_callback:
             progress_callback("⚡ [Bypass] 모델 본문 생성 우회 및 템플릿 처리 중...")
 
@@ -3303,11 +4890,17 @@ def _chat_v144(
             "cache_status": cache_stats.get("cache_status", "") if 'cache_stats' in locals() else "",
         })
 
-    # ── tier 2(금액+품목): 멀티 라우트 사전 검색 후 LLM에 위임 ──
-    if query_tier == 2 and amount_detected is not None:
+    # ── 금액+품목/지역구매 실행계획: 멀티 라우트 사전 검색 후 LLM에 위임 ──
+    if _should_run_multi_route_prefetch_from_route_plan(
+        current_route_plan,
+        query_tier,
+        amount_detected,
+    ):
         should_prefetch_company, query, prefetch_reason = _should_prefetch_company_routes(
             user_message,
             legacy_router_result if 'legacy_router_result' in locals() else None,
+            intent_rag_decision if 'intent_rag_decision' in locals() else None,
+            route_plan if 'route_plan' in locals() else None,
         )
         legacy_router_meta["company_prefetch_enabled"] = should_prefetch_company
         legacy_router_meta["company_prefetch_query"] = query
@@ -3386,6 +4979,14 @@ def _chat_v144(
                 for f in concurrent.futures.as_completed(futures):
                     all_tool_results.append(f.result())
 
+            route_cards_for_prefetch = build_purchase_route_cards(
+                amount=amount_detected,
+                item_name=legacy_router_meta["company_prefetch_canonical_item"] or query,
+                contract_object=contract_object_for_prefetch,
+                agency_type=_normalize_agency_type(agency_type) if agency_type else None,
+                tool_results=all_tool_results,
+            )
+            route_candidate_display_options = derive_candidate_table_display_options(route_cards_for_prefetch)
             route_guidance_context = format_purchase_route_guidance_for_llm(
                 amount=amount_detected,
                 item_name=legacy_router_meta["company_prefetch_canonical_item"] or query,
@@ -3443,6 +5044,9 @@ def _chat_v144(
         if should_prefetch_company and os.getenv("BYPASS_MULTI_ROUTE_LLM", "true").lower() == "true":
             company_sections = []
             policy_company_sections_skipped = False
+            hidden_prefetch_candidate_types = set(
+                (locals().get("route_candidate_display_options") or {}).get("hidden_candidate_types", [])
+            )
             for tr in all_tool_results:
                 tool_name = tr.get("tool_name", "")
                 if not (
@@ -3452,7 +5056,7 @@ def _chat_v144(
                     or "innovation_product" in tool_name
                 ):
                     continue
-                if "company_by_policy" in tool_name:
+                if "company_by_policy" in tool_name and "policy_company" in hidden_prefetch_candidate_types:
                     policy_company_sections_skipped = True
                     continue
                 result_text = str(tr.get("result", "") or "").strip()
@@ -3461,7 +5065,7 @@ def _chat_v144(
 
             route_answer_parts = [
                 "### 판단 요약",
-                f"- 질문 조건은 **{amount_detected:,}원 규모의 {legacy_router_meta['company_prefetch_canonical_item'] or query} 구매 검토**입니다.",
+                f"- 질문 조건은 **{_display_amount_for_answer(amount_detected, user_message)} 규모의 {legacy_router_meta['company_prefetch_canonical_item'] or query} 구매 검토**입니다.",
                 "- 일반 소액 수의계약만으로 단정하기보다, 금액 기준과 품목 특성을 함께 보면서 지역상품 구매 경로를 나누어 검토하는 편이 안전합니다.",
                 "",
                 "### 구매 경로 검토",
@@ -3476,7 +5080,7 @@ def _chat_v144(
                 route_answer_parts.extend(company_sections)
                 if policy_company_sections_skipped:
                     route_answer_parts.append(
-                        "- 정책기업 전체목록은 품목 매칭 결과가 아니므로 후보표에서 제외했습니다. "
+                        "- 정책기업 1인 견적 경로는 금액상 우선 제외되어 정책기업 전용 후보표는 생략했습니다. "
                         "후보 업체 상세조회에서 여성기업ㆍ장애인기업ㆍ사회적기업 등 정책기업 여부를 별도 확인하세요."
                     )
             else:
@@ -3517,6 +5121,13 @@ def _chat_v144(
                 "company_search_status": "success",
                 "company_prefetch_query": query,
                 "company_prefetch_canonical_item": legacy_router_meta["company_prefetch_canonical_item"],
+                "company_prefetch_contract_object": contract_object_for_prefetch,
+                "purchase_route_hidden_candidate_types": list(hidden_prefetch_candidate_types),
+                "purchase_route_preferred_candidate_order": (
+                    locals().get("route_candidate_display_options") or {}
+                ).get("preferred_candidate_order", []),
+                "purchase_route_policy_company_table_hidden": "policy_company" in hidden_prefetch_candidate_types,
+                "purchase_route_card_count": len(locals().get("route_cards_for_prefetch") or []),
                 "complex_judgment_cards": complex_judgment_cards,
                 "complex_judgment_card_count": len(complex_judgment_cards),
                 "practice_manual_card_count": len(practice_manual_cards),
@@ -3535,9 +5146,13 @@ def _chat_v144(
 
         # bypass 하지 않고 아래 LLM 루프로 fall-through
 
-    # LLM 루프 전체 경과시간 제한 (FAIL_TO_CACHE 시 12초, Vertex AI 안정 시 90초)
+    # LLM 루프 전체 경과시간 제한.  긴 루프는 답변 품질보다 타임아웃 위험을 키우므로
+    # 모델 호출과 전체 루프를 모두 벽시계 기준으로 제한한다.
     from policies.timeout_policy import FAIL_TO_CACHE as _FTC, get_timeout as _get_tool_timeout
-    _loop_max_sec = 12 if _FTC else 90
+    _loop_max_sec = float(os.getenv("LLM_TOOL_LOOP_MAX_SEC", "12" if _FTC else "30"))
+    _model_turn_timeout_sec = float(os.getenv("LLM_TOOL_MODEL_TIMEOUT_SEC", "18"))
+    _model_retry_max = max(1, int(os.getenv("LLM_TOOL_RETRY_MAX", "2")))
+    _model_retry_base_sec = max(0.0, float(os.getenv("LLM_TOOL_RETRY_BASE_SEC", "1")))
     _loop_start = time.time()
 
     for round_i in range(MAX_TOOL_CALL_ROUNDS):
@@ -3550,14 +5165,27 @@ def _chat_v144(
         response = None
         last_err = None
         
-        # 내부 재시도 루프 (최대 4회: 네트워크 에러 3회 + Malformed 1회 추가 고려)
-        for retry in range(4):
+        # 내부 재시도 루프: 503/429는 짧게 재시도하고, 모델 timeout은 즉시 fallback으로 넘긴다.
+        for retry in range(_model_retry_max):
             total_retries += 1
             try:
-                response = client.models.generate_content(
+                remaining_loop_sec = max(1.0, _loop_max_sec - (time.time() - _loop_start))
+                current_contents_chars = _content_text_chars(contents)
+                _current_llm_payload_meta["llm_payload_model_round_count"] = max(
+                    int(_current_llm_payload_meta.get("llm_payload_model_round_count", 0) or 0),
+                    round_i + 1,
+                )
+                _current_llm_payload_meta[f"llm_payload_round_{round_i+1}_input_chars"] = current_contents_chars
+                _current_llm_payload_meta["llm_payload_max_contents_chars"] = max(
+                    int(_current_llm_payload_meta.get("llm_payload_max_contents_chars", 0) or 0),
+                    current_contents_chars,
+                )
+                response = _generate_content_bounded(
                     model=model_to_use,
                     contents=contents,
                     config=config,
+                    timeout_sec=min(_model_turn_timeout_sec, remaining_loop_sec),
+                    label=f"tool_loop_round_{round_i+1}",
                 )
                 
                 # Malformed 검사
@@ -3583,6 +5211,20 @@ def _chat_v144(
             except Exception as api_err:
                 last_err = api_err
                 err_msg = str(api_err)
+                if isinstance(api_err, TimeoutError) or "model call exceeded" in err_msg:
+                    _current_llm_payload_meta["llm_payload_model_timeout_count"] = int(
+                        _current_llm_payload_meta.get("llm_payload_model_timeout_count", 0) or 0
+                    ) + 1
+                    _current_llm_payload_meta.setdefault("llm_payload_model_error_statuses", []).append("local_model_timeout")
+                    print(f"  [API] model turn timeout: {err_msg}", flush=True)
+                    break
+                if any(kw in err_msg for kw in ["499", "CANCELLED", "cancelled", "504", "DEADLINE_EXCEEDED", "timed out", "timeout"]):
+                    _current_llm_payload_meta["llm_payload_model_timeout_count"] = int(
+                        _current_llm_payload_meta.get("llm_payload_model_timeout_count", 0) or 0
+                    ) + 1
+                    _current_llm_payload_meta.setdefault("llm_payload_model_error_statuses", []).append("remote_model_timeout")
+                    print(f"  [API] model/server timeout: {err_msg[:200]}", flush=True)
+                    break
                 if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
                     if "pro" in model_to_use:
                         print("  [API] 429 Quota Exhausted. Falling back to Flash model.", flush=True)
@@ -3592,17 +5234,25 @@ def _chat_v144(
                         continue # 즉시 Flash로 재시도
                 
                 if any(kw in err_msg for kw in ["429", "RESOURCE_EXHAUSTED", "503"]):
-                    wait_sec = 2 * (retry + 1)  # 2/4/6초 (총 12초, 기존 50초→12초)
-                    print(f"  [API] Retry {retry+1}/4 - waiting {wait_sec}s...", flush=True)
+                    _current_llm_payload_meta.setdefault("llm_payload_model_error_statuses", []).append("retryable_api_error")
+                    wait_sec = _model_retry_base_sec * (retry + 1)
+                    print(f"  [API] Retry {retry+1}/{_model_retry_max} - waiting {wait_sec}s...", flush=True)
                     time.sleep(wait_sec)
                 else:
+                    _current_llm_payload_meta.setdefault("llm_payload_model_error_statuses", []).append("non_retryable_api_error")
                     raise
 
         if response is None:
             import hashlib as _hl_fb
             _fb_core_hash = assembled.core_prompt_hash if 'assembled' in locals() and getattr(assembled, 'core_prompt_hash', '') else _hl_fb.sha256(b"deterministic_company_search_fallback_core").hexdigest()
             _fb_prefix_hash = assembled.prompt_prefix_hash if 'assembled' in locals() and getattr(assembled, 'prompt_prefix_hash', '') else _hl_fb.sha256(b"deterministic_company_search_fallback_prefix").hexdigest()[:16]
-            _fb_err_type = "503_UNAVAILABLE" if last_err and any(kw in str(last_err) for kw in ["503", "UNAVAILABLE"]) else "API_FAILURE"
+            _last_err_str = str(last_err or "")
+            if any(kw in _last_err_str for kw in ["504", "DEADLINE_EXCEEDED", "timed out", "timeout"]):
+                _fb_err_type = "MODEL_TIMEOUT"
+            elif any(kw in _last_err_str for kw in ["503", "UNAVAILABLE"]):
+                _fb_err_type = "503_UNAVAILABLE"
+            else:
+                _fb_err_type = "API_FAILURE"
             if "company_search" in guardrails:
                 print("  [FALLBACK] API call failed. Using deterministic fallback for company_search.")
                 class _MockFC:
@@ -3642,14 +5292,19 @@ def _chat_v144(
                 # 503 등 API 실패 시, MCP Preflight 데이터가 있으면 fallback 답변 생성
                 if 'mcp_context' in locals() and mcp_context:
                     print(f"  [FALLBACK] Gemini 503. MCP 법령 데이터로 fallback 답변 생성.")
-                    fallback_msg = (
-                        f"⚠️ AI 응답 서비스(Gemini)가 일시적으로 지연되어, "
-                        f"사전 조회된 법령 근거를 직접 제공합니다.\n\n"
-                        f"### 관련 법령 근거\n{mcp_context}\n\n"
-                        f"---\n💡 **위 법령 원문을 참고하여 판단해 주세요.** "
-                        f"잠시 후 다시 질문하시면 AI가 종합 분석 답변을 제공합니다."
-                    )
-                    ans, hist = _finalize_answer(fallback_msg, history, user_message, all_tool_results, api_status, progress_callback, generation_meta={
+                    fallback_tool_results = list(all_tool_results)
+                    if not fallback_tool_results:
+                        fallback_tool_results.append({
+                            "tool_name": "chain_full_research",
+                            "status": "success",
+                            "result": mcp_context,
+                            "elapsed_ms": mcp_preflight_elapsed_ms if 'mcp_preflight_elapsed_ms' in locals() else 0,
+                            "tool_args": {"query": user_message},
+                            "raw_result_chars": len(mcp_context or ""),
+                            "llm_result_chars": len(mcp_context or ""),
+                        })
+                    fallback_msg = _build_grounded_case_timeout_fallback(user_message, mcp_context)
+                    ans, hist = _finalize_answer(fallback_msg, history, user_message, fallback_tool_results, api_status, progress_callback, generation_meta={
                         "model_used": model_to_use,
                         "fallback_used": True,
                         "fallback_reason": f"gemini_api_{_fb_err_type.lower()}_mcp_fallback",
@@ -3658,11 +5313,25 @@ def _chat_v144(
                         "high_risk_triggers": risk_info.get("high_risk_triggers", []),
                         "model_decision_reason": "gemini_503_mcp_data_fallback",
                         "deterministic_template_used": True,
+                        "amount_rewrite_bypass": True,
+                        "preflight_grounded_fallback": True,
+                        "source_status": "mcp_preflight_success",
+                        "direct_legal_basis_count": len(mandatory_mcp_executed) if 'mandatory_mcp_executed' in locals() else 0,
+                        "mandatory_mcp_plan": mandatory_mcp_plan if 'mandatory_mcp_plan' in locals() else [],
+                        "mandatory_mcp_executed": mandatory_mcp_executed if 'mandatory_mcp_executed' in locals() else [],
+                        "mandatory_mcp_missing": mandatory_mcp_missing if 'mandatory_mcp_missing' in locals() else [],
+                        "evidence_cards": evidence_cards if 'evidence_cards' in locals() else [],
+                        "evidence_card_count": cache_stats.get("evidence_card_count", 0) if 'cache_stats' in locals() else 0,
+                        "internal_db_hit_count": cache_stats.get("internal_db_hit_count", 0) if 'cache_stats' in locals() else 0,
+                        "external_mcp_fallback_count": cache_stats.get("external_mcp_fallback_count", 0) if 'cache_stats' in locals() else 0,
+                        "evidence_missing_count": cache_stats.get("evidence_missing_count", 0) if 'cache_stats' in locals() else 0,
+                        "mcp_preflight_elapsed_ms": mcp_preflight_elapsed_ms if 'mcp_preflight_elapsed_ms' in locals() else 0,
                         "core_prompt_hash": _fb_core_hash,
                         "prompt_prefix_hash": _fb_prefix_hash,
                         "api_error_detected": True,
                         "api_error_type": _fb_err_type,
                         "selected_guardrails": list(guardrails) if 'guardrails' in locals() else ["common_procurement"],
+                        "legacy_gemini_intent_router": legacy_router_meta if 'legacy_router_meta' in locals() else {"status": "not_available"},
                     })
                     return ans, hist
                 raise last_err or Exception("API call failed after retries")
@@ -3729,6 +5398,7 @@ def _chat_v144(
 
                 for call_key, (fc, future) in futures.items():
                     timeout_sec = _get_tool_timeout(fc.name)  # timeout_policy 기반
+                    llm_result_str = None
                     try:
                         result_str = future.result(timeout=timeout_sec)
                         status = "success"
@@ -3737,25 +5407,51 @@ def _chat_v144(
                         elif any(kw in result_str for kw in ["[FAILED]", "MCP 호출 오류"]):
                             status = "failed"
                         elapsed_tool = int((time.time() - tool_start) * 1000)
-                        all_tool_results.append({
+                        llm_result_str, evidence_card, response_context_meta = _build_llm_tool_response(fc, result_str)
+                        tool_result_entry = {
                             "tool_name": fc.name, "status": status,
                             "result": result_str, "elapsed_ms": elapsed_tool,
-                        })
+                            "tool_args": _function_args_dict(fc),
+                            "raw_result_chars": len(result_str or ""),
+                            "llm_result_chars": len(llm_result_str or ""),
+                        }
+                        if evidence_card:
+                            tool_result_entry["evidence_card"] = evidence_card
+                        tool_result_entry.update(response_context_meta)
+                        all_tool_results.append(tool_result_entry)
                     except Exception as e:
                         elapsed_tool = int((time.time() - tool_start) * 1000)
                         result_str = json.dumps({"error": str(e)}, ensure_ascii=False)
+                        llm_result_str, evidence_card, response_context_meta = _build_llm_tool_response(fc, result_str)
+                        tool_result_entry = {
+                            "tool_name": fc.name,
+                            "status": "timeout" if "timeout" in str(e).lower() else "failed",
+                            "result": result_str,
+                            "elapsed_ms": elapsed_tool,
+                            "tool_args": _function_args_dict(fc),
+                            "raw_result_chars": len(result_str or ""),
+                            "llm_result_chars": len(llm_result_str or ""),
+                        }
+                        if evidence_card:
+                            tool_result_entry["evidence_card"] = evidence_card
+                        tool_result_entry.update(response_context_meta)
                         all_tool_results.append({
-                            "tool_name": fc.name, "status": "timeout" if "timeout" in str(e).lower() else "failed",
-                            "result": result_str, "elapsed_ms": elapsed_tool,
+                            **tool_result_entry,
                         })
                     response_parts.append(
                         types.Part.from_function_response(
                             name=fc.name,
-                            response={"result": result_str}
+                            response={"result": llm_result_str if llm_result_str is not None else result_str}
                         )
                     )
 
             contents.append(types.Content(role="user", parts=response_parts))
+            current_contents_chars = _content_text_chars(contents)
+            _current_llm_payload_meta["llm_payload_after_tool_response_chars"] = current_contents_chars
+            _current_llm_payload_meta["llm_payload_max_contents_chars"] = max(
+                int(_current_llm_payload_meta.get("llm_payload_max_contents_chars", 0) or 0),
+                current_contents_chars,
+            )
             
             # [NEW] 조기 탈출 (Fast-track) for low-risk company search
             is_company_tool_called = any(r["tool_name"] in company_tools + shopping_tools for r in all_tool_results)
@@ -3823,24 +5519,57 @@ def _chat_v144(
         else:
             # Function call 없음 → 최종 답변
 
-            # 승인 조건 4: MCP required인데 tool call 없으면
-            if intent_result.mcp_required and not mcp_was_called and round_i == 0:
+            preflight_evidence_available = bool(
+                mandatory_mcp_executed
+                or (evidence_cards if 'evidence_cards' in locals() else [])
+                or (mcp_context if 'mcp_context' in locals() else "")
+            )
+
+            # 승인 조건 4: MCP required인데 tool call 없으면.
+            # 단, 이미 내부 DB preflight 근거가 있으면 같은 질문을 chain_full_research로
+            # 다시 태우지 않는다. 그 경우 Gemini는 카드/근거 기반 작성자로 끝낸다.
+            if (
+                intent_result.mcp_required
+                and not mcp_was_called
+                and round_i == 0
+                and not tool_loop_gate_writer_only_enforced
+                and not preflight_evidence_available
+            ):
                 print("  [PREFETCH] MCP required but no tool call")
                 print("  [PREFETCH] forcing chain_full_research")
                 start_prefetch = time.time()
                 try:
-                    prefetch_result = mcp.chain_full_research(user_message)
-                    elapsed = int((time.time() - start_prefetch) * 1000)
-                    status = "success"
+                    prefetch_call = call_mcp_with_timeout(
+                        lambda query: mcp.chain_full_research(query),
+                        "chain_full_research",
+                        query=user_message,
+                    )
+                    prefetch_result = prefetch_call.get("result", "")
+                    elapsed = prefetch_call.get("elapsed_ms", int((time.time() - start_prefetch) * 1000))
+                    class _PrefetchFC:
+                        name = "chain_full_research"
+                        args = {"query": user_message}
+                    prefetch_llm_result, prefetch_evidence_card, prefetch_context_meta = _build_llm_tool_response(
+                        _PrefetchFC(),
+                        prefetch_result,
+                        selected_reason="forced_prefetch",
+                    )
+                    status = prefetch_call.get("status", "success")
                     if "[TIMEOUT]" in prefetch_result or any(kw in prefetch_result for kw in ["TIMEOUT", "응답 지연", "API 지연", "MCP_TIMEOUT"]):
                         status = "timeout"
                     elif any(kw in prefetch_result for kw in ["[FAILED]", "MCP 호출 오류"]):
                         status = "failed"
-                        
-                    all_tool_results.append({
+                    prefetch_entry = {
                         "tool_name": "chain_full_research", "status": status,
                         "result": prefetch_result, "elapsed_ms": elapsed,
-                    })
+                        "tool_args": {"query": user_message},
+                        "raw_result_chars": len(prefetch_result or ""),
+                        "llm_result_chars": len(prefetch_llm_result or ""),
+                    }
+                    if prefetch_evidence_card:
+                        prefetch_entry["evidence_card"] = prefetch_evidence_card
+                    prefetch_entry.update(prefetch_context_meta)
+                    all_tool_results.append(prefetch_entry)
                     mcp_was_called = True
                     
                     if status in ["timeout", "failed"]:
@@ -3891,9 +5620,15 @@ def _chat_v144(
                     contents.append(types.Content(
                         role="user",
                         parts=[types.Part.from_text(
-                            text=f"[MCP Prefetch 결과]\n{prefetch_result}\n\n위 법령 조회 결과를 반영하여 최종 답변을 작성하세요."
+                            text=f"[MCP Prefetch 결과]\n{prefetch_llm_result}\n\n위 법령 조회 결과를 반영하여 최종 답변을 작성하세요."
                         )]
                     ))
+                    current_contents_chars = _content_text_chars(contents)
+                    _current_llm_payload_meta["llm_payload_after_forced_prefetch_chars"] = current_contents_chars
+                    _current_llm_payload_meta["llm_payload_max_contents_chars"] = max(
+                        int(_current_llm_payload_meta.get("llm_payload_max_contents_chars", 0) or 0),
+                        current_contents_chars,
+                    )
                     continue  # 다음 라운드에서 답변 생성
                 except Exception as e:
                     print(f"  [PREFETCH] Failed: {e}")
@@ -3983,11 +5718,21 @@ def _chat_v144(
     return answer, history
 
 def _finalize_answer(answer: str, history: list, user_message: str, all_tool_results: list, api_status: ApiStatus, progress_callback=None, generation_meta: dict = None):
-    global _last_generation_meta
+    global _last_generation_meta, _current_evidence_context_meta, _current_llm_payload_meta
     _rewrite_start = time.time()
     
     if generation_meta is not None:
+        for _k, _v in (_current_evidence_context_meta or {}).items():
+            generation_meta.setdefault(_k, _v)
+        for _k, _v in (_current_llm_payload_meta or {}).items():
+            generation_meta.setdefault(_k, _v)
+        for _k, _v in _summarize_tool_response_context(all_tool_results).items():
+            generation_meta.setdefault(_k, _v)
+        for _k, _v in (_current_intent_rag_meta or {}).items():
+            generation_meta.setdefault(_k, _v)
         for _k, _v in (_current_routing_confidence_meta or {}).items():
+            generation_meta.setdefault(_k, _v)
+        for _k, _v in (_current_tool_loop_gate_meta or {}).items():
             generation_meta.setdefault(_k, _v)
         # deterministic_template_used가 이미 True이면 source를 deterministic으로 초기화
         if generation_meta.get("deterministic_template_used", False):
@@ -4208,6 +5953,14 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
     if generation_meta is not None:
         generation_meta["legal_basis"] = legal_basis
 
+    preflight_grounded_fallback = bool(
+        generation_meta
+        and generation_meta.get("preflight_grounded_fallback")
+        and int(generation_meta.get("direct_legal_basis_count", 0) or 0) > 0
+    )
+    if preflight_grounded_fallback:
+        direct_basis_count = max(direct_basis_count, int(generation_meta.get("direct_legal_basis_count", 0) or 0))
+
     # direct legal_basis가 없으면 법적 결론을 내릴 수 없음
     if direct_basis_count == 0:
         legal_scope.legal_conclusion_allowed = False
@@ -4296,6 +6049,17 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
     # claim 중 하나라도 fail이면 unsupported_legal_conclusion = True
     if any(val == "fail" for val in claim_validation.values()):
         unsupported_legal_conclusion = True
+
+    if preflight_grounded_fallback and not has_forbidden:
+        unsupported_legal_conclusion = False
+        legal_scope.legal_conclusion_allowed = True
+        legal_scope.blocked_scope = [
+            scope for scope in legal_scope.blocked_scope
+            if scope not in ("no_direct_legal_basis", "unsupported_legal_conclusion")
+        ]
+        for key, value in list(claim_validation.items()):
+            if value == "fail":
+                claim_validation[key] = "preflight_grounded"
 
     if generation_meta is not None:
         generation_meta["claim_validation"] = claim_validation
@@ -4397,7 +6161,17 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
 
                     classified = classify_candidates(all_tool_results, user_message)
                     counts = get_candidate_counts(classified)
-                    formatted = format_candidate_tables(classified, user_message, safe_template)
+                    route_candidate_options = _route_candidate_display_options_for_answer(
+                        user_message,
+                        all_tool_results,
+                        generation_meta,
+                    )
+                    formatted = format_candidate_tables(
+                        classified,
+                        user_message,
+                        safe_template,
+                        **route_candidate_options,
+                    )
 
                     if formatted:
                         answer = formatted
@@ -4589,7 +6363,18 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
             
             # 스테이징 모드 환경변수가 1로 설정된 경우 is_staging=True로 전달
             is_staging = os.getenv("STAGING_MODE") == "1"
-            formatted = format_candidate_tables(classified, user_message, "", is_staging=is_staging)
+            route_candidate_options = _route_candidate_display_options_for_answer(
+                user_message,
+                enriched_results,
+                generation_meta,
+            )
+            formatted = format_candidate_tables(
+                classified,
+                user_message,
+                "",
+                is_staging=is_staging,
+                **route_candidate_options,
+            )
             formatter_output_chars = len(formatted) if formatted else 0
 
             # counts를 generation_meta에 주입 (분기 내부에서만 정의됨)
@@ -4661,9 +6446,15 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
         generation_meta["post_scan_critical_count"] = post_scan_result.get("critical_count", 0)
         generation_meta["post_scan_warning_count"] = post_scan_result.get("warning_count", 0)
         generation_meta["post_scan_warning_patterns"] = post_scan_warnings
-        generation_meta["candidate_table_source"] = "server_structured_formatter" if server_table else "none"
-        generation_meta["candidate_table_preserved"] = False
-        generation_meta["llm_generated_table_discarded"] = False
+        existing_candidate_source = generation_meta.get("candidate_table_source")
+        if server_table:
+            generation_meta["candidate_table_source"] = "server_structured_formatter"
+        elif existing_candidate_source in ("llm_multi_route", "company_api_prefetch"):
+            generation_meta["candidate_table_source"] = existing_candidate_source
+        else:
+            generation_meta["candidate_table_source"] = "none"
+        generation_meta.setdefault("candidate_table_preserved", False)
+        generation_meta.setdefault("llm_generated_table_discarded", False)
         generation_meta["prompt_leak_detected"] = prompt_leak_detected
         if "rewritten_sentences_count" not in generation_meta:
             generation_meta["rewritten_sentences_count"] = 0
@@ -5014,6 +6805,19 @@ def _parse_amount(text: str):
     - 2천만원 → 20_000_000
     """
     t = text.replace(" ", "").replace(",", "")
+
+    # 4천5백만원, 1억4천5백만원 등 복합 만원 단위.
+    # 일반 "N백만원" 패턴보다 먼저 처리해야 4천5백만원을 500만원으로 오인하지 않는다.
+    m_korean_man = re.search(r'(?:(\d+(?:\.\d+)?)억)?(?:(\d+(?:\.\d+)?)천)?(?:(\d+(?:\.\d+)?)백)?만원', t)
+    if m_korean_man and any(m_korean_man.group(i) for i in (1, 2, 3)):
+        total = 0.0
+        if m_korean_man.group(1):
+            total += float(m_korean_man.group(1)) * 100_000_000
+        if m_korean_man.group(2):
+            total += float(m_korean_man.group(2)) * 10_000_000
+        if m_korean_man.group(3):
+            total += float(m_korean_man.group(3)) * 1_000_000
+        return int(total)
 
     # 1) 복합: N억M천만원, N억M만원 등
     m_comp = re.search(r'(\d+)억(\d+)(천만|백만|만)원', t)

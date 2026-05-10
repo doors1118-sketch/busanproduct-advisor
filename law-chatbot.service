@@ -4,8 +4,11 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
+User=busan-chatbot
+Group=busan-chatbot
 WorkingDirectory=/opt/advisor
+EnvironmentFile=/opt/advisor/pilot_auth.env
+Environment=CHATBOT_API_URL=http://127.0.0.1:8001/chat
 ExecStart=/usr/local/bin/streamlit run app/pages/💬_법령챗봇.py --server.port 8502 --server.address 0.0.0.0 --server.headless true
 Restart=always
 RestartSec=10

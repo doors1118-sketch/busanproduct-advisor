@@ -15,7 +15,11 @@ try:
     try:
         from policies.procurement_router_lexicon import support_catalog_keywords
     except ImportError:
-        from app.policies.procurement_router_lexicon import support_catalog_keywords
+        from importlib import import_module
+
+        support_catalog_keywords = import_module(
+            "app.policies.procurement_router_lexicon"
+        ).support_catalog_keywords
 except Exception:  # pragma: no cover - package import fallback
     def support_catalog_keywords(scheme_id: str) -> tuple[str, ...]:
         return ()

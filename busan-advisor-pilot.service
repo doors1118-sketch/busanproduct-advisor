@@ -1,0 +1,43 @@
+[Unit]
+Description=Busan Procurement AI Chatbot API
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=busan-chatbot
+Group=busan-chatbot
+WorkingDirectory=/opt/advisor
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=/opt/advisor/.env
+EnvironmentFile=/opt/advisor/pilot_auth.env
+Environment=EVIDENCE_CONTEXT_MODE=card
+Environment=EVIDENCE_CONTEXT_MAX_CARDS=12
+Environment=EVIDENCE_CONTEXT_EXCERPT_CHARS=320
+Environment=MCP_ROUTE_PLAN_MAX_ITEMS=14
+Environment=MCP_ROUTE_PLAN_DYNAMIC_EXTRA=1
+Environment=MCP_ROUTE_PLAN_CLUSTER_AUGMENT=false
+Environment=GEMINI_ROUTER_USE_VERTEX=true
+Environment=GEMINI_ADJUDICATOR_THINKING_BUDGET=0
+Environment=GEMINI_ROUTE_ADJUDICATOR_TIMEOUT_SEC=6
+Environment=GEMINI_GROUNDED_THINKING_BUDGET=0
+Environment=GEMINI_COMPLEX_THINKING_BUDGET=0
+Environment=GEMINI_EXCEPTION_THINKING_BUDGET=128
+Environment=LLM_TOOL_LOOP_MAX_SEC=20
+Environment=LLM_TOOL_MODEL_TIMEOUT_SEC=10
+Environment=LLM_TOOL_RETRY_MAX=1
+Environment=LLM_TOOL_RETRY_BASE_SEC=1
+ExecStartPre=/usr/bin/python3 /opt/advisor/scripts/server_preflight.py --before-start --port 8001
+ExecStart=/usr/bin/python3 -m uvicorn app.api_server:app --host 0.0.0.0 --port 8001 --workers 4
+ExecStartPost=/bin/bash /opt/advisor/warmup.sh
+Restart=on-failure
+RestartSec=10
+KillMode=mixed
+TimeoutStopSec=30
+StandardOutput=append:/var/log/busan_advisor_pilot_out.log
+StandardError=append:/var/log/busan_advisor_pilot_err.log
+
+[Install]
+WantedBy=multi-user.target

@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from pathlib import Path
 from typing import Dict, Any, Optional
 
 from google import genai
@@ -67,15 +68,82 @@ PROCUREMENT_ROUTE_ALIASES = {
     "입찰": "bid",
 }
 
+
+DEFAULT_VERTEX_PROJECT = "carbide-team-457809-a8"
+DEFAULT_VERTEX_LOCATION = "asia-northeast3"
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _vertex_credentials_path_exists() -> bool:
+    path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
+    return bool(path and Path(path).exists())
+
+
+def resolve_router_client_config(api_key: Optional[str] = None) -> Dict[str, Any]:
+    """Return the runtime provider config used by the Gemini intent router."""
+    explicit_api_key = api_key is not None
+    vertex_enabled = _env_bool("GEMINI_ROUTER_USE_VERTEX", True)
+    use_vertex = vertex_enabled and not explicit_api_key and _vertex_credentials_path_exists()
+    if use_vertex:
+        return {
+            "provider": "vertex_ai",
+            "project": (
+                os.environ.get("GOOGLE_CLOUD_PROJECT")
+                or os.environ.get("GOOGLE_VERTEX_PROJECT")
+                or os.environ.get("VERTEX_AI_PROJECT")
+                or DEFAULT_VERTEX_PROJECT
+            ),
+            "location": (
+                os.environ.get("GOOGLE_CLOUD_LOCATION")
+                or os.environ.get("GOOGLE_VERTEX_LOCATION")
+                or os.environ.get("VERTEX_AI_LOCATION")
+                or DEFAULT_VERTEX_LOCATION
+            ),
+        }
+    configured_api_key = api_key or os.environ.get("GEMINI_API_KEY")
+    if configured_api_key:
+        return {
+            "provider": "gemini_api",
+            "api_key_configured": True,
+        }
+    return {
+        "provider": "unconfigured",
+        "api_key_configured": False,
+        "vertex_credentials_configured": bool(os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")),
+        "vertex_credentials_path_exists": _vertex_credentials_path_exists(),
+    }
+
+
 class GeminiIntentRouter:
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
-        self.client = genai.Client(api_key=self.api_key) if self.api_key else None
+        self.client_config = resolve_router_client_config(api_key=api_key)
+        self.provider = self.client_config.get("provider", "unconfigured")
+        http_timeout_ms = int(os.environ.get("GEMINI_HTTP_TIMEOUT_MS", "20000"))
+        http_options = types.HttpOptions(timeout=http_timeout_ms)
+        if self.provider == "vertex_ai":
+            self.client = genai.Client(
+                vertexai=True,
+                project=self.client_config["project"],
+                location=self.client_config["location"],
+                http_options=http_options,
+            )
+        elif self.provider == "gemini_api":
+            self.client = genai.Client(api_key=self.api_key, http_options=http_options)
+        else:
+            self.client = None
         self.validator = DeterministicIntentValidator()
         self.pro_fallback_enabled = os.environ.get("GEMINI_PRO_FALLBACK_ENABLED", "true").lower() == "true"
         self.flash_model = os.environ.get("GEMINI_ROUTER_MODEL", "gemini-2.5-flash")
         self.pro_model = os.environ.get("GEMINI_FALLBACK_MODEL", "gemini-2.5-pro")
         self.thinking_budget = int(os.environ.get("GEMINI_ROUTER_THINKING_BUDGET", "0"))
+        self.adjudicator_thinking_budget = int(os.environ.get("GEMINI_ADJUDICATOR_THINKING_BUDGET", "128"))
         self.pro_thinking_budget = int(os.environ.get("GEMINI_ROUTER_PRO_THINKING_BUDGET", "128"))
 
     def normalize_slots(self, parsed_dict: Dict) -> Dict:
@@ -147,10 +215,19 @@ class GeminiIntentRouter:
 
     def _call_gemini(self, query: str, model_name: str) -> str:
         if not self.client:
-            return '{"primary_intent": "out_of_scope", "routing_decision": "clarification_required", "reason": "No API Key"}'
+            return '{"primary_intent": "out_of_scope", "routing_decision": "clarification_required", "reason": "Gemini router client is not configured"}'
         
         prompt = f"{SYSTEM_PROMPT}\n\n사용자 질의: {query}"
-        budget = self.pro_thinking_budget if "pro" in model_name.lower() else self.thinking_budget
+        return self._call_gemini_prompt(prompt, model_name)
+
+    def _call_gemini_prompt(self, prompt: str, model_name: str, thinking_budget: Optional[int] = None) -> str:
+        if not self.client:
+            return '{"primary_intent": "out_of_scope", "routing_decision": "clarification_required", "reason": "Gemini router client is not configured"}'
+
+        if thinking_budget is not None:
+            budget = thinking_budget
+        else:
+            budget = self.pro_thinking_budget if "pro" in model_name.lower() else self.thinking_budget
         response = self.client.models.generate_content(
             model=model_name,
             contents=prompt,
@@ -161,13 +238,52 @@ class GeminiIntentRouter:
         )
         return response.text
 
+    def route_with_context_card(self, query: str, context_card: Dict[str, Any]) -> RouterResult:
+        """
+        Adjudicate final routing from deterministic/RAG evidence.
+
+        This path intentionally performs a single Flash call and does not use
+        retry or Pro fallback. It is a latency-bounded final routing check, not
+        a general-purpose answer generator.
+        """
+        if not self.client:
+            return RouterResult(primary_intent="out_of_scope", routing_decision="clarification_required", reason="Gemini router client is not configured")
+
+        prompt = (
+            f"{SYSTEM_PROMPT}\n\n"
+            "추가 역할: 아래 판정 카드는 Gateway, 정규화 엔진, Keyword Router, Intent RAG의 결과다.\n"
+            "너는 이 카드의 충돌·저신뢰·슬롯 누락을 검토해 최종 라우팅 JSON만 반환한다.\n"
+            "최종 답변을 작성하지 말고, 법적 결론이나 기준금액을 생성하지 않는다.\n"
+            "candidate_lookup_required는 사용자가 업체 후보/목록을 원하고 구체 품목이 있을 때만 true로 둔다.\n"
+            "지역업체 활용 방법, 구매경로, 수의계약 가능성 검토는 순수 업체검색이 아니라 contract_review/local_purchase_support/procurement_route_review로 분류한다.\n\n"
+            f"판정 카드(JSON):\n{json.dumps(context_card, ensure_ascii=False, default=str)}\n\n"
+            f"사용자 질의: {query}"
+        )
+
+        try:
+            response_text = self._call_gemini_prompt(
+                prompt,
+                self.flash_model,
+                thinking_budget=self.adjudicator_thinking_budget,
+            )
+            router_result = self.parse_gemini_response(query, response_text)
+        except Exception as e:
+            logger.error(f"Adjudicator Flash call failed: {e}")
+            return RouterResult(
+                primary_intent="out_of_scope",
+                routing_decision="clarification_required",
+                reason="Gemini adjudicator API error",
+            )
+
+        return repair_slots(query, router_result)
+
     def route(self, query: str) -> RouterResult:
         """
         API calling, fallback, and slot repair integration.
         1. Flash -> 2. Salvage/Parse -> 3. Slot Repair -> 4. Retry -> 5. Pro Fallback
         """
-        if not self.api_key:
-            return RouterResult(primary_intent="out_of_scope", routing_decision="clarification_required", reason="GEMINI_API_KEY is not set")
+        if not self.client:
+            return RouterResult(primary_intent="out_of_scope", routing_decision="clarification_required", reason="Gemini router client is not configured")
             
         api_error_summary = None
         # 1. Gemini Flash 호출
