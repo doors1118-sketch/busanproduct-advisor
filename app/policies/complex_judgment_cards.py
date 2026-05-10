@@ -128,7 +128,7 @@ def build_complex_judgment_cards(
         card_type="legal_basis",
         title="법령 근거 확보 상태",
         status="basis_found" if refs else "basis_needs_check",
-        summary="내부 DB 사전조회 근거를 확보했습니다." if refs else "직접 근거카드가 부족하여 추가 확인이 필요합니다.",
+        summary="확인된 법령·행정규칙 근거를 확보했습니다." if refs else "직접 근거카드가 부족하여 추가 확인이 필요합니다.",
         evidence_refs=refs,
         required_checks=["최신 시행일", "기관유형별 적용 법체계", "질문 조건과 조문 주제 일치 여부"],
         source_status="internal_db_preflight" if refs else "insufficient",

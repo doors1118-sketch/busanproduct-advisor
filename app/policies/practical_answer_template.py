@@ -96,5 +96,5 @@ def build_multi_route_practical_answer_parts(
         parts.extend(_demote_markdown_headings(text) for text in references)
 
     parts.append("")
-    parts.append("- 이 답변은 내부 법령 DB와 업체 API 사전조회 결과를 조합한 실무 검토용 안내입니다. 실제 계약 전에는 최신 법령·행정규칙과 기관 내부 기준을 확인하세요.")
+    parts.append("- 이 답변은 확인된 법령·행정규칙 자료와 업체 후보 자료를 조합한 실무 검토용 안내입니다. 실제 계약 전에는 최신 법령·행정규칙과 기관 내부 기준을 확인하세요.")
     return parts
