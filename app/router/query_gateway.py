@@ -11,6 +11,11 @@ from dataclasses import dataclass, field
 from typing import Literal
 import re
 
+try:
+    from app.router.intent_normalization import normalize_query_intent
+except Exception:  # Runtime path when app/ is on sys.path.
+    from router.intent_normalization import normalize_query_intent
+
 
 GatewayRoute = Literal[
     "standard_card",
@@ -79,10 +84,12 @@ def _compact(text: str) -> str:
 
 
 def _has_amount(q: str) -> bool:
-    return bool(re.search(r"\d+(?:\.\d+)?(?:억|천만|백만|만원|원)", q))
+    return normalize_query_intent(q).amount is not None or bool(re.search(r"\d+(?:\.\d+)?(?:억|천만|백만|만원|원)", q))
 
 
 def _has_contract_object(q: str) -> bool:
+    if normalize_query_intent(q).contract_object:
+        return True
     return any(term in q for term in (
         "물품", "용역", "공사", "구매", "납품", "제조", "제품", "사려", "살건데", "구입",
     ))
@@ -117,6 +124,8 @@ def _extract_direct_article_query(q_original: str) -> str | None:
 
 
 def _has_specific_item(q_original: str) -> bool:
+    if normalize_query_intent(q_original).item_name:
+        return True
     q = _compact(q_original)
     if any(term in q for term in (
         "led", "엘이디", "엘이디등", "엘이디조명", "led등", "led조명",
@@ -130,9 +139,62 @@ def _has_specific_item(q_original: str) -> bool:
 
 
 def _requests_company_lookup(q: str) -> bool:
+    norm = normalize_query_intent(q)
+    if norm.company_lookup_blocked:
+        return False
+    if norm.company_lookup_requested:
+        return True
     return any(term in q for term in (
-        "부산업체", "지역업체", "업체추천", "업체후보", "업체있", "업체알려", "후보", "추천", "찾아", "검색",
+        "업체추천", "업체후보", "업체있", "업체알려", "후보", "추천", "찾아", "검색",
     ))
+
+
+def _is_pure_company_lookup_request(q_original: str) -> bool:
+    """Gateway fast-exit is allowed only for a narrow supplier-candidate ask."""
+    norm = normalize_query_intent(q_original)
+    q = _compact(q_original)
+    if norm.company_lookup_blocked or not norm.company_lookup_requested:
+        return False
+    if not _has_specific_item(q_original):
+        return False
+    if _has_amount(q):
+        return False
+
+    # "절차 말고 업체 후보만"처럼 사용자가 후보표만 원한다고 명시한 경우.
+    if norm.company_lookup_only:
+        return True
+
+    hard_lookup = any(term in q for term in (
+        "업체추천", "기업추천", "후보추천", "업체후보", "기업후보",
+        "업체목록", "기업목록", "업체리스트", "기업리스트", "업체명",
+        "찾아", "검색", "조회", "보여",
+    ))
+    if not hard_lookup:
+        return False
+
+    route_or_judgment_terms = (
+        "계약방법", "구매방법", "활용방법", "활용방안", "참여방법",
+        "경로", "가능", "고를수", "살수", "사면", "수의", "입찰",
+        "견적", "종합쇼핑몰", "mas", "다수공급자", "지역제한", "가점",
+        "공동도급", "절차", "프로세스", "근거", "기준", "검토", "우대",
+    )
+    if any(term in q for term in route_or_judgment_terms):
+        return False
+
+    return True
+
+
+def _has_agency_law_conflict(q: str) -> bool:
+    has_national_or_public = any(term in q for term in ("국가기관", "국가계약", "공기업", "준정부", "공공기관"))
+    has_local_law = any(term in q for term in ("지방계약", "지방자치단체", "지자체"))
+    has_conflict_ask = any(term in q for term in ("그대로", "다르", "안되", "안되지", "혼동", "기준", "우대", "지역제한"))
+    return has_national_or_public and has_local_law and has_conflict_ask
+
+
+def _has_procurement_design_question(q: str) -> bool:
+    has_design_term = any(term in q for term in ("지역제한", "평가항목", "면허", "참가자격", "부당제한", "규격서"))
+    has_how = any(term in q for term in ("어떻게", "검토", "설계", "조심", "확인"))
+    return has_design_term and has_how
 
 
 def _standard_card_id(q: str) -> str | None:
@@ -197,7 +259,25 @@ def decide_query_gateway(user_message: str) -> GatewayDecision:
             llm_validation_required=True,
         )
 
-    if _requests_company_lookup(q) and _has_specific_item(user_message) and not _has_amount(q):
+    if _has_agency_law_conflict(q):
+        return GatewayDecision(
+            route="complex_router",
+            confidence="ambiguous",
+            reason="agency_law_conflict_requires_legal_context",
+            exclusions=exclusions,
+            llm_validation_required=True,
+        )
+
+    if _has_procurement_design_question(q):
+        return GatewayDecision(
+            route="complex_router",
+            confidence="ambiguous",
+            reason="procurement_design_question_requires_context",
+            exclusions=exclusions,
+            llm_validation_required=True,
+        )
+
+    if _is_pure_company_lookup_request(user_message):
         return GatewayDecision(
             route="company_search",
             reason="specific_item_company_lookup_without_amount_case",

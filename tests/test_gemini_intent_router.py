@@ -1,6 +1,50 @@
 import json
 from app.router.gemini_intent_router import GeminiIntentRouter
 
+
+def test_router_prefers_vertex_when_credentials_exist(monkeypatch, tmp_path):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_ROUTER_USE_VERTEX", raising=False)
+    cred_path = tmp_path / "vertex-ai-key.json"
+    cred_path.write_text("{}", encoding="utf-8")
+    monkeypatch.setenv("GOOGLE_APPLICATION_CREDENTIALS", str(cred_path))
+    monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "unit-project")
+    monkeypatch.setenv("GOOGLE_CLOUD_LOCATION", "asia-northeast3")
+    captured = {}
+
+    def fake_client(**kwargs):
+        captured.update(kwargs)
+        return object()
+
+    monkeypatch.setattr("app.router.gemini_intent_router.genai.Client", fake_client)
+
+    router = GeminiIntentRouter()
+
+    assert router.provider == "vertex_ai"
+    assert captured["vertexai"] is True
+    assert captured["project"] == "unit-project"
+    assert captured["location"] == "asia-northeast3"
+
+
+def test_router_uses_explicit_api_key_for_unit_tests(monkeypatch, tmp_path):
+    cred_path = tmp_path / "vertex-ai-key.json"
+    cred_path.write_text("{}", encoding="utf-8")
+    monkeypatch.setenv("GOOGLE_APPLICATION_CREDENTIALS", str(cred_path))
+    captured = {}
+
+    def fake_client(**kwargs):
+        captured.update(kwargs)
+        return object()
+
+    monkeypatch.setattr("app.router.gemini_intent_router.genai.Client", fake_client)
+
+    router = GeminiIntentRouter(api_key="mock_key")
+
+    assert router.provider == "gemini_api"
+    assert captured["api_key"] == "mock_key"
+    assert "vertexai" not in captured
+
+
 def test_json_markdown_stripping():
     router = GeminiIntentRouter()
     
@@ -147,3 +191,29 @@ def test_fallback_pro_called(monkeypatch):
     assert call_counts["pro"] == 1   
     assert result.primary_intent == "legal_explanation"
     assert "Used Pro Fallback" in result.reason
+
+
+def test_adjudicator_uses_dedicated_thinking_budget(monkeypatch):
+    monkeypatch.setenv("GEMINI_ROUTER_THINKING_BUDGET", "0")
+    monkeypatch.setenv("GEMINI_ADJUDICATOR_THINKING_BUDGET", "128")
+    router = GeminiIntentRouter(api_key="mock_key")
+    captured = {}
+
+    def mock_call(prompt, model_name, thinking_budget=None):
+        captured["thinking_budget"] = thinking_budget
+        return json.dumps({
+            "primary_intent": "contract_review",
+            "confidence": 0.9,
+            "routing_decision": "contract_review_flow",
+            "slots": {"item_name": "컴퓨터", "amount": 60000000}
+        })
+
+    monkeypatch.setattr(router, "_call_gemini_prompt", mock_call)
+
+    result = router.route_with_context_card(
+        "컴퓨터 6천만원어치 사려는데 부산업체 활용 방법 알려줘",
+        {"decision_scope": "final_routing_only_no_answer_generation"},
+    )
+
+    assert captured["thinking_budget"] == 128
+    assert result.primary_intent == "contract_review"

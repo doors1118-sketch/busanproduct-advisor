@@ -15,7 +15,11 @@ try:
     try:
         from policies.procurement_router_lexicon import support_catalog_keywords
     except ImportError:
-        from app.policies.procurement_router_lexicon import support_catalog_keywords
+        from importlib import import_module
+
+        support_catalog_keywords = import_module(
+            "app.policies.procurement_router_lexicon"
+        ).support_catalog_keywords
 except Exception:  # pragma: no cover - package import fallback
     def support_catalog_keywords(scheme_id: str) -> tuple[str, ...]:
         return ()
@@ -386,6 +390,28 @@ def match_regional_support_catalog(
     return matches[:max_matches]
 
 
+_AGENCY_LABELS = {
+    "local_government": "지방자치단체",
+    "national_agency": "국가기관",
+    "public_corporation": "공기업·준정부기관",
+}
+
+_MATCH_REASON_LABELS = {
+    "explicit_keyword": "질문 키워드와 직접 관련",
+    "implicit_local_purchase_support": "지역업체 활용 조건에서 함께 검토",
+}
+
+_ROUTE_GUIDANCE_COVERED_SCHEME_IDS = {
+    "small_value_direct_contract",
+    "policy_company_direct_contract",
+    "regional_restriction_bid",
+    "shopping_mall_mas_regional_factor",
+    "technology_development_priority_purchase",
+    "innovation_product_purchase",
+    "sme_competition_direct_production",
+}
+
+
 def build_catalog_evidence_plan(
     user_message: str,
     *,
@@ -445,22 +471,32 @@ def format_catalog_matches_for_llm(
         contract_object=contract_object,
         agency_type=agency_type,
     )
-    if not matches:
+    object_type = contract_object or infer_contract_object(user_message)
+    if object_type == "goods":
+        display_matches = [
+            match for match in matches
+            if match.scheme.id not in _ROUTE_GUIDANCE_COVERED_SCHEME_IDS
+        ]
+    else:
+        display_matches = matches
+    if not display_matches:
         return ""
     agency = _agency_key(agency_type)
+    agency_label = _AGENCY_LABELS.get(agency, agency)
 
     lines = [
         "",
         "[지역업체 보호·우대제도 카탈로그 매칭]",
         "- 아래 제도는 질문 조건에서 자동으로 검토 대상으로 선택된 항목이다.",
-        f"- 적용 기관유형: {agency}",
+        f"- 적용 기관유형: {agency_label}",
         "- 답변에서는 사용자가 제도를 직접 언급하지 않았더라도, 적용 가능성이 있으면 실무 대안으로 설명한다.",
         "",
-        "| 제도 | 선택 이유 | 적용 기관유형 | 답변에서 다룰 포인트 |",
-        "|---|---|---|---|",
+        "| 제도 | 검토 이유 | 실무 확인 포인트 |",
+        "|---|---|---|",
     ]
-    for match in matches:
+    for match in display_matches:
+        reason_label = _MATCH_REASON_LABELS.get(match.reason, "질문 조건과 관련")
         lines.append(
-            f"| {match.scheme.name} | {match.reason} | {agency} | {match.scheme.answer_guidance} |"
+            f"| {match.scheme.name} | {reason_label} | {match.scheme.answer_guidance} |"
         )
     return "\n".join(lines)

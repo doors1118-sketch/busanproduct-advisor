@@ -6,7 +6,7 @@ APP_DIR = Path(__file__).resolve().parents[1] / "app"
 sys.path.insert(0, str(APP_DIR))
 
 from internal_law_lookup import search_internal_law
-from policies.legal_evidence_cards import build_evidence_card, summarize_evidence_counts
+from policies.legal_evidence_cards import build_evidence_card, render_evidence_card_context, summarize_evidence_counts
 from policies.model_routing_policy import generate_mandatory_mcp_plan
 
 
@@ -49,6 +49,10 @@ def test_evidence_card_marks_internal_db_source_and_effective_date():
     assert card["article_no"] == "제30조"
     assert card["effective_date"] == "20260102"
     assert "direct_contract" in card["supports"]
+    assert "amount_threshold" in card["supports"]
+    assert card["required_checks"]
+    assert card["practical_meaning"]
+    assert card["legal_risks"]
 
 
 def test_evidence_count_summary_distinguishes_sources():
@@ -66,3 +70,30 @@ def test_evidence_count_summary_distinguishes_sources():
         "external_mcp_fallback_count": 1,
         "evidence_missing_count": 1,
     }
+
+
+def test_evidence_card_context_keeps_targeted_excerpt_without_full_raw_text():
+    long_prefix = "일반 설명 " * 260
+    result = (
+        f"[내부DB] 지방계약법 시행령 제30조\n{long_prefix}"
+        "제30조는 수의계약 대상자 선정과 견적 제출 절차를 정하고, "
+        "추정가격과 1인 견적 가능 여부를 구분하여 검토해야 한다. "
+        "다만 예외 사유는 별도 조문과 행정규칙 확인이 필요하다."
+    )
+    card = build_evidence_card(
+        tool_name="search_law",
+        args={"query": "지방계약법 시행령 제30조 수의계약 1인 견적"},
+        result=result,
+        from_cache=False,
+        elapsed_ms=1,
+    )
+
+    context = render_evidence_card_context([card], max_cards=1, excerpt_limit=500)
+
+    assert "구조화 근거카드 컨텍스트" in context
+    assert "excerpt:" in context
+    assert "제30조" in context
+    assert "수의계약" in context
+    assert "required_checks=" in context
+    assert "practical_meaning:" in context
+    assert len(context) < len(result)

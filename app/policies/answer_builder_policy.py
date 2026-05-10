@@ -172,6 +172,23 @@ def strip_raw_tool_names(text: str) -> str:
             r'[ \t]*[-·•]?\s*[✔️☑]*\s*' + re.escape(tool) + r'[^\n]*\n?',
             '', text
         )
+    text = re.sub(r"(?m)^[ \t]*(?:[-·•]\s*)?작성 원칙:.*(?:\n|$)", "", text)
+    text = re.sub(r"(?m)^[ \t]*(?:[-·•]\s*)?주의:.*(?:\n|$)", "", text)
+    text = re.sub(r"(?m)^[ \t]*(?:[-·•]\s*)?후보표 생략 대상:.*(?:\n|$)", "", text)
+    text = re.sub(r"(?m)^[ \t]*(?:[-·•]\s*)?(?:→\s*)?상세조회:\s*get_company_detail\([^\n]*\)\s*(?:\n|$)", "", text)
+    text = re.sub(r"get_company_detail\(\"?[0-9a-fA-F_-]+\"?\)", "", text)
+    text = text.replace("candidate 없음:", "후보 없음:")
+    text = text.replace("explicit_keyword", "질문 키워드와 직접 관련")
+    text = text.replace("implicit_local_purchase_support", "지역업체 활용 조건에서 함께 검토")
+    text = text.replace("local_government", "지방자치단체")
+    text = text.replace("national_agency", "국가기관")
+    text = text.replace("public_corporation", "공기업·준정부기관")
+    text = text.replace("내부 법령 DB와 source map", "확인된 법령·행정규칙 기준")
+    text = text.replace("최신 법령 DB와 source map", "최신 법령·행정규칙 기준")
+    text = text.replace("internal source map", "확인된 법령·행정규칙 기준")
+    text = text.replace("내부 source map", "확인된 법령·행정규칙 기준")
+    text = text.replace("source map", "법령·행정규칙 기준")
+    text = text.replace("source_map", "법령·행정규칙 기준")
     text = re.sub(
         r'-\s*\*\*사전 조회 근거\*\*:\s*시스템에서 다음의 필수 법령 및 매뉴얼 규정을 사전 조회하여 검토 기준에 반영했습니다\.\s*\n\s*\n',
         '', text
@@ -210,6 +227,17 @@ def _set_timing(generation_meta: dict, start: float):
     generation_meta["answer_builder_network_call_count"] = 0
 
 
+def _compact_item_query_label(query: str) -> str:
+    query = (query or "").strip()
+    for term in (
+        "냉난방기", "보안용카메라", "컴퓨터", "노트북", "프린터", "서버",
+        "전기공사", "정보통신공사", "조경공사", "포장공사", "행사용역",
+    ):
+        if term in query:
+            return term
+    return query[:30].strip()
+
+
 # ─────────────────────────────────────────────
 # Tier 0: 단순 업체 검색
 # ─────────────────────────────────────────────
@@ -224,17 +252,19 @@ def build_simple_company_search_answer(generation_meta: dict, has_candidates: bo
     generation_meta["source_status_user_label"] = "법령조회 불필요"
     generation_meta["legal_basis_table_rendered"] = False
     generation_meta["legal_basis_to_purchase_route_mapped"] = False
+    item_query = _compact_item_query_label(str(generation_meta.get("company_search_query") or ""))
+    item_label = f" ({item_query} 기준)" if item_query else ""
 
     template = (
         "### 1. 질문의도 파악\n"
         "- 입력하신 질문은 법적 계약 가능 여부 판단이 아니라, 부산 지역업체 후보 검색 요청으로 분류했습니다.\n\n"
         "### 2. 지역업체 후보 소개\n"
-        "- 아래 후보는 조달등록·정책기업·쇼핑몰/MAS·인증 여부를 기준으로 정리한 검토 후보입니다.\n\n"
+        f"- 아래 후보는 조달등록·정책기업·쇼핑몰/MAS·인증 여부를 기준으로 정리한 검토 후보입니다{item_label}.\n\n"
     )
     if has_candidates:
         template += "[SERVER_TABLE_PLACEHOLDER]\n\n"
     else:
-        template += "(검색 결과에서 유효한 업체 후보를 추출하지 못했습니다.)\n\n"
+        template += f"(검색 결과에서 유효한 업체 후보를 추출하지 못했습니다{item_label}.)\n\n"
     template += (
         "### 3. 바로 할 일\n"
         "- 후보 업체가 실제 구매 품목을 납품할 수 있는지 품목·규격을 먼저 확인하세요.\n"

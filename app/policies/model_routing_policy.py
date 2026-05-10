@@ -7,6 +7,14 @@ import os
 import re
 from typing import Optional
 
+try:
+    from app.router.intent_normalization import normalize_query_intent
+except Exception:  # Runtime path when app/ is on sys.path.
+    try:
+        from router.intent_normalization import normalize_query_intent
+    except Exception:
+        normalize_query_intent = None
+
 
 # ─────────────────────────────────────────────
 # 환경 변수
@@ -17,6 +25,8 @@ GEMINI_MODEL = "gemini-2.5-flash"
 FALLBACK_MODEL = "gemini-2.5-flash"
 MODEL_ROUTING_MODE = os.getenv("MODEL_ROUTING_MODE", "risk_based")
 MCP_PREFLIGHT_MAX_ITEMS = int(os.getenv("MCP_PREFLIGHT_MAX_ITEMS", "32"))
+MCP_ROUTE_PLAN_MAX_ITEMS = int(os.getenv("MCP_ROUTE_PLAN_MAX_ITEMS", "14"))
+MCP_ROUTE_PLAN_CLUSTER_AUGMENT = os.getenv("MCP_ROUTE_PLAN_CLUSTER_AUGMENT", "false").lower() == "true"
 ADMIN_RULE_KEY_NAMES = (
     "지방자치단체 입찰 및 계약집행기준",
     "지방자치단체 입찰시 낙찰자 결정기준",
@@ -310,6 +320,239 @@ def _is_pure_legal_explanation(router_result=None) -> bool:
     )
 
 
+def _compact(text: str) -> str:
+    return (text or "").replace(" ", "").lower()
+
+
+def _has_any(q: str, terms: tuple[str, ...]) -> bool:
+    return any(term in q for term in terms)
+
+
+def _route_plan_needs(route_plan, *needs: str) -> bool:
+    if route_plan is None:
+        return False
+    retrieval_needs = set(getattr(route_plan, "retrieval_needs", ()) or ())
+    return any(need in retrieval_needs for need in needs)
+
+
+def _route_plan_execution_mode(route_plan) -> str:
+    return str(getattr(route_plan, "execution_mode", "") or "")
+
+
+def _route_plan_topics(route_plan) -> set[str]:
+    if route_plan is None:
+        return set()
+    return {str(topic) for topic in (getattr(route_plan, "evidence_topics", ()) or []) if str(topic)}
+
+
+def _use_constrained_route_plan_prefetch(route_plan) -> bool:
+    """Use RoutePlan evidence topics as the retrieval boundary for ordinary cases."""
+    if route_plan is None:
+        return False
+    if _route_plan_execution_mode(route_plan) != "evidence_prefetch":
+        return False
+    topics = _route_plan_topics(route_plan)
+    broad_or_exception_topics = {
+        "regional_restriction_or_local_points",
+        "regional_support_methods",
+        "agency_law_scope_conflict",
+        "mixed_contract_object",
+        "split_procurement_review",
+        "construction_period_extension",
+        "indirect_cost_review",
+    }
+    return not bool(topics & broad_or_exception_topics)
+
+
+def _is_explicit_company_lookup(question: str) -> bool:
+    """Tier 0 순수 업체검색으로 보낼 만큼 명시적인 후보/목록 요청인지 확인."""
+    if normalize_query_intent is not None:
+        norm = normalize_query_intent(question)
+        return norm.company_lookup_requested and not norm.company_lookup_blocked
+
+    q = _compact(question)
+    if not q:
+        return False
+
+    company_lookup_terms = (
+        "업체추천", "기업추천", "업체후보", "기업후보", "후보추천",
+        "업체목록", "기업목록", "업체리스트", "기업리스트", "업체명",
+        "업체있", "기업있", "있는업체", "있는기업",
+        "공급업체", "납품업체", "등록업체", "조달등록업체",
+    )
+    if _has_any(q, company_lookup_terms):
+        return True
+
+    has_company_subject = _has_any(q, ("업체", "기업", "공급사", "납품사"))
+    has_lookup_verb = _has_any(q, (
+        "추천", "후보", "목록", "리스트", "찾아", "검색", "조회", "보여", "알려", "있어",
+    ))
+    strategy_terms = (
+        "방법", "제도", "검토", "참여", "활용", "우대", "가점", "지역제한",
+        "공동도급", "계약하려면", "발주하려면", "가능한방법", "어떻게",
+    )
+    return has_company_subject and has_lookup_verb and not _has_any(q, strategy_terms)
+
+
+def _law_system_for_agency(agency_type: str = None) -> str:
+    at = (agency_type or "").lower().replace(" ", "")
+    if at in ("national_agency", "국가기관", "중앙부처", "national_gov"):
+        return "national"
+    if at in ("public_corporation", "공기업", "준정부기관", "공기업/준정부기관", "공공기관", "public_agency"):
+        return "public_corp"
+    if at in (
+        "invested_institution", "출자출연기관", "지방공기업", "부산도시공사", "부산교통공사",
+        "부산시설공단", "부산관광공사", "busan_entity",
+    ):
+        return "invested"
+    return "local"
+
+
+def _add_plan_once(plan: list, seen: set, name: str, args: dict, *, selected_reason: str = "") -> None:
+    key = f"{name}:{args.get('query','')}{args.get('mst','')}{args.get('jo','')}{args.get('law_name','')}"
+    if key in seen:
+        return
+    seen.add(key)
+    item = {"name": name, "args": args}
+    if selected_reason:
+        item["selected_reason"] = selected_reason
+    plan.append(item)
+
+
+def _build_route_plan_seed_mcp_plan(user_message: str, route_plan, agency_type: str = None) -> list:
+    """Translate RoutePlan evidence topics into concrete internal DB lookups.
+
+    This is the RoutePlan-first counterpart to the legacy keyword planner.  It
+    intentionally keys off evidence_topics/retrieval_needs, not raw keyword
+    classification, so upstream intent analysis controls the retrieval surface.
+    """
+    if route_plan is None:
+        return []
+    topics = _route_plan_topics(route_plan)
+    if not topics and not _route_plan_needs(route_plan, "legal_basis", "regional_support_catalog"):
+        return []
+
+    law_system = _law_system_for_agency(agency_type)
+    plan: list[dict] = []
+    seen: set[str] = set()
+
+    direct_contract_queries = {
+        "local": [
+            ("search_law", "지방계약법 제9조"),
+            ("search_law", "지방계약법 시행령 제25조"),
+            ("search_law", "지방계약법 시행령 제30조"),
+        ],
+        "national": [
+            ("search_law", "국가계약법 제7조"),
+            ("search_law", "국가계약법 시행령 제26조"),
+            ("search_law", "국가계약법 시행령 제30조"),
+        ],
+        "public_corp": [
+            ("search_law", "공기업 준정부기관 계약사무규칙 수의계약"),
+            ("search_law", "국가계약법 제7조"),
+            ("search_law", "국가계약법 시행령 제26조"),
+        ],
+        "invested": [
+            ("search_law", "지방계약법 제9조"),
+            ("search_law", "지방계약법 시행령 제25조"),
+            ("search_law", "지방계약법 시행령 제30조"),
+            ("search_law", "출자출연기관 운영 법률 계약"),
+        ],
+    }
+    limited_bid_queries = {
+        "local": [
+            ("search_law", "지방계약법 시행령 제20조"),
+            ("search_admin_rule", "지방자치단체 입찰시 낙찰자 결정기준"),
+        ],
+        "national": [
+            ("search_law", "국가계약법 시행령 제21조"),
+            ("search_admin_rule", "정부 입찰 계약 집행기준"),
+        ],
+        "public_corp": [
+            ("search_law", "계약사무규칙 경쟁입찰"),
+            ("search_admin_rule", "기타공공기관 계약사무 운영규정"),
+        ],
+        "invested": [
+            ("search_law", "지방계약법 시행령 제20조"),
+            ("search_admin_rule", "지방자치단체 입찰시 낙찰자 결정기준"),
+        ],
+    }
+
+    def add(name: str, query: str, topic: str) -> None:
+        _add_plan_once(
+            plan,
+            seen,
+            name,
+            {"query": query},
+            selected_reason=f"route_plan:{topic}",
+        )
+
+    if topics & {"amount_based_contract_route", "direct_contract_thresholds"}:
+        for tool, query in direct_contract_queries[law_system]:
+            add(tool, query, "direct_contract_thresholds")
+
+    if "regional_restriction_or_local_points" in topics:
+        for tool, query in limited_bid_queries[law_system]:
+            add(tool, query, "regional_restriction_or_local_points")
+        add("search_admin_rule", "지방자치단체 입찰시 낙찰자 결정기준 지역업체 가점", "regional_restriction_or_local_points")
+
+    if "regional_support_methods" in topics or _route_plan_needs(route_plan, "regional_support_catalog"):
+        if law_system == "national":
+            add("chain_law_system", "국가계약법 물품 구매 지역제한 제한경쟁", "regional_support_methods")
+        else:
+            add("chain_law_system", "지방계약법 물품 구매 지역제한 제한경쟁", "regional_support_methods")
+        add("chain_ordinance_compare", "부산광역시 지역상품 우선구매 조례", "regional_support_methods")
+
+    if topics & {"mas_shopping_mall", "mas_second_stage_competition"}:
+        add("search_admin_rule", "물품 다수공급자계약 업무처리규정", "mas_shopping_mall")
+        add("search_admin_rule", "국가종합전자조달시스템 종합쇼핑몰 운영규정", "mas_shopping_mall")
+
+    if "sme_competition_product" in topics or "item_eligibility" in topics:
+        add("search_law", "중소기업제품 구매촉진 및 판로지원법 제6조", "item_eligibility")
+        add("search_law", "중소기업제품 구매촉진 및 판로지원법 제12조", "item_eligibility")
+        add("search_admin_rule", "중소기업자간 경쟁제품 및 공사용자재 직접구매 대상 품목 지정 내역", "item_eligibility")
+        add("search_admin_rule", "조달청 제조물품 직접생산확인 기준", "item_eligibility")
+
+    if "innovation_or_technology_development_product" in topics:
+        add("search_admin_rule", "혁신제품 구매 운영 규정", "innovation_or_technology_development_product")
+        add("search_admin_rule", "혁신제품 시범구매계약 추가특수조건", "innovation_or_technology_development_product")
+        add("search_admin_rule", "중소기업기술개발제품 우선구매제도 운영 등에 관한 시행세칙", "innovation_or_technology_development_product")
+        add("search_admin_rule", "우수조달물품 지정 관리 규정", "innovation_or_technology_development_product")
+
+    if "policy_company_purchase_performance" in topics:
+        add("search_law", "중소기업제품 구매촉진 및 판로지원에 관한 법률 여성기업 장애인기업 구매실적", "policy_company_purchase_performance")
+        add("search_admin_rule", "중소기업제품 공공구매제도 운영요령 구매실적 여성기업 장애인기업", "policy_company_purchase_performance")
+
+    if "procurement_lifecycle_procedure" in topics:
+        if law_system == "national":
+            add("search_admin_rule", "정부 입찰 계약 집행기준 계약 절차", "procurement_lifecycle_procedure")
+        else:
+            add("search_admin_rule", "지방자치단체 입찰 및 계약집행기준 계약 절차", "procurement_lifecycle_procedure")
+        add("search_admin_rule", "조달청 내자구매업무 처리규정", "procurement_lifecycle_procedure")
+
+    if "mixed_contract_object" in topics:
+        add("search_admin_rule", "지방자치단체 입찰 및 계약집행기준 물품 공사 용역 혼합계약", "mixed_contract_object")
+        add("search_admin_rule", "건설공사 발주 세부기준 관급자재 직접구매", "mixed_contract_object")
+
+    if "split_procurement_review" in topics:
+        add("search_law", "지방계약법 시행령 제25조 분할 수의계약 금지", "split_procurement_review")
+        add("search_admin_rule", "지방자치단체 입찰 및 계약집행기준 분할발주 수의계약", "split_procurement_review")
+
+    if "agency_law_scope_conflict" in topics:
+        add("search_law", "국가계약법 시행령 제21조", "agency_law_scope_conflict")
+        add("search_law", "지방계약법 시행령 제20조", "agency_law_scope_conflict")
+        add("search_law", "공기업 준정부기관 계약사무규칙 지역제한", "agency_law_scope_conflict")
+
+    if "construction_period_extension" in topics or "indirect_cost_review" in topics:
+        add("search_admin_rule", "지방자치단체 입찰 및 계약집행기준 공사기간 연장 간접비", "construction_period_extension")
+        add("search_admin_rule", "정부 입찰 계약 집행기준 공사기간 연장 계약금액 조정", "construction_period_extension")
+
+    if _route_plan_execution_mode(route_plan) == "agency_specific" and not plan:
+        add("search_admin_rule", "기타공공기관 계약사무 운영규정", "agency_specific")
+
+    return plan
+
+
 def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str = "", router_result=None) -> int:
     """
     3-Tier 라우팅 구조를 위해 질문의 Tier를 결정합니다.
@@ -321,16 +564,22 @@ def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str 
     if not intent_labels:
         intent_labels = []
 
-    has_amount = any(w in user_message for w in ["천만원", "백만원", "억원", "억", "금액", "예산", "만원"])
-    has_local = any(w in user_message for w in ["지역업체", "부산업체", "부산 업체", "지역 업체", "부산상품", "지역상품"])
-    has_item = any(w in user_message for w in ["컴퓨터", "물품", "CCTV", "구매", "조명", "LED", "가구", "차량",
-                                                "복사기", "프린터", "에어컨", "냉난방", "소프트웨어", "서버",
-                                                "사려", "구입", "납품", "사무용품", "소모품", "청소용품",
-                                                "사무기기", "가전", "장비", "기자재", "비품", "용품"])
+    norm = normalize_query_intent(user_message) if normalize_query_intent is not None else None
+    has_amount = bool(norm and norm.amount is not None) or any(w in user_message for w in ["천만원", "백만원", "억원", "억", "금액", "예산", "만원"])
+    has_local = bool(norm and norm.local_support_requested) or any(w in user_message for w in ["지역업체", "부산업체", "부산 업체", "지역 업체", "부산상품", "지역상품"])
+    has_item = bool(norm and norm.item_name) or any(w in user_message for w in ["컴퓨터", "물품", "CCTV", "구매", "조명", "LED", "가구", "차량",
+                                                                                  "복사기", "프린터", "에어컨", "냉난방", "소프트웨어", "서버",
+                                                                                  "사려", "구입", "납품", "사무용품", "소모품", "청소용품",
+                                                                                  "사무기기", "가전", "장비", "기자재", "비품", "용품"])
     has_agency = any(w in user_message for w in ["부산교통공사", "공기업", "출자출연", "시설공단", "환경공단"])
     has_contract_method = any(w in user_message for w in ["수의계약", "입찰", "경쟁입찰", "제한입찰",
                                                            "수의", "견적", "낙찰", "적격심사",
                                                            "공동계약", "MAS", "다수공급자"])
+    explicit_company_lookup = _is_explicit_company_lookup(user_message)
+    router_company_lookup_required = bool(
+        getattr(router_result, "candidate_lookup_required", False)
+        or getattr(router_result, "company_lookup_required", False)
+    )
 
     # Tier 3: 기관명 패턴이 명확할 때만 (단순 "공사"는 오탐 우려로 제외)
     if has_agency:
@@ -345,13 +594,14 @@ def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str 
     if (
         risk_info.get("risk_level") in ["low", "medium"]
         and any(i in intent_labels for i in fast_track_intents)
+        and (explicit_company_lookup or router_company_lookup_required)
         and not has_amount
         and not has_contract_method
     ):
         return 0
 
-    # Tier 0 키워드 fallback: 품목+지역업체 언급 + 금액/계약방식 없음 → 순수 업체 검색
-    if (has_item or has_local) and not has_amount and not has_contract_method and not has_agency:
+    # Tier 0 키워드 fallback: 명시적인 후보/목록 조회일 때만 순수 업체 검색
+    if explicit_company_lookup and (has_item or has_local) and not has_amount and not has_contract_method and not has_agency:
         return 0
 
     # Tier 2: 금액 + 품목, 또는 금액 + 계약방식 (수의계약/입찰 포함 시 반드시 법령 조회)
@@ -365,18 +615,66 @@ def classify_query_tier(risk_info: dict, intent_labels: list, user_message: str 
     # Tier 1: 그 외 금액이 있거나, 일반적인 질문
     return 1
 
-def generate_mandatory_mcp_plan(user_message: str, tier: int, agency_type: str = None) -> list:
+def generate_mandatory_mcp_plan(user_message: str, tier: int, agency_type: str = None, route_plan=None) -> list:
     """
     Tier 1/2 쿼리에 대해 필수적으로 호출해야 할 MCP 계획을 생성합니다.
     주제 클러스터 엔진을 우선 사용하고, 실패 시 기존 키워드 매칭을 fallback으로 사용합니다.
     """
+    if route_plan is not None and not (
+        _route_plan_needs(route_plan, "legal_basis", "regional_support_catalog")
+        or _route_plan_execution_mode(route_plan) in {"evidence_prefetch", "agency_specific"}
+    ):
+        return []
+
+    needs_regional_catalog = (
+        route_plan is None
+        or _route_plan_needs(route_plan, "regional_support_catalog")
+        or any(term in (user_message or "") for term in ("지역업체", "부산업체", "지역상품", "부산상품", "지역제한"))
+    )
+
+    route_plan_seed = _build_route_plan_seed_mcp_plan(user_message, route_plan, agency_type=agency_type)
+
+    if route_plan_seed and _use_constrained_route_plan_prefetch(route_plan):
+        dynamic_max_total = min(
+            MCP_ROUTE_PLAN_MAX_ITEMS,
+            len(route_plan_seed) + int(os.getenv("MCP_ROUTE_PLAN_DYNAMIC_EXTRA", "2")),
+        )
+        plan = route_plan_seed
+        plan = _augment_with_internal_discovery(
+            user_message,
+            plan,
+            agency_type=agency_type,
+            max_total=dynamic_max_total,
+        )
+        if MCP_ROUTE_PLAN_CLUSTER_AUGMENT:
+            try:
+                try:
+                    from topic_cluster_engine import build_preflight_plan
+                except ImportError:
+                    from app.topic_cluster_engine import build_preflight_plan
+                cluster_plan = build_preflight_plan(user_message, agency_type)
+                plan = _merge_mcp_plans(plan, cluster_plan)
+            except Exception as e:
+                print(f"  [TOPIC_CLUSTER] constrained augment skipped: {e}")
+        print(
+            f"  [MCP-PREFLIGHT] route-plan constrained retrieval: "
+            f"topics={sorted(_route_plan_topics(route_plan))}, plan={len(plan)} items",
+            flush=True,
+        )
+        return _limit_mandatory_mcp_plan(plan, max_items=MCP_ROUTE_PLAN_MAX_ITEMS)
+
     # ── 1순위: 주제 클러스터 엔진 (기관×주제×계약유형 → 조문 클러스터) ──
     try:
-        from topic_cluster_engine import build_preflight_plan
+        try:
+            from topic_cluster_engine import build_preflight_plan
+        except ImportError:
+            from app.topic_cluster_engine import build_preflight_plan
         cluster_plan = build_preflight_plan(user_message, agency_type)
         if cluster_plan:
-            plan = _augment_with_internal_discovery(user_message, cluster_plan, agency_type=agency_type)
-            plan = _augment_with_regional_support_catalog(user_message, plan, agency_type=agency_type)
+            plan = _merge_mcp_plans(route_plan_seed, cluster_plan)
+            plan = _augment_with_internal_discovery(user_message, plan, agency_type=agency_type)
+            if needs_regional_catalog:
+                plan = _augment_with_regional_support_catalog(user_message, plan, agency_type=agency_type)
             plan = _augment_with_tool_orchestration(user_message, plan, agency_type=agency_type)
             return _limit_mandatory_mcp_plan(plan)
     except Exception as e:
@@ -385,12 +683,29 @@ def generate_mandatory_mcp_plan(user_message: str, tier: int, agency_type: str =
     # ── 2순위: 기존 키워드 매칭 (fallback) ──
     plan = _augment_with_internal_discovery(
         user_message,
-        _legacy_mandatory_mcp_plan(user_message, tier, agency_type),
+        _merge_mcp_plans(
+            route_plan_seed,
+            _legacy_mandatory_mcp_plan(user_message, tier, agency_type),
+        ),
         agency_type=agency_type,
     )
-    plan = _augment_with_regional_support_catalog(user_message, plan, agency_type=agency_type)
+    if needs_regional_catalog:
+        plan = _augment_with_regional_support_catalog(user_message, plan, agency_type=agency_type)
     plan = _augment_with_tool_orchestration(user_message, plan, agency_type=agency_type)
     return _limit_mandatory_mcp_plan(plan)
+
+
+def _merge_mcp_plans(*plans: list) -> list:
+    merged: list[dict] = []
+    seen: set[str] = set()
+    for plan in plans:
+        for item in plan or []:
+            key = _plan_identity(item)
+            if key in seen:
+                continue
+            merged.append(item)
+            seen.add(key)
+    return merged
 
 
 def _plan_identity(item: dict) -> str:
@@ -419,6 +734,8 @@ def _plan_identity(item: dict) -> str:
 
 def _plan_category(item: dict) -> str:
     reason = item.get("selected_reason", "") or ""
+    if reason.startswith("route_plan:"):
+        return "route_plan"
     if reason.startswith("tool_orchestration:"):
         return "tool"
     if reason.startswith("regional_support_catalog:"):
@@ -437,6 +754,7 @@ def _limit_mandatory_mcp_plan(plan: list, max_items: int | None = None) -> list:
         return plan
 
     budgets = {
+        "route_plan": 18,
         "cluster": 15,
         "catalog": 8,
         "dynamic": 5,
@@ -465,7 +783,7 @@ def _limit_mandatory_mcp_plan(plan: list, max_items: int | None = None) -> list:
 
     # Use remaining slots for catalog/tool evidence first, then dynamic discovery,
     # then any leftover fixed cluster entries.
-    for category in ("catalog", "tool", "dynamic", "cluster"):
+    for category in ("route_plan", "catalog", "tool", "dynamic", "cluster"):
         for item in by_category.get(category, []):
             if len(selected) >= limit:
                 break
@@ -489,8 +807,15 @@ def _augment_with_regional_support_catalog(user_message: str, base_plan: list, a
         try:
             from regional_support_catalog import build_catalog_evidence_plan
         except ImportError:
-            print(f"  [REGIONAL-CATALOG] unavailable: {e}")
-            return plan
+            try:
+                from importlib import import_module
+
+                build_catalog_evidence_plan = import_module(
+                    "app.policies.regional_support_catalog"
+                ).build_catalog_evidence_plan
+            except ImportError:
+                print(f"  [REGIONAL-CATALOG] unavailable: {e}")
+                return plan
 
     try:
         catalog_plan = build_catalog_evidence_plan(user_message, agency_type=agency_type)
@@ -525,8 +850,15 @@ def _augment_with_tool_orchestration(user_message: str, base_plan: list, agency_
         try:
             from tool_orchestration_policy import augment_tool_orchestration
         except ImportError as e:
-            print(f"  [TOOL-ORCH] unavailable: {e}")
-            return base_plan
+            try:
+                from importlib import import_module
+
+                augment_tool_orchestration = import_module(
+                    "app.policies.tool_orchestration_policy"
+                ).augment_tool_orchestration
+            except ImportError:
+                print(f"  [TOOL-ORCH] unavailable: {e}")
+                return base_plan
 
     try:
         augmented = augment_tool_orchestration(user_message, base_plan, agency_type=agency_type)
@@ -554,8 +886,15 @@ def _augment_with_internal_discovery(
         try:
             from internal_law_discovery import discover_internal_law_plan
         except ImportError as e:
-            print(f"  [INTERNAL-DISCOVERY] unavailable: {e}")
-            return plan
+            try:
+                from importlib import import_module
+
+                discover_internal_law_plan = import_module(
+                    "app.policies.internal_law_discovery"
+                ).discover_internal_law_plan
+            except ImportError:
+                print(f"  [INTERNAL-DISCOVERY] unavailable: {e}")
+                return plan
 
     try:
         extra_plan = discover_internal_law_plan(user_message, agency_type=agency_type)

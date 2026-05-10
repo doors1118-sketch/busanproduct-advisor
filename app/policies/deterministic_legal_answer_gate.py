@@ -9,7 +9,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 import re
 
-from policies.numeric_basis_policy import get_numeric_display
+try:
+    from policies.numeric_basis_policy import get_numeric_display
+except ImportError:
+    from importlib import import_module
+
+    _numeric_basis_policy = import_module("app.policies.numeric_basis_policy")
+    get_numeric_display = _numeric_basis_policy.get_numeric_display
 
 
 @dataclass(frozen=True)
@@ -21,6 +27,16 @@ class DeterministicLegalAnswer:
 
 def _compact(text: str) -> str:
     return (text or "").replace(" ", "").lower()
+
+
+def _item_hint(text: str) -> str:
+    for term in (
+        "냉난방기", "보안용카메라", "CCTV", "노트북", "컴퓨터", "프린터",
+        "서버", "LED조명", "LED", "사무가구", "가구",
+    ):
+        if term.lower() in (text or "").lower():
+            return "LED 조명" if term == "LED" else term
+    return ""
 
 
 def _num(parameter_ref: str, fallback: str = "기준값 확인 필요") -> str:
@@ -42,6 +58,44 @@ def _regional_amount_line(agency: str, parameter_ref: str, basis: str) -> list[s
 
 def match_deterministic_legal_answer(user_message: str) -> DeterministicLegalAnswer | None:
     q = _compact(user_message)
+
+    if _is_agency_law_conflict(q):
+        return None
+
+    if _is_policy_company_product_counted_as_sme_performance(q):
+        return DeterministicLegalAnswer(
+            answer=_policy_company_product_counted_as_sme_performance_answer(),
+            reason="policy_company_product_counted_as_sme_performance_fast_answer",
+            schema_version="policy_company_product_counted_as_sme_performance_v1",
+        )
+
+    if _is_sme_small_business_priority_procurement(q):
+        return DeterministicLegalAnswer(
+            answer=_sme_small_business_priority_procurement_answer(),
+            reason="sme_small_business_priority_procurement_fast_answer",
+            schema_version="sme_small_business_priority_procurement_v1",
+        )
+
+    if _is_innovation_product_purchase_review(q):
+        return DeterministicLegalAnswer(
+            answer=_innovation_product_purchase_review_answer(),
+            reason="innovation_product_purchase_fast_answer",
+            schema_version="innovation_product_purchase_v1",
+        )
+
+    if _is_public_corp_direct_contract_difference(q):
+        return DeterministicLegalAnswer(
+            answer=_public_corp_direct_contract_difference_answer(),
+            reason="public_corp_direct_contract_difference_fast_answer",
+            schema_version="public_corp_direct_contract_difference_v1",
+        )
+
+    if _is_construction_repair_direct_limit_question(q):
+        return DeterministicLegalAnswer(
+            answer=_construction_repair_direct_limit_answer(),
+            reason="construction_repair_direct_limit_fast_answer",
+            schema_version="construction_repair_direct_limit_v1",
+        )
 
     if _is_regional_restriction(q):
         return DeterministicLegalAnswer(
@@ -69,6 +123,13 @@ def match_deterministic_legal_answer(user_message: str) -> DeterministicLegalAns
             answer=_excellent_procurement_or_third_party_answer(),
             reason="excellent_procurement_third_party_fast_answer",
             schema_version="excellent_procurement_third_party_v1",
+        )
+
+    if _is_split_purchase_audit_review(q):
+        return DeterministicLegalAnswer(
+            answer=_split_purchase_audit_review_answer(q),
+            reason="split_purchase_audit_fast_answer",
+            schema_version="split_purchase_audit_v1",
         )
 
     if _is_audit_risk_review(q):
@@ -110,10 +171,93 @@ def _is_regional_restriction(q: str) -> bool:
     return agency_compare
 
 
+def _is_agency_law_conflict(q: str) -> bool:
+    has_national_or_public = any(term in q for term in ("국가기관", "국가계약", "공기업", "준정부", "공공기관"))
+    has_local_law = any(term in q for term in ("지방계약", "지방자치단체", "지자체"))
+    has_conflict_ask = any(term in q for term in ("그대로", "다르", "안되", "안되지", "혼동", "우대"))
+    return has_national_or_public and has_local_law and has_conflict_ask
+
+
+def _is_policy_company_product_counted_as_sme_performance(q: str) -> bool:
+    has_policy_company = any(term in q for term in ("여성기업", "장애인기업", "여성기업제품", "장애인기업제품"))
+    has_sme_performance = "중소기업제품" in q and any(term in q for term in ("구매실적", "실적", "구매목표", "목표비율"))
+    asks_counting = any(term in q for term in ("포함", "인정", "잡히", "되는지", "되나요", "되나", "맞는지"))
+    return has_policy_company and has_sme_performance and asks_counting
+
+
+def _policy_company_product_counted_as_sme_performance_answer() -> str:
+    return "\n".join([
+        "네. **여성기업제품과 장애인기업제품 구매실적은 원칙적으로 중소기업제품 구매실적에도 포함해서 볼 수 있습니다.**",
+        "",
+        "### 1. 판단 요약",
+        "- 여성기업제품, 장애인기업제품은 각각 별도의 의무구매 실적 항목으로 구분해 관리합니다.",
+        "- 동시에 해당 기업유형 자체가 중소기업 범주를 전제로 하므로, 중소기업제품 총 구매실적에도 함께 반영되는 구조로 보는 것이 맞습니다.",
+        "- 따라서 실무 입력에서는 `중소기업제품 총 실적`과 `여성기업제품/장애인기업제품 세부 실적`을 구분해 관리하되, 여성기업·장애인기업 구매액을 중소기업제품 총 실적에서 제외할 필요는 없습니다.",
+        "",
+        "### 2. 근거 축",
+        "- **판로지원법 제5조**: 공공기관은 중소기업제품 구매계획과 전년도 구매실적을 작성·통보합니다.",
+        "- **여성기업지원법 제9조**: 공공기관 우선구매 대상 여성기업은 `중소기업기본법 제2조에 따른 중소기업자`인 여성기업을 전제로 하고, 판로지원법상 구매계획에 여성기업제품 구매계획을 구분 포함합니다.",
+        "- **장애인기업활동 촉진법 제2조 및 제9조의2**: 장애인기업은 중소기업 중 요건을 갖춘 기업이고, 장애인기업제품 구매계획도 판로지원법상 구매계획에 구분 포함합니다.",
+        "",
+        "### 3. 실무 확인사항",
+        "- 구매일 기준 여성기업확인서 또는 장애인기업확인서가 유효한지 확인합니다.",
+        "- 여성기업제품·장애인기업제품 실적으로 잡을 때는 해당 기업이 직접 생산·제공·수행하는 제품인지 확인합니다.",
+        "- 중소기업제품 총실적, 여성기업제품 실적, 장애인기업제품 실적은 보고 항목이 다르므로 SMPP/공공구매종합정보망 입력 기준에 맞춰 구분 입력합니다.",
+        "- 중증장애인생산품, 장애인표준사업장 생산품 등은 별도 제도와 겹칠 수 있으므로 해당 항목은 별도 실적 기준도 함께 확인합니다.",
+        "",
+        "정리하면, **중소기업제품 실적에는 포함하고, 여성기업제품·장애인기업제품 실적에도 별도로 구분 관리**하는 방식이 실무적으로 맞습니다.",
+        "⚖️ 본 답변은 내부 법령 DB와 매뉴얼 기준의 참고 안내입니다. 실적 입력 전에는 해당 연도 공공구매종합정보망 입력 지침을 함께 확인하세요.",
+    ])
+
+
+def _is_sme_small_business_priority_procurement(q: str) -> bool:
+    has_sme_competition = any(term in q for term in ("중소기업자간", "중기간", "경쟁제품"))
+    has_small_business = "소기업" in q or "소상공인" in q
+    has_small_amount = any(term in q for term in ("1억원미만", "1억미만", "일억원미만"))
+    amount = _extract_amount_won(q)
+    if amount is not None and amount < 100_000_000:
+        has_small_amount = True
+    asks_limit = any(term in q for term in ("입찰참가자격", "제한", "맞", "해야", "원칙", "우선조달"))
+    return has_sme_competition and has_small_business and has_small_amount and asks_limit
+
+
+def _sme_small_business_priority_procurement_answer() -> str:
+    return "\n".join([
+        "네. 질문 조건처럼 **중소기업자간 경쟁제품**이고 추정가격이 **1억원 미만**인 물품·용역이라면, 먼저 **소기업 또는 소상공인 간 제한경쟁입찰** 적용 여부를 검토하는 구조가 맞습니다.",
+        "",
+        "### 1. 판단 요약",
+        "- 중소기업자간 경쟁제품이라는 점만으로 곧바로 `중소기업자 전체`로 넓히기보다, 추정가격이 1억원 미만이면 판로지원법 시행령의 **소기업·소상공인 우선조달계약** 기준을 먼저 봅니다.",
+        "- 다만 품목의 세부품명, 직접생산확인 대상 여부, 유찰·긴급 등 예외 사유가 있는지는 별도 확인해야 합니다.",
+        "",
+        "### 2. 근거 축",
+        "- **중소기업제품 구매촉진 및 판로지원에 관한 법률 시행령 제2조의2**: 추정가격 1억원 미만 물품 또는 용역은 소기업 또는 소상공인 간 제한경쟁입찰로 조달계약을 체결하는 구조를 둡니다.",
+        "- **중소기업제품 구매촉진 및 판로지원에 관한 법률 제7조**: 경쟁제품은 중소기업자만을 대상으로 하는 제한경쟁 또는 지명경쟁 입찰로 조달하는 원칙을 둡니다.",
+        "- **지방계약법 시행령 제20조**: 중소기업자간 경쟁제품, 소기업·소상공인 등 입찰참가자격 제한의 계약법상 연결 근거를 확인합니다.",
+        "",
+        "### 3. 실무 처리 순서",
+        "- 먼저 세부품명 기준으로 해당 품목이 중소기업자간 경쟁제품인지 확인합니다.",
+        "- 추정가격이 1억원 미만인지 산정합니다. 맞다면 소기업·소상공인 제한경쟁입찰을 우선 검토합니다.",
+        "- 직접생산확인증명서가 필요한 품목이면 입찰참가자격에 직접생산확인 범위와 유효기간 확인을 넣습니다.",
+        "- 소기업·소상공인 입찰에서 유찰되거나 적격자가 없는 등 예외 사유가 생기면 중소기업자 간 제한경쟁으로 넓힐 수 있는지 근거를 남깁니다.",
+        "- 부산 지역업체 참여까지 검토하려면 별도로 지역제한 가능 금액, 지역 내 경쟁 가능한 업체 수, 부당제한 여부를 확인해야 합니다.",
+        "",
+        "정리하면, **1억원 미만이면 소기업·소상공인 제한을 먼저 검토하고, 예외 사유가 있을 때 중소기업자 간 제한으로 전환하는지 따져보는 순서**가 안전합니다.",
+        "⚖️ 본 답변은 내부 법령 DB 기준의 참고 안내입니다. 공고 전에는 최신 조문 원문과 해당 품목 고시를 함께 확인하세요.",
+    ])
+
+
 def _is_sole_contract(q: str) -> bool:
     # 금액과 계약종류가 함께 들어온 실제 사안형 질문은 DB 근거를 붙인 LLM
     # 흐름으로 넘긴다. 여기서는 "한도/기준표" 설명형 질문만 빠르게 처리한다.
     if _extract_amount_won(q) is not None and _contract_kind(q) is not None:
+        return False
+
+    checklist_intent = any(
+        term in q
+        for term in ("확인사항", "확인할", "검토할때", "검토시", "체크", "유의", "주의", "절차", "흐름")
+    )
+    explicit_standard_intent = any(term in q for term in ("기준", "한도", "금액", "얼마"))
+    if checklist_intent and not explicit_standard_intent:
         return False
 
     return (
@@ -122,7 +266,56 @@ def _is_sole_contract(q: str) -> bool:
     )
 
 
+def _is_public_corp_direct_contract_difference(q: str) -> bool:
+    return (
+        ("공기업" in q or "준정부기관" in q)
+        and "계약사무규칙" in q
+        and "수의계약" in q
+        and ("국가계약" in q or "뭐가달라" in q or "차이" in q)
+    )
+
+
+def _public_corp_direct_contract_difference_answer() -> str:
+    return "\n".join([
+        "공기업·준정부기관에서 **수의계약**을 볼 때는 「공기업·준정부기관 계약사무규칙」과 국가계약법령의 준용 구조를 나누어 확인해야 합니다.",
+        "",
+        "- **공기업·준정부기관 계약사무규칙**",
+        "  - 기관 계약사무의 기본 규칙과 준용 범위를 먼저 봅니다.",
+        "  - 규칙 자체에 별도 기준이 있으면 그 기준을 우선 확인하고, 별도 규정이 없으면 국가계약법령 준용 여부를 확인합니다.",
+        "",
+        "- **국가계약법과의 차이**",
+        "  - 국가기관 기준을 그대로 복사하기보다, 해당 공기업·준정부기관의 내부 계약규정, 위임전결, 자체 지침을 함께 확인해야 합니다.",
+        "  - 수의계약 사유, 견적 방식, 금액 기준은 기관 자체 기준에서 달라질 수 있으므로 공고·계약 전 원문 확인이 필요합니다.",
+        "",
+        "정리하면, 공기업·준정부기관은 국가계약법령을 참고하되 `국가기관과 완전히 동일`하다고 단정하지 말고, 계약사무규칙과 기관 내부 기준을 같이 보는 구조입니다.",
+    ])
+
+
+def _is_construction_repair_direct_limit_question(q: str) -> bool:
+    return (
+        ("보수공사" in q or "청사보수" in q)
+        and "수의계약" in q
+        and ("종합공사" in q or "전문공사" in q)
+    )
+
+
+def _construction_repair_direct_limit_answer() -> str:
+    return "\n".join([
+        "청사 **보수공사**는 먼저 공사 범위와 면허·업종을 나누어 **종합공사**인지 **전문공사**인지 판단해야 합니다.",
+        "",
+        "- 종합공사와 전문공사는 적용되는 수의계약 한도와 참가자격 검토가 달라질 수 있습니다.",
+        "- 단순히 `보수`라는 명칭만으로 정하지 말고 설계서, 내역서, 공종, 주된 공사 내용, 필요한 면허를 함께 확인합니다.",
+        "- 복수 공종이 섞이면 주된 공사와 부대공사 관계, 분리발주 필요성, 무면허 시공 리스크를 검토합니다.",
+        "- 금액 한도는 최신 법령 DB와 source map resolved_value로 별도 확인해야 하며, 이 답변에서는 금액을 단정하지 않습니다.",
+    ])
+
+
 def _is_local_company_point(q: str) -> bool:
+    if (
+        any(term in q for term in ("공동도급", "지역제한"))
+        and any(term in q for term in ("연결", "높이", "어떻게"))
+    ):
+        return False
     return (
         ("지역업체" in q or "지역기업" in q)
         and any(term in q for term in ("가점", "점수", "참여도", "신인도", "적격심사", "평가"))
@@ -130,6 +323,11 @@ def _is_local_company_point(q: str) -> bool:
 
 
 def _is_regional_mandatory_joint_contract(q: str) -> bool:
+    if (
+        any(term in q for term in ("지역제한", "적격심사"))
+        and any(term in q for term in ("연결", "높이", "어떻게"))
+    ):
+        return False
     return (
         ("지역의무" in q or "의무공동" in q or ("공동도급" in q and "지역" in q))
         and any(term in q for term in ("기준", "비율", "몇", "가능", "공사", "발주", "공동도급"))
@@ -144,10 +342,41 @@ def _is_mas_regional_review(q: str) -> bool:
 
 
 def _is_excellent_procurement_or_third_party(q: str) -> bool:
+    if "소프트웨어" in q:
+        return False
     return (
         any(term in q for term in ("우수조달", "제3자단가", "3자단가", "제3자를위한단가"))
         and any(term in q for term in ("부산", "지역상품", "지역업체", "활용", "도움", "구매"))
     )
+
+
+def _is_innovation_product_purchase_review(q: str) -> bool:
+    return (
+        any(term in q for term in ("혁신제품", "혁신시제품", "혁신장터"))
+        and any(term in q for term in ("수의계약", "우선구매", "검토", "구매"))
+        and not any(term in q for term in ("후보", "추천", "찾아", "검색"))
+    )
+
+
+def _innovation_product_purchase_review_answer() -> str:
+    return "\n".join([
+        "혁신제품·혁신시제품은 **지정 상태와 구매 경로를 먼저 확인한 뒤** 수의계약·우선구매 검토로 연결해야 합니다.",
+        "",
+        "- **혁신제품**",
+        "  - 조달 관련 법령상 혁신제품 지정 여부, 지정 유효기간, 제품명·규격 일치 여부를 먼저 확인합니다.",
+        "  - 지정이 유효한 경우 수의계약 특례 또는 혁신장터·조달 경로를 검토할 수 있습니다.",
+        "",
+        "- **혁신시제품**",
+        "  - 명칭만으로 단정하지 말고, 현재 제도상 혁신제품 지정으로 전환되었는지, 시범구매 대상인지, 별도 특수조건이 붙는지 확인합니다.",
+        "  - 제품·사업 단계에 따라 구매 절차와 계약조건이 달라질 수 있습니다.",
+        "",
+        "- **우선구매 연결**",
+        "  - 혁신제품, 기술개발제품, 우수조달물품 등 지위가 중복될 수 있으므로 지정·인증 근거와 유효상태를 표로 정리합니다.",
+        "  - 부산 지역업체 제품이면 지역상품 구매지원 취지와 연결할 수 있지만, 지역 소재만으로 수의계약 결론을 내리면 안 됩니다.",
+        "",
+        "확인할 근거: 「지방계약법 시행령」 수의계약 사유, 「조달사업법」 혁신제품 관련 규정, 혁신제품·기술개발제품 관련 고시·운영규정.",
+        "금액·시행일·지정상태는 내부 법령 DB와 source map, 혁신장터 원자료로 별도 확인해야 합니다.",
+    ])
 
 
 def _is_audit_risk_review(q: str) -> bool:
@@ -155,6 +384,31 @@ def _is_audit_risk_review(q: str) -> bool:
         any(term in q for term in ("감사", "지적", "문제되지", "특혜", "부당"))
         and any(term in q for term in ("부산업체", "지역업체", "지역상품", "지역제한", "수의계약", "활용"))
     )
+
+
+def _is_split_purchase_audit_review(q: str) -> bool:
+    return (
+        any(term in q for term in ("쪼개기", "분할발주", "나눠", "여러번"))
+        and any(term in q for term in ("수의계약", "감사", "대응", "자료"))
+    )
+
+
+def _split_purchase_audit_review_answer(q: str) -> str:
+    item = "컴퓨터" if "컴퓨터" in q else "같은 물품"
+    return "\n".join([
+        f"{item}를 같은 부서에서 여러 번 나눠 구매하면 **쪼개기 수의계약** 또는 분할발주 의심을 받을 수 있습니다.",
+        "",
+        "- **먼저 볼 점**",
+        "  - 같은 목적, 같은 예산, 같은 시기, 같은 수요부서의 구매를 인위적으로 나누었는지 확인합니다.",
+        "  - 추정가격 산정 시 동일·유사 물품 수요를 합산했는지, 부서별·기간별 분리 사유가 객관적인지 확인합니다.",
+        "",
+        "- **감사 대응 자료**",
+        "  - 수요조사 자료, 예산 편성·배정 내역, 구매 필요 시점, 고장·증설 등 긴급·추가 수요 발생 근거를 남깁니다.",
+        "  - 시장조사, 견적 비교, 세부품명·규격 결정 사유, 반복 구매 사유서를 보관합니다.",
+        "  - 통합발주 가능성을 검토했고 왜 나누었는지 결재문서에 남기는 편이 안전합니다.",
+        "",
+        "정리하면, 나누어 샀다는 사실만으로 항상 위법이라고 단정할 수는 없지만, 금액 기준이나 경쟁절차를 피하려는 구조로 보이면 감사 리스크가 큽니다.",
+    ])
 
 
 def _regional_restriction_answer(q: str) -> str:
@@ -332,8 +586,11 @@ def _local_company_point_answer(q: str) -> str:
 
 
 def _mas_regional_review_answer(q: str) -> str:
+    item = _item_hint(q)
+    item_prefix = f"**{item}** 구매처럼 품목이 정해진 경우에는, " if item else ""
+    item_example = item or "LED, CCTV, 사무가구"
     return "\n".join([
-        "종합쇼핑몰/MAS 2단계 경쟁에서는 **부산업체라는 이유만으로 지역제한을 걸거나 별도 가점을 주는 방식은 신중해야 합니다.**",
+        f"{item_prefix}종합쇼핑몰/MAS 2단계 경쟁에서는 **부산업체라는 이유만으로 지역제한을 걸거나 별도 가점을 주는 방식은 신중해야 합니다.**",
         "다만 부산 지역상품 구매 지원 관점에서 활용할 수 있는 실무 경로는 있습니다.",
         "",
         "- **1. 부산 MAS 등록업체를 후보군으로 먼저 찾기**",
@@ -349,7 +606,7 @@ def _mas_regional_review_answer(q: str) -> str:
         "  - MAS 2단계 경쟁에서는 조달청 다수공급자계약 체계와 종합쇼핑몰 운영규정, 물품 다수공급자계약 업무처리규정을 우선 확인해야 합니다.",
         "",
         "- **4. 품목이 정해졌다면 업체 후보까지 붙여야 실무 답변이 됩니다**",
-        "  - 예: LED, CCTV, 사무가구처럼 세부품명이 있으면 부산 MAS 등록업체, 조달등록 여부, 인증제품 여부를 함께 조회해 구매 경로를 정리합니다.",
+        f"  - 예: {item_example}처럼 세부품명이 있으면 부산 MAS 등록업체, 조달등록 여부, 인증제품 여부를 함께 조회해 구매 경로를 정리합니다.",
         "  - 품목이 없는 제도 질문이면 여기서는 원칙과 확인 순서까지만 안내하는 것이 적절합니다.",
         "",
         "정리하면, **MAS에서 부산업체를 직접 우대한다고 단정하기보다는, 부산 MAS 등록업체를 후보로 발굴하고 납기ㆍA/Sㆍ현장지원 등 정당한 평가요소로 연결하는 방식**이 안전합니다.",
@@ -385,6 +642,7 @@ def _audit_risk_review_answer() -> str:
         "",
         "- **1. 특정 업체를 먼저 정하지 않기**",
         "  - 시장조사는 가능하지만, 공고조건ㆍ규격ㆍ평가항목이 특정 부산업체만 맞출 수 있게 작성되면 특혜 시비가 생길 수 있습니다.",
+        "  - 과업지시서에는 `부산업체 수행` 같은 직접 조건보다 과업 수행에 필요한 현장 대응, 납기, 유지관리, 의사소통, 품질관리 기준을 객관적으로 적어야 합니다.",
         "  - 업체 후보표는 `검토 후보`로 관리하고, 계약 가능 여부는 별도 확인으로 남깁니다.",
         "",
         "- **2. 지역제한ㆍ지역의무공동도급ㆍ지역업체 가점은 제도별 요건 확인**",

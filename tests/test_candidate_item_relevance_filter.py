@@ -1,0 +1,89 @@
+import sys
+from pathlib import Path
+
+APP_DIR = Path(__file__).resolve().parents[1] / "app"
+sys.path.insert(0, str(APP_DIR))
+
+from policies.candidate_formatter import (
+    candidate_matches_user_item,
+    filter_candidate_rows_by_user_item,
+    format_candidate_tables,
+)
+
+
+def test_computer_question_filters_out_unrelated_supplier_rows():
+    computer_row = {
+        "company_id": "computer-1",
+        "company_name": "컴퓨터업체",
+        "location": "부산광역시",
+        "main_products": ["데스크톱컴퓨터", "컴퓨터서버"],
+        "candidate_types": ["shopping_mall_supplier"],
+        "primary_candidate_type": "shopping_mall_supplier",
+        "shopping_mall_registered": True,
+        "shopping_mall_flags": ["mas_registered"],
+    }
+    furniture_row = {
+        "company_id": "furniture-1",
+        "company_name": "가구업체",
+        "location": "부산광역시",
+        "main_products": ["크레덴자", "파일링캐비닛", "교탁"],
+        "candidate_types": ["shopping_mall_supplier"],
+        "primary_candidate_type": "shopping_mall_supplier",
+        "shopping_mall_registered": True,
+        "shopping_mall_flags": ["mas_registered"],
+    }
+
+    classified = {
+        "shopping_mall_supplier": [computer_row, furniture_row],
+        "local_procurement_company": [],
+        "policy_company": [],
+        "innovation_product": [],
+        "priority_purchase_product": [],
+    }
+    rendered = format_candidate_tables(classified, "예산 6천만원으로 컴퓨터를 구매하려고 해")
+
+    assert "컴퓨터업체" in rendered
+    assert "가구업체" not in rendered
+    assert "크레덴자" not in rendered
+
+
+def test_computer_question_filters_out_unrelated_certified_products():
+    unrelated_cert = {
+        "company_id": "cert-1",
+        "company_name": "자동화설비업체",
+        "location": "부산광역시",
+        "product_name": "논스톱 결제 및 비대면 서비스 기반의 역무자동화설비 개발",
+        "candidate_types": ["priority_purchase_product"],
+        "primary_candidate_type": "priority_purchase_product",
+        "certified_product_types": ["demand_designated_tech_product"],
+    }
+    relevant_cert = {
+        "company_id": "cert-2",
+        "company_name": "서버업체",
+        "location": "부산광역시",
+        "product_name": "컴퓨터서버 관리시스템",
+        "candidate_types": ["priority_purchase_product"],
+        "primary_candidate_type": "priority_purchase_product",
+        "certified_product_types": ["gs_certified_product"],
+    }
+
+    rows = filter_candidate_rows_by_user_item([unrelated_cert, relevant_cert], "컴퓨터 구매")
+
+    assert rows == [relevant_cert]
+    assert not candidate_matches_user_item(unrelated_cert, "컴퓨터 구매")
+
+
+def test_certified_product_row_must_match_visible_product_name_not_company_catalog():
+    row = {
+        "company_id": "cert-3",
+        "company_name": "컴퓨터도취급하는업체",
+        "location": "부산광역시",
+        "product_name": "운송관리시스템 v1.0",
+        "main_products": ["데스크톱컴퓨터", "컴퓨터서버"],
+        "candidate_types": ["priority_purchase_product"],
+        "primary_candidate_type": "priority_purchase_product",
+        "certified_product_types": ["gs_certified_product"],
+    }
+
+    assert not candidate_matches_user_item(row, "컴퓨터 구매")
+    assert not candidate_matches_user_item(row, "컴퓨터 구매", candidate_type="priority_purchase_product")

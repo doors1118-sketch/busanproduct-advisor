@@ -7,6 +7,11 @@
 import re
 from typing import Optional
 
+try:
+    from policies.item_normalization_policy import normalize_item_query
+except Exception:  # pragma: no cover - fallback for direct script usage
+    normalize_item_query = None
+
 
 # ─────────────────────────────────────────────
 # candidate_type 정의
@@ -169,6 +174,150 @@ def _as_list(value) -> list:
     return [str(value)]
 
 
+def _compact_text(value: str) -> str:
+    return re.sub(r"[\s\-_·ㆍ/()]+", "", str(value or "").lower())
+
+
+def _candidate_product_text(row: dict) -> str:
+    """Return product-facing text only, excluding licenses/business types."""
+    parts = []
+    for key in (
+        "product_name",
+        "main_products",
+        "shopping_mall_product_summary",
+        "mas_product_summary",
+        "certified_product_summary",
+        "innovation_product_summary",
+    ):
+        value = row.get(key)
+        for item in _as_list(value):
+            if isinstance(item, dict):
+                parts.extend(
+                    str(item.get(k) or "")
+                    for k in ("product_name", "name", "item_name", "goods_name")
+                )
+            else:
+                parts.append(str(item or ""))
+    return " ".join(part for part in parts if part)
+
+
+def _target_item_terms(user_message: str) -> tuple[str, list[str]]:
+    if normalize_item_query is None:
+        return "", []
+    normalized = normalize_item_query(user_message)
+    if not normalized.found:
+        return "", []
+    terms = [normalized.canonical_name, normalized.primary_search_term, *normalized.search_terms]
+    return normalized.canonical_name, list(dict.fromkeys(t for t in terms if t))
+
+
+def candidate_matches_user_item(row: dict, user_message: str) -> bool:
+    """Whether a candidate's product fields match the user's requested item.
+
+    This deliberately ignores license/business-type text. For example,
+    "소프트웨어사업자(컴퓨터관련서비스사업)" must not make a toner company
+    relevant to a computer purchase.
+    """
+    canonical, terms = _target_item_terms(user_message)
+    if not terms:
+        return True
+
+    product_text = _candidate_product_text(row)
+    compact_product = _compact_text(product_text)
+    if not compact_product:
+        return False
+
+    compact_terms = [_compact_text(term) for term in terms if _compact_text(term)]
+    if canonical == "컴퓨터":
+        allowed = (
+            "컴퓨터",
+            "데스크톱",
+            "데스크탑",
+            "피씨",
+            "pc",
+            "일체형컴퓨터",
+            "노트북컴퓨터",
+            "컴퓨터서버",
+            "서버",
+        )
+        negative_only = (
+            "소프트웨어",
+            "서비스",
+            "시스템",
+            "토너",
+            "프린터",
+            "복사기",
+            "카트리지",
+        )
+        has_allowed = any(_compact_text(term) in compact_product for term in allowed)
+        if not has_allowed:
+            return False
+        has_hardware_hint = any(
+            _compact_text(term) in compact_product
+            for term in ("일체형컴퓨터", "노트북컴퓨터", "컴퓨터서버", "데스크톱", "데스크탑", "pc", "피씨")
+        )
+        if not has_hardware_hint and any(_compact_text(term) in compact_product for term in negative_only):
+            return False
+        return True
+
+    return any(term in compact_product for term in compact_terms)
+
+
+def filter_candidate_rows_by_user_item(rows: list[dict], user_message: str) -> list[dict]:
+    return [
+        filter_candidate_display_products_by_user_item(row, user_message)
+        for row in rows
+        if isinstance(row, dict) and candidate_matches_user_item(row, user_message)
+    ]
+
+
+def filter_candidate_display_products_by_user_item(row: dict, user_message: str) -> dict:
+    """Keep only product labels that match the requested item for display."""
+    canonical, terms = _target_item_terms(user_message)
+    if not terms:
+        return row
+
+    copied = dict(row)
+
+    def product_matches(product: str) -> bool:
+        return candidate_matches_user_item({"main_products": [product]}, user_message)
+
+    if isinstance(copied.get("main_products"), list):
+        filtered_products = [
+            str(product)
+            for product in copied.get("main_products", [])
+            if product_matches(str(product))
+        ]
+        if filtered_products:
+            copied["main_products"] = filtered_products
+
+    for key in (
+        "shopping_mall_product_summary",
+        "mas_product_summary",
+        "certified_product_summary",
+        "innovation_product_summary",
+    ):
+        value = copied.get(key)
+        if not isinstance(value, list):
+            continue
+        filtered_summary = []
+        for item in value:
+            if not isinstance(item, dict):
+                continue
+            product_name = (
+                item.get("product_name")
+                or item.get("name")
+                or item.get("item_name")
+                or item.get("goods_name")
+            )
+            if product_name and product_matches(str(product_name)):
+                filtered_summary.append(item)
+        if filtered_summary:
+            copied[key] = filtered_summary
+
+    return copied
+
+
 def _label_many(values: list, labels: dict) -> list:
     out = []
     for value in _as_list(values):
@@ -281,6 +430,9 @@ def classify_candidates(tool_results: list, user_message: str = "") -> dict:
                     for cand in cands:
                         if not isinstance(cand, dict):
                             continue
+                        if not candidate_matches_user_item(cand, user_message):
+                            continue
+                        cand = filter_candidate_display_products_by_user_item(cand, user_message)
                         c_types = cand.get("candidate_types", [])
                         key = cand.get("company_name", cand.get("product_name", ""))
                         if key:
@@ -305,6 +457,8 @@ def classify_candidates(tool_results: list, user_message: str = "") -> dict:
                     if has_policy: c_types.append("policy_company")
                     meta = CANDIDATE_TYPES[primary]
                     row = {"company_name": name, "location": parsed["loc"], "main_products": [parsed["prod"]], "policy_tags": parsed["policy_tags"], "candidate_types": c_types, "primary_candidate_type": primary, "purchase_routes": meta["purchase_routes"], "source_label": meta["source_label"], "business_status": "영업상태 확인 필요", "legal_eligibility_status": "확인 필요", "display_status": "후보", "required_checks": meta["required_checks"], "contract_possible_auto_promoted": False, "note": meta["default_note"]}
+                    if not candidate_matches_user_item(row, user_message):
+                        continue
                     if has_policy and name not in seen["policy_company"]:
                         seen["policy_company"].add(name)
                         classified["policy_company"].append(row)
@@ -321,6 +475,8 @@ def classify_candidates(tool_results: list, user_message: str = "") -> dict:
                     seen["shopping_mall_supplier"].add(name)
                     meta = CANDIDATE_TYPES["shopping_mall_supplier"]
                     row = {"company_name": name, "location": parsed["loc"], "main_products": [parsed["prod"]], "policy_tags": parsed["policy_tags"], "candidate_types": ["shopping_mall_supplier"], "primary_candidate_type": "shopping_mall_supplier", "purchase_routes": meta["purchase_routes"], "source_label": meta["source_label"], "shopping_mall_registered": True, "business_status": "영업상태 확인 필요", "legal_eligibility_status": "확인 필요", "display_status": "후보", "required_checks": meta["required_checks"], "contract_possible_auto_promoted": False, "note": meta["default_note"]}
+                    if not candidate_matches_user_item(row, user_message):
+                        continue
                     classified["shopping_mall_supplier"].append(row)
         elif "search_innovation" in t_name or "innovation" in t_name:
             struct_rows = r.get("structured_rows") or r.get("product_sample_rows")
@@ -334,6 +490,8 @@ def classify_candidates(tool_results: list, user_message: str = "") -> dict:
             if isinstance(struct_rows, list) and struct_rows:
                 for row in struct_rows:
                     if not isinstance(row, dict):
+                        continue
+                    if not candidate_matches_user_item(row, user_message):
                         continue
                     key = row.get("product_name") or row.get("company_name", "")
                     if key and key not in seen["innovation_product"]:
@@ -351,6 +509,8 @@ def classify_candidates(tool_results: list, user_message: str = "") -> dict:
             if isinstance(struct_rows, list) and struct_rows:
                 for row in struct_rows:
                     if not isinstance(row, dict):
+                        continue
+                    if not candidate_matches_user_item(row, user_message):
                         continue
                     key = row.get("product_name", "") + row.get("certification_no", "")
                     if not key:

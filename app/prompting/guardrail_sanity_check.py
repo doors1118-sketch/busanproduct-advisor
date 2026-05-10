@@ -4,6 +4,49 @@ Guardrail Sanity Check — 최종 보정
 import re
 
 
+def _compact(text: str) -> str:
+    return (text or "").replace(" ", "").lower()
+
+
+def _has_any(q: str, terms: tuple[str, ...]) -> bool:
+    return any(term in q for term in terms)
+
+
+def _is_explicit_company_lookup(question: str) -> bool:
+    q = _compact(question)
+    if not q:
+        return False
+
+    company_lookup_terms = (
+        "업체추천", "기업추천", "업체후보", "기업후보", "후보추천",
+        "업체목록", "기업목록", "업체리스트", "기업리스트", "업체명",
+        "업체있", "기업있", "있는업체", "있는기업",
+        "공급업체", "납품업체", "등록업체", "조달등록업체",
+    )
+    if _has_any(q, company_lookup_terms):
+        return True
+
+    has_company_subject = _has_any(q, ("업체", "기업", "공급사", "납품사"))
+    has_lookup_verb = _has_any(q, (
+        "추천", "후보", "목록", "리스트", "찾아", "검색", "조회", "보여", "알려", "있어",
+    ))
+    strategy_terms = (
+        "방법", "제도", "검토", "참여", "활용", "우대", "가점", "지역제한",
+        "공동도급", "계약하려면", "발주하려면", "가능한방법", "어떻게",
+    )
+    return has_company_subject and has_lookup_verb and not _has_any(q, strategy_terms)
+
+
+def _has_local_support_context(question: str) -> bool:
+    q = _compact(question)
+    return _has_any(q, (
+        "지역업체", "부산업체", "부산지역업체", "지역업체참여",
+        "지역업체활용", "지역업체우대", "지역상품", "부산상품",
+        "지역제품", "부산제품", "관내업체", "관내기업", "지역제한",
+        "지역가점", "지역업체참여도", "지역의무공동도급", "의무공동도급",
+    ))
+
+
 def apply_guardrail_sanity_check(
     question: str,
     selected: list[str],
@@ -18,9 +61,15 @@ def apply_guardrail_sanity_check(
         "계약집행기준", "낙찰자 결정기준", "조문", "제"
     ])
 
-    # 업체/추천 키워드 → company_search 보정
-    if not is_definition_query and any(kw in q for kw in ["업체", "추천", "살 수 있", "공급"]):
+    explicit_company_lookup = _is_explicit_company_lookup(question)
+    has_local_support_context = _has_local_support_context(question)
+
+    # 업체 후보/목록을 실제로 요청한 경우에만 company_search 보정
+    if not is_definition_query and explicit_company_lookup:
         final.add("company_search")
+    elif has_local_support_context:
+        final.discard("company_search")
+        final.add("common_procurement")
 
     # 공사+물품 혼합 → mixed_contract 보정
     has_construction = any(kw in q for kw in ["공사", "시공", "철거"])

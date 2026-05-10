@@ -11,8 +11,10 @@ import os
 import json
 import time
 from datetime import datetime
+from uuid import uuid4
 
 _LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "qa_test_logs")
+_FEEDBACK_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "qa_feedback")
 
 
 def save_qa_log(
@@ -29,6 +31,7 @@ def save_qa_log(
     model_used: str = None,
     pipeline_mode: str = None,
     extra_meta: dict = None,
+    qa_log_id: str = None,
 ):
     """
     QA 테스트 로그 1건 저장.
@@ -42,7 +45,10 @@ def save_qa_log(
         today = datetime.now().strftime("%Y%m%d")
         log_file = os.path.join(_LOG_DIR, f"qa_log_{today}.jsonl")
         
+        record_id = qa_log_id or f"qa_{datetime.now().strftime('%Y%m%d%H%M%S')}_{uuid4().hex[:10]}"
+
         record = {
+            "qa_log_id": record_id,
             "timestamp": datetime.now().isoformat(),
             "question": question,
             "answer": answer,
@@ -66,8 +72,10 @@ def save_qa_log(
             f.write(json.dumps(record, ensure_ascii=False, default=str) + "\n")
         
         print(f"  [QA_LOG] Saved to {log_file}")
+        return record_id
     except Exception as e:
         print(f"  [QA_LOG] Error: {e}")
+        return qa_log_id or ""
 
 
 def _safe_serialize(obj):
@@ -108,6 +116,73 @@ def get_qa_logs(date_str: str = None, limit: int = 100) -> list:
                 except json.JSONDecodeError:
                     continue
     
+    return records[-limit:]
+
+
+def save_qa_feedback(
+    *,
+    qa_log_id: str = "",
+    rating: int | None = None,
+    satisfied: bool | None = None,
+    issue_tags: list[str] | None = None,
+    comment: str = "",
+    expected_intent: str = "",
+    corrected_answer: str = "",
+    question: str = "",
+    answer_excerpt: str = "",
+    source: str = "user",
+) -> str:
+    """Save user/operator feedback for a QA log row.
+
+    Feedback is intentionally append-only.  It is a signal for review and does
+    not approve any record for Intent RAG by itself.
+    """
+    try:
+        os.makedirs(_FEEDBACK_DIR, exist_ok=True)
+        today = datetime.now().strftime("%Y%m%d")
+        feedback_id = f"fb_{datetime.now().strftime('%Y%m%d%H%M%S')}_{uuid4().hex[:10]}"
+        record = {
+            "feedback_id": feedback_id,
+            "qa_log_id": qa_log_id or "",
+            "timestamp": datetime.now().isoformat(),
+            "rating": rating,
+            "satisfied": satisfied,
+            "issue_tags": [str(tag) for tag in (issue_tags or []) if str(tag).strip()],
+            "comment": str(comment or "")[:2000],
+            "expected_intent": str(expected_intent or "")[:300],
+            "corrected_answer": str(corrected_answer or "")[:6000],
+            "question": str(question or "")[:1200],
+            "answer_excerpt": str(answer_excerpt or "")[:1200],
+            "source": source,
+            "review_status": "feedback_only",
+        }
+        log_file = os.path.join(_FEEDBACK_DIR, f"qa_feedback_{today}.jsonl")
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False, default=str) + "\n")
+        print(f"  [QA_FEEDBACK] Saved to {log_file}")
+        return feedback_id
+    except Exception as e:
+        print(f"  [QA_FEEDBACK] Error: {e}")
+        return ""
+
+
+def get_qa_feedback(date_str: str = None, limit: int = 100) -> list:
+    if date_str is None:
+        date_str = datetime.now().strftime("%Y%m%d")
+
+    log_file = os.path.join(_FEEDBACK_DIR, f"qa_feedback_{date_str}.jsonl")
+    if not os.path.exists(log_file):
+        return []
+
+    records = []
+    with open(log_file, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                try:
+                    records.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
     return records[-limit:]
 
 

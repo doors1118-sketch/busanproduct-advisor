@@ -24,6 +24,8 @@ _PROCUREMENT_TERMS = (
     "가점", "배점", "종합쇼핑몰", "mas", "다수공급자", "제3자단가",
     "우수조달", "혁신제품", "기술개발제품", "직접생산", "중소기업자간",
     "계약금액", "설계변경", "물가변동", "하자", "보증금", "조달",
+    "공사", "공사기간", "공기연장", "간접비", "실비", "계약기간",
+    "자동연장", "신규비목", "계약금액조정",
 )
 
 _STOP_TOKENS = {
@@ -31,6 +33,12 @@ _STOP_TOKENS = {
     "뭐야", "있나", "있는지", "해야", "하면", "경우", "관련", "대해",
     "그리고", "또는", "있는", "으로", "에서", "에게", "계속", "기준",
 }
+
+_JOSA_SUFFIXES = (
+    "으로는", "로는", "에서는", "에게는", "이랑", "랑", "하고",
+    "에서", "에게", "으로", "로", "은", "는", "이", "가", "을", "를",
+    "도", "만", "와", "과", "의",
+)
 
 
 def _compact(text: str) -> str:
@@ -73,6 +81,10 @@ def _tokens(text: str) -> list[str]:
     values = re.findall(r"[가-힣A-Za-z0-9]+", (text or "").lower())
     tokens: list[str] = []
     for value in values:
+        for suffix in _JOSA_SUFFIXES:
+            if value.endswith(suffix) and len(value) > len(suffix) + 1:
+                value = value[: -len(suffix)]
+                break
         if len(value) < 2 or value in _STOP_TOKENS:
             continue
         tokens.append(value)

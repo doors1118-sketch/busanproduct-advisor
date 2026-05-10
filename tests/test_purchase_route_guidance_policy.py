@@ -1,5 +1,6 @@
 from app.policies.purchase_route_guidance_policy import (
     build_purchase_route_cards,
+    derive_candidate_table_display_options,
     format_purchase_route_guidance_for_llm,
 )
 
@@ -18,8 +19,33 @@ def test_80m_goods_marks_general_and_policy_one_quote_as_not_viable():
 
     assert by_id["general_small_value_direct"].status == "not_viable"
     assert "2천만원" in by_id["general_small_value_direct"].user_label
+    assert by_id["general_small_value_direct"].route_priority == "excluded"
     assert by_id["policy_company_one_quote"].status == "not_viable"
     assert "5천만원" in by_id["policy_company_one_quote"].user_label
+    assert by_id["policy_company_one_quote"].display_policy == "brief"
+
+
+def test_60m_computer_prefers_two_quote_mas_and_hides_policy_table():
+    cards = build_purchase_route_cards(
+        amount=60_000_000,
+        item_name="컴퓨터",
+        contract_object="goods",
+        tool_results=[
+            _tool("search_shopping_mall", "부산 지역업체 검색 결과: 총 3건"),
+            _tool("search_local_company_by_product", "부산 지역업체 검색 결과: 총 4건"),
+            _tool("search_company_by_policy", "부산 지역업체 검색 결과: 총 5건"),
+        ],
+    )
+    by_id = {card.route_id: card for card in cards}
+    options = derive_candidate_table_display_options(cards)
+
+    assert by_id["general_small_value_direct"].route_priority == "excluded"
+    assert by_id["two_quote_small_value"].route_priority == "primary"
+    assert by_id["shopping_mall_mas"].route_priority == "primary"
+    assert by_id["sme_competition_direct_production"].route_priority == "primary"
+    assert by_id["policy_company_one_quote"].route_priority == "excluded"
+    assert "policy_company" in options["hidden_candidate_types"]
+    assert "shopping_mall_supplier" in options["preferred_candidate_order"]
 
 
 def test_route_guidance_uses_company_tool_counts_as_candidates():
@@ -51,8 +77,12 @@ def test_llm_guidance_explicitly_preserves_llm_practical_answer_role():
 
     assert "최종 답변은 아래 경로를 조합해 실무형으로 작성" in context
     assert "가능 업체'가 아니라 '검토 후보" in context
-    assert "일반 2천만원 소액수의 경로는 어려움" in context
-    assert "5천만원 1인 견적 경로는 어려움" in context
+    assert "일반 1인견적" in context
+    assert "2천만원 초과" in context
+    assert "정책기업 1인견적" in context
+    assert "5천만원 초과" in context
+    assert "법적 근거" in context
+    assert "후보표는 구매경로 판단과 맞는 표만 사용" in context
 
 
 def test_service_route_cards_focus_on_license_and_regional_service_company():
@@ -70,6 +100,7 @@ def test_service_route_cards_focus_on_license_and_regional_service_company():
     by_id = {card.route_id: card for card in cards}
 
     assert by_id["service_small_value_direct"].status == "not_viable"
+    assert by_id["service_two_quote_small_value"].route_priority == "primary"
     assert by_id["local_service_company"].user_label == "후보 4건"
     assert by_id["service_policy_candidate"].user_label == "후보 2건"
 
@@ -83,6 +114,7 @@ def test_construction_route_cards_include_regional_and_joint_contract_paths():
     )
 
     assert "계약대상: 공사" in context
-    assert "공사 지역제한 입찰" in context
-    assert "지역의무공동도급/공동수급" in context
+    assert "공사 지역제한" in context
+    assert "지역의무공동도급" in context
     assert "부산 공사업체 후보" in context
+    assert "공종별 수의계약 한도 확인 필요" in context

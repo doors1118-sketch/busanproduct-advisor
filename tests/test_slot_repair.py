@@ -97,3 +97,23 @@ def test_slot_repair_out_of_scope_promotion():
     assert result.slots.amount == 100000000
     assert result.slots.item_name == "LED조명"
     assert result.routing_decision == "local_purchase_support_flow"
+
+
+def test_slot_repair_short_budget_laptop_and_negative_company_lookup():
+    query = "예산은 6천이고 노트북 구매 예정인데 업체명 추천은 필요 없어"
+    router_result = RouterResult(
+        primary_intent="out_of_scope",
+        routing_decision="clarification_required",
+        slots=RouterSlots(candidate_lookup_requested=True),
+        candidate_lookup_required=True,
+        company_lookup_required=True,
+    )
+
+    result = repair_slots(query, router_result)
+
+    assert result.slots.amount == 60000000
+    assert result.slots.item_name == "노트북"
+    assert result.slots.contract_object == "goods"
+    assert result.slots.candidate_lookup_requested is False
+    assert result.candidate_lookup_required is False
+    assert result.company_lookup_required is False

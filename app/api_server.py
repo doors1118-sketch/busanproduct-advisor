@@ -8,6 +8,8 @@ import sys
 import time
 import subprocess
 import traceback
+import json
+from datetime import datetime
 
 # app 디렉터리를 Python 경로에 추가
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -59,6 +61,7 @@ app.add_middleware(
 )
 
 PRODUCTION_DEPLOYMENT = "HOLD"
+SERVER_STARTED_AT = time.time()
 
 # ─────────────────────────────────────────────
 # Pilot Basic Auth Middleware (DISABLED)
@@ -97,6 +100,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
     history: list = []
+    qa_log_id: str = ""
     candidate_table_source: str = "not_exposed_yet"
     legal_conclusion_allowed: bool = False
     contract_possible_auto_promoted: bool = False
@@ -138,6 +142,8 @@ class ChatResponse(BaseModel):
     mandatory_mcp_plan: list = []
     mandatory_mcp_executed: list = []
     mandatory_mcp_missing: list = []
+    intent_frame: dict = {}
+    route_plan: dict = {}
     evidence_cards: list = []
     evidence_card_count: int = 0
     internal_db_hit_count: int = 0
@@ -179,6 +185,92 @@ class ChatResponse(BaseModel):
     answer_builder_network_call_count: int = 0
     practice_manual_card_count: int = 0
     pps_qa_card_count: int = 0
+    tool_loop_gate_mode: str = "shadow"
+    tool_loop_gate_recommendation: str = ""
+    tool_loop_gate_evidence_sufficiency_score: float = 0.0
+    tool_loop_gate_should_allow_loop: bool = True
+    tool_loop_gate_can_use_writer_only: bool = False
+    tool_loop_gate_enforced: bool = False
+    tool_loop_gate_reasons: list = []
+    tool_loop_gate_blockers: list = []
+    tool_loop_gate_missing_supports: list = []
+    intent_rag_enabled: bool = False
+    intent_rag_status: str = ""
+    intent_rag_primary_intent: str = ""
+    intent_rag_labels: list = []
+    intent_rag_sub_intents: list = []
+    intent_rag_answer_mode: str = ""
+    intent_rag_confidence: float = 0.0
+    intent_rag_confidence_level: str = ""
+    intent_rag_company_search_required: bool = False
+    intent_rag_company_search_blocked: bool = False
+    intent_rag_local_purchase_support_required: bool = False
+    intent_rag_contract_review_required: bool = False
+    intent_rag_procedure_required: bool = False
+    intent_rag_legal_basis_required: bool = False
+    intent_rag_llm_router_required: bool = True
+    intent_rag_corpus_record_count: int = 0
+    intent_rag_item_name: str = ""
+    intent_rag_contract_object: str = ""
+    intent_rag_amount: Optional[int] = None
+    intent_rag_reasons: list = []
+    intent_rag_matched_examples: list = []
+    llm_adjudicator_enabled: bool = False
+    llm_adjudicator_required: bool = False
+    llm_adjudicator_called: bool = False
+    llm_adjudicator_status: str = ""
+    llm_adjudicator_elapsed_ms: int = 0
+    llm_adjudicator_reasons: list = []
+    llm_adjudicator_conflicts: list = []
+    llm_adjudicator_missing_slots: list = []
+    llm_adjudicator_labels_before: list = []
+    llm_adjudicator_labels_after: list = []
+    # Payload/context telemetry for latency analysis
+    mcp_context_mode_requested: str = ""
+    mcp_context_mode_applied: str = ""
+    mcp_context_raw_chars: int = 0
+    mcp_context_card_chars: int = 0
+    mcp_context_llm_chars: int = 0
+    mcp_context_char_savings_pct: float = 0.0
+    tool_response_context_raw_chars: int = 0
+    tool_response_context_llm_chars: int = 0
+    tool_response_context_char_savings_pct: float = 0.0
+    tool_response_context_card_count: int = 0
+    tool_response_context_compressed_count: int = 0
+    tool_response_context_modes: dict = {}
+    llm_payload_core_prompt_chars: int = 0
+    llm_payload_dynamic_context_chars: int = 0
+    llm_payload_rag_context_chars: int = 0
+    llm_payload_mcp_context_chars: int = 0
+    llm_payload_practice_context_chars: int = 0
+    llm_payload_pps_qa_context_chars: int = 0
+    llm_payload_route_plan_guidance_chars: int = 0
+    llm_payload_intent_rag_guidance_chars: int = 0
+    llm_payload_router_guidance_chars: int = 0
+    llm_payload_tool_count_available: int = 0
+    llm_payload_initial_contents_chars: int = 0
+    llm_payload_max_contents_chars: int = 0
+    llm_payload_after_tool_response_chars: int = 0
+    llm_payload_after_forced_prefetch_chars: int = 0
+    llm_payload_model_round_count: int = 0
+    llm_payload_model_timeout_count: int = 0
+    llm_payload_model_error_statuses: list = []
+    llm_answer_thinking_budget: int = 0
+    llm_answer_thinking_budget_reason: str = ""
+    llm_tool_loop_enabled: bool = False
+    llm_internal_tools_disabled: bool = True
+    natural_language_writer_enabled: bool = False
+    natural_language_writer_applied: bool = False
+    natural_language_writer_mode: str = ""
+    natural_language_writer_model: str = ""
+    natural_language_writer_reason: str = ""
+    natural_language_writer_skip_reason: str = ""
+    natural_language_writer_elapsed_ms: int = 0
+    natural_language_writer_split_mode: str = ""
+    natural_language_writer_target_chars: int = 0
+    natural_language_writer_suffix_chars: int = 0
+    natural_language_writer_output_chars: int = 0
+    natural_language_writer_table_preserved: bool = False
 
     # Phase 11: Orchestrator Pipeline Metadata
     pipeline_mode: str = ""  # orchestrator / legacy_gemini
@@ -196,6 +288,19 @@ class ChatResponse(BaseModel):
     blocked_phrases_found: list = []
 
 
+class QaFeedbackRequest(BaseModel):
+    qa_log_id: Optional[str] = Field(None, description="ChatResponse.qa_log_id")
+    rating: Optional[int] = Field(None, ge=1, le=5, description="1=매우 불만족, 5=매우 만족")
+    satisfied: Optional[bool] = Field(None, description="간단 만족/불만족")
+    issue_tags: list = Field(default_factory=list, description="의도틀림/근거부족/느림 등")
+    comment: Optional[str] = Field("", description="사용자 자유 의견")
+    expected_intent: Optional[str] = Field("", description="운영자/테스터가 보는 기대 의도")
+    corrected_answer: Optional[str] = Field("", description="운영자/테스터가 보는 수정 답변")
+    question: Optional[str] = Field("", description="qa_log_id가 없을 때 보조 질문")
+    answer_excerpt: Optional[str] = Field("", description="qa_log_id가 없을 때 보조 답변 일부")
+    source: Optional[str] = Field("user", description="user/tester/operator")
+
+
 # ─────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────
@@ -211,8 +316,291 @@ def _get_commit_hash() -> str:
         return "unknown"
 
 
+def _client_is_local(request: Request) -> bool:
+    host = getattr(getattr(request, "client", None), "host", "") or ""
+    return host in {"127.0.0.1", "::1", "localhost"} or host.startswith("127.")
+
+
+def _admin_health_authorized(request: Request) -> bool:
+    """Detailed health is localhost-only unless ADMIN_HEALTH_TOKEN is configured."""
+    token = os.getenv("ADMIN_HEALTH_TOKEN", "").strip()
+    if not token:
+        return _client_is_local(request)
+
+    header_token = request.headers.get("X-Admin-Token", "").strip()
+    auth = request.headers.get("Authorization", "").strip()
+    bearer = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
+    return secrets.compare_digest(header_token, token) or secrets.compare_digest(bearer, token)
+
+
+def _json_file_status(relative_path: str, *, max_count_bytes: int = 8_000_000) -> dict:
+    path = Path(PROJECT_ROOT) / relative_path
+    info = {
+        "path": relative_path,
+        "exists": path.exists(),
+        "status": "missing",
+        "size_bytes": 0,
+        "modified_at": None,
+        "record_count": None,
+    }
+    if not path.exists():
+        return info
+
+    stat = path.stat()
+    info.update({
+        "status": "ok",
+        "size_bytes": stat.st_size,
+        "modified_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+    })
+    if stat.st_size <= max_count_bytes and path.suffix.lower() == ".json":
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                info["record_count"] = len(data)
+            elif isinstance(data, list):
+                info["record_count"] = len(data)
+        except Exception as e:
+            info["status"] = "read_error"
+            info["error"] = str(e)[:200]
+    return info
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+
+
+def _get_data_file_health() -> dict:
+    files = {
+        "law_articles": "app/data/law_articles_db.json",
+        "admin_rules": "app/data/admin_rules_db.json",
+        "law_annexes": "app/data/law_annexes_db.json",
+        "admin_rule_annexes": "app/data/admin_rule_annexes_db.json",
+        "pps_qa_cases": "app/data/pps_qa_cases.json",
+        "practice_manual_cards": "app/data/practice_manual_cards.json",
+        "intent_rag_corpus": "app/data/intent_rag_corpus.json",
+        "purchase_support_source_map": "app/data/purchase_support_rule_source_map.json",
+    }
+    result = {name: _json_file_status(path) for name, path in files.items()}
+    required = ("law_articles", "admin_rules", "pps_qa_cases", "practice_manual_cards", "intent_rag_corpus")
+    missing_required = [name for name in required if not result[name]["exists"]]
+    return {
+        "status": "critical" if missing_required else "ok",
+        "missing_required": missing_required,
+        "files": result,
+    }
+
+
+def _get_routing_runtime_settings() -> dict:
+    try:
+        from app.router.llm_route_adjudicator import (
+            RAG_HIGH_CONFIDENCE,
+            RAG_LOW_CONFIDENCE,
+            RAG_VERY_HIGH_CONFIDENCE,
+        )
+    except Exception:
+        try:
+            from router.llm_route_adjudicator import (
+                RAG_HIGH_CONFIDENCE,
+                RAG_LOW_CONFIDENCE,
+                RAG_VERY_HIGH_CONFIDENCE,
+            )
+        except Exception:
+            RAG_LOW_CONFIDENCE, RAG_HIGH_CONFIDENCE, RAG_VERY_HIGH_CONFIDENCE = 0.58, 0.78, 0.86
+
+    try:
+        from app.router.gemini_intent_router import resolve_router_client_config
+    except Exception:
+        try:
+            from router.gemini_intent_router import resolve_router_client_config
+        except Exception:
+            resolve_router_client_config = None
+
+    router_client_config = (
+        resolve_router_client_config() if resolve_router_client_config is not None else {}
+    )
+    adjudicator_enabled = os.getenv(
+        "USE_GEMINI_ROUTE_ADJUDICATOR",
+        os.getenv("USE_GEMINI_INTENT_ROUTER_IN_LEGACY", "true"),
+    ).lower() == "true"
+    return {
+        "prompt_mode": os.getenv("PROMPT_MODE", "legacy"),
+        "model_routing_mode": os.getenv("MODEL_ROUTING_MODE", "risk_based"),
+        "model_primary": os.getenv("GEMINI_MODEL", "gemini-2.5-pro"),
+        "fallback_model": os.getenv("FALLBACK_MODEL", "gemini-2.5-flash"),
+        "gemini_api_key_configured": bool(os.getenv("GEMINI_API_KEY")),
+        "gemini_router_provider": router_client_config.get("provider", "unknown"),
+        "gemini_router_vertex_project": router_client_config.get("project", ""),
+        "gemini_router_vertex_location": router_client_config.get("location", ""),
+        "llm_adjudicator_enabled": adjudicator_enabled,
+        "gemini_router_model": os.getenv("GEMINI_ROUTER_MODEL", "gemini-2.5-flash"),
+        "gemini_router_thinking_budget": _env_int("GEMINI_ROUTER_THINKING_BUDGET", 0),
+        "gemini_adjudicator_thinking_budget": _env_int("GEMINI_ADJUDICATOR_THINKING_BUDGET", 128),
+        "gemini_route_adjudicator_timeout_sec": _env_float("GEMINI_ROUTE_ADJUDICATOR_TIMEOUT_SEC", 3.0),
+        "gemini_pro_fallback_enabled": os.getenv("GEMINI_PRO_FALLBACK_ENABLED", "true").lower() == "true",
+        "tool_loop_gate_mode": os.getenv("TOOL_LOOP_GATE_MODE", "shadow").lower(),
+        "llm_tool_loop_enabled": os.getenv("LLM_TOOL_LOOP_ENABLED", "false").lower() == "true",
+        "llm_internal_tools_disabled": os.getenv("LLM_TOOL_LOOP_ENABLED", "false").lower() != "true",
+        "natural_language_writer_enabled": os.getenv("NATURAL_LANGUAGE_WRITER_ENABLED", "false").lower() == "true",
+        "natural_language_writer_mode": os.getenv("NATURAL_LANGUAGE_WRITER_MODE", "selective"),
+        "natural_language_writer_model": os.getenv("NATURAL_LANGUAGE_WRITER_MODEL", "gemini-2.5-flash"),
+        "natural_language_writer_timeout_sec": _env_float("NATURAL_LANGUAGE_WRITER_TIMEOUT_SEC", 15.0),
+        "natural_language_writer_max_input_chars": _env_int("NATURAL_LANGUAGE_WRITER_MAX_INPUT_CHARS", 3500),
+        "max_tool_call_rounds": _env_int("MAX_TOOL_CALL_ROUNDS", 2),
+        "intent_rag_thresholds": {
+            "low": RAG_LOW_CONFIDENCE,
+            "high": RAG_HIGH_CONFIDENCE,
+            "very_high": RAG_VERY_HIGH_CONFIDENCE,
+        },
+    }
+
+
+def _get_intent_rag_health() -> dict:
+    try:
+        try:
+            from app.router.intent_rag_resolver import get_intent_rag_corpus_status
+        except Exception:
+            from router.intent_rag_resolver import get_intent_rag_corpus_status
+        status = get_intent_rag_corpus_status()
+        return {
+            "status": "ok" if status.get("available") else "warning",
+            **status,
+        }
+    except Exception as e:
+        return {"status": "critical", "error": str(e)[:300]}
+
+
+def _probe_company_api() -> dict:
+    base_url = os.getenv("MONITORING_COMPANY_API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+    if os.getenv("ADMIN_HEALTH_PROBE_COMPANY_API", "true").lower() != "true":
+        return {"status": "skipped", "base_url": base_url}
+    try:
+        import requests
+        start = time.time()
+        response = requests.get(f"{base_url}/health", timeout=1.2)
+        elapsed_ms = int((time.time() - start) * 1000)
+        return {
+            "status": "ok" if response.status_code < 500 else "warning",
+            "base_url": base_url,
+            "http_status": response.status_code,
+            "elapsed_ms": elapsed_ms,
+        }
+    except Exception as e:
+        return {
+            "status": "warning",
+            "base_url": base_url,
+            "error": str(e)[:200],
+        }
+
+
+def _summarize_recent_routing_logs(limit: int = 100) -> dict:
+    try:
+        from qa_test_logger import get_qa_logs
+        rows = get_qa_logs(limit=limit)
+    except Exception as e:
+        return {"status": "warning", "error": str(e)[:200], "count": 0}
+
+    if not rows:
+        return {"status": "empty", "count": 0}
+
+    latencies = [int(row.get("latency_ms") or 0) for row in rows]
+    tool_counts = [int(row.get("tool_call_count") or 0) for row in rows]
+    adjudicator_called = 0
+    adjudicator_required = 0
+    adjudicator_timeouts = 0
+    rag_conf_values: list[float] = []
+    slow_count = 0
+    timeout_like_count = 0
+    source_status_counts: dict[str, int] = {}
+    tier_counts: dict[str, int] = {}
+
+    for row in rows:
+        extra = row.get("extra") or {}
+        if isinstance(extra, dict):
+            if extra.get("llm_adjudicator_called"):
+                adjudicator_called += 1
+            if extra.get("llm_adjudicator_required"):
+                adjudicator_required += 1
+            if extra.get("llm_adjudicator_status") == "timeout":
+                adjudicator_timeouts += 1
+            conf = extra.get("intent_rag_confidence")
+            if isinstance(conf, (int, float)):
+                rag_conf_values.append(float(conf))
+            src = str(extra.get("source_status") or "unknown")
+            source_status_counts[src] = source_status_counts.get(src, 0) + 1
+
+        latency = int(row.get("latency_ms") or 0)
+        if latency >= 30_000:
+            slow_count += 1
+        answer = str(row.get("answer") or "")
+        if latency >= 60_000 or "timeout" in answer.lower() or "시간 초과" in answer:
+            timeout_like_count += 1
+
+        tier = row.get("tier_resolved")
+        tier_key = f"tier_{tier}" if tier is not None else "tier_unknown"
+        tier_counts[tier_key] = tier_counts.get(tier_key, 0) + 1
+
+    return {
+        "status": "warning" if timeout_like_count or slow_count else "ok",
+        "count": len(rows),
+        "avg_latency_ms": int(sum(latencies) / len(latencies)),
+        "max_latency_ms": max(latencies),
+        "slow_over_30s_count": slow_count,
+        "timeout_like_count": timeout_like_count,
+        "avg_tool_calls": round(sum(tool_counts) / len(tool_counts), 2),
+        "llm_adjudicator_required_count": adjudicator_required,
+        "llm_adjudicator_called_count": adjudicator_called,
+        "llm_adjudicator_timeout_count": adjudicator_timeouts,
+        "intent_rag_avg_confidence": round(sum(rag_conf_values) / len(rag_conf_values), 3) if rag_conf_values else None,
+        "source_status_counts": source_status_counts,
+        "tier_counts": tier_counts,
+    }
+
+
+def _overall_health_status(parts: dict) -> str:
+    statuses = []
+    for value in parts.values():
+        if isinstance(value, dict):
+            statuses.append(str(value.get("status", "")))
+    if "critical" in statuses:
+        return "critical"
+    if "warning" in statuses:
+        return "warning"
+    return "ok"
+
+
 def _get_rag_status() -> dict:
     """ChromaDB 컬렉션 상태를 조회. warmup_rag() 구조를 재사용."""
+    intent_rag_info = {"status": "UNKNOWN", "record_count": 0}
+    try:
+        from app.router.intent_rag_resolver import get_intent_rag_corpus_status
+    except Exception:
+        try:
+            from router.intent_rag_resolver import get_intent_rag_corpus_status
+        except Exception as e:
+            get_intent_rag_corpus_status = None
+            intent_rag_info = {"status": f"ERROR: {e}", "record_count": 0}
+    if get_intent_rag_corpus_status is not None:
+        try:
+            status = get_intent_rag_corpus_status()
+            intent_rag_info = {
+                "status": "SUCCESS" if status.get("available") else "FALLBACK",
+                "record_count": status.get("record_count", 0),
+                "path": status.get("path", ""),
+                "fallback_manual_examples": status.get("fallback_manual_examples", 0),
+            }
+        except Exception as e:
+            intent_rag_info = {"status": f"ERROR: {e}", "record_count": 0}
+
     try:
         import chromadb
         chroma_dir = os.environ.get(
@@ -264,6 +652,7 @@ def _get_rag_status() -> dict:
             "laws": laws_info,
             "manuals": manuals_info,
             "innovation": innovation_info,
+            "intent_rag": intent_rag_info,
             "production_deployment": PRODUCTION_DEPLOYMENT,
         }
     except Exception as e:
@@ -271,6 +660,7 @@ def _get_rag_status() -> dict:
             "laws": {"status": f"ERROR: {e}", "doc_count": 0},
             "manuals": {"status": f"ERROR: {e}", "doc_count": 0},
             "innovation": {"status": f"ERROR: {e}", "product_count": 0},
+            "intent_rag": intent_rag_info,
             "production_deployment": PRODUCTION_DEPLOYMENT,
         }
 
@@ -302,6 +692,39 @@ def version():
 @app.get("/rag/status")
 def rag_status():
     return _get_rag_status()
+
+
+@app.get("/admin/health/routing")
+def admin_routing_health(request: Request, recent_limit: int = 100):
+    """Detailed routing health for operators.
+
+    Access control:
+    - If ADMIN_HEALTH_TOKEN is set, require X-Admin-Token or Bearer token.
+    - If no token is configured, allow localhost only.
+    """
+    if not _admin_health_authorized(request):
+        raise HTTPException(status_code=403, detail="admin health is restricted")
+
+    recent_limit = max(1, min(int(recent_limit or 100), 500))
+    parts = {
+        "intent_rag": _get_intent_rag_health(),
+        "data_files": _get_data_file_health(),
+        "company_api": _probe_company_api(),
+        "recent_routing": _summarize_recent_routing_logs(limit=recent_limit),
+    }
+    return JSONResponse(
+        content={
+            "status": _overall_health_status(parts),
+            "service": "busanproduct-advisor-api",
+            "checked_at": datetime.now().isoformat(),
+            "uptime_seconds": int(time.time() - SERVER_STARTED_AT),
+            "commit_hash": _get_commit_hash(),
+            "production_deployment": PRODUCTION_DEPLOYMENT,
+            "settings": _get_routing_runtime_settings(),
+            **parts,
+        },
+        media_type="application/json; charset=utf-8",
+    )
 
 
 # 운영 기준은 legacy_gemini 경로다. Orchestrator는 아직 gateway/rule/legal
@@ -403,6 +826,29 @@ def _chat_orchestrator(req: ChatRequest, start: float):
             candidate_table_source="orchestrator_structured" if runtime_resp.answer_output.candidate_table_section else "none",
         )
 
+        try:
+            from qa_test_logger import save_qa_log
+            qa_log_id = save_qa_log(
+                question=req.message,
+                answer=answer,
+                agency_type=req.agency_type,
+                latency_ms=latency_ms,
+                tier_resolved=1,
+                tool_call_count=0,
+                model_used="orchestrator",
+                pipeline_mode="orchestrator",
+                extra_meta={
+                    "runtime_status": runtime_resp.runtime_status,
+                    "routing_decision": runtime_resp.router_result.routing_decision,
+                    "primary_intent": runtime_resp.router_result.primary_intent,
+                    "forbidden_phrase_scan_passed": runtime_resp.answer_output.forbidden_phrase_scan_passed,
+                    "blocked_phrases_found": runtime_resp.answer_output.blocked_phrases_found,
+                },
+            )
+            resp_obj.qa_log_id = qa_log_id
+        except Exception as log_err:
+            print(f"  [QA_LOG] Failed: {log_err}")
+
         resp_dict = resp_obj.dict()
         resp_dict = _sanitize_response_dict(resp_dict)
 
@@ -449,6 +895,8 @@ def _chat_legacy(req: ChatRequest, start: float):
         )
         latency_ms = int((time.time() - start) * 1000)
         meta = get_last_generation_meta()
+        legacy_router_meta = meta.get("legacy_gemini_intent_router", {}) or {}
+        llm_adjudicator_meta = legacy_router_meta.get("adjudicator", {}) or {}
 
         resp_obj = ChatResponse(
             answer=answer,
@@ -471,6 +919,8 @@ def _chat_legacy(req: ChatRequest, start: float):
             mandatory_mcp_plan=meta.get("mandatory_mcp_plan", []),
             mandatory_mcp_executed=meta.get("mandatory_mcp_executed", []),
             mandatory_mcp_missing=meta.get("mandatory_mcp_missing", []),
+            intent_frame=legacy_router_meta.get("intent_frame", {}),
+            route_plan=legacy_router_meta.get("route_plan", {}),
             evidence_cards=meta.get("evidence_cards", []),
             evidence_card_count=meta.get("evidence_card_count", 0),
             internal_db_hit_count=meta.get("internal_db_hit_count", 0),
@@ -518,12 +968,97 @@ def _chat_legacy(req: ChatRequest, start: float):
             legal_basis_section_rendered=meta.get("legal_basis_section_rendered", False),
             practice_manual_card_count=meta.get("practice_manual_card_count", 0),
             pps_qa_card_count=meta.get("pps_qa_card_count", 0),
+            tool_loop_gate_mode=meta.get("tool_loop_gate_mode", "shadow"),
+            tool_loop_gate_recommendation=meta.get("tool_loop_gate_recommendation", ""),
+            tool_loop_gate_evidence_sufficiency_score=meta.get("tool_loop_gate_evidence_sufficiency_score", 0.0),
+            tool_loop_gate_should_allow_loop=meta.get("tool_loop_gate_should_allow_loop", True),
+            tool_loop_gate_can_use_writer_only=meta.get("tool_loop_gate_can_use_writer_only", False),
+            tool_loop_gate_enforced=meta.get("tool_loop_gate_enforced", False),
+            tool_loop_gate_reasons=meta.get("tool_loop_gate_reasons", []),
+            tool_loop_gate_blockers=meta.get("tool_loop_gate_blockers", []),
+            tool_loop_gate_missing_supports=meta.get("tool_loop_gate_missing_supports", []),
+            intent_rag_enabled=meta.get("intent_rag_enabled", False),
+            intent_rag_status=meta.get("intent_rag_status", ""),
+            intent_rag_primary_intent=meta.get("intent_rag_primary_intent", ""),
+            intent_rag_labels=meta.get("intent_rag_labels", []),
+            intent_rag_sub_intents=meta.get("intent_rag_sub_intents", []),
+            intent_rag_answer_mode=meta.get("intent_rag_answer_mode", ""),
+            intent_rag_confidence=meta.get("intent_rag_confidence", 0.0),
+            intent_rag_confidence_level=meta.get("intent_rag_confidence_level", ""),
+            intent_rag_company_search_required=meta.get("intent_rag_company_search_required", False),
+            intent_rag_company_search_blocked=meta.get("intent_rag_company_search_blocked", False),
+            intent_rag_local_purchase_support_required=meta.get("intent_rag_local_purchase_support_required", False),
+            intent_rag_contract_review_required=meta.get("intent_rag_contract_review_required", False),
+            intent_rag_procedure_required=meta.get("intent_rag_procedure_required", False),
+            intent_rag_legal_basis_required=meta.get("intent_rag_legal_basis_required", False),
+            intent_rag_llm_router_required=meta.get("intent_rag_llm_router_required", True),
+            intent_rag_corpus_record_count=meta.get("intent_rag_corpus_record_count", 0),
+            intent_rag_item_name=meta.get("intent_rag_item_name", ""),
+            intent_rag_contract_object=meta.get("intent_rag_contract_object", ""),
+            intent_rag_amount=meta.get("intent_rag_amount"),
+            intent_rag_reasons=meta.get("intent_rag_reasons", []),
+            intent_rag_matched_examples=meta.get("intent_rag_matched_examples", []),
+            llm_adjudicator_enabled=llm_adjudicator_meta.get("enabled", False),
+            llm_adjudicator_required=llm_adjudicator_meta.get("required", False),
+            llm_adjudicator_called=llm_adjudicator_meta.get("called", False),
+            llm_adjudicator_status=llm_adjudicator_meta.get("status", ""),
+            llm_adjudicator_elapsed_ms=llm_adjudicator_meta.get("elapsed_ms", 0),
+            llm_adjudicator_reasons=llm_adjudicator_meta.get("reasons", []),
+            llm_adjudicator_conflicts=llm_adjudicator_meta.get("conflicts", []),
+            llm_adjudicator_missing_slots=llm_adjudicator_meta.get("missing_slots", []),
+            llm_adjudicator_labels_before=llm_adjudicator_meta.get("labels_before", []),
+            llm_adjudicator_labels_after=llm_adjudicator_meta.get("labels_after", []),
+            mcp_context_mode_requested=meta.get("mcp_context_mode_requested", ""),
+            mcp_context_mode_applied=meta.get("mcp_context_mode_applied", ""),
+            mcp_context_raw_chars=meta.get("mcp_context_raw_chars", 0),
+            mcp_context_card_chars=meta.get("mcp_context_card_chars", 0),
+            mcp_context_llm_chars=meta.get("mcp_context_llm_chars", 0),
+            mcp_context_char_savings_pct=meta.get("mcp_context_char_savings_pct", 0.0),
+            tool_response_context_raw_chars=meta.get("tool_response_context_raw_chars", 0),
+            tool_response_context_llm_chars=meta.get("tool_response_context_llm_chars", 0),
+            tool_response_context_char_savings_pct=meta.get("tool_response_context_char_savings_pct", 0.0),
+            tool_response_context_card_count=meta.get("tool_response_context_card_count", 0),
+            tool_response_context_compressed_count=meta.get("tool_response_context_compressed_count", 0),
+            tool_response_context_modes=meta.get("tool_response_context_modes", {}),
+            llm_payload_core_prompt_chars=meta.get("llm_payload_core_prompt_chars", 0),
+            llm_payload_dynamic_context_chars=meta.get("llm_payload_dynamic_context_chars", 0),
+            llm_payload_rag_context_chars=meta.get("llm_payload_rag_context_chars", 0),
+            llm_payload_mcp_context_chars=meta.get("llm_payload_mcp_context_chars", 0),
+            llm_payload_practice_context_chars=meta.get("llm_payload_practice_context_chars", 0),
+            llm_payload_pps_qa_context_chars=meta.get("llm_payload_pps_qa_context_chars", 0),
+            llm_payload_route_plan_guidance_chars=meta.get("llm_payload_route_plan_guidance_chars", 0),
+            llm_payload_intent_rag_guidance_chars=meta.get("llm_payload_intent_rag_guidance_chars", 0),
+            llm_payload_router_guidance_chars=meta.get("llm_payload_router_guidance_chars", 0),
+            llm_payload_tool_count_available=meta.get("llm_payload_tool_count_available", 0),
+            llm_payload_initial_contents_chars=meta.get("llm_payload_initial_contents_chars", 0),
+            llm_payload_max_contents_chars=meta.get("llm_payload_max_contents_chars", 0),
+            llm_payload_after_tool_response_chars=meta.get("llm_payload_after_tool_response_chars", 0),
+            llm_payload_after_forced_prefetch_chars=meta.get("llm_payload_after_forced_prefetch_chars", 0),
+            llm_payload_model_round_count=meta.get("llm_payload_model_round_count", 0),
+            llm_payload_model_timeout_count=meta.get("llm_payload_model_timeout_count", 0),
+            llm_payload_model_error_statuses=meta.get("llm_payload_model_error_statuses", []),
+            llm_answer_thinking_budget=meta.get("llm_answer_thinking_budget", 0),
+            llm_answer_thinking_budget_reason=meta.get("llm_answer_thinking_budget_reason", ""),
+            llm_tool_loop_enabled=meta.get("llm_tool_loop_enabled", False),
+            llm_internal_tools_disabled=meta.get("llm_internal_tools_disabled", True),
+            natural_language_writer_enabled=meta.get("natural_language_writer_enabled", False),
+            natural_language_writer_applied=meta.get("natural_language_writer_applied", False),
+            natural_language_writer_mode=meta.get("natural_language_writer_mode", ""),
+            natural_language_writer_model=meta.get("natural_language_writer_model", ""),
+            natural_language_writer_reason=meta.get("natural_language_writer_reason", ""),
+            natural_language_writer_skip_reason=meta.get("natural_language_writer_skip_reason", ""),
+            natural_language_writer_elapsed_ms=meta.get("natural_language_writer_elapsed_ms", 0),
+            natural_language_writer_split_mode=meta.get("natural_language_writer_split_mode", ""),
+            natural_language_writer_target_chars=meta.get("natural_language_writer_target_chars", 0),
+            natural_language_writer_suffix_chars=meta.get("natural_language_writer_suffix_chars", 0),
+            natural_language_writer_output_chars=meta.get("natural_language_writer_output_chars", 0),
+            natural_language_writer_table_preserved=meta.get("natural_language_writer_table_preserved", False),
         )
 
         # ── QA 테스트 로그 자동 저장 ──
         try:
             from qa_test_logger import save_qa_log
-            save_qa_log(
+            qa_log_id = save_qa_log(
                 question=req.message,
                 answer=answer,
                 agency_type=req.agency_type,
@@ -549,8 +1084,38 @@ def _chat_legacy(req: ChatRequest, start: float):
                     "source_status": meta.get("source_status"),
                     "practice_manual_card_count": meta.get("practice_manual_card_count", 0),
                     "pps_qa_card_count": meta.get("pps_qa_card_count", 0),
+                    "intent_rag_primary_intent": meta.get("intent_rag_primary_intent"),
+                    "intent_rag_labels": meta.get("intent_rag_labels", []),
+                    "intent_rag_answer_mode": meta.get("intent_rag_answer_mode"),
+                    "intent_rag_confidence": meta.get("intent_rag_confidence"),
+                    "intent_rag_corpus_record_count": meta.get("intent_rag_corpus_record_count"),
+                    "intent_rag_company_search_required": meta.get("intent_rag_company_search_required"),
+                    "intent_rag_company_search_blocked": meta.get("intent_rag_company_search_blocked"),
+                    "intent_rag_reasons": meta.get("intent_rag_reasons", []),
+                    "llm_adjudicator_required": llm_adjudicator_meta.get("required", False),
+                    "llm_adjudicator_called": llm_adjudicator_meta.get("called", False),
+                    "llm_adjudicator_status": llm_adjudicator_meta.get("status", ""),
+                    "llm_adjudicator_elapsed_ms": llm_adjudicator_meta.get("elapsed_ms", 0),
+                    "llm_adjudicator_reasons": llm_adjudicator_meta.get("reasons", []),
+                    "llm_adjudicator_conflicts": llm_adjudicator_meta.get("conflicts", []),
+                    "llm_adjudicator_missing_slots": llm_adjudicator_meta.get("missing_slots", []),
+                    "llm_adjudicator_labels_before": llm_adjudicator_meta.get("labels_before", []),
+                    "llm_adjudicator_labels_after": llm_adjudicator_meta.get("labels_after", []),
+                    "mcp_context_raw_chars": meta.get("mcp_context_raw_chars", 0),
+                    "mcp_context_card_chars": meta.get("mcp_context_card_chars", 0),
+                    "mcp_context_llm_chars": meta.get("mcp_context_llm_chars", 0),
+                    "tool_response_context_raw_chars": meta.get("tool_response_context_raw_chars", 0),
+                    "tool_response_context_llm_chars": meta.get("tool_response_context_llm_chars", 0),
+                    "llm_payload_core_prompt_chars": meta.get("llm_payload_core_prompt_chars", 0),
+                    "llm_payload_dynamic_context_chars": meta.get("llm_payload_dynamic_context_chars", 0),
+                    "llm_payload_mcp_context_chars": meta.get("llm_payload_mcp_context_chars", 0),
+                    "llm_payload_initial_contents_chars": meta.get("llm_payload_initial_contents_chars", 0),
+                    "llm_payload_max_contents_chars": meta.get("llm_payload_max_contents_chars", 0),
+                    "llm_payload_model_timeout_count": meta.get("llm_payload_model_timeout_count", 0),
+                    "llm_payload_model_error_statuses": meta.get("llm_payload_model_error_statuses", []),
                 },
             )
+            resp_obj.qa_log_id = qa_log_id
         except Exception as log_err:
             print(f"  [QA_LOG] Failed: {log_err}")
 
@@ -600,6 +1165,54 @@ def get_qa_summary_endpoint(date: str = None):
         summary = get_qa_summary(date_str=date)
         return JSONResponse(
             content=summary,
+            media_type="application/json; charset=utf-8",
+        )
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+
+@app.post("/qa-feedback")
+def save_qa_feedback_endpoint(req: QaFeedbackRequest):
+    """답변별 사용자/테스터 피드백 저장.
+
+    이 피드백은 코퍼스 자동 승인값이 아니라, 실패질문 후보 생성의 입력 신호로만 사용한다.
+    """
+    try:
+        from qa_test_logger import save_qa_feedback
+
+        feedback_id = save_qa_feedback(
+            qa_log_id=req.qa_log_id or "",
+            rating=req.rating,
+            satisfied=req.satisfied,
+            issue_tags=req.issue_tags,
+            comment=req.comment or "",
+            expected_intent=req.expected_intent or "",
+            corrected_answer=req.corrected_answer or "",
+            question=req.question or "",
+            answer_excerpt=req.answer_excerpt or "",
+            source=req.source or "user",
+        )
+        return JSONResponse(
+            content={
+                "status": "saved" if feedback_id else "failed",
+                "feedback_id": feedback_id,
+                "qa_log_id": req.qa_log_id or "",
+                "corpus_approval_status": "not_approved_feedback_only",
+            },
+            media_type="application/json; charset=utf-8",
+        )
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+
+@app.get("/qa-feedback")
+def get_qa_feedback_endpoint(date: str = None, limit: int = 100):
+    """피드백 로그 조회. ?date=20260509&limit=100"""
+    try:
+        from qa_test_logger import get_qa_feedback
+        rows = get_qa_feedback(date_str=date, limit=limit)
+        return JSONResponse(
+            content={"count": len(rows), "feedback": rows},
             media_type="application/json; charset=utf-8",
         )
     except Exception as e:
