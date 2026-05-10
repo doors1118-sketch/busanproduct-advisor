@@ -9,6 +9,8 @@ import time
 import subprocess
 import traceback
 import json
+import queue
+import threading
 from datetime import datetime
 
 # app 디렉터리를 Python 경로에 추가
@@ -22,7 +24,7 @@ load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Optional
 from pathlib import Path
@@ -771,6 +773,93 @@ def chat_endpoint(req: ChatRequest):
     return _chat_legacy(req, start)
 
 
+def _sse_event(event: str, payload: dict) -> str:
+    data = json.dumps(payload, ensure_ascii=False, default=str)
+    return f"event: {event}\ndata: {data}\n\n"
+
+
+def _json_response_body(response: JSONResponse) -> dict:
+    try:
+        body = response.body.decode("utf-8") if isinstance(response.body, bytes) else str(response.body)
+        data = json.loads(body)
+        return data if isinstance(data, dict) else {"answer": str(data)}
+    except Exception as exc:
+        return {"answer": "⚠️ 응답 변환 중 오류가 발생했습니다.", "error": str(exc)[:200]}
+
+
+@app.post("/chat/stream")
+def chat_stream_endpoint(req: ChatRequest):
+    """SSE progress stream for the web UI.
+
+    This is progress-event streaming, not token streaming. The final answer is
+    still produced by the same /chat pipeline, so answer quality and logging stay
+    aligned with the normal endpoint.
+    """
+    start = time.time()
+    events: queue.Queue[tuple[str, dict]] = queue.Queue()
+
+    def emit_progress(message: str):
+        events.put((
+            "progress",
+            {
+                "message": str(message or "처리 중..."),
+                "elapsed_ms": int((time.time() - start) * 1000),
+            },
+        ))
+
+    def worker():
+        try:
+            emit_progress("질문 의도와 기관 유형을 확인 중입니다.")
+            if USE_ORCHESTRATOR_CHAT:
+                response = _chat_orchestrator(req, start)
+            else:
+                response = _chat_legacy(req, start, progress_callback=emit_progress)
+
+            data = _json_response_body(response)
+            if getattr(response, "status_code", 200) >= 400:
+                events.put(("error", {
+                    "message": data.get("answer") or "답변 생성 중 오류가 발생했습니다.",
+                    "status_code": getattr(response, "status_code", 500),
+                }))
+            else:
+                events.put(("final", data))
+        except Exception as exc:
+            print(f"[STREAM ERROR] {traceback.format_exc()}")
+            events.put(("error", {
+                "message": "답변 생성 중 오류가 발생했습니다.",
+                "detail": str(exc)[:200] if DEBUG_MODE else "",
+            }))
+        finally:
+            events.put(("done", {"elapsed_ms": int((time.time() - start) * 1000)}))
+
+    threading.Thread(target=worker, daemon=True).start()
+
+    def event_generator():
+        yield _sse_event("progress", {
+            "message": "질문을 접수했습니다.",
+            "elapsed_ms": 0,
+        })
+        while True:
+            try:
+                event, payload = events.get(timeout=15)
+            except queue.Empty:
+                yield _sse_event("heartbeat", {"elapsed_ms": int((time.time() - start) * 1000)})
+                continue
+
+            yield _sse_event(event, payload)
+            if event in {"done", "error"}:
+                break
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream; charset=utf-8",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 def _chat_orchestrator(req: ChatRequest, start: float):
     """Orchestrator 파이프라인 기반 /chat 처리."""
     try:
@@ -882,7 +971,7 @@ def _chat_orchestrator(req: ChatRequest, start: float):
         )
 
 
-def _chat_legacy(req: ChatRequest, start: float):
+def _chat_legacy(req: ChatRequest, start: float, progress_callback=None):
     """기존 gemini_engine.chat() 경로 (USE_ORCHESTRATOR_CHAT=false 롤백용)."""
     try:
         from gemini_engine import chat as engine_chat, get_last_generation_meta
@@ -890,7 +979,7 @@ def _chat_legacy(req: ChatRequest, start: float):
         answer, updated_history = engine_chat(
             user_message=req.message,
             history=req.history,
-            progress_callback=None,
+            progress_callback=progress_callback,
             agency_type=req.agency_type,
         )
         latency_ms = int((time.time() - start) * 1000)

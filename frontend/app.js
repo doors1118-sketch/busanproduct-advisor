@@ -40,6 +40,7 @@ const PROGRESS_STATES = [
 
 let progressInterval = null;
 let currentRawAnswer = "";
+let latestServerProgressAt = 0;
 
 function bindExampleChips() {
     const chips = document.querySelectorAll(".example-chip");
@@ -155,38 +156,37 @@ async function submitChat() {
     
     // Start Progress Spinner Texts
     let pIdx = 0;
+    latestServerProgressAt = 0;
     els.progressText.textContent = PROGRESS_STATES[pIdx];
     progressInterval = setInterval(() => {
+        if (latestServerProgressAt && Date.now() - latestServerProgressAt < 7000) {
+            return;
+        }
         pIdx = (pIdx + 1) % PROGRESS_STATES.length;
         els.progressText.textContent = PROGRESS_STATES[pIdx];
     }, 4000);
 
+    let timeoutId = null;
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout
+        timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout
+        const payload = {
+            message: message,
+            agency_type: agencyType,
+            history: []
+        };
 
-        const response = await fetch(`${API_BASE_URL}/chat`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                message: message,
-                agency_type: agencyType,
-                history: []
-            }),
-            signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-            let errorMsg = "API 오류가 발생했습니다.";
-            if (response.status === 429 || response.status === 503) {
-                errorMsg = "일부 외부 API 또는 데이터 조회가 지연되어 답변이 제한될 수 있습니다. 계약 전 관련 법령과 기관 내부 기준을 추가 확인하세요.";
+        let data;
+        try {
+            data = await requestChatStream(payload, controller.signal);
+        } catch (streamError) {
+            if (!streamError.canFallback) {
+                throw streamError;
             }
-            throw new Error(errorMsg);
+            setProgressMessage("기본 응답 경로로 전환 중입니다.");
+            data = await requestChatJson(payload, controller.signal);
         }
 
-        const data = await response.json();
         renderOutput(data);
 
     } catch (error) {
@@ -194,9 +194,125 @@ async function submitChat() {
             ? "응답이 지연되고 있습니다. 외부 API 또는 모델 응답 지연 가능성이 있습니다." 
             : error.message);
     } finally {
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+        }
         clearInterval(progressInterval);
         els.progressIndicator.classList.add('hidden');
         els.btnSubmit.disabled = false;
+    }
+}
+
+function setProgressMessage(message) {
+    if (!message) return;
+    latestServerProgressAt = Date.now();
+    els.progressText.textContent = message;
+}
+
+function createFallbackError(message) {
+    const error = new Error(message);
+    error.canFallback = true;
+    return error;
+}
+
+async function requestChatJson(payload, signal) {
+    const response = await fetch(`${API_BASE_URL}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal
+    });
+
+    if (!response.ok) {
+        throw new Error(getApiErrorMessage(response.status));
+    }
+
+    return await response.json();
+}
+
+function getApiErrorMessage(status) {
+    if (status === 429 || status === 503) {
+        return "일부 외부 API 또는 데이터 조회가 지연되어 답변이 제한될 수 있습니다. 계약 전 관련 법령과 기관 내부 기준을 추가 확인하세요.";
+    }
+    return "API 오류가 발생했습니다.";
+}
+
+async function requestChatStream(payload, signal) {
+    const response = await fetch(`${API_BASE_URL}/chat/stream`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'text/event-stream'
+        },
+        body: JSON.stringify(payload),
+        signal
+    });
+
+    if (response.status === 404 || response.status === 405 || !response.body) {
+        throw createFallbackError("스트리밍 응답 경로를 사용할 수 없습니다.");
+    }
+    if (!response.ok) {
+        throw new Error(getApiErrorMessage(response.status));
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let finalData = null;
+
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const chunks = buffer.split("\n\n");
+        buffer = chunks.pop() || "";
+
+        for (const chunk of chunks) {
+            const parsed = parseSseChunk(chunk);
+            if (!parsed) continue;
+
+            if (parsed.event === "progress" && parsed.data?.message) {
+                setProgressMessage(parsed.data.message);
+            } else if (parsed.event === "heartbeat") {
+                setProgressMessage("답변 생성을 계속 진행 중입니다.");
+            } else if (parsed.event === "final") {
+                finalData = parsed.data;
+                setProgressMessage("답변 표시를 준비 중입니다.");
+            } else if (parsed.event === "error") {
+                throw new Error(parsed.data?.message || "답변 생성 중 오류가 발생했습니다.");
+            }
+        }
+    }
+
+    if (!finalData) {
+        throw createFallbackError("스트리밍 응답이 완료되지 않았습니다.");
+    }
+    return finalData;
+}
+
+function parseSseChunk(chunk) {
+    const lines = chunk.split(/\r?\n/);
+    let event = "message";
+    const dataLines = [];
+
+    for (const line of lines) {
+        if (line.startsWith("event:")) {
+            event = line.slice(6).trim();
+        } else if (line.startsWith("data:")) {
+            dataLines.push(line.slice(5).trimStart());
+        }
+    }
+
+    if (!dataLines.length) return null;
+
+    try {
+        return {
+            event,
+            data: JSON.parse(dataLines.join("\n"))
+        };
+    } catch (e) {
+        return null;
     }
 }
 
