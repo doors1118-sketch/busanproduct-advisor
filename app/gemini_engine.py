@@ -1768,11 +1768,14 @@ def _should_apply_natural_writer(
     candidate_source = str(meta.get("candidate_table_source") or "")
     formatter_chars = int(meta.get("formatter_output_chars") or 0)
     has_table_suffix = split_mode == "prose_before_table"
+    model_error_statuses = meta.get("llm_payload_model_error_statuses") or []
 
     if NATURAL_LANGUAGE_WRITER_MODE.lower() in ("force", "always"):
         return True, "mode_force"
     if has_internal_marker:
         return True, "internal_marker_cleanup"
+    if model_error_statuses:
+        return False, "model_error_fallback_skip_writer"
     if model_used in ("practice_manual_fast_gate", "intent_rag_pps_qa_fast_gate"):
         return True, f"{model_used}_polish"
     if final_source in ("practice_manual_fast_answer", "intent_rag_pps_qa_fast_answer"):

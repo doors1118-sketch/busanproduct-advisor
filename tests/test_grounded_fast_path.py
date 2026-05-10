@@ -5,6 +5,7 @@ from pathlib import Path
 APP_DIR = Path(__file__).resolve().parents[1] / "app"
 sys.path.insert(0, str(APP_DIR))
 
+import gemini_engine
 from gemini_engine import (
     _answer_thinking_budget_for,
     _build_pps_qa_interpretation_fast_answer,
@@ -18,6 +19,27 @@ from gemini_engine import (
     _should_use_grounded_single_pass_llm,
 )
 from types import SimpleNamespace
+
+
+def test_natural_writer_skips_model_error_fallback_without_internal_marker(monkeypatch):
+    monkeypatch.setattr(gemini_engine, "NATURAL_LANGUAGE_WRITER_ENABLED", True)
+    answer = (
+        "### 판단 요약\n"
+        "확인된 근거 범위에서 요약한 답변입니다. 실제 계약을 진행하기 전에는 최신 법령과 "
+        "소속 기관의 내부 기준을 다시 확인해야 합니다. 이 문장은 writer 최소 길이를 넘기기 "
+        "위해 충분한 길이로 작성한 테스트용 답변입니다. 금액 기준, 견적 방식, 종합쇼핑몰 "
+        "등록 여부, 기관 내부 기준을 확인한 뒤 최종 계약 방법을 정해야 합니다."
+    )
+
+    allowed, reason = gemini_engine._should_apply_natural_writer(
+        answer=answer,
+        writer_target=answer,
+        split_mode="full_answer",
+        generation_meta={"llm_payload_model_error_statuses": ["retryable_api_error"]},
+    )
+
+    assert allowed is False
+    assert reason == "model_error_fallback_skip_writer"
 from policies.post_scan_policy import scan_final_answer
 from router.query_gateway import decide_query_gateway
 
