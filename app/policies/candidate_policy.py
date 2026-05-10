@@ -111,6 +111,9 @@ POLICY_TYPE_LABELS = {
 }
 
 CERT_TYPE_LABELS = {
+    "demand_designated_tech_product": "수요처 지정형 기술개발제품",
+    "demand_response_tech_product": "수요기반 기술개발제품",
+    "procurement_conditioned_tech_product": "구매조건부 기술개발제품",
     "nep_product": "NEP(신제품)",
     "net_certified_product": "NET(신기술)",
     "performance_certification": "성능인증",
@@ -121,6 +124,7 @@ CERT_TYPE_LABELS = {
     "excellent_procurement_product": "우수조달물품",
     "quality_assured_procurement_product": "품질보증조달물품",
     "excellent_invention_product": "우수발명품",
+    "win_win_cooperation_product": "상생협력제품",
     "disaster_safety_certified_product": "재난안전제품",
     "priority_purchase_product": "기술개발제품",
 }
@@ -269,7 +273,7 @@ def classify_candidates(tool_results: list, user_message: str = "") -> dict:
 
     for r in tool_results:
         t_name = r.get("tool_name", "")
-        res_str = r.get("result", "")
+        res_str = r.get("raw_result") if isinstance(r.get("raw_result"), dict) else r.get("result", "")
         
         # Try JSON parse first
         try:

@@ -42,7 +42,7 @@ def test_shopping_mall_candidate_preserves_mas_policy_and_cert_metadata():
         "certified_product_summary": [
             {
                 "certification_type": "gs_certified_product",
-                "product_name": "통합교통시스템 v1.0",
+                "product_name": "CCTV 통합관리시스템 v1.0",
                 "validity_status": "valid",
                 "expiration_date": "9999-12-31",
             }
@@ -62,13 +62,10 @@ def test_shopping_mall_candidate_preserves_mas_policy_and_cert_metadata():
     assert classified["shopping_mall_supplier"][0]["primary_candidate_type"] == "shopping_mall_supplier"
     assert classified["policy_company"][0]["primary_candidate_type"] == "policy_company"
     assert classified["priority_purchase_product"][0]["primary_candidate_type"] == "priority_purchase_product"
-    assert "제3자단가" in table
-    assert "MAS" in table
-    assert "여성기업" in table
     assert "GS인증" in table
-    assert "통합교통시스템 v1.0" in table
-    assert "| 쇼핑몰 | 주식회사 유니시큐 | 부산광역시 | 광송신기또는수신기 | 확인 |" in table
-    assert "| 정책기업 | 주식회사 유니시큐" in table
+    assert "CCTV 통합관리시스템 v1.0" in table
+    assert "기술개발제품 13종 인증 보유" in table
+    assert table.count("주식회사 유니시큐") == 1
     assert "9999-12-31" not in table
     assert "smpp_tech_product_api" not in table
     assert "priority_purchase_product" not in table
@@ -99,10 +96,42 @@ def test_certified_product_candidates_are_displayed_in_production():
         }
     ]
 
-    classified = classify_candidates(tool_results, "LED 기술개발제품 부산업체")
-    table = format_candidate_tables(classified, "LED 기술개발제품 부산업체")
+    classified = classify_candidates(tool_results, "정보시스템 기술개발제품 부산업체")
+    table = format_candidate_tables(classified, "정보시스템 기술개발제품 부산업체")
 
     assert classified["priority_purchase_product"]
     assert "기술개발제품 13종" in table
     assert "이륜차 배달경로 시스템 v1.0" in table
     assert "GS인증" in table
+
+
+def test_candidate_tables_dedupe_company_across_route_sections():
+    row = {
+        "company_id": "same-1",
+        "company_name": "중복테스트",
+        "location": "부산광역시",
+        "main_products": ["컴퓨터"],
+        "candidate_types": ["local_procurement_company", "priority_purchase_product"],
+        "certified_product_types": ["demand_designated_tech_product"],
+    }
+
+    classified = classify_candidates(
+        [
+            {
+                "tool_name": "search_local_company_by_product",
+                "status": "success",
+                "result": json.dumps({"candidates": [row]}, ensure_ascii=False),
+            },
+            {
+                "tool_name": "search_certified_product",
+                "status": "success",
+                "result": json.dumps({"candidates": [row]}, ensure_ascii=False),
+            },
+        ],
+        "컴퓨터 부산업체 구매",
+    )
+    table = format_candidate_tables(classified, "컴퓨터 부산업체 구매")
+
+    assert table.count("중복테스트") == 1
+    assert "demand_designated_tech_product" not in table
+    assert "수요처 지정형 기술개발제품" in table

@@ -22,7 +22,7 @@ load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Optional
 from pathlib import Path
@@ -122,6 +122,8 @@ class ChatResponse(BaseModel):
     amount_detected: Optional[int] = None
     amount_band: Optional[str] = None
     candidate_counts_by_type: dict = {}
+    candidate_export_available: bool = False
+    candidate_export_row_count: int = 0
     source_call_statuses: dict = {}
     sensitive_fields_removed: bool = True
     enrichment_join_key_redacted: bool = True
@@ -932,6 +934,8 @@ def _chat_legacy(req: ChatRequest, start: float):
             amount_detected=meta.get("amount_detected"),
             amount_band=meta.get("amount_band"),
             candidate_counts_by_type=meta.get("candidate_counts_by_type", {}),
+            candidate_export_available=meta.get("candidate_export_available", False),
+            candidate_export_row_count=meta.get("candidate_export_row_count", 0),
             source_call_statuses=meta.get("source_call_statuses", {}),
             company_cache_used=meta.get("company_cache_used", False),
             company_cache_refreshed_at=meta.get("company_cache_refreshed_at"),
@@ -1049,6 +1053,9 @@ def _chat_legacy(req: ChatRequest, start: float):
                     "source_status": meta.get("source_status"),
                     "practice_manual_card_count": meta.get("practice_manual_card_count", 0),
                     "pps_qa_card_count": meta.get("pps_qa_card_count", 0),
+                    "candidate_export_available": meta.get("candidate_export_available", False),
+                    "candidate_export_row_count": meta.get("candidate_export_row_count", 0),
+                    "candidate_export_rows": meta.get("candidate_export_rows", []),
                     "intent_rag_primary_intent": meta.get("intent_rag_primary_intent"),
                     "intent_rag_labels": meta.get("intent_rag_labels", []),
                     "intent_rag_answer_mode": meta.get("intent_rag_answer_mode"),
@@ -1118,6 +1125,47 @@ def get_qa_logs_endpoint(date: str = None, limit: int = 100):
             content={"count": len(logs), "logs": logs},
             media_type="application/json; charset=utf-8",
         )
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+
+@app.get("/qa-logs/{qa_log_id}/candidate-export.xlsx")
+def download_candidate_export_endpoint(qa_log_id: str, date: str = None):
+    """QA 로그에 저장된 전체 업체 후보를 Excel로 다운로드."""
+    try:
+        import io
+        import re as _re
+        import pandas as pd
+        from qa_test_logger import get_qa_logs
+
+        if not date:
+            m = _re.match(r"qa_(\d{8})", qa_log_id or "")
+            date = m.group(1) if m else None
+
+        logs = get_qa_logs(date_str=date, limit=9999)
+        record = next((row for row in logs if row.get("qa_log_id") == qa_log_id), None)
+        if not record:
+            raise HTTPException(status_code=404, detail="QA 로그를 찾을 수 없습니다.")
+
+        extra = record.get("extra") or {}
+        rows = extra.get("candidate_export_rows") or []
+        if not rows:
+            raise HTTPException(status_code=404, detail="다운로드할 업체 후보가 없습니다.")
+
+        df = pd.DataFrame(rows)
+        buf = io.BytesIO()
+        with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False, sheet_name="업체후보")
+        buf.seek(0)
+
+        filename = f"candidate_export_{qa_log_id}.xlsx"
+        return StreamingResponse(
+            buf,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
 

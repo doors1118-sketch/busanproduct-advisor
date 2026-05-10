@@ -31,6 +31,11 @@ def _feedback_api_url() -> str:
     return api_url.rsplit("/", 1)[0] + "/qa-feedback"
 
 
+def _candidate_export_api_url(qa_log_id: str) -> str:
+    api_url = os.getenv("CHATBOT_API_URL", "http://127.0.0.1:8001/chat")
+    return api_url.rsplit("/", 1)[0] + f"/qa-logs/{qa_log_id}/candidate-export.xlsx"
+
+
 def _routing_health_api_url() -> str:
     api_url = os.getenv("CHATBOT_API_URL", "http://127.0.0.1:8001/chat")
     return api_url.rsplit("/", 1)[0] + "/admin/health/routing"
@@ -377,6 +382,22 @@ _(잘 모르시겠다면 **'1번'** 또는 **'건너뛰기'**를 입력하시면
             st.markdown(answer)
             qa_log_id = data.get("qa_log_id", "")
             st.session_state.messages.append({"role": "assistant", "content": answer, "qa_log_id": qa_log_id})
+
+            if qa_log_id and data.get("candidate_export_available"):
+                try:
+                    export_resp = requests.get(_candidate_export_api_url(qa_log_id), headers=headers, timeout=30)
+                    if export_resp.status_code == 200:
+                        st.download_button(
+                            "전체 업체 후보 엑셀 다운로드",
+                            data=export_resp.content,
+                            file_name=f"부산업체_후보_{qa_log_id}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            use_container_width=True,
+                        )
+                    else:
+                        st.caption("전체 후보 엑셀은 현재 준비되지 않았습니다.")
+                except Exception:
+                    st.caption("전체 후보 엑셀 다운로드를 불러오지 못했습니다.")
 
             if qa_log_id:
                 with st.expander("답변 평가"):

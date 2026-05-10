@@ -38,10 +38,29 @@ class PurchaseRouteCard:
 
 
 _PRIORITY_LABELS = {
-    "primary": "우선 검토",
-    "secondary": "보조 검토",
-    "excluded": "금액상 제외",
+    "primary": "우선",
+    "secondary": "보조",
+    "excluded": "제외",
     "reference": "참고",
+}
+
+_ROUTE_TITLE_SHORT_LABELS = {
+    "general_small_value_direct": "일반 1인견적",
+    "two_quote_small_value": "2인견적",
+    "shopping_mall_mas": "종합쇼핑몰/MAS",
+    "sme_competition_direct_production": "중기간경쟁/직생",
+    "innovation_product": "혁신제품",
+    "technology_development_product": "인증제품",
+    "policy_company_one_quote": "정책기업 1인견적",
+    "local_company_competitive": "부산업체 발굴",
+    "service_small_value_direct": "용역 1인견적",
+    "local_service_company": "부산 용역업체",
+    "service_policy_candidate": "정책기업 용역",
+    "construction_small_value_direct": "공사 수의계약",
+    "construction_regional_restriction": "공사 지역제한",
+    "construction_joint_contract": "공동도급",
+    "construction_local_point": "지역업체 가점",
+    "construction_license_company": "부산 공사업체",
 }
 
 _CANDIDATE_LOOKUP_LABELS = {
@@ -61,6 +80,18 @@ _CANDIDATE_TYPE_ORDER = [
     "policy_company",
 ]
 
+_AGENCY_DISPLAY_LABELS = {
+    "default": "미지정",
+    "local_government": "지방자치단체",
+    "local_gov": "지방자치단체",
+    "national_agency": "국가기관",
+    "national_gov": "국가기관",
+    "central_government": "국가기관",
+    "public_corporation": "공기업·준정부기관",
+    "public_enterprise": "공기업·준정부기관",
+    "public_agency": "공공기관",
+}
+
 
 def _count_from_result_text(result_text: str) -> int | None:
     text = str(result_text or "")
@@ -79,7 +110,25 @@ def _count_from_result_text(result_text: str) -> int | None:
     return None
 
 
-def _tool_counts(tool_results: list[dict] | None) -> dict[str, int | None]:
+def _count_matching_raw_candidates(row: dict, item_name: str, candidate_type: str) -> int | None:
+    payload = row.get("raw_result")
+    if not isinstance(payload, dict):
+        return None
+    candidates = payload.get("candidates") or payload.get("data") or []
+    if not isinstance(candidates, list):
+        return None
+    try:
+        from policies.candidate_formatter import candidate_matches_user_item
+    except Exception:
+        return None
+    return sum(
+        1 for candidate in candidates
+        if isinstance(candidate, dict)
+        and candidate_matches_user_item(candidate, item_name, candidate_type=candidate_type)
+    )
+
+
+def _tool_counts(tool_results: list[dict] | None, item_name: str = "") -> dict[str, int | None]:
     counts: dict[str, int | None] = {
         "shopping_mall": None,
         "local_company": None,
@@ -88,21 +137,33 @@ def _tool_counts(tool_results: list[dict] | None) -> dict[str, int | None]:
         "certified_product": None,
         "innovation_product": None,
     }
+    def relevant_count(row: dict, fallback: int | None, candidate_type: str) -> int | None:
+        if not item_name:
+            return fallback
+        raw_count = _count_matching_raw_candidates(row, item_name, candidate_type)
+        return raw_count if raw_count is not None else fallback
+
     for row in tool_results or []:
         name = row.get("tool_name", "")
         count = _count_from_result_text(row.get("result", ""))
         if "shopping_mall" in name:
+            count = relevant_count(row, count, "shopping_mall_supplier")
             counts["shopping_mall"] = max(counts["shopping_mall"] or 0, count or 0)
         elif "company_by_license" in name:
+            count = relevant_count(row, count, "local_procurement_company")
             counts["local_license_company"] = max(counts["local_license_company"] or 0, count or 0)
             counts["local_company"] = max(counts["local_company"] or 0, count or 0)
         elif "local_company" in name:
+            count = relevant_count(row, count, "local_procurement_company")
             counts["local_company"] = max(counts["local_company"] or 0, count or 0)
         elif "company_by_policy" in name:
+            count = relevant_count(row, count, "policy_company")
             counts["policy_company"] = (counts["policy_company"] or 0) + (count or 0)
         elif "certified_product" in name:
+            count = relevant_count(row, count, "priority_purchase_product")
             counts["certified_product"] = max(counts["certified_product"] or 0, count or 0)
         elif "innovation_product" in name:
+            count = relevant_count(row, count, "innovation_product")
             counts["innovation_product"] = max(counts["innovation_product"] or 0, count or 0)
     return counts
 
@@ -160,14 +221,14 @@ def _two_quote_status(amount: int | None) -> tuple[str, str, str, str]:
         return (
             "viable_check",
             f"{threshold} 이하 2인 이상 견적 검토 가능",
-            "질문 금액은 내부 source map의 소액수의 2인 이상 견적 검토 구간에 들어오므로, 1인 견적이 어려운 경우에도 경쟁성 있는 견적 절차를 우선 검토할 수 있습니다.",
+            "질문 금액은 소액수의 2인 이상 견적 검토 구간에 들어오므로, 1인 견적이 어려운 경우에도 경쟁성 있는 견적 절차를 우선 검토할 수 있습니다.",
             "primary",
         )
     if compare == "above":
         return (
             "not_viable",
             f"{threshold} 초과로 소액 2인 견적 경로는 어려움",
-            f"질문 금액이 내부 source map의 소액수의 2인 이상 견적 검토 기준({threshold})을 초과하므로 경쟁입찰 또는 별도 특례를 우선 검토해야 합니다.",
+            f"질문 금액이 소액수의 2인 이상 견적 검토 기준({threshold})을 초과하므로 경쟁입찰 또는 별도 특례를 우선 검토해야 합니다.",
             "excluded",
         )
     return (
@@ -186,7 +247,7 @@ def _general_one_quote_goods_service(amount: int | None, object_label: str) -> t
         return (
             "not_viable",
             f"일반 {threshold} 1인 견적 경로는 어려움",
-            f"질문 금액은 내부 source map의 일반 1인 견적 소액수의 기준({threshold})을 초과하므로 {object_label}을 이 경로로 바로 처리하기 어렵습니다.",
+            f"질문 금액은 일반 1인 견적 소액수의 기준({threshold})을 초과하므로 {object_label}을 이 경로로 바로 처리하기 어렵습니다.",
             "excluded",
             f"일반 1인 견적 기준({threshold}) 초과",
         )
@@ -194,7 +255,7 @@ def _general_one_quote_goods_service(amount: int | None, object_label: str) -> t
         return (
             "viable_check",
             "일반 1인 견적 소액수의 검토 가능",
-            f"내부 source map 기준({threshold}) 이하라면 일반 1인 견적 가능성을 우선 검토할 수 있습니다.",
+            f"확인된 기준({threshold}) 이하라면 일반 1인 견적 가능성을 우선 검토할 수 있습니다.",
             "primary",
             "",
         )
@@ -215,7 +276,7 @@ def _policy_one_quote(amount: int | None, object_label: str) -> tuple[str, str, 
         return (
             "not_viable",
             f"{threshold} 1인 견적 경로는 어려움",
-            f"여성기업·장애인기업·사회적기업 등 정책기업이라도 내부 source map의 정책기업 1인 견적 기준({threshold})을 초과하면 {object_label}을 이 경로로 바로 처리하기 어렵습니다.",
+            f"여성기업·장애인기업·사회적기업 등 정책기업이라도 정책기업 1인 견적 기준({threshold})을 초과하면 {object_label}을 이 경로로 바로 처리하기 어렵습니다.",
             "excluded",
             "brief",
             f"정책기업 1인 견적 기준({threshold}) 초과",
@@ -224,7 +285,7 @@ def _policy_one_quote(amount: int | None, object_label: str) -> tuple[str, str, 
         return (
             "viable_check",
             "정책기업 1인 견적 검토 가능",
-            f"내부 source map 기준({threshold}) 이하라면 정책기업 지위와 증빙자료를 확인해 1인 견적 가능성을 검토할 수 있습니다.",
+            f"확인된 기준({threshold}) 이하라면 정책기업 지위와 증빙자료를 확인해 1인 견적 가능성을 검토할 수 있습니다.",
             "primary",
             "show",
             "",
@@ -255,7 +316,7 @@ def build_purchase_route_cards(
 ) -> list[PurchaseRouteCard]:
     """금액·품목·조회 결과를 경로별 판단 카드로 만든다."""
     object_type = (contract_object or "goods").lower()
-    counts = _tool_counts(tool_results)
+    counts = _tool_counts(tool_results, item_name)
 
     if object_type == "service":
         return _build_service_route_cards(amount, item_name, counts)
@@ -523,7 +584,7 @@ def _construction_direct_status(amount: int | None) -> tuple[str, str, str, str,
     return (
         "not_viable",
         f"일반 공사 수의계약 기준({general_label}) 초과",
-        f"질문 금액이 내부 source map의 일반 공사 수의계약 기준({general_label})을 초과하므로 경쟁입찰, 지역제한, 공동계약 경로를 우선 검토해야 합니다.",
+        f"질문 금액이 일반 공사 수의계약 기준({general_label})을 초과하므로 경쟁입찰, 지역제한, 공동계약 경로를 우선 검토해야 합니다.",
         "excluded",
         f"공사 수의계약 기준({general_label}) 초과",
     )
@@ -632,6 +693,27 @@ def _format_candidate_lookup(card: PurchaseRouteCard) -> str:
     return label
 
 
+def _format_route_display_title(card: PurchaseRouteCard) -> str:
+    return _ROUTE_TITLE_SHORT_LABELS.get(card.route_id, card.title)
+
+
+def _format_route_display_judgment(card: PurchaseRouteCard) -> str:
+    if card.status == "candidate_found":
+        return card.user_label
+    if card.status == "no_candidate_found":
+        return "후보 미확인"
+    if card.status == "needs_lookup":
+        return "확인 필요"
+    if card.route_priority == "excluded":
+        amount_match = re.search(r"(\d+[천만억]+원?)", card.user_label)
+        return f"{amount_match.group(1)} 초과" if amount_match else "기준 초과"
+    if "품목 해당" in card.user_label:
+        return "품목 확인"
+    if "검토 가능" in card.user_label:
+        return "검토 가능"
+    return card.user_label
+
+
 def format_purchase_route_guidance_for_llm(
     *,
     amount: int | None,
@@ -648,14 +730,12 @@ def format_purchase_route_guidance_for_llm(
         tool_results=tool_results,
     )
     amount_label = f"{amount:,}원" if amount is not None else "미확인"
-    agency_label = agency_type or "미지정"
+    agency_label = _AGENCY_DISPLAY_LABELS.get(agency_type or "default", agency_type or "미지정")
     object_label = {
         "goods": "물품",
         "service": "용역",
         "construction": "공사",
     }.get((contract_object or "goods").lower(), "미지정")
-    display_options = derive_candidate_table_display_options(cards)
-    hidden_tables = ", ".join(display_options["hidden_candidate_types"]) or "없음"
     lines = [
         "",
         "[구매경로 판단 재료 — 최종 답변은 아래 경로를 조합해 실무형으로 작성]",
@@ -666,18 +746,18 @@ def format_purchase_route_guidance_for_llm(
         "- 작성 원칙: 주경로를 먼저 설명하고, 제외 경로는 이유만 짧게 정리한다.",
         "- 작성 원칙: 후보표는 구매경로 판단과 맞는 표만 사용한다. 금액상 제외된 경로의 전용 후보표는 만들지 않는다.",
         "- 주의: 아래 판단 재료만으로 계약 가능을 확정하지 말고, 확인된 법령/행정규칙 근거와 업체 데이터에 맞춰 제한적으로 표현한다.",
-        f"- 후보표 생략 대상: {hidden_tables}",
         "",
-        "| 우선순위 | 경로 | 현재 판단 | 법적 근거 | 후보표 방침 | 실무 의미 |",
-        "|---|---|---|---|---|---|",
+        "| 순위 | 경로 | 판단 | 법적 근거 | 실무 의미 |",
+        "|---|---|---|---|---|",
     ]
     for card in cards:
         if card.display_policy == "hide":
             continue
         priority = _PRIORITY_LABELS.get(card.route_priority, card.route_priority)
         refs = ", ".join(card.legal_refs[:3]) or ", ".join(card.evidence_topics[:3])
-        lookup = _format_candidate_lookup(card)
-        lines.append(f"| {priority} | {card.title} | {card.user_label} | {refs} | {lookup} | {card.practical_meaning} |")
+        title = _format_route_display_title(card)
+        judgment = _format_route_display_judgment(card)
+        lines.append(f"| {priority} | {title} | {judgment} | {refs} | {card.practical_meaning} |")
 
     lines.extend([
         "",

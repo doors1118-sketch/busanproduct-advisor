@@ -50,9 +50,16 @@ def test_llm_guidance_explicitly_preserves_llm_practical_answer_role():
     )
 
     assert "최종 답변은 아래 경로를 조합해 실무형으로 작성" in context
+    assert "기관유형: 지방자치단체" in context
+    assert "기관유형: local_government" not in context
     assert "가능 업체'가 아니라 '검토 후보" in context
-    assert "일반 2천만원 소액수의 경로는 어려움" in context
-    assert "5천만원 1인 견적 경로는 어려움" in context
+    assert "| 순위 | 경로 | 판단 | 법적 근거 | 실무 의미 |" in context
+    assert "| 제외 | 일반 1인견적 | 2천만원 초과 |" in context
+    assert "| 제외 | 정책기업 1인견적 | 5천만원 초과 |" in context
+    assert "후보표 생략 대상" not in context
+    assert "후보표 방침" not in context
+    assert "별도 후보표 생략" not in context
+    assert "내부 source map" not in context
 
 
 def test_service_route_cards_focus_on_license_and_regional_service_company():
@@ -83,6 +90,6 @@ def test_construction_route_cards_include_regional_and_joint_contract_paths():
     )
 
     assert "계약대상: 공사" in context
-    assert "공사 지역제한 입찰" in context
-    assert "지역의무공동도급/공동수급" in context
-    assert "부산 공사업체 후보" in context
+    assert "공사 지역제한" in context
+    assert "공동도급" in context
+    assert "지역업체 참여도/가점" in context

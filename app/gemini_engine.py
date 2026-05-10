@@ -3511,11 +3511,18 @@ def _clean_route_guidance_for_answer(text: str) -> str:
     cleaned = text or ""
     cleaned = cleaned.split("답변 형식 지시:")[0]
     cleaned = cleaned.replace("[구매경로 판단 재료 — 최종 답변은 아래 경로를 조합해 실무형으로 작성]", "검토할 구매 경로")
+    cleaned = cleaned.replace("- 기관유형: default", "- 기관유형: 미지정")
+    cleaned = re.sub(r"^- 기관유형: 미지정\s*(?:\n|$)", "", cleaned, flags=re.MULTILINE)
     cleaned = cleaned.replace("- 기관유형: local_government", "- 기관유형: 지방자치단체")
     cleaned = cleaned.replace("- 기관유형: central_government", "- 기관유형: 국가기관")
     cleaned = cleaned.replace("- 기관유형: public_enterprise", "- 기관유형: 공기업·준정부기관")
     cleaned = re.sub(r"^- 작성 원칙:.*(?:\n|$)", "", cleaned, flags=re.MULTILINE)
     cleaned = re.sub(r"^- 주의:.*(?:\n|$)", "", cleaned, flags=re.MULTILINE)
+    cleaned = re.sub(r"^- 후보표 생략 대상:.*(?:\n|$)", "", cleaned, flags=re.MULTILINE)
+    cleaned = cleaned.replace("| 우선순위 | 경로 | 현재 판단 | 법적 근거 | 후보표 방침 | 실무 의미 |", "| 우선순위 | 경로 | 현재 판단 | 법적 근거 | 실무 의미 |")
+    cleaned = cleaned.replace("|---|---|---|---|---|---|", "|---|---|---|---|---|")
+    cleaned = re.sub(r"(?m)^(\|[^|\n]+\|[^|\n]+\|[^|\n]+\|[^|\n]+\|)\s*[^|\n]*후보표[^|\n]*\|\s*([^|\n]+\|)$", r"\1 \2", cleaned)
+    cleaned = cleaned.replace("| 우선순위 | 경로 | 현재 판단 | 법적 근거 | 실무 의미 |", "| 순위 | 경로 | 판단 | 법적 근거 | 실무 의미 |")
     return cleaned.strip()
 
 
@@ -3564,6 +3571,16 @@ def _clean_catalog_guidance_for_answer(text: str) -> str:
     cleaned = cleaned.replace("[지역업체 보호·우대제도 카탈로그 매칭]", "추가로 검토할 지역업체 우대제도")
     cleaned = re.sub(r"^- 아래 제도는 질문 조건에서.*(?:\n|$)", "", cleaned, flags=re.MULTILINE)
     cleaned = re.sub(r"^- 답변에서는 사용자가 제도를.*(?:\n|$)", "", cleaned, flags=re.MULTILINE)
+    cleaned = re.sub(r"^- 적용 기관유형:.*(?:\n|$)", "", cleaned, flags=re.MULTILINE)
+    cleaned = cleaned.replace("explicit_keyword", "질문 키워드와 직접 관련")
+    cleaned = cleaned.replace("implicit_local_purchase_support", "지역업체 활용 조건에서 함께 검토")
+    cleaned = cleaned.replace("local_government", "지방자치단체")
+    cleaned = cleaned.replace("national_agency", "국가기관")
+    cleaned = cleaned.replace("public_corporation", "공기업·준정부기관")
+    cleaned = cleaned.replace("| 제도 | 선택 이유 | 적용 기관유형 | 답변에서 다룰 포인트 |", "| 제도 | 검토 이유 | 실무 확인 포인트 |")
+    cleaned = cleaned.replace("| 제도 | 검토 이유 | 답변에서 다룰 포인트 |", "| 제도 | 검토 이유 | 실무 확인 포인트 |")
+    cleaned = cleaned.replace("|---|---|---|---|", "|---|---|---|")
+    cleaned = re.sub(r"(?m)^(\|[^|\n]+\|[^|\n]+\|)\s*(지방자치단체|국가기관|공기업·준정부기관)\s*\|", r"\1", cleaned)
     cleaned = cleaned.replace("| 제도 | 선택 이유 | 답변에서 다룰 포인트 |", "| 제도 | 검토 이유 | 실무 확인 포인트 |")
     return cleaned.strip()
 
@@ -3584,6 +3601,81 @@ def _company_tool_label(tool_name: str) -> str:
     if "company_by_policy" in name:
         return "정책기업 후보"
     return "업체 후보"
+
+
+def _candidate_export_rows_from_tool_results(tool_results: list, user_message: str = "") -> list[dict]:
+    """Build de-duplicated candidate rows for full Excel export."""
+    from policies.candidate_policy import CERT_TYPE_LABELS, POLICY_TYPE_LABELS, SHOPPING_FLAG_LABELS
+    from policies.candidate_formatter import candidate_matches_user_item
+
+    def label_known(values, mapping):
+        labels = []
+        for raw in values or []:
+            value = str(raw or "").strip()
+            if not value:
+                continue
+            label = mapping.get(value, value)
+            if label == value and re.fullmatch(r"[a-z][a-z0-9_]{2,}", value):
+                continue
+            if label and label not in labels:
+                labels.append(label)
+        return labels
+
+    rows: list[dict] = []
+    seen: set[str] = set()
+    for tr in tool_results or []:
+        tool_name = tr.get("tool_name", "")
+        payload = tr.get("raw_result")
+        if payload is None:
+            result = tr.get("result")
+            if isinstance(result, str) and result.strip().startswith("{"):
+                try:
+                    payload = json.loads(result)
+                except Exception:
+                    payload = None
+            elif isinstance(result, dict):
+                payload = result
+        if not isinstance(payload, dict):
+            continue
+        candidates = payload.get("candidates") or payload.get("data") or []
+        if not isinstance(candidates, list):
+            continue
+        for c in candidates:
+            if not isinstance(c, dict):
+                continue
+            if not candidate_matches_user_item(c, user_message):
+                continue
+            company = c.get("company_name") or c.get("업체명") or ""
+            product_names = c.get("main_products") or []
+            if isinstance(product_names, str):
+                product_names = [product_names]
+            product = c.get("product_name") or ", ".join(str(p) for p in product_names[:3] if p)
+            identity = c.get("company_id") or f"{company}|{product}"
+            if identity in seen:
+                continue
+            seen.add(identity)
+            policy = label_known(c.get("policy_subtypes") or c.get("policy_tags") or [], POLICY_TYPE_LABELS)
+            certs = label_known(
+                [
+                    v for v in (c.get("certified_product_types") or [])
+                    if str(v).strip() and str(v) not in {"smpp_tech_product_api", "mas_excel_bootstrap"}
+                ],
+                CERT_TYPE_LABELS,
+            )
+            shopping = label_known(c.get("shopping_mall_flags") or [], SHOPPING_FLAG_LABELS)
+            rows.append({
+                "검색구분": _company_tool_label(tool_name),
+                "업체명": company,
+                "소재지": c.get("location") or c.get("소재지") or "",
+                "대표품목/제품명": product,
+                "면허/업종": ", ".join(str(v) for v in (c.get("license_or_business_type") or []) if str(v).strip()),
+                "정책기업": ", ".join(dict.fromkeys(policy)),
+                "인증/기술개발": ", ".join(dict.fromkeys(certs)),
+                "쇼핑몰/MAS": ", ".join(dict.fromkeys(shopping)),
+                "영업상태": c.get("business_status_label") or c.get("business_status") or "확인 필요",
+                "확인사항": "조달등록, 인증 유효성, 세부품명·구매품목 일치 여부 확인",
+            })
+    return rows
 
 
 def _build_direct_article_answer(law_query: str) -> str | None:
@@ -4932,28 +5024,59 @@ def _chat_v144(
 
         def run_mock_tool(tool_name, query_arg):
             start = time.time()
-            mock_call = MockFunctionCall(tool_name, {"query": query_arg})
-            res = _execute_function_call(mock_call)
+            raw_data = None
+            if tool_name == "search_shopping_mall":
+                raw_data = company_api.search_shopping_mall_product(query_arg)
+                res = format_company_for_llm(raw_data, max_results=10)
+            elif tool_name == "search_local_company_by_product":
+                raw_data = company_api.search_by_product(query_arg)
+                res = format_company_for_llm(raw_data, max_results=10)
+            elif tool_name == "search_local_company_by_license":
+                raw_data = company_api.search_by_license(query_arg)
+                res = format_company_for_llm(raw_data, max_results=10)
+            elif tool_name == "search_company_by_policy":
+                raw_data = company_api.search_by_policy(query_arg)
+                res = format_company_for_llm(raw_data, max_results=10)
+            else:
+                mock_call = MockFunctionCall(tool_name, {"query": query_arg})
+                res = _execute_function_call(mock_call)
             elapsed = int((time.time() - start) * 1000)
-            return {
+            row = {
                 "tool_name": tool_name,
                 "status": "success" if "error" not in res else "failed",
                 "result": res,
                 "elapsed_ms": elapsed
             }
+            if raw_data is not None:
+                row["raw_result"] = raw_data
+            return row
 
         def run_mock_tool_product(tool_name, product_arg):
             """product_name 파라미터를 사용하는 도구용."""
             start = time.time()
-            mock_call = MockFunctionCall(tool_name, {"product_name": product_arg})
-            res = _execute_function_call(mock_call)
+            raw_data = None
+            if tool_name == "search_certified_product":
+                raw_data = company_api.search_certified_product(product_arg)
+                res = format_company_for_llm(raw_data, max_results=10)
+            elif tool_name == "search_innovation_product":
+                raw_data = company_api.search_innovation_product(product_arg)
+                res = format_company_for_llm(raw_data, max_results=10)
+            elif tool_name == "search_excellent_procurement_product":
+                raw_data = company_api.search_excellent_procurement_product(product_arg)
+                res = format_company_for_llm(raw_data, max_results=10)
+            else:
+                mock_call = MockFunctionCall(tool_name, {"product_name": product_arg})
+                res = _execute_function_call(mock_call)
             elapsed = int((time.time() - start) * 1000)
-            return {
+            row = {
                 "tool_name": tool_name,
                 "status": "success" if "error" not in res else "failed",
                 "result": res,
                 "elapsed_ms": elapsed
             }
+            if raw_data is not None:
+                row["raw_result"] = raw_data
+            return row
 
         if should_prefetch_company:
             # 멀티 라우트 검색:
@@ -5042,55 +5165,47 @@ def _chat_v144(
 
         print(f"  [MULTI-ROUTE] tier=2, amount={amount_detected}, query='{query}', prefetched={len(all_tool_results)} tools", flush=True)
         if should_prefetch_company and os.getenv("BYPASS_MULTI_ROUTE_LLM", "true").lower() == "true":
-            company_sections = []
             policy_company_sections_skipped = False
             hidden_prefetch_candidate_types = set(
                 (locals().get("route_candidate_display_options") or {}).get("hidden_candidate_types", [])
             )
-            for tr in all_tool_results:
-                tool_name = tr.get("tool_name", "")
-                if not (
-                    "company" in tool_name
-                    or "shopping_mall" in tool_name
-                    or "certified_product" in tool_name
-                    or "innovation_product" in tool_name
-                ):
-                    continue
-                if "company_by_policy" in tool_name and "policy_company" in hidden_prefetch_candidate_types:
-                    policy_company_sections_skipped = True
-                    continue
-                result_text = str(tr.get("result", "") or "").strip()
-                if result_text:
-                    company_sections.append(f"#### {_company_tool_label(tool_name)}\n{result_text[:2500]}")
-
-            route_answer_parts = [
-                "### 판단 요약",
-                f"- 질문 조건은 **{_display_amount_for_answer(amount_detected, user_message)} 규모의 {legacy_router_meta['company_prefetch_canonical_item'] or query} 구매 검토**입니다.",
-                "- 일반 소액 수의계약만으로 단정하기보다, 금액 기준과 품목 특성을 함께 보면서 지역상품 구매 경로를 나누어 검토하는 편이 안전합니다.",
-                "",
-                "### 구매 경로 검토",
-                _clean_route_guidance_for_answer(route_guidance_context) or "- 지역제한, 종합쇼핑몰/MAS, 정책기업, 인증제품 여부를 함께 확인하세요.",
-                _clean_catalog_guidance_for_answer(catalog_guidance_context),
-                render_practice_manual_cards_for_answer(practice_manual_cards),
-                render_pps_qa_cards_for_answer(pps_qa_cards),
-                "",
-                "### 업체 후보 및 확인 포인트",
+            if "policy_company" in hidden_prefetch_candidate_types:
+                policy_company_sections_skipped = any(
+                    "company_by_policy" in (tr.get("tool_name") or "") for tr in all_tool_results
+                )
+            display_tool_results = [
+                tr for tr in all_tool_results
+                if not ("company_by_policy" in (tr.get("tool_name") or "") and "policy_company" in hidden_prefetch_candidate_types)
             ]
-            if company_sections:
-                route_answer_parts.extend(company_sections)
-                if policy_company_sections_skipped:
-                    route_answer_parts.append(
-                        "- 정책기업 1인 견적 경로는 금액상 우선 제외되어 정책기업 전용 후보표는 생략했습니다. "
-                        "후보 업체 상세조회에서 여성기업ㆍ장애인기업ㆍ사회적기업 등 정책기업 여부를 별도 확인하세요."
-                    )
-            else:
-                route_answer_parts.append("- 현재 사전검색 결과에서 바로 표시할 업체 후보가 부족합니다. 품목명 또는 세부 규격을 더 구체화해 재검색하세요.")
-            route_answer_parts.extend([
+
+            from policies.candidate_policy import classify_candidates, get_candidate_counts
+            from policies.candidate_formatter import format_candidate_tables
+            from policies.practical_answer_template import build_multi_route_practical_answer_parts
+
+            classified_prefetch = classify_candidates(display_tool_results, user_message)
+            counts_prefetch = get_candidate_counts(classified_prefetch)
+            candidate_item_filter_text = legacy_router_meta['company_prefetch_canonical_item'] or user_message
+            candidate_table_text = format_candidate_tables(
+                classified_prefetch,
+                candidate_item_filter_text,
                 "",
-                "### 다음 확인사항",
-                "- 후보 업체의 조달등록, 종합쇼핑몰 등록, 정책기업 여부, 인증제품 상태, 세부품명 일치 여부를 계약 전 확인하세요.",
-                "- 이 답변은 내부 법령 DB와 업체 API 사전조회 결과를 조합한 실무 검토용 안내입니다.",
-            ])
+                hidden_candidate_types=hidden_prefetch_candidate_types,
+                preferred_order=(locals().get("route_candidate_display_options") or {}).get("preferred_candidate_order", []),
+                max_rows_per_table=10,
+            )
+            candidate_export_rows = _candidate_export_rows_from_tool_results(display_tool_results, candidate_item_filter_text)
+            route_answer_parts = build_multi_route_practical_answer_parts(
+                amount_label=_display_amount_for_answer(amount_detected, user_message),
+                item_label=legacy_router_meta['company_prefetch_canonical_item'] or query,
+                contract_object=contract_object_for_prefetch,
+                route_guidance=_clean_route_guidance_for_answer(route_guidance_context),
+                catalog_guidance=_clean_catalog_guidance_for_answer(catalog_guidance_context),
+                practice_manual_text=render_practice_manual_cards_for_answer(practice_manual_cards),
+                pps_qa_text=render_pps_qa_cards_for_answer(pps_qa_cards),
+                candidate_table_text=candidate_table_text,
+                candidate_export_row_count=len(candidate_export_rows),
+                policy_company_sections_skipped=policy_company_sections_skipped,
+            )
 
             api_status = ApiStatus()
             _multi_route_fast_meta = {
@@ -5103,6 +5218,10 @@ def _chat_v144(
                 "company_table_allowed": True,
                 "legal_conclusion_allowed": True,
                 "candidate_table_source": "company_api_prefetch",
+                "candidate_counts_by_type": counts_prefetch,
+                "candidate_export_available": bool(candidate_export_rows),
+                "candidate_export_rows": candidate_export_rows,
+                "candidate_export_row_count": len(candidate_export_rows),
                 "answer_schema_version": "multi_route_fast_answer_v1",
                 "source_status": "mcp_preflight_and_company_api_success",
                 "rag_elapsed_ms": rag_elapsed_ms if 'rag_elapsed_ms' in locals() else 0,

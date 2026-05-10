@@ -21,13 +21,19 @@ _MALL_TYPE_LABEL = {
     "mas": "MAS(다수공급자계약)",
     "mas_registered": "MAS등록",
     "third_party_unit_price": "제3자단가",
+    "third_party_unit_price_registered": "제3자단가",
     "excellent_procurement": "우수조달물품",
+    "excellent_procurement_registered": "우수조달물품",
     "general_unit_price": "일반단가",
+    "general_unit_price_registered": "일반단가",
     "shopping_mall_registered": "종합쇼핑몰등록",
 }
 
 # ── 인증유형 한글 라벨 ──
 _CERT_TYPE_LABEL = {
+    "demand_designated_tech_product": "수요처 지정형 기술개발제품",
+    "demand_response_tech_product": "수요기반 기술개발제품",
+    "procurement_conditioned_tech_product": "구매조건부 기술개발제품",
     "nep_product": "NEP(신제품)",
     "net_certified_product": "NET(신기술)",
     "performance_certification": "성능인증",
@@ -116,14 +122,27 @@ def _format_tags(result: CompanyResult) -> str:
 
     # 쇼핑몰 등록
     if result.shopping_mall_flags:
-        labels = [_MALL_TYPE_LABEL.get(s, s) for s in result.shopping_mall_flags]
-        tags.append(f"쇼핑몰: {', '.join(labels)}")
+        labels = _label_values(result.shopping_mall_flags, _MALL_TYPE_LABEL)
+        if labels:
+            tags.append(f"쇼핑몰: {', '.join(labels)}")
 
     # 중소기업자간 경쟁제품
     if result.sme_competition_product:
         tags.append("중소기업자간경쟁제품")
 
     return " | ".join(tags)
+
+
+def _label_values(values, mapping: dict[str, str]) -> list[str]:
+    labels = []
+    for raw in values or []:
+        value = str(raw or "").strip()
+        if not value or value in _HIDDEN_INTERNAL_CERT_TYPES:
+            continue
+        label = mapping.get(value, value)
+        if label and label not in labels:
+            labels.append(label)
+    return labels
 
 
 def format_company_for_llm(data: dict, max_results: int = 10) -> str:
@@ -139,7 +158,7 @@ def format_company_for_llm(data: dict, max_results: int = 10) -> str:
         # 검색 자체가 실패한 경우와 결과가 없는 경우를 구분
         if data.get("company_search_status") == "failed":
             return "업체 검색 API 호출에 실패했습니다. 잠시 후 다시 시도해주세요."
-        return "candidate 없음: 검색 결과가 없습니다. 다른 키워드로 검색해 보세요."
+        return "현재 조건에 맞는 업체 후보를 찾지 못했습니다. 품목명이나 세부 조건을 바꿔 다시 검색해 보세요."
 
     # 데이터 갱신 시점 정보
     source_refreshed = meta.get("source_refreshed_at", {})
@@ -176,10 +195,6 @@ def format_company_for_llm(data: dict, max_results: int = 10) -> str:
         if tag_str:
             line += f"\n   {tag_str}"
 
-        # 상세 조회 안내 (company_id)
-        if result.company_id and result.company_id != "unknown":
-            line += f"\n   → 상세조회: get_company_detail(\"{result.company_id}\")"
-
         lines.append(line)
 
     if total > max_results:
@@ -188,6 +203,7 @@ def format_company_for_llm(data: dict, max_results: int = 10) -> str:
     lines.append("")
     lines.append("📋 위 업체 목록은 조달청 등록 기준(본사 소재지 부산)이며, 실제 계약 시 적격 여부를 별도 확인하세요.")
     lines.append("⚠️ 정책기업·인증 정보는 후보 자격이며, 수의계약 가능 여부는 법령·금액·견적 방식을 검증한 뒤 판단해야 합니다.")
+    lines.append("※ 세부 자격, 인증, 납품 가능 품목은 원자료와 업체 제출서류로 최종 확인하세요.")
 
     formatted = "\n".join(lines)
 

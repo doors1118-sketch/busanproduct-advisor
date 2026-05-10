@@ -172,6 +172,23 @@ def strip_raw_tool_names(text: str) -> str:
             r'[ \t]*[-·•]?\s*[✔️☑]*\s*' + re.escape(tool) + r'[^\n]*\n?',
             '', text
         )
+    text = re.sub(r"(?m)^[ \t]*(?:[-·•]\s*)?작성 원칙:.*(?:\n|$)", "", text)
+    text = re.sub(r"(?m)^[ \t]*(?:[-·•]\s*)?주의:.*(?:\n|$)", "", text)
+    text = re.sub(r"(?m)^[ \t]*(?:[-·•]\s*)?후보표 생략 대상:.*(?:\n|$)", "", text)
+    text = re.sub(r"(?m)^[ \t]*(?:[-·•]\s*)?(?:→\s*)?상세조회:\s*get_company_detail\([^\n]*\)\s*(?:\n|$)", "", text)
+    text = re.sub(r"get_company_detail\(\"?[0-9a-fA-F_-]+\"?\)", "", text)
+    text = text.replace("candidate 없음:", "후보 없음:")
+    text = text.replace("explicit_keyword", "질문 키워드와 직접 관련")
+    text = text.replace("implicit_local_purchase_support", "지역업체 활용 조건에서 함께 검토")
+    text = text.replace("local_government", "지방자치단체")
+    text = text.replace("national_agency", "국가기관")
+    text = text.replace("public_corporation", "공기업·준정부기관")
+    text = text.replace("내부 법령 DB와 source map", "확인된 법령·행정규칙 기준")
+    text = text.replace("최신 법령 DB와 source map", "최신 법령·행정규칙 기준")
+    text = text.replace("internal source map", "확인된 법령·행정규칙 기준")
+    text = text.replace("내부 source map", "확인된 법령·행정규칙 기준")
+    text = text.replace("source map", "법령·행정규칙 기준")
+    text = text.replace("source_map", "법령·행정규칙 기준")
     text = re.sub(
         r'-\s*\*\*사전 조회 근거\*\*:\s*시스템에서 다음의 필수 법령 및 매뉴얼 규정을 사전 조회하여 검토 기준에 반영했습니다\.\s*\n\s*\n',
         '', text

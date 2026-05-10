@@ -357,12 +357,11 @@ def format_company_results(data: dict, max_results: int = 10) -> str:
         
     candidates = data.get("candidates", [])
     if not candidates:
-        return "candidate 없음: 검색 결과가 없습니다."
+        return "현재 조건에 맞는 업체 후보를 찾지 못했습니다."
         
     total = len(candidates)
     lines = [f"부산 지역업체 검색 결과: 총 {total}건 (상위 {min(max_results, total)}건, 정렬기준: 현재 캐시 기준 후보)"]
-    lines.append("※ 상세한 정책/인증/실적 정보는 'get_company_detail(company_id)' 도구를 사용해 별도로 확인해야 합니다.")
-    lines.append("※ 관리ID(company_id)는 상세조회용 내부 식별자이며 사업자등록번호가 아닙니다.")
+    lines.append("※ 상세한 정책·인증·실적 정보는 원자료와 업체 제출서류로 별도 확인해야 합니다.")
     lines.append("")
     
     for i, c in enumerate(candidates[:max_results]):
@@ -373,9 +372,7 @@ def format_company_results(data: dict, max_results: int = 10) -> str:
             lic = ", ".join(c.get("license_or_business_type", []))
             prod = ", ".join(c.get("main_products", []))
             biz_status = c.get("business_status", "")
-            company_id = c.get("company_id", "unknown")
-            
-            line = f"- [{company_id}] {name}"
+            line = f"- {name}"
             if loc:
                 line += f" ({loc})"
             if lic:
