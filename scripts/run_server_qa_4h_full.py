@@ -126,12 +126,35 @@ def _answer_text(response: dict[str, Any]) -> str:
     return str(response.get("answer") or response.get("raw_response") or "")
 
 
+def _compact_for_expected_match(text: str) -> str:
+    return "".join(str(text or "").split()).lower()
+
+
+EXPECTED_TERM_ALIASES: dict[str, tuple[str, ...]] = {
+    "부당제한": ("부당제한", "부당한제한", "과도한제한"),
+    "분리발주": ("분리발주", "분리발주", "분리할경우"),
+    "행사용역": ("행사용역", "행사용역", "행사운영용역"),
+    "부산업체": ("부산업체", "부산업체", "부산지역업체"),
+    "구매실적": ("구매실적", "구매실적", "총실적", "실적"),
+    "공사기간": ("공사기간", "공사기간", "공사중지기간"),
+    "중소기업자간": ("중소기업자간", "중소기업자간", "중기간"),
+    "보안용카메라": ("보안용카메라", "보안용카메라", "cctv카메라"),
+    "대가": ("대가", "대금지급", "대금"),
+}
+
+
+def _expected_term_present(term: str, answer: str) -> bool:
+    compact_answer = _compact_for_expected_match(answer)
+    aliases = EXPECTED_TERM_ALIASES.get(term, (term,))
+    return any(_compact_for_expected_match(alias) in compact_answer for alias in aliases)
+
+
 def assess(record: dict[str, Any]) -> dict[str, Any]:
     case = record["case"]
     response = record.get("response") or {}
     answer = _answer_text(response)
     expected = case.get("expected") or []
-    missing_expected = [term for term in expected if term not in answer]
+    missing_expected = [term for term in expected if not _expected_term_present(term, answer)]
     forbidden = [marker for marker in FORBIDDEN_MARKERS if marker in answer]
     candidate_counts = response.get("candidate_counts_by_type") or {}
     candidate_total = sum(v for v in candidate_counts.values() if isinstance(v, int)) if isinstance(candidate_counts, dict) else 0

@@ -1161,6 +1161,11 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
         and any(term in q for term in ("지방계약", "지방자치단체", "지자체"))
         and any(term in q for term in ("그대로", "다르", "안되", "안되지", "혼동", "기준", "우대", "지역제한"))
     )
+    is_public_corp_law_conflict_question = (
+        is_agency_law_conflict_question
+        and any(term in q for term in ("공기업", "준정부", "공공기관"))
+        and "국가기관" not in q
+    )
     is_fire_facility_construction_question = (
         ("소방시설공사" in q or ("소방" in q and "공사" in q))
         and any(term in q for term in ("전문공사", "지역제한", "기준", "면허", "공종"))
@@ -1436,6 +1441,15 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
             "- 종합공사·전문공사 금액 기준을 기계적으로 적용하기 전에 해당 공사가 정보통신공사업 범위인지, 다른 공종과 분리해야 하는지 봅니다.",
             "- 발주 시에는 공종, 면허, 설계·시방, 관급자재, 하자책임, 분리발주 필요성을 함께 정리합니다.",
             "- 지역제한이나 수의계약 금액 기준은 최신 법령 DB와 source map 기준으로 별도 검증해야 합니다.",
+        ])
+    elif is_public_corp_law_conflict_question:
+        sections.extend([
+            "",
+            "### 2. 공기업·준정부기관 법체계 확인",
+            "- **공기업·준정부기관**은 먼저 공공기관운영법 체계, **공기업·준정부기관 계약사무규칙**, 기관 자체 계약규정을 확인해야 합니다.",
+            "- 국가계약법은 계약사무규칙이나 자체규정에서 준용하는 범위 안에서 보조적으로 확인하고, **지방계약법 지역제한 기준을 그대로 적용한다고 단정하면 안 됩니다.**",
+            "- 부산업체를 고려할 때도 `지방자치단체 지역제한`을 그대로 가져오기보다, 종합쇼핑몰/MAS, 중소기업자간 경쟁제품, 직접생산확인, 기술개발제품·혁신제품, 평가항목 설계 가능성을 기관 규정 안에서 검토합니다.",
+            "- 답변이나 검토서에는 `공기업·준정부기관 기준`과 `지방자치단체 기준`을 분리하고, 지역업체 우대가 가능한 근거를 기관 규정 또는 적용 법령별로 따로 남기는 편이 안전합니다.",
         ])
     elif is_agency_law_conflict_question:
         sections.extend([

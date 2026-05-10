@@ -179,6 +179,19 @@ def test_practice_fast_answer_handles_agency_law_conflict_question():
     assert "국가계약" in answer
 
 
+def test_practice_fast_answer_handles_public_corp_law_conflict_question():
+    answer, cards = _build_practice_manual_fast_answer(
+        "공기업이 부산업체를 우대하려고 할 때 지방계약법, 국가계약법, 공기업 계약사무규칙 중 무엇을 우선 봐야 하는지 설명해줘.",
+        "public_corporation",
+    )
+
+    assert answer
+    assert "공기업·준정부기관" in answer
+    assert "계약사무규칙" in answer
+    assert "지방계약법 지역제한 기준을 그대로 적용" in answer
+    assert "국가기관이 발주" not in answer
+
+
 def test_practice_fast_answer_handles_bid_notice_local_company_checklist():
     answer, cards = _build_practice_manual_fast_answer(
         "입찰공고문 만들 때 지역업체 활용과 관련해서 꼭 확인해야 할 항목은 뭐야?",
