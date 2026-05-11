@@ -18,10 +18,16 @@ def test_multi_route_practical_answer_template_keeps_quality_structure():
             candidate_table_text="**[표 1] 나라장터 종합쇼핑몰 등록 부산업체 후보**",
             candidate_export_row_count=63,
             policy_company_sections_skipped=True,
+            amount_value=60_000_000,
         )
     )
 
     assert "### 6천만원(60,000,000원) 규모 컴퓨터 구매 실무 가이드" in rendered
+    assert "### 바로 실행 우선순위" in rendered
+    assert "나라장터 종합쇼핑몰에서 `컴퓨터` 세부품명" in rendered
+    assert "공급업체 소재지: 부산광역시" in rendered
+    assert "정책기업 1인견적 기준" in rendered
+    assert "1인 견적은 우선 제외" in rendered
     assert "### 1. 계약방법 및 구매 경로 검토" in rendered
     assert "### 2. 부산 지역업체 구매 확대 전략" in rendered
     assert "### 3. 검토 대상 부산 지역업체 후보" in rendered

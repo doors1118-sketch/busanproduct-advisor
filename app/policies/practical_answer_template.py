@@ -7,9 +7,9 @@ another LLM rewrite call.
 import re
 
 try:
-    from .numeric_basis_policy import get_numeric_display
+    from .numeric_basis_policy import get_numeric_display, get_numeric_value
 except ImportError:
-    from policies.numeric_basis_policy import get_numeric_display
+    from policies.numeric_basis_policy import get_numeric_display, get_numeric_value
 
 
 def _clean_part(text: str | None) -> str:
@@ -30,6 +30,77 @@ def _object_label(contract_object: str | None) -> str:
 
 def _num(parameter_ref: str, fallback: str = "최신 기준 확인 필요") -> str:
     return get_numeric_display(parameter_ref) or fallback
+
+
+def _is_it_equipment_item(item_label: str) -> bool:
+    item = re.sub(r"\s+", "", item_label or "").lower()
+    return any(term in item for term in ("컴퓨터", "노트북", "전산", "서버", "태블릿", "pc"))
+
+
+def _amount_over(amount_value: int | None, parameter_ref: str) -> bool | None:
+    threshold = get_numeric_value(parameter_ref)
+    if amount_value is None or threshold is None:
+        return None
+    return amount_value > threshold
+
+
+def _immediate_execution_priority_lines(
+    contract_object: str | None,
+    item_label: str,
+    amount_label: str,
+    amount_value: int | None,
+) -> list[str]:
+    """Summarize the practical first clicks before the longer route table."""
+    if (contract_object or "goods").lower() != "goods":
+        return []
+
+    general_one_quote = _num("P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD")
+    policy_one_quote = _num("P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD")
+    mas_general = _num("P_MAS_SECOND_STAGE_GENERAL_PRODUCT_THRESHOLD")
+    mas_sme = _num("P_MAS_SECOND_STAGE_SME_COMPETITION_THRESHOLD")
+
+    if _is_it_equipment_item(item_label):
+        first_action = (
+            f"나라장터 종합쇼핑몰에서 `{item_label}` 세부품명을 검색하고, "
+            "`공급업체 소재지: 부산광역시`, 납품지역, 인도조건, 계약상태를 먼저 거릅니다."
+        )
+        first_basis = (
+            f"{item_label} 세부품명이 중소기업자간 경쟁제품으로 확인되면 "
+            f"MAS 2단계경쟁 기준({mas_sme}) 미만 여부를 먼저 봅니다. "
+            f"일반 물품 기준({mas_general})과 다를 수 있으므로 세부품명 확인이 출발점입니다."
+        )
+        first_check = "SMPP 직접생산확인, 종합쇼핑몰/MAS 등록상품명, 부산 공급업체와 실제 납품 주체 일치 여부"
+    else:
+        first_action = (
+            f"나라장터 종합쇼핑몰 또는 조달등록 자료에서 `{item_label}` 세부품명과 부산 공급 가능 업체를 먼저 확인합니다."
+        )
+        first_basis = (
+            f"MAS 등록 품목이면 2단계경쟁 기준({mas_general} 또는 중기경쟁제품 {mas_sme})을 확인한 뒤 직접구매 가능성을 봅니다."
+        )
+        first_check = "세부품명, 쇼핑몰 계약상태, 공급업체 소재지, 납품 가능 지역"
+
+    policy_over = _amount_over(amount_value, "P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD")
+    general_over = _amount_over(amount_value, "P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD")
+    if policy_over is True:
+        one_quote_basis = f"질문 금액은 정책기업 1인견적 기준({policy_one_quote})을 초과하므로 1인 견적은 우선 제외합니다."
+    elif general_over is True:
+        one_quote_basis = (
+            f"일반 1인견적 기준({general_one_quote})은 초과하므로, 정책기업 기준({policy_one_quote}) 등 별도 사유가 맞는지 확인합니다."
+        )
+    else:
+        one_quote_basis = f"1인견적 가능성은 일반 기준({general_one_quote})과 정책기업 기준({policy_one_quote})을 나누어 확인합니다."
+
+    return [
+        "### 바로 실행 우선순위",
+        f"- 내부 품의서에는 **총액({amount_label})**, 추정가격(VAT 별도), 세부품명, 조달 경로, 부산업체 검토 근거를 분리해서 적으세요.",
+        "",
+        "| 순서 | 지금 할 일 | 내부 근거에 쓸 논리 | 확인할 것 |",
+        "|---|---|---|---|",
+        f"| 1 | {first_action} | {first_basis} | {first_check} |",
+        f"| 2 | 원하는 규격의 부산 쇼핑몰 제품이 없거나 직접구매가 부적절하면 G2B 2인 이상 견적 또는 지역제한 가능성을 검토합니다. | {one_quote_basis} 경쟁성 있는 견적 절차로 전환하면 특정업체 지정 리스크를 줄일 수 있습니다. | 견적공고 가능 금액, 부산 지역제한 가능 여부, 경쟁 가능한 부산업체 수 |",
+        "| 3 | 후보 업체는 쇼핑몰 등록, 조달등록, 정책기업, 기술개발제품 여부를 한 표에서 비교합니다. | 부산업체 지원은 소재지만으로 결정하지 않고, 조달 경로와 품목 적격성을 충족하는 업체를 우선 검토했다는 근거를 남깁니다. | 등록상품명, 직접생산확인, 인증 유효성, 납품·A/S 조건 |",
+        "",
+    ]
 
 
 def _local_purchase_strategy_lines(contract_object: str | None, item_label: str, amount_label: str) -> list[str]:
@@ -122,6 +193,7 @@ def build_multi_route_practical_answer_parts(
     candidate_table_text: str = "",
     candidate_export_row_count: int = 0,
     policy_company_sections_skipped: bool = False,
+    amount_value: int | None = None,
 ) -> list[str]:
     """Build a natural, reusable answer structure for purchase-route guidance."""
     amount_label = amount_label or "금액 미확인"
@@ -135,12 +207,17 @@ def build_multi_route_practical_answer_parts(
             "일반 수의계약 여부만 단정하기보다, 금액 기준·품목 특성·조달 경로·지역업체 활용 가능성을 함께 보는 방식이 안전합니다."
         ),
         "",
-        "### 1. 계약방법 및 구매 경로 검토",
-        _clean_part(route_guidance)
-        or "- 금액 기준, 품목 특성, 조달등록·종합쇼핑몰 등록 여부를 관련 법령·행정규칙 근거와 함께 확인하세요.",
-        "",
-        "### 2. 부산 지역업체 구매 확대 전략",
     ]
+    parts.extend(_immediate_execution_priority_lines(contract_object, item_label, amount_label, amount_value))
+    parts.extend(
+        [
+            "### 1. 계약방법 및 구매 경로 검토",
+            _clean_part(route_guidance)
+            or "- 금액 기준, 품목 특성, 조달등록·종합쇼핑몰 등록 여부를 관련 법령·행정규칙 근거와 함께 확인하세요.",
+            "",
+            "### 2. 부산 지역업체 구매 확대 전략",
+        ]
+    )
     parts.extend(_local_purchase_strategy_lines(contract_object, item_label, amount_label))
 
     catalog = _clean_part(catalog_guidance)

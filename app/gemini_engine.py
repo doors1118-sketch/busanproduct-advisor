@@ -6498,6 +6498,7 @@ def _chat_v144(
                 candidate_table_text=candidate_table_text,
                 candidate_export_row_count=candidate_export_count if candidate_export_count > 8 else 0,
                 policy_company_sections_skipped=policy_company_sections_skipped,
+                amount_value=amount_detected,
             )
 
             api_status = ApiStatus()
