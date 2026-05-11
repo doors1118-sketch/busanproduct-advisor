@@ -1017,6 +1017,7 @@ def _is_practice_priority_question(user_message: str) -> bool:
         (any(term in q for term in ("소방시설공사", "정보통신공사", "조경공사", "포장공사"))),
         (any(term in q for term in ("국가기관", "국가계약", "공기업", "준정부", "공공기관")) and "지방계약" in q),
         _is_construction_period_cost_adjustment_question(user_message),
+        ("물품" in q and "수의계약" in q and _parse_amount(user_message) is not None),
     ]
     return any(checks)
 
@@ -4686,11 +4687,18 @@ def _build_simple_amount_contract_answer(user_message: str, amount_detected) -> 
     from policies.numeric_basis_policy import get_numeric_display, get_numeric_value
     general_one_quote_value = get_numeric_value("P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD")
     policy_one_quote_value = get_numeric_value("P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD")
-    policy_contract_value = get_numeric_value("P_LOCAL_DIRECT_POLICY_COMPANY_THRESHOLD")
+    two_quote_value = get_numeric_value("P_LOCAL_DIRECT_SMALL_BUSINESS_THRESHOLD")
     one_quote_general = get_numeric_display("P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD") or "기준값 확인 필요"
     one_quote_policy = get_numeric_display("P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD") or "기준값 확인 필요"
     general_threshold = get_numeric_display("P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD") or "기준값 확인 필요"
     policy_contract = get_numeric_display("P_LOCAL_DIRECT_POLICY_COMPANY_THRESHOLD") or "기준값 확인 필요"
+    two_quote_threshold = get_numeric_display("P_LOCAL_DIRECT_SMALL_BUSINESS_THRESHOLD") or "기준값 확인 필요"
+    mas_general = get_numeric_display("P_MAS_SECOND_STAGE_GENERAL_PRODUCT_THRESHOLD") or "기준값 확인 필요"
+    mas_sme = get_numeric_display("P_MAS_SECOND_STAGE_SME_COMPETITION_THRESHOLD") or "기준값 확인 필요"
+    local_goods_service = (
+        get_numeric_display("P_LOCAL_LIMITED_BID_GOODS_SERVICE_NOTICE_THRESHOLD")
+        or "최신 고시금액 확인 필요"
+    )
     amount_label = _display_amount_for_answer(amount_detected, user_message)
 
     if (
@@ -4731,20 +4739,68 @@ def _build_simple_amount_contract_answer(user_message: str, amount_detected) -> 
             "- 부산 지역상품 구매지원 관점에서는 지역업체 후보, 종합쇼핑몰/MAS 등록, 중소기업자간 경쟁제품·직접생산확인 여부를 함께 확인하는 편이 좋습니다.",
         ])
 
-    if isinstance(policy_contract_value, (int, float)) and amount_detected > policy_contract_value:
+    over_general_one_quote = (
+        isinstance(general_one_quote_value, (int, float))
+        and amount_detected > general_one_quote_value
+    )
+    over_policy_one_quote = (
+        isinstance(policy_one_quote_value, (int, float))
+        and amount_detected > policy_one_quote_value
+    )
+    within_two_quote = (
+        isinstance(two_quote_value, (int, float))
+        and amount_detected <= two_quote_value
+    )
+    if over_general_one_quote:
+        general_judgment = "초과"
+        policy_judgment = "초과" if over_policy_one_quote else "정책기업 요건 충족 시 범위 내"
+        two_quote_judgment = "기준 내 검토" if within_two_quote else "기준 초과"
         return "\n".join([
-            "### 판단 요약",
-            f"- 질문 조건이 **지방자치단체 기준의 물품 {amount_label}**이라면, 일반적인 소액 물품 수의계약 기준만으로는 **불가에 가깝고**, 해당 방식을 바로 적용하기 어렵습니다.",
-            f"- 일반 물품 수의계약은 통상 소액 기준(**{general_threshold} 이하**)과 견적 방식 제한을 먼저 확인해야 하고, 질문 금액은 정책기업 특례 기준(**{policy_contract} 이하**)도 넘는 금액대입니다.",
+            f"### 물품 {amount_label} 수의계약 판단 요약",
+            "- 먼저 기관 유형을 확정해야 합니다. 지방자치단체는 지방계약법령과 행안부 예규, 국가기관은 국가계약법령과 계약예규, 공기업·준정부기관은 계약사무규칙·자체 계약규정을 우선 확인합니다.",
+            "- 결론부터 보면 **특정 업체를 바로 찍는 1인 견적 수의계약은 일반 기준과 정책기업 1인 견적 기준을 모두 넘습니다.**",
+            "- 반면 지방계약 기준의 물품 소액수의는 `1인 지정`과 `2인 이상 견적 제출`을 나누어 봐야 합니다. 질문 금액은 2인 이상 견적 소액수의 기준 안인지 확인하는 구간이며, 이 경우 원칙적으로 지정정보처리장치(G2B) 견적공고를 통해 경쟁성을 확보해야 합니다.",
+            "- 별도로 기술적 유일성, 우수조달물품, 혁신제품, 기술개발제품, 재공고 유찰 같은 예외 사유가 있으면 소액 기준과 다른 트랙에서 수의계약 특례를 검토합니다.",
             "",
-            "### 근거",
-            "- 「지방계약법」 제9조: 원칙은 일반입찰이고, 예외적으로 지명입찰 또는 수의계약을 할 수 있습니다.",
-            "- 「지방계약법 시행령」 제25조: 수의계약을 할 수 있는 예외 사유를 정합니다.",
-            "- 「지방계약법 시행령」 제30조: 수의계약 대상자 선정과 견적 절차를 정합니다.",
+            "### 1. 금액 기준에 따른 경로 구분",
+            "| 구분 | 내부 기준 | 1억원 물품에서의 판단 | 실무 의미 |",
+            "|---|---|---|---|",
+            f"| 일반 1인 견적 | 추정가격 {one_quote_general} 이하 | {general_judgment} | 일반 소액이라는 이유만으로 특정 업체를 바로 지정하기 어렵습니다. |",
+            f"| 정책기업 1인 견적 | 추정가격 {one_quote_policy} 이하 | {policy_judgment} | 여성기업·장애인기업·사회적기업 등이라도 1인 견적 기준을 넘으면 바로 지정하는 방식은 조심해야 합니다. |",
+            f"| 2인 이상 견적 소액수의 | 추정가격 {two_quote_threshold} 이하 | {two_quote_judgment} | G2B 견적공고로 2인 이상 견적을 받는 방식입니다. 부산업체 지원 목적이면 지역제한 가능 여부와 경쟁 가능한 업체 수를 함께 봅니다. |",
+            "| 특례 수의계약 | 금액표보다 예외 사유 충족 여부가 핵심 | 별도 사유 확인 | 기술적 유일성, 우수조달, 혁신제품, 기술개발제품, 재공고 유찰 등 법령상 예외 사유가 문서로 입증되어야 합니다. |",
             "",
-            "### 지역상품 구매 지원 관점",
-            "- 이 사안을 특정 업체 지정 방식으로 단정하기보다 **지역제한경쟁입찰**, **종합쇼핑몰/MAS**, **중소기업자간 경쟁제품·직접생산확인**, **기술개발제품·혁신제품·우수조달물품** 여부를 함께 검토하는 방향이 안전합니다.",
-            "- 구체 품목이 있으면 부산업체 후보, 조달등록, 정책기업, 인증제품 여부까지 붙여서 구매 경로를 다시 잡을 수 있습니다.",
+            "### 2. 근거를 어떻게 읽어야 하는가",
+            "- **계약 원칙**: 지방자치단체는 일반입찰이 원칙이고, 수의계약은 법령상 예외 사유가 있을 때 검토하는 방식입니다. 국가기관·공기업은 각각 국가계약법령, 계약사무규칙·자체규정을 먼저 봅니다.",
+            "- **수의계약 사유**: 수의계약 자체의 사유는 지방계약법 시행령 제25조 축에서 봅니다. 여기에는 소액 기준뿐 아니라 기술적 유일성, 인증·지정 제품, 재공고 유찰 등 사유가 함께 들어갑니다.",
+            "- **견적 방식**: 수의계약이라고 모두 1인 견적이 아닙니다. 견적 제출 방식은 지방계약법 시행령 제30조와 수의계약 운영요령에서 별도로 확인합니다.",
+            "- **추정가격 기준**: 법령상 금액 기준은 보통 VAT 제외 추정가격으로 판단합니다. 예산 총액이 1억원(VAT 포함)이라면 추정가격은 약 9,090만원이므로, 먼저 `예산액`인지 `추정가격`인지 분리해야 합니다.",
+            "",
+            "### 3. 1억원에서 1인 견적이 필요한 경우의 특례 사유",
+            "- **기술적 유일성**: 특정인의 기술, 장비, 위치, 호환성 때문에 경쟁이 곤란한지 비교검토 보고서로 입증해야 합니다.",
+            "- **우수조달물품·혁신제품**: 조달청 지정 상태, 유효기간, 규격 일치, 혁신장터·나라장터 등록 상태를 확인합니다.",
+            "- **기술개발제품**: 성능인증(EPC), GS인증, 신제품(NEP), 신기술(NET) 등 지위가 실제 구매 물품과 일치하는지 확인합니다.",
+            "- **재공고 유찰 등 절차상 사유**: 경쟁입찰을 먼저 진행했으나 유찰된 경우에는 재공고 유찰 요건과 계약상대자 결정 절차를 별도 검토합니다.",
+            "- 이 특례들은 `소액이라서`가 아니라 **법령상 예외 사유가 맞는지**가 핵심입니다. 사유서, 지정서, 인증서, 세부품명, 직접생산확인, 가격 적정성 자료를 함께 남겨야 합니다.",
+            "",
+            "### 4. 실무 대안 경로",
+            "| 경로 | 먼저 볼 것 | 판단 포인트 |",
+            "|---|---|---|",
+            "| 인증·혁신·우수조달 제품 | 우수조달, 혁신제품, 성능인증, GS·NEP·NET, 직접생산확인 | 부산업체 제품이 해당 지위를 갖고 있으면 수의계약 특례 검토의 근거가 될 수 있습니다. |",
+            f"| 종합쇼핑몰/MAS | 일반 물품 {mas_general}, 중소기업자간 경쟁제품 {mas_sme} 기준 | 질문 금액이 기준에 걸리는 구간이면 2단계 경쟁 대상 여부와 제안요청 방식을 먼저 확인합니다. |",
+            f"| 2인 이상 견적 수의계약 | {two_quote_threshold} 기준, G2B 견적공고, 경쟁 가능한 업체 수 | 단순 물품이면 가장 먼저 볼 수 있는 실무 경로입니다. 부산업체 중심이면 견적 제출 지역제한 가능성을 확인합니다. |",
+            f"| 지역제한 경쟁입찰 | 물품·일반용역 지역제한 기준 {local_goods_service} | 2인 견적보다 정식 입찰이 안전한 사안이면 부산 지역제한 경쟁입찰이나 소기업·소상공인 제한을 검토합니다. |",
+            "",
+            "### 5. 내부 품의서에 남길 근거",
+            "- **추정가격 기준**으로 판단합니다. 예산 총액이 VAT 포함인지, 추정가격이 얼마인지 분리해 적습니다.",
+            "- 세부품명, 규격, 수량, 납품·설치 범위, 직접생산확인 대상 여부를 확정합니다.",
+            "- 수의계약 특례를 쓰려면 `왜 경쟁입찰이 아니라 해당 특례인지`를 비교표로 남깁니다.",
+            "- 부산업체 지원 목적이 있으면 특정 업체 지정 사유가 아니라 지역제한, MAS 공급업체 소재지, A/S·납기·현장 대응성, 인증제품 보유 여부로 연결합니다.",
+            "- 같은 수요를 금액 기준에 맞추려고 나누면 분할발주 지적 위험이 있으므로 통합 수요와 분리 사유를 문서화합니다.",
+            "",
+            "### 결론",
+            f"- **물품 {amount_label}은 특정 업체를 바로 지정하는 1인 견적 수의계약으로 보기 어렵고, 2인 이상 견적 수의계약 또는 경쟁입찰 경로를 먼저 검토해야 하는 구간**입니다.",
+            "- 특수 제품이라면 인증·혁신·우수조달·기술적 유일성 같은 예외 사유를 별도 검토하고, 일반 기성품이면 G2B 2인 이상 견적, MAS 2단계 경쟁, 지역제한 경쟁입찰 순서로 보는 편이 안전합니다.",
         ])
     return None
 

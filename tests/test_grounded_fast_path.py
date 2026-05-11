@@ -140,6 +140,40 @@ def test_simple_amount_answer_for_20m_goods_avoids_critical_scan_terms():
     assert scan["critical_count"] == 0
 
 
+def test_simple_amount_answer_for_100m_goods_separates_one_quote_and_two_quote():
+    question = "물품 1억원 구매는 수의계약이 가능한지 근거 중심으로 설명해줘."
+    answer = _build_simple_amount_contract_answer(question, _parse_amount(question))
+    scan = scan_final_answer(answer)
+
+    assert answer
+    assert "1인 견적" in answer
+    assert "2인 이상 견적" in answer
+    assert "G2B" in answer
+    assert "2천만원" in answer
+    assert "5천만원" in answer
+    assert "1억원" in answer
+    assert "지방계약법 시행령 제25조" in answer
+    assert "지방계약법 시행령 제30조" in answer
+    assert "우수조달" in answer
+    assert "혁신제품" in answer
+    assert "MAS" in answer
+    assert "지역제한" in answer
+    assert "추정가격" in answer
+    assert "유사 해석사례" not in answer
+    assert "조달청 질의응답" not in answer
+    assert scan["critical_count"] == 0
+
+
+def test_pps_fast_gate_defers_goods_amount_direct_contract_question():
+    answer, cards = _build_pps_qa_interpretation_fast_answer(
+        "물품 1억원 수의계약 가능 여부를 검토해줘",
+        SimpleNamespace(answer_mode="pps_qa_interpretation", confidence=0.99),
+    )
+
+    assert answer == ""
+    assert cards == []
+
+
 def test_display_amount_preserves_korean_ten_million_unit():
     assert _display_amount_for_answer(80_000_000, "8천만원 예산이면 어떻게 해?") == "8천만원(80,000,000원)"
     assert _display_amount_for_answer(45_000_000, "노트북 4천5백만원 구매") == "4천5백만원(45,000,000원)"
