@@ -119,11 +119,28 @@ def test_local_company_route_combination_goes_to_practice_flow():
 
 
 def test_innovation_product_review_uses_fast_answer():
-    result = match_deterministic_legal_answer("혁신제품이나 혁신시제품이면 수의계약이나 우선구매 검토가 가능해?")
+    result = match_deterministic_legal_answer(
+        "혁신제품, 혁신시제품, 기술개발제품은 금액과 관계없이 수의계약 검토가 가능한지 우선구매와 수의계약 근거를 분리해서 설명해줘."
+    )
     assert result is not None
     assert "혁신제품" in result.answer
     assert "혁신시제품" in result.answer
+    assert "기술개발제품" in result.answer
+    assert "수의계약과 우선구매의 차이" in result.answer
+    assert "계약방법" in result.answer
+    assert "구매목표" in result.answer
+    assert "금액만으로 배제하지 않는다" in result.answer
+    assert "지정·인증 유효성" in result.answer
+    assert "source map" not in result.answer
     assert "우선구매" in result.answer
+
+
+def test_tech_development_product_review_uses_fast_answer_without_innovation_keyword():
+    result = match_deterministic_legal_answer("기술개발제품은 수의계약 근거와 우선구매 근거가 어떻게 달라?")
+    assert result is not None
+    assert "기술개발제품" in result.answer
+    assert "우선구매" in result.answer
+    assert "수의계약" in result.answer
 
 
 def test_split_purchase_audit_answer_names_item_and_risk():
