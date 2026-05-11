@@ -135,6 +135,9 @@ def test_mas_second_stage_threshold_comparison_uses_admin_rule_values():
     assert "제49조제1항제2호" in result.answer
     assert "제49조제4항" in result.answer
     assert "제51조" in result.answer
+    assert "법령과 행정규칙의 역할" in result.answer
+    assert "조달사업에 관한 법률" in result.answer
+    assert "낙동강유역환경청" not in result.answer
     assert "물품 구매 표준 워크플로우" not in result.answer
 
 
