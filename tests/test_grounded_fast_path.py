@@ -573,6 +573,13 @@ def test_practice_fast_answer_handles_price_terms():
     assert "추정가격" in answer
     assert "예정가격" in answer
     assert "기초금액" in answer
+    assert "추정금액" in answer
+    assert "VAT" in answer
+    assert "| 용어 | VAT 처리 | 주로 쓰는 시점 | 실무 용도 | 주의할 점 |" in answer
+    assert "| 단계 | 실무자가 하는 일 | 중심 금액 | 판단 포인트 |" in answer
+    assert "VAT 제외" in answer
+    assert "VAT 포함" in answer
+    assert "관급자재" in answer
 
 
 def test_practice_fast_answer_handles_specific_brand_spec_question():
