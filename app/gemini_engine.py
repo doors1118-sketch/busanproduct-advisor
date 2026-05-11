@@ -1734,7 +1734,13 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
             "- 그다음 계약방법, 참가자격, 낙찰자 결정방법, 가격 산정, 검사·검수, 사후관리 쟁점을 순서대로 확인합니다.",
         ])
 
-    manual_section = render_practice_manual_cards_for_answer(cards, max_cards=4)
+    suppress_manual_section = any((
+        is_event_service_regional_question,
+        is_service_regional_restriction_question,
+        is_service_local_participation_question,
+        is_general_local_supplier_award_question,
+    ))
+    manual_section = "" if suppress_manual_section else render_practice_manual_cards_for_answer(cards, max_cards=4)
     if manual_section:
         sections.extend(["", manual_section])
 
