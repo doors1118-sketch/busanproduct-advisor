@@ -489,6 +489,14 @@ def test_practice_fast_answer_handles_bid_notice_local_company_checklist():
     assert answer
     assert "입찰공고문" in answer
     assert "지역업체" in answer
+    assert "금액·계약유형별로 쓸 수 있는 장치" in answer
+    assert "참가자격 문구" in answer
+    assert "위험한 문구" in answer
+    assert "권장 문구" in answer
+    assert "주된 영업소의 소재지가 부산광역시에 있는 업체" in answer
+    assert "부산시 또는 부산 소재 기관 수행실적" in answer
+    assert "계약체결 후 착수 전까지 현장 대응 인력·장비 확보계획" in answer
+    assert "G2B" in answer
     assert "source map" not in answer
     assert "최신 법령·" in answer
 
