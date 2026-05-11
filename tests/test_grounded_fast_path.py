@@ -516,7 +516,21 @@ def test_practice_fast_answer_handles_private_school_subsidy_question():
     assert "국가계약법" in answer
 
 
-def test_practice_fast_answer_handles_landscape_construction_question():
+def test_practice_fast_answer_handles_landscape_construction_question(monkeypatch):
+    monkeypatch.setattr(
+        gemini_engine,
+        "_search_landscape_construction_candidates",
+        lambda max_results=8: [
+            {
+                "company_id": "landscape-1",
+                "company_name": "부산조경테스트",
+                "location": "부산광역시",
+                "license_or_business_type": ["조경식재·시설물공사업"],
+                "main_products": ["조경식재공사", "조경시설물설치"],
+                "business_status": "active",
+            }
+        ],
+    )
     answer, cards = _build_practice_manual_fast_answer(
         "조경공사를 부산업체 중심으로 발주하려면 지역제한과 면허요건을 어떻게 설계해야 해?",
         "local_government",
@@ -525,6 +539,19 @@ def test_practice_fast_answer_handles_landscape_construction_question():
     assert answer
     assert "조경공사" in answer
     assert "부산" in answer
+    assert "지역제한·공동도급 설계" in answer
+    assert "면허요건 설계" in answer
+    assert "종합 조경공사" in answer
+    assert "전문 조경공사" in answer
+    assert "150억원" in answer
+    assert "10억원" in answer
+    assert "40%" in answer
+    assert "49%" in answer
+    assert "부산 조경공사 업체 검토 후보" in answer
+    assert "부산조경테스트" in answer
+    assert "조경식재·시설물공사업" in answer
+    assert "계약 검토 후보" in answer
+    assert "source map" not in answer
 
 
 def test_practice_fast_answer_handles_invested_institution_local_law_question():

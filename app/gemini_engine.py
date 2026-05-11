@@ -1157,6 +1157,87 @@ def _local_supplier_award_support_lines(subject_label: str = "지역업체 활�
     ]
 
 
+def _short_join(values: list[str], *, limit: int = 3, fallback: str = "확인 필요") -> str:
+    cleaned = [str(v).strip() for v in values or [] if str(v).strip()]
+    if not cleaned:
+        return fallback
+    head = cleaned[:limit]
+    suffix = f" 외 {len(cleaned) - limit}개" if len(cleaned) > limit else ""
+    return ", ".join(head) + suffix
+
+
+def _search_landscape_construction_candidates(max_results: int = 8) -> list[dict]:
+    """Search local company DB only; avoid live HTTP fallback in deterministic fast answers."""
+    queries = [
+        "조경공사업",
+        "조경식재·시설물공사업",
+        "조경식재시설물공사업",
+        "조경식재공사업",
+        "조경시설물설치공사업",
+        "조경",
+    ]
+    seen: set[str] = set()
+    candidates: list[dict] = []
+    for query in queries:
+        try:
+            data = company_api.company_db.search_by_license(query, limit=max_results * 3)
+        except Exception:
+            data = None
+        for raw in (data or {}).get("candidates") or []:
+            if not isinstance(raw, dict):
+                continue
+            key = str(raw.get("company_id") or raw.get("company_name") or "").strip()
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            candidates.append(raw)
+            if len(candidates) >= max_results:
+                return candidates
+    return candidates
+
+
+def _landscape_candidate_fit(candidate: dict) -> str:
+    licenses = " ".join(candidate.get("license_or_business_type") or [])
+    products = " ".join(candidate.get("main_products") or [])
+    target = f"{licenses} {products}"
+    if "조경공사업" in target:
+        return "종합 조경공사 후보"
+    if any(term in target for term in ("조경식재", "조경시설물", "조경식재·시설물")):
+        return "전문 조경공사 후보"
+    if "조경" in target:
+        return "조경 관련 면허 확인 후보"
+    return "면허·주력분야 확인 필요"
+
+
+def _landscape_candidate_section(max_results: int = 8) -> list[str]:
+    candidates = _search_landscape_construction_candidates(max_results=max_results)
+    lines = [
+        "",
+        "### 6. 부산 조경공사 업체 검토 후보",
+    ]
+    if not candidates:
+        lines.extend([
+            "- 현재 실행환경에서는 내부 업체 DB에서 조경공사 면허 후보를 확인하지 못했습니다. 서버 DB가 연결된 환경에서는 `조경공사업`, `조경식재·시설물공사업`, `조경식재공사업`, `조경시설물설치공사업` 면허 기준으로 부산 소재 후보를 조회합니다.",
+            "- 후보가 없다고 단정하지 말고 나라장터·건설업 등록자료·업체 제출서류로 조경 면허와 주력분야를 다시 확인해야 합니다.",
+        ])
+        return lines
+
+    lines.extend([
+        "- 아래 목록은 내부 업체 DB에서 조경 관련 면허·품목으로 조회한 **계약 검토 후보**입니다. 낙찰 가능 또는 수의계약 가능을 의미하지 않으며, 공고 전 면허, 주력분야, 영업상태, 실적, 공동수급 가능 여부를 다시 확인해야 합니다.",
+        "",
+        "| 업체명 | 소재지 | 면허·업종 | 주요 품목·업무 | 계약 검토 포인트 |",
+        "|---|---|---|---|---|",
+    ])
+    for candidate in candidates[:max_results]:
+        name = str(candidate.get("company_name") or "").strip() or "업체명 확인 필요"
+        location = str(candidate.get("location") or "").strip() or "부산 여부 확인"
+        licenses = _short_join(candidate.get("license_or_business_type") or [], limit=3)
+        products = _short_join(candidate.get("main_products") or [], limit=3)
+        fit = _landscape_candidate_fit(candidate)
+        lines.append(f"| {name} | {location} | {licenses} | {products} | {fit} |")
+    return lines
+
+
 def _is_practice_manual_fast_query(user_message: str) -> bool:
     """실무 매뉴얼 카드로 빠르게 답할 수 있는 설명/비교/절차형 질문인지 판별한다."""
     q = (user_message or "").replace(" ", "").lower()
@@ -1845,14 +1926,50 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
             "- 공고문에는 적용 규정, 예산 재원, 정산·검사 기준, 이해충돌·특혜 방지 기준을 분명히 적는 편이 안전합니다.",
         ])
     elif is_landscape_construction_regional_question:
+        try:
+            from policies.numeric_basis_policy import get_numeric_display, get_rule_source_titles
+        except Exception:  # pragma: no cover - package import fallback
+            from importlib import import_module
+            _numeric_basis_policy = import_module("app.policies.numeric_basis_policy")
+            get_numeric_display = _numeric_basis_policy.get_numeric_display
+            get_rule_source_titles = _numeric_basis_policy.get_rule_source_titles
+
+        local_general = get_numeric_display("P_LOCAL_LIMITED_BID_GENERAL_CONSTRUCTION_THRESHOLD") or "최신 법령·고시 기준값 확인 필요"
+        local_specialty = get_numeric_display("P_LOCAL_LIMITED_BID_SPECIALTY_CONSTRUCTION_THRESHOLD") or "최신 법령·고시 기준값 확인 필요"
+        joint_min = get_numeric_display("P_LOCAL_JOINT_CONTRACT_MIN_SHARE") or "기준비율 확인 필요"
+        joint_max = get_numeric_display("P_LOCAL_JOINT_CONTRACT_MAX_SHARE") or "기준비율 확인 필요"
+        joint_company_count = get_numeric_display("P_LOCAL_JOINT_CONTRACT_MIN_QUALIFIED_COMPANY_COUNT") or "업체 수 기준 확인 필요"
+        regional_basis = ", ".join(get_rule_source_titles("R_LOCAL_LIMITED_BID_AMOUNT", limit=2)) or "지역제한 입찰 기준 관련 법령·고시"
+        joint_basis = ", ".join(get_rule_source_titles("R_LOCAL_REGIONAL_JOINT_CONTRACT", limit=2)) or "공동계약 관련 법령·예규"
         sections.extend([
             "",
-            "### 2. 조경공사 지역제한·면허 설계",
-            "- **조경공사**를 부산업체 중심으로 발주하려면 먼저 공종과 면허·업종 요건을 확정합니다.",
-            "- 지역제한은 추정가격, 공사 종류, 본점 소재지, 부산 지역 내 경쟁 가능한 업체 수를 최신 법령·고시 기준으로 확인한 뒤 공고문에 반영합니다.",
-            "- 면허요건은 공사 목적 달성에 필요한 범위로 제한하고, 불필요하게 높은 실적·장비·인력 조건을 붙이면 부당제한 문제가 생길 수 있습니다.",
-            "- 부산업체 활용 목적은 지역제한, 공동도급, 적격심사 평가요소 등 법령상 허용되는 장치와 연결해 문서화합니다.",
+            "### 2. 조경공사 발주 판단 흐름",
+            "- 조경공사는 `부산업체를 쓰고 싶다`에서 바로 공고문을 쓰면 위험합니다. 먼저 **공사 성격을 종합 조경공사로 볼지, 조경식재·시설물 중심의 전문공사로 볼지**를 정해야 지역제한 금액, 면허요건, 공동도급 전략이 같이 맞아집니다.",
+            "- 실무 흐름은 `기관유형 확인 → 추정가격 확인 → 종합/전문 공사 구분 → 면허·주력분야 설계 → 부산업체 후보 수 확인 → 지역제한 또는 공동도급·적격심사 설계` 순서가 안전합니다.",
+            "- 금액 기준은 답변에 고정하지 않고 내부 법령·고시 DB의 확인값을 사용합니다. 기준값이 바뀌면 아래 금액도 DB 갱신값을 따라가야 합니다.",
+            "",
+            "### 3. 지역제한·공동도급 설계",
+            "| 구분 | 우선 설계 | DB 확인 기준값 | 실무 의미 | 근거 확인 |",
+            "|---|---|---|---|---|",
+            f"| 종합 조경공사 | 조경공사업 등 종합공사 성격이면 부산 지역제한 가능 여부를 먼저 봅니다. | {local_general} 미만 | 기준 안이면 `주된 영업소 부산광역시` 제한이 가장 직접적인 부산업체 수주지원 수단입니다. | {regional_basis} |",
+            f"| 전문 조경공사 | 식재, 녹지 유지관리, 조경시설물 설치·보수 중심이면 전문공사 기준을 봅니다. | {local_specialty} 미만 | 소규모 조경공사는 이 구간이 많아 부산 업체 간 경쟁 구조를 만들기 쉽습니다. | {regional_basis} |",
+            f"| 기준 초과 대형공사 | 지역제한만으로 묶기 어렵다면 지역의무 공동도급 또는 지역업체 참여도 평가를 검토합니다. | 지역업체 지분 {joint_min}~{joint_max}, 지역업체 수 {joint_company_count} 등 확인 | 외지 대형사가 들어오더라도 부산업체 수행 지분을 확보하는 방식입니다. | {joint_basis} |",
+            "",
+            "### 4. 면허요건 설계",
+            "| 과업 성격 | 면허 설계 방향 | 부산업체 수주지원 포인트 | 주의할 점 |",
+            "|---|---|---|---|",
+            "| 공원·광장·녹지 전체 조성처럼 토공, 배수, 포장, 식재, 시설물이 결합된 경우 | 종합 조경공사 성격을 우선 검토하고 조경공사업 등 필요한 업종을 확인합니다. | 대형공사이면 부산업체 공동수급 참여비율과 담당 공종을 명확히 둡니다. | 종합 면허만 요구하면 지역 전문업체 진입이 막힐 수 있으므로 과업 범위를 먼저 분해합니다. |",
+            "| 가로수 식재, 수목 전정, 잔디·초화류, 녹지 유지관리 중심 | 조경식재 관련 전문공사 성격과 주력분야를 확인합니다. | 부산 전문업체 풀이 넓으면 지역제한으로 실질 경쟁을 만들 수 있습니다. | 특정 수종·특정 기관 실적만 요구하면 부당제한이 될 수 있습니다. |",
+            "| 파고라, 데크, 운동시설, 조경시설물 설치·보수 중심 | 조경시설물 관련 전문공사 성격과 주력분야를 확인합니다. | 현장 대응, 하자보수, 유지관리 계획을 평가요소로 연결합니다. | 시설물 외 전기·정보통신·토목 공종이 섞이면 별도 면허나 분리발주 필요성을 같이 봅니다. |",
+            "| 식재와 시설물, 토목 부대공사가 섞인 경우 | 주된 공사와 부대공사를 나누고, 복수 면허 요구가 필요한지 최소 범위로 설계합니다. | 공동수급 또는 분담이행을 허용하면 부산 업체 참여 폭을 넓힐 수 있습니다. | 필요 이상으로 많은 면허를 동시에 요구하면 경쟁 제한으로 보일 수 있습니다. |",
+            "",
+            "### 5. 공고문 작성 기준",
+            "- **지역제한 문구**는 금액 기준이 맞을 때만 `입찰공고일 전일부터 입찰일까지 주된 영업소의 소재지가 부산광역시에 있는 업체`처럼 씁니다. 낙찰자는 계약체결일까지 유지하도록 두는 방식이 일반적입니다.",
+            "- **면허요건 문구**는 `조경공사업 보유 업체`처럼 넓게 쓰기 전에, 실제 과업이 종합공사인지 전문공사인지 확인해야 합니다. 과업 대부분이 식재·시설물이라면 전문업종과 주력분야 확인으로 설계하는 편이 부산 업체 참여에 유리할 수 있습니다.",
+            "- **실적 제한**은 `부산 내 동일 공사 실적`처럼 지역과 특정 실적을 동시에 묶지 말고, 공사 규모·난이도·단일 건 실적 등 과업 수행능력과 직접 관련된 조건으로 완화합니다.",
+            "- **부산업체 보호 장치**는 지역제한, 지역의무 공동도급, 적격심사 지역업체 참여도, 현장 대응·하자관리 평가항목을 조합합니다. 다만 `부산업체라서 가점`이 아니라 법령·평가기준상 허용되는 방식으로 문서화해야 합니다.",
         ])
+        sections.extend(_landscape_candidate_section())
     elif is_invested_institution_local_law_question:
         sections.extend([
             "",
