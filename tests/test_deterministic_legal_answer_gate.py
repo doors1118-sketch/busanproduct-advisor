@@ -83,6 +83,9 @@ def test_local_company_point_standard_multi_agency():
     assert "30% 이상: 3점" in result.answer
     assert "20% 이상 30% 미만: 1점" in result.answer
     assert "입찰참가자격 제한 장치" in result.answer
+    assert "지역업체 우대 배점 확인 5단계 알고리즘" in result.answer
+    assert "별표" in result.answer
+    assert "나라장터 공고문" in result.answer
 
 
 def test_local_company_point_public_corp_specific():
@@ -91,6 +94,21 @@ def test_local_company_point_public_corp_specific():
     assert "공기업ㆍ준정부기관" in result.answer
     assert "국가계약법령을 준용" in result.answer
     assert "기관별 계약기준" in result.answer
+
+
+def test_local_company_point_answer_gives_annex_lookup_sequence():
+    result = match_deterministic_legal_answer(
+        "지역업체 참여도나 가점은 조문만 보면 안 되고 별표나 낙찰자 결정기준을 봐야 하는 거지? 확인 순서를 알려줘."
+    )
+
+    assert result is not None
+    assert result.reason == "local_company_point_standard_fast_answer"
+    assert "법령정보센터(law.go.kr)" in result.answer
+    assert "지방자치단체 입찰시 낙찰자 결정기준" in result.answer
+    assert "(계약예규) 적격심사기준" in result.answer
+    assert "(계약예규) 공동계약운용요령" in result.answer
+    assert "사업 유형별 별표 추적 포인트" in result.answer
+    assert "공고문에서 마지막으로 확인할 문구" in result.answer
 
 
 def test_local_company_route_combination_goes_to_practice_flow():
