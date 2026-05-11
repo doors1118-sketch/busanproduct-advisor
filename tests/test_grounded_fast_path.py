@@ -638,6 +638,27 @@ def test_practice_fast_answer_handles_service_regional_restriction():
     assert "부산업체" in answer
 
 
+def test_practice_fast_answer_handles_security_service_regional_license():
+    answer, cards = _build_practice_manual_fast_answer(
+        "청사 경비용역을 부산업체 중심으로 검토하려면 지역제한과 면허를 어떻게 봐야 해?",
+        "local_government",
+    )
+
+    assert answer
+    assert "청사 경비용역" in answer
+    assert "시설경비업" in answer
+    assert "경비업법" in answer
+    assert "제4조" in answer
+    assert "1164" in answer
+    assert "지역제한" in answer
+    assert "공기업ㆍ준정부기관 계약사무규칙" in answer
+    assert "일반용역 적격심사" in answer
+    assert "협상에 의한 계약" in answer
+    assert "정보통신공사업" in answer
+    assert "기술ㆍ학술용역 기준을 경비용역에 그대로 가져오면 안 됩니다" in answer
+    assert "행사용역" not in answer
+
+
 def test_practice_fast_answer_handles_service_local_participation_method():
     answer, cards = _build_practice_manual_fast_answer(
         "용역계약에 있어 지역업체 참여가 가능한 방법은?",
