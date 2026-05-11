@@ -5580,28 +5580,62 @@ def _chat_v144(
 
         def run_mock_tool(tool_name, query_arg):
             start = time.time()
-            mock_call = MockFunctionCall(tool_name, {"query": query_arg})
-            res = _execute_function_call(mock_call)
+            raw_result = None
+            try:
+                if tool_name == "search_shopping_mall":
+                    raw_result = company_api.search_shopping_mall_product(query_arg)
+                elif tool_name == "search_local_company_by_product":
+                    raw_result = company_api.search_by_product(query_arg)
+                elif tool_name == "search_local_company_by_license":
+                    raw_result = company_api.search_by_license(query_arg)
+                elif tool_name == "search_company_by_policy":
+                    raw_result = company_api.search_by_policy(query_arg)
+            except Exception as exc:
+                raw_result = {"error": str(exc), "candidates": [], "company_search_status": "failed"}
+
+            if isinstance(raw_result, dict):
+                res = format_company_for_llm(raw_result, max_results=10)
+            else:
+                mock_call = MockFunctionCall(tool_name, {"query": query_arg})
+                res = _execute_function_call(mock_call)
             elapsed = int((time.time() - start) * 1000)
-            return {
+            entry = {
                 "tool_name": tool_name,
                 "status": "success" if "error" not in res else "failed",
                 "result": res,
                 "elapsed_ms": elapsed
             }
+            if isinstance(raw_result, dict):
+                entry["raw_result"] = raw_result
+            return entry
 
         def run_mock_tool_product(tool_name, product_arg):
             """product_name 파라미터를 사용하는 도구용."""
             start = time.time()
-            mock_call = MockFunctionCall(tool_name, {"product_name": product_arg})
-            res = _execute_function_call(mock_call)
+            raw_result = None
+            try:
+                if tool_name == "search_certified_product":
+                    raw_result = company_api.search_certified_product(product_arg)
+                elif tool_name == "search_innovation_product":
+                    raw_result = company_api.search_innovation_product(product_arg)
+            except Exception as exc:
+                raw_result = {"error": str(exc), "candidates": [], "company_search_status": "failed"}
+
+            if isinstance(raw_result, dict):
+                res = format_company_for_llm(raw_result, max_results=10)
+            else:
+                mock_call = MockFunctionCall(tool_name, {"product_name": product_arg})
+                res = _execute_function_call(mock_call)
             elapsed = int((time.time() - start) * 1000)
-            return {
+            entry = {
                 "tool_name": tool_name,
                 "status": "success" if "error" not in res else "failed",
                 "result": res,
                 "elapsed_ms": elapsed
             }
+            if isinstance(raw_result, dict):
+                entry["raw_result"] = raw_result
+            return entry
 
         if should_prefetch_company:
             # 멀티 라우트 검색:

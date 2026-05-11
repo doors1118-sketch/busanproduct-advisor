@@ -420,10 +420,15 @@ def classify_candidates(tool_results: list, user_message: str = "") -> dict:
         t_name = r.get("tool_name", "")
         res_str = r.get("result", "")
         
-        # Try JSON parse first
+        # Try structured candidates first. In the fast multi-route path the
+        # user-facing result is formatted text, while raw_result keeps the API
+        # payload needed for deterministic candidate tables.
         try:
             import json
-            data = json.loads(res_str) if isinstance(res_str, str) else res_str
+            raw_data = r.get("raw_result")
+            data = raw_data if isinstance(raw_data, dict) else (
+                json.loads(res_str) if isinstance(res_str, str) else res_str
+            )
             if isinstance(data, dict):
                 cands = data.get("candidates", data.get("data", []))
                 if cands:

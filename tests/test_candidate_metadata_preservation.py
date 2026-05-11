@@ -9,6 +9,32 @@ from policies.candidate_policy import classify_candidates
 from policies.candidate_formatter import format_candidate_tables
 
 
+def test_classify_candidates_uses_raw_result_when_result_is_formatted_text():
+    raw_candidate = {
+        "company_id": "pc-1",
+        "company_name": "부산컴퓨터",
+        "location": "부산광역시",
+        "main_products": ["데스크톱컴퓨터"],
+        "candidate_types": ["shopping_mall_supplier"],
+        "primary_candidate_type": "shopping_mall_supplier",
+        "shopping_mall_flags": ["mas_registered", "shopping_mall_registered"],
+    }
+    tool_results = [
+        {
+            "tool_name": "search_shopping_mall",
+            "status": "success",
+            "result": "부산 지역업체 검색 결과: 총 1건\n\n1. 부산컴퓨터 (부산광역시) [영업중]\n   품목: 데스크톱컴퓨터",
+            "raw_result": {"candidates": [raw_candidate]},
+        }
+    ]
+
+    classified = classify_candidates(tool_results, "예산 6천만원으로 컴퓨터 구매")
+    table = format_candidate_tables(classified, "예산 6천만원으로 컴퓨터 구매")
+
+    assert classified["shopping_mall_supplier"][0]["company_name"] == "부산컴퓨터"
+    assert "| 쇼핑몰 | 부산컴퓨터 | 부산광역시 | 데스크톱컴퓨터 | 확인 | MAS, 종합쇼핑몰 |" in table
+
+
 def test_shopping_mall_candidate_preserves_mas_policy_and_cert_metadata():
     raw_candidate = {
         "company_id": "x1",
