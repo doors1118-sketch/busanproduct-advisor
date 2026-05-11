@@ -24,6 +24,21 @@ def test_sole_contract_standard():
     assert "1억원 이하" in result.answer
 
 
+def test_vat_threshold_question_uses_vat_basis_fast_answer():
+    result = match_deterministic_legal_answer(
+        "수의계약 한도를 계산할 때 부가가치세를 포함해야 하나요, 제외해야 하나요?"
+    )
+
+    assert result is not None
+    assert result.reason == "vat_threshold_basis_fast_answer"
+    assert "부가가치세를 제외" in result.answer
+    assert "추정가격" in result.answer
+    assert "VAT 제외" in result.answer
+    assert "계약 총액" in result.answer
+    assert "종합공사" not in result.answer
+    assert "전문공사" not in result.answer
+
+
 def test_sole_contract_checklist_question_goes_to_practice_flow():
     result = match_deterministic_legal_answer(
         "번역 용역은 수의계약이나 2인 견적을 검토할 때 어떤 확인사항이 필요해?"
@@ -160,10 +175,31 @@ def test_innovation_product_review_uses_fast_answer():
     assert "계약방법" in result.answer
     assert "구매목표" in result.answer
     assert "금액만으로 배제하지 않는다" in result.answer
+    assert "제25조제1항제8호다목" in result.answer
+    assert "제30조제1항제1호" in result.answer
+    assert "조달사업법" in result.answer
+    assert "1인 견적" in result.answer
     assert "지정·인증 유효성" in result.answer
+    assert "제품명·모델명·규격" in result.answer
+    assert "혁신장터·나라장터" in result.answer
     assert "source map" not in result.answer
     assert "우선구매" in result.answer
     assert scan_final_answer(result.answer)["critical_count"] == 0
+
+
+def test_innovation_product_busan_company_one_quote_unlimited_uses_current_article():
+    result = match_deterministic_legal_answer(
+        "혁신제품으로 지정된 부산 기업 제품은 금액 제한 없이 1인 수의계약이 가능한가요?"
+    )
+
+    assert result is not None
+    assert result.reason == "innovation_product_purchase_fast_answer"
+    assert "1인 견적 수의계약" in result.answer
+    assert "제25조제1항제8호다목" in result.answer
+    assert "제30조제1항제1호" in result.answer
+    assert "제4호 차목" not in result.answer
+    assert "부산 소재" in result.answer
+    assert "가격 적정성" in result.answer
 
 
 def test_tech_development_product_review_uses_fast_answer_without_innovation_keyword():

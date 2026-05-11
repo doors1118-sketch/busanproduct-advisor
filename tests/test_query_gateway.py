@@ -10,6 +10,24 @@ def test_gateway_standard_card_sole_contract_threshold():
     assert result.exclusions == []
 
 
+def test_gateway_vat_threshold_question_is_not_sole_contract_card():
+    result = decide_query_gateway("수의계약 한도를 계산할 때 부가가치세를 포함해야 하나요, 제외해야 하나요?")
+
+    assert result.route == "complex_router"
+    assert result.reason == "no_certain_front_gate_match"
+    assert result.matched_card_id is None
+    assert result.llm_validation_required is True
+
+
+def test_gateway_innovation_product_question_is_not_sole_contract_card():
+    result = decide_query_gateway("혁신제품으로 지정된 부산 기업 제품은 금액 제한 없이 1인 수의계약이 가능한가요?")
+
+    assert result.route == "complex_router"
+    assert result.reason == "no_certain_front_gate_match"
+    assert result.matched_card_id is None
+    assert result.llm_validation_required is True
+
+
 def test_gateway_amount_case_excludes_standard_card():
     result = decide_query_gateway("2억 물품 살 건데 수의계약 가능해?")
 

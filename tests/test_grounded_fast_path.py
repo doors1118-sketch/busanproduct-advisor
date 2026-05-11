@@ -151,6 +151,12 @@ def test_simple_amount_answer_for_18m_goods_mentions_mas_before_one_quote():
     assert "종합쇼핑몰/MAS" in answer
     assert "1인 견적" in answer
     assert answer.index("종합쇼핑몰/MAS") < answer.index("부산 소재 업체와 1인 견적")
+    assert "제25조" in answer
+    assert "제30조" in answer
+    assert "추정가격" in answer
+    assert "예정가격" in answer
+    assert "5천만원" in answer
+    assert "독립적인 수의계약 사유는 아닙니다" in answer
     assert scan["critical_count"] == 0
 
 
@@ -734,6 +740,15 @@ def test_small_goods_direct_contract_gives_clear_one_quote_answer():
     assert "1인 견적" in answer
     assert "2천만원 이하" in answer or "2천만원" in answer
     assert "부산 소재 업체" in answer
+    assert "지방계약법 시행령" in answer
+    assert "제25조" in answer
+    assert "제30조" in answer
+    assert "추정가격/예정가격 구분" in answer
+    assert "여성기업" in answer
+    assert "5천만원" in answer
+    assert "부산 지역상품 구매 확대 지침" in answer
+    assert "독립적인 수의계약 사유는 아닙니다" in answer
+    assert "제77조" in answer
     assert "단정하기 어렵" not in answer
 
 
@@ -770,8 +785,17 @@ def test_social_cooperative_50m_direct_contract_answers_yes_first():
     assert "1인 견적 수의계약" in answer
     assert "지방계약법 시행령" in answer
     assert "제25조" in answer
+    assert "제30조" in answer
     assert "취약계층" in answer
+    assert "30% 이상" in answer
+    assert "사회적협동조합 인가만으로는 부족" in answer
+    assert "수의계약 체결 대상 사회적협동조합 확인서" in answer
+    assert "수의계약 체결 제한 여부 확인서" in answer
+    assert "연간 수의계약 횟수" in answer
+    assert "총량제" in answer
     assert "직접 생산" in answer or "직접생산" in answer
+    assert "가격 적정성" in answer
+    assert "분할발주" in answer
     assert "단정하기 어렵" not in answer
 
 
@@ -789,9 +813,23 @@ def test_software_women_company_45m_mentions_digital_service_mall_and_steps():
     assert "5천만원 이하" in answer or "5,000만 원 이하" in answer
     assert "디지털서비스몰" in answer
     assert "종합쇼핑몰" in answer
+    assert "지방계약법 시행령" in answer
+    assert "제25조" in answer
+    assert "제30조" in answer
+    assert "소프트웨어사업 영향평가" in answer
+    assert "소프트웨어 진흥법" in answer
+    assert "제43조" in answer
+    assert "과업내용 확정 심의" in answer
+    assert "보안성 검토" in answer
     assert "SMPP" in answer
+    assert "소프트웨어사업자 신고확인서" in answer
+    assert "직접생산확인증명서" in answer
+    assert "가격 적정성" in answer
     assert "견적서" in answer
     assert "수의계약 사유서" in answer
+    assert "기술지원확약서" in answer
+    assert "구독형/SaaS" in answer
+    assert "독립적인 수의계약 사유" in answer
     assert "단정하기 어렵" not in answer
 
 
@@ -806,8 +844,21 @@ def test_disabled_company_70m_service_one_quote_says_no_and_two_quote():
     assert "1인 견적 수의계약" in answer
     assert "5천만원 이하" in answer or "5,000만 원 이하" in answer
     assert "처리하기 어렵" in answer
+    assert "지방계약법 시행령" in answer
+    assert "제25조" in answer
+    assert "제30조" in answer
+    assert "추정가격" in answer
+    assert "부가가치세" in answer
+    assert "VAT 포함 총액" in answer
     assert "2인 이상 견적" in answer
+    assert "G2B" in answer
     assert "부산 지역제한" in answer
+    assert "제77조" in answer
+    assert "제92조" in answer
+    assert "직접생산확인증명서" in answer
+    assert "특허" in answer
+    assert "독점 기술" in answer
+    assert "부산업체 지원" in answer
     assert "단정하기 어렵" not in answer
 
 
@@ -818,6 +869,12 @@ def test_split_same_item_contract_warns_against_dividing_to_fit_limit():
     assert "동일 품목" in answer
     assert "분할발주" in answer
     assert "쪼개기" in answer
+    assert "6000만원" in answer or "6,000만" in answer or "60,000,000" in answer
+    assert "제77조" in answer
+    assert "지방자치단체 입찰 및 계약 집행기준" in answer
+    assert "G2B" in answer
+    assert "부산 지역제한" in answer
+    assert "물품분류번호" in answer
     assert "수요를 먼저 합산" in answer
     assert "단정하기 어렵" not in answer
 
@@ -828,9 +885,17 @@ def test_emergency_disaster_construction_mentions_special_exception_before_amoun
 
     assert "긴급 재난 복구" in answer
     assert "수의계약 특례" in answer
+    assert "제25조 제1항 제2호" in answer
     assert "제25조 제1항 제1호" in answer
+    assert "제30조 제1항 제1호" in answer
+    assert "1인 견적" in answer
+    assert "입찰에 부칠 여유" in answer
+    assert "금액 자체" in answer
     assert "긴급성" in answer
-    assert "공종·면허" in answer
+    assert "공종과 면허" in answer
+    assert "무면허" in answer
+    assert "가격 적정성" in answer
+    assert "잔여 공사" in answer
     assert "부산 업체" in answer
     assert "단정하기 어렵" not in answer
 
@@ -840,10 +905,18 @@ def test_academic_research_university_one_quote_requires_unique_expertise():
     answer = _build_grounded_case_timeout_fallback(question)
 
     assert "학술연구용역" in answer
-    assert "항상 1인 수의계약이 가능한 것은 아닙니다" in answer
+    assert "금액 기준만으로는" in answer
     assert "제25조 제1항 제4호" in answer
-    assert "전문성" in answer
-    assert "대체곤란성" in answer
+    assert "차목" in answer
+    assert "제25조 제1항 제5호 마목" in answer
+    assert "제30조 제1항 제1호" in answer
+    assert "제30조 제1항 제2호" in answer
+    assert "2천만원" in answer
+    assert "5천만원" in answer
+    assert "산학협력단" in answer
+    assert "정책기업" in answer
+    assert "2인 이상 견적" in answer
+    assert "대체기관 비교" in answer
     assert "제안서 평가" in answer or "협상계약" in answer
 
 
@@ -853,10 +926,42 @@ def test_innovation_product_unlimited_amount_answer_is_direct_but_conditioned():
 
     assert "혁신제품" in answer
     assert "일반 1인 견적 한도와 별개" in answer
-    assert "제25조 제1항 제8호" in answer
+    assert "제25조 제1항 제8호 다목" in answer
+    assert "제30조 제1항 제1호" in answer
+    assert "조달사업법" in answer
     assert "혁신장터" in answer
+    assert "나라장터" in answer
     assert "지정 상태" in answer
+    assert "가격 적정성" in answer
     assert "바로 집행하지 말고" in answer
+
+
+def test_patent_busan_vendor_200m_requires_specific_subparagraph_and_substitution_review():
+    question = "부산 업체가 특허를 보유하고 있다면 2억 원 규모라도 수의계약이 가능한지 검토해 주세요."
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "특허 보유" in answer
+    assert "2억원" in answer or "2억 원" in answer
+    assert "바로 가능한 것은 아닙니다" in answer
+    assert "제25조 제1항 제4호 가목" in answer
+    assert "일반 특허 수의계약 근거가 아니라" in answer
+    assert "제25조 제1항 제4호 마목" in answer
+    assert "사목" in answer
+    assert "아목" in answer
+    assert "자목" in answer
+    assert "제30조 제1항 제1호" in answer
+    assert "청구항-과업 대응표" in answer
+    assert "대체가능성 검토서" in answer
+    assert "3개 이상" in answer
+    assert "기술사용협약" in answer
+    assert "지방자치단체 입찰 및 계약 집행기준" in answer
+    assert "공법선정위원회" in answer
+    assert "공법선정 안내공고" in answer
+    assert "가격 적정성" in answer
+    assert "부산 업체라는 사정은" in answer
+    assert "조건부" in answer
+    assert "{amount_label}" not in answer
+    assert "단정하기 어렵" not in answer
 
 
 def test_two_quote_regional_limit_amount_question_lists_contract_types():
@@ -1270,6 +1375,55 @@ def test_practice_fast_answer_handles_security_service_regional_license():
     assert "정보통신공사업" in answer
     assert "기술ㆍ학술용역 기준을 경비용역에 그대로 가져오면 안 됩니다" in answer
     assert "행사용역" not in answer
+
+
+def test_practice_fast_answer_handles_unmanned_security_service_regional_bid():
+    answer, cards = _build_practice_manual_fast_answer(
+        "무인경비 용역을 부산 지역제한으로 발주할 수 있나요?",
+        "local_government",
+    )
+
+    assert answer
+    assert "무인경비" in answer
+    assert "기계경비업" in answer
+    assert "시설경비업" in answer
+    assert "지역제한" in answer
+    assert "정보통신공사업" in answer
+    assert "부당제한" in answer
+    assert "행사용역" not in answer
+
+
+def test_practice_fast_answer_handles_public_corp_security_camera_local_priority():
+    answer, cards = _build_practice_manual_fast_answer(
+        "부산 공공기관이 보안용카메라를 구매할 때 지역업체 우선 검토가 가능한가요?",
+        "public_corporation",
+    )
+
+    assert answer
+    assert "공기업ㆍ준정부기관 계약사무규칙" in answer
+    assert "지방계약법이나 부산시 조례의 지역제한 기준을 그대로 가져오지 않습니다" in answer
+    assert "보안용카메라" in answer
+    assert "CCTV" in answer
+    assert "정보통신공사업" in answer
+    assert "무인경비" in answer
+    assert "시장조사 자료" in answer
+    assert "내부 DB 근거 기준으로는 바로 단정하기 어렵습니다" not in answer
+
+
+def test_practice_fast_answer_handles_national_public_corp_cctv_regional_bid():
+    answer, cards = _build_practice_manual_fast_answer(
+        "국가공기업이 부산 지역제한으로 CCTV 구매 입찰을 낼 수 있나요?",
+        "public_corporation",
+    )
+
+    assert answer
+    assert "국가 공기업ㆍ준정부기관" in answer
+    assert "공기업ㆍ준정부기관 계약사무규칙" in answer
+    assert "지방계약법" in answer
+    assert "CCTV" in answer
+    assert "지역제한" in answer
+    assert "자체 계약규정" in answer
+    assert "내부 DB 근거 기준으로는 바로 단정하기 어렵습니다" not in answer
 
 
 def test_practice_fast_answer_handles_service_local_participation_method():

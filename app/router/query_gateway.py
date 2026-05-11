@@ -197,7 +197,36 @@ def _has_procurement_design_question(q: str) -> bool:
     return has_design_term and has_how
 
 
+def _is_vat_threshold_basis_question(q: str) -> bool:
+    compact = re.sub(r"\s+", "", q).lower()
+    has_vat = any(term in compact for term in ("부가가치세", "부가세", "vat"))
+    has_basis_intent = any(
+        term in compact
+        for term in ("포함", "제외", "빼", "산입", "계산", "기준", "추정가격", "예정가격")
+    )
+    has_contract_intent = any(
+        term in compact
+        for term in ("수의계약", "1인견적", "견적", "계약한도", "한도")
+    )
+    return has_vat and has_basis_intent and has_contract_intent
+
+
+def _is_innovation_or_certified_product_contract_question(q: str) -> bool:
+    has_product_status = any(
+        term in q
+        for term in ("혁신제품", "혁신시제품", "혁신장터", "기술개발제품", "우수조달", "성능인증", "gs인증", "nep", "net")
+    )
+    has_contract_intent = any(term in q for term in ("수의계약", "1인", "견적", "우선구매", "금액", "한도"))
+    return has_product_status and has_contract_intent
+
+
 def _standard_card_id(q: str) -> str | None:
+    if _is_vat_threshold_basis_question(q):
+        return None
+
+    if _is_innovation_or_certified_product_contract_question(q):
+        return None
+
     if (
         ("지역제한" in q or "지역제한경쟁" in q)
         and ("종합공사" in q or "건설공사" in q)
