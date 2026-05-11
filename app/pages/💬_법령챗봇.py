@@ -16,8 +16,19 @@ APP_DIR = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = APP_DIR.parent
 load_dotenv(PROJECT_ROOT / ".env")
 load_dotenv(PROJECT_ROOT / "pilot_auth.env")
-if Path("/root/advisor/pilot_auth.env").exists():
-    load_dotenv("/root/advisor/pilot_auth.env")
+
+
+def _load_optional_dotenv(path: str | Path) -> None:
+    """Load compatibility env files only when the service user can read them."""
+    try:
+        env_path = Path(path)
+        if env_path.exists():
+            load_dotenv(env_path)
+    except OSError:
+        return
+
+
+_load_optional_dotenv("/root/advisor/pilot_auth.env")
 
 CHATBOT_API_URL = os.getenv("CHATBOT_API_URL", "http://127.0.0.1:8001/chat")
 REQUEST_TIMEOUT_SECONDS = int(os.getenv("CHAT_REQUEST_TIMEOUT", "120"))
