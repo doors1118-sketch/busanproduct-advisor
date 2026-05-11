@@ -7000,8 +7000,25 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
 
     # LLM 생성 표 감지 및 폐기 (단, 멀티 라우트 사전검색 시에는 LLM 표 보존)
     _multi_route_prefetched = generation_meta.get("tier_resolved") == 2 if generation_meta else False
+    _server_owned_markdown_table = bool(generation_meta and (
+        generation_meta.get("deterministic_template_used", False)
+        or generation_meta.get("model_used") in (
+            "practice_manual_fast_gate",
+            "intent_rag_pps_qa_fast_gate",
+            "deterministic_internal_law_db",
+        )
+        or generation_meta.get("final_answer_source") in (
+            "practice_manual_fast_answer",
+            "intent_rag_pps_qa_fast_answer",
+        )
+    ))
     llm_has_table = bool(re.search(r"\|.*\|.*\n\|.*(?:---|-|:).*\|", answer))
-    if llm_has_table and not _multi_route_prefetched:
+    if llm_has_table and _server_owned_markdown_table:
+        if generation_meta is not None:
+            generation_meta["server_owned_markdown_table_preserved"] = True
+            generation_meta["llm_generated_table_detected"] = False
+            generation_meta["llm_generated_table_discarded"] = False
+    elif llm_has_table and not _multi_route_prefetched:
         # Markdown 표 형태 제거 (멀티 라우트가 아닌 경우에만)
         answer = re.sub(r"(\n?\|.*\|.*)+", "", answer)
         if generation_meta is not None:

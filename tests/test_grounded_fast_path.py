@@ -250,6 +250,48 @@ def test_practice_fast_answer_handles_agency_law_conflict_question():
     assert "질문의도" not in answer
 
 
+def test_practice_fast_answer_preserves_server_owned_comparison_tables(monkeypatch):
+    monkeypatch.setattr(gemini_engine, "NATURAL_LANGUAGE_WRITER_ENABLED", False)
+    question = "국가기관 지역제한경쟁입찰에 지방계약법의 부산 지역제한 기준을 참고해도 되는지, 국가계약 기준과 충돌되는 부분을 비교해줘."
+    answer, cards = _build_practice_manual_fast_answer(question, "national_agency")
+    meta = {
+        "model_used": "practice_manual_fast_gate",
+        "model_decision_reason": "practice_manual_explanation_fast_answer",
+        "tier_resolved": 1,
+        "fast_track_applied": True,
+        "deterministic_template_used": False,
+        "company_table_allowed": False,
+        "legal_conclusion_allowed": False,
+        "candidate_table_source": "none",
+        "answer_schema_version": "practice_manual_explanation_v1",
+        "source_status": "practice_manual_cards",
+        "rag_elapsed_ms": 0,
+        "model_elapsed_ms": 0,
+        "mcp_preflight_elapsed_ms": 0,
+        "tool_call_count": 0,
+        "company_search_status": "not_called",
+        "amount_rewrite_bypass": True,
+        "practice_manual_card_count": len(cards),
+        "skip_citation_verify": True,
+        "final_answer_source": "practice_manual_fast_answer",
+    }
+
+    final_answer, _ = gemini_engine._finalize_answer(
+        answer,
+        [],
+        question,
+        [],
+        gemini_engine.ApiStatus(),
+        generation_meta=meta,
+    )
+
+    assert "| 계약대상 | 국가계약 기준 | 지방계약 기준 | 실무상 충돌 |" in final_answer
+    assert "| 물품·일반용역 |" in final_answer
+    assert "| 종합공사 |" in final_answer
+    assert meta["server_owned_markdown_table_preserved"] is True
+    assert meta["llm_generated_table_discarded"] is False
+
+
 def test_practice_fast_answer_handles_public_corp_law_conflict_question():
     answer, cards = _build_practice_manual_fast_answer(
         "공기업이 부산업체를 우대하려고 할 때 지방계약법, 국가계약법, 공기업 계약사무규칙 중 무엇을 우선 봐야 하는지 설명해줘.",
