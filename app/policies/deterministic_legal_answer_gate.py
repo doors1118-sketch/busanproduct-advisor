@@ -175,7 +175,10 @@ def _is_regional_restriction(q: str) -> bool:
 def _is_agency_law_conflict(q: str) -> bool:
     has_national_or_public = any(term in q for term in ("국가기관", "국가계약", "공기업", "준정부", "공공기관"))
     has_local_law = any(term in q for term in ("지방계약", "지방자치단체", "지자체"))
-    has_conflict_ask = any(term in q for term in ("그대로", "다르", "안되", "안되지", "혼동", "우대"))
+    has_conflict_ask = any(term in q for term in (
+        "그대로", "다르", "안되", "안되지", "혼동", "우대",
+        "참고", "준용", "적용", "충돌", "차이",
+    ))
     return has_national_or_public and has_local_law and has_conflict_ask
 
 

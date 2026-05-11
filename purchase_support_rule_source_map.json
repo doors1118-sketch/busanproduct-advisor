@@ -3675,6 +3675,17 @@
         "source_text_ref": "제24조 제2호 나목 괄호"
       },
       {
+        "parameter_ref": "P_NATIONAL_LIMITED_BID_GOODS_SERVICE_THRESHOLD",
+        "label": "국가기관 물품 및 용역",
+        "resolved_value": 230000000,
+        "unit": "KRW",
+        "display_value": "2억 3천만원",
+        "parameter_status": "resolved",
+        "requires_manual_numeric_verification": false,
+        "source_text_ref": "국가계약법 시행규칙 제24조제2항제2호 + 국가계약법 제4조 고시금액",
+        "verification_note": "국가계약법 시행규칙은 고시금액 연동, 2026-01-08 시행 고시금액 기준 물품 및 용역 2억 3천만원으로 관리"
+      },
+      {
         "parameter_ref": "P_NATIONAL_LIMITED_BID_GENERAL_CONSTRUCTION_THRESHOLD",
         "label": "국가기관 종합공사",
         "resolved_value": 8800000000,
@@ -3684,6 +3695,17 @@
         "requires_manual_numeric_verification": false,
         "source_text_ref": "국가계약법 시행규칙 제24조제2항제1호가목 + 국가계약법 제4조 고시금액",
         "verification_note": "국가계약법 시행규칙은 고시금액 연동, 현행 고시금액 기준 88억원으로 관리"
+      },
+      {
+        "parameter_ref": "P_NATIONAL_LIMITED_BID_SPECIALTY_CONSTRUCTION_THRESHOLD",
+        "label": "국가기관 전문공사 및 그 밖의 공사",
+        "resolved_value": 1000000000,
+        "unit": "KRW",
+        "display_value": "10억원",
+        "parameter_status": "resolved",
+        "requires_manual_numeric_verification": false,
+        "source_text_ref": "국가계약법 시행규칙 제24조제2항제1호나목",
+        "verification_note": "내부 법령 DB 국가계약법 시행규칙 제24조에서 확인"
       },
       {
         "parameter_ref": "P_PUBLIC_CORP_LIMITED_BID_GENERAL_CONSTRUCTION_THRESHOLD",

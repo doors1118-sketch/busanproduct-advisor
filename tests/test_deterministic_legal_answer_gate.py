@@ -36,6 +36,11 @@ def test_agency_law_conflict_does_not_return_construction_threshold_card():
     )
     assert result is None
 
+    result = match_deterministic_legal_answer(
+        "국가기관 지역제한경쟁입찰에 지방계약법의 부산 지역제한 기준을 참고해도 되는지, 국가계약 기준과 충돌되는 부분을 비교해줘."
+    )
+    assert result is None
+
 
 def test_sme_competition_under_100m_small_business_priority_fast_answer():
     result = match_deterministic_legal_answer(

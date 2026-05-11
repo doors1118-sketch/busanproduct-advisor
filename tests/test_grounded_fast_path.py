@@ -227,7 +227,7 @@ def test_practice_fast_answer_handles_incidental_work_question():
 
 def test_practice_fast_answer_handles_agency_law_conflict_question():
     answer, cards = _build_practice_manual_fast_answer(
-        "국가기관이 컴퓨터 구매에서 부산 지역업체를 우대하고 싶을 때 지방계약 지역제한 기준을 그대로 쓰면 안 되지?",
+        "국가기관 지역제한경쟁입찰에 지방계약법의 부산 지역제한 기준을 참고해도 되는지, 국가계약 기준과 충돌되는 부분을 비교해줘.",
         "national_agency",
     )
 
@@ -235,6 +235,19 @@ def test_practice_fast_answer_handles_agency_law_conflict_question():
     assert "국가기관" in answer
     assert "지방계약" in answer
     assert "국가계약" in answer
+    assert "국가계약법 시행령 제21조" in answer
+    assert "국가계약법 시행규칙 제24조" in answer
+    assert "지방계약법 시행령 제20조" in answer
+    assert "부당한 입찰참가자격 제한" in answer
+    assert "물품" in answer
+    assert "용역" in answer
+    assert "종합공사" in answer
+    assert "MAS" in answer
+    assert "업체 후보 추천 제외" in answer
+    assert "품목·규격·금액이 없는 법체계 비교 질문" in answer
+    assert "source map" not in answer
+    assert "종합공사의 지역제한 기준은" not in answer
+    assert "질문의도" not in answer
 
 
 def test_practice_fast_answer_handles_public_corp_law_conflict_question():

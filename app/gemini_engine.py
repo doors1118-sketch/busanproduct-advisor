@@ -1054,8 +1054,17 @@ def _is_practice_manual_fast_query(user_message: str) -> bool:
         and "지역제한" in q
         and any(term in q for term in ("부산", "지역업체", "설명", "관점"))
     )
+    agency_law_conflict_possible_question = (
+        any(term in q for term in ("국가기관", "국가계약", "공기업", "준정부", "공공기관"))
+        and any(term in q for term in ("지방계약", "지방자치단체", "지자체"))
+        and any(term in q for term in (
+            "그대로", "다르", "안되", "안되지", "혼동", "기준", "우대", "지역제한",
+            "참고", "준용", "적용", "충돌", "비교", "차이",
+        ))
+    )
     if (
         not explanatory_possible_question
+        and not agency_law_conflict_possible_question
         and any(term in q for term in ("가능", "되나", "될까", "해도", "할수", "계약해도"))
     ) and any(
         method in q for method in ("수의계약", "지역제한", "공동도급", "입찰", "가점")
@@ -1165,7 +1174,10 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
     is_agency_law_conflict_question = (
         any(term in q for term in ("국가기관", "국가계약", "공기업", "준정부", "공공기관"))
         and any(term in q for term in ("지방계약", "지방자치단체", "지자체"))
-        and any(term in q for term in ("그대로", "다르", "안되", "안되지", "혼동", "기준", "우대", "지역제한"))
+        and any(term in q for term in (
+            "그대로", "다르", "안되", "안되지", "혼동", "기준", "우대", "지역제한",
+            "참고", "준용", "적용", "충돌", "비교", "차이",
+        ))
     )
     is_public_corp_law_conflict_question = (
         is_agency_law_conflict_question
@@ -1475,14 +1487,56 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
         ]
         return "\n".join(sections), cards
     elif is_agency_law_conflict_question:
-        sections.extend([
+        try:
+            from policies.numeric_basis_policy import get_numeric_display
+        except ImportError:
+            from importlib import import_module
+
+            get_numeric_display = import_module("app.policies.numeric_basis_policy").get_numeric_display
+
+        national_goods_service = get_numeric_display("P_NATIONAL_LIMITED_BID_GOODS_SERVICE_THRESHOLD") or "국가계약법 제4조 고시금액 확인 필요"
+        national_general = get_numeric_display("P_NATIONAL_LIMITED_BID_GENERAL_CONSTRUCTION_THRESHOLD") or "국가계약법 제4조 고시금액 확인 필요"
+        national_specialty = get_numeric_display("P_NATIONAL_LIMITED_BID_SPECIALTY_CONSTRUCTION_THRESHOLD") or "국가계약법 시행규칙 제24조 금액 확인 필요"
+        local_general = get_numeric_display("P_LOCAL_LIMITED_BID_GENERAL_CONSTRUCTION_THRESHOLD") or "지방계약법 시행규칙 제24조 금액 확인 필요"
+        local_specialty = get_numeric_display("P_LOCAL_LIMITED_BID_SPECIALTY_CONSTRUCTION_THRESHOLD") or "지방계약법 시행규칙 제24조 금액 확인 필요"
+        local_technical_service = get_numeric_display("P_LOCAL_LIMITED_BID_TECHNICAL_SERVICE_THRESHOLD") or "지방계약법 시행규칙 제24조 금액 확인 필요"
+        local_safety_service = get_numeric_display("P_LOCAL_LIMITED_BID_SAFETY_DIAGNOSIS_SERVICE_THRESHOLD") or "지방계약법 시행규칙 제24조 금액 확인 필요"
+        local_busan_gu_gun = get_numeric_display("P_LOCAL_LIMITED_BID_SEOUL_BUSAN_INCHEON_GU_GUN_THRESHOLD") or "지방계약법 시행규칙 제24조 금액 확인 필요"
+
+        sections = [
+            "### 1. 결론: 비교는 가능하지만 적용 근거로 쓰면 안 됩니다",
+            "- 국가기관은 지역제한경쟁입찰을 설계할 때 **국가계약법 제4조, 국가계약법 시행령 제21조, 국가계약법 시행규칙 제24조**를 우선 적용해야 합니다.",
+            "- 지방계약법의 부산 지역제한 기준은 내부 비교자료로 참고할 수는 있지만, 국가기관 공고문의 법적 근거로 그대로 쓰면 안 됩니다.",
+            "- 지방계약 기준으로 더 넓은 부산 지역제한을 걸면 **부당한 입찰참가자격 제한**, 감사 지적, 입찰취소·무효 또는 탈락업체 분쟁 리스크가 생깁니다.",
             "",
-            "### 2. 기관유형 충돌 확인",
-            "- **국가기관**이 발주하는 경우에는 원칙적으로 국가계약법령과 해당 기관의 계약예규·조달 관련 규정을 먼저 봐야 합니다.",
-            "- **지방계약** 지역제한 기준은 지방자치단체 발주를 전제로 한 기준이므로, 국가기관 컴퓨터 구매에 그대로 적용한다고 보기는 어렵습니다.",
-            "- 부산 지역업체를 고려하려면 국가기관 기준에서 허용되는 종합쇼핑몰/MAS, 제3자단가, 중소기업자간 경쟁제품, 직접생산확인, 우수조달·혁신제품, 평가항목 설계 가능성을 따로 검토합니다.",
-            "- 업체 후보표는 구매전략 보조자료로는 쓸 수 있지만, 기관유형에 맞는 법적 근거 없이 `부산업체 우대` 결론으로 바로 연결하면 안 됩니다.",
-        ])
+            "### 2. 법체계 충돌 포인트",
+            "| 구분 | 국가기관 | 지방자치단체 | 충돌 포인트 |",
+            "|---|---|---|---|",
+            "| 적용 법령 | 국가계약법령 | 지방계약법령 | 발주기관 유형이 달라 서로 준용할 수 없습니다. |",
+            "| 지역제한 근거 | 국가계약법 시행령 제21조 및 시행규칙 제24조 | 지방계약법 시행령 제20조 및 시행규칙 제24조 | 조문, 위임 고시, 금액 체계가 다릅니다. |",
+            "| 본점 소재지 제한 | 국가계약법령상 허용 범위 안에서만 가능 | 지방계약법령상 허용 범위 안에서 가능 | 같은 `부산 제한` 문구라도 근거 법령이 다르면 위법 판단이 달라집니다. |",
+            "",
+            "### 3. 계약대상별 기준 충돌 비교",
+            "| 계약대상 | 국가계약 기준 | 지방계약 기준 | 실무상 충돌 |",
+            "|---|---|---|---|",
+            f"| 물품·일반용역 | 국가계약법 제4조 고시금액 미만({national_goods_service}) | 행정안전부장관 고시금액 미만. 부산 관할 군·구 등은 {local_busan_gu_gun} 기준이 별도로 보입니다. | 국가기관이 지방의 더 넓은 금액 기준을 가져와 부산 제한을 걸면 부당제한 소지가 큽니다. |",
+            f"| 건설기술·설계·엔지니어링 등 용역 | 국가계약법 제4조 고시금액 미만({national_goods_service}) | 건설기술·건축설계·엔지니어링 용역은 {local_technical_service}, 안전점검·정밀안전진단 용역은 {local_safety_service} | 용역은 공사 기준을 가져오면 안 되고, 국가·지방의 위임 고시와 세부 용역 구분을 따로 봐야 합니다. |",
+            f"| 종합공사 | {national_general} 미만 | {local_general} 미만 | 차이가 가장 커서 지방 기준을 국가기관에 적용하면 즉시 감사 리스크가 커집니다. |",
+            f"| 전문공사 및 그 밖의 공사 | {national_specialty} 미만 | {local_specialty} 미만 | 숫자가 같아 보이는 구간도 공고문 근거는 국가계약법령으로 써야 합니다. |",
+            "",
+            "### 4. 국가기관이 부산업체를 합법적으로 고려하는 방법",
+            "- **지역제한경쟁입찰**: 추정가격과 계약대상이 국가계약법 시행규칙 제24조 범위 안에 있을 때만 부산 본점 소재지 제한을 검토합니다.",
+            "- **공동계약·지역업체 참여**: 금액이 지역제한 범위를 넘는 경우에는 지역제한 대신 공동수급 허용, 수행체계, 현장 대응성 등 국가계약 체계에서 허용되는 장치를 검토합니다.",
+            "- **종합쇼핑몰/MAS**: MAS·제3자단가 구매라면 지역제한 공고가 아니라 납품 가능 지역, A/S, 현장지원, MAS 2단계경쟁 평가항목 등 조달청 기준 안에서 부산업체 활용 가능성을 봅니다.",
+            "- **규격·평가항목 설계**: `부산업체라서 우대`가 아니라 납기, 유지보수, 현장 대응, 지역 내 서비스망처럼 계약 이행과 직접 관련된 객관 요소로 정리해야 합니다.",
+            "- **업체 후보 추천 제외**: 이 질문은 품목·규격·금액이 없는 법체계 비교 질문이므로 특정 부산업체 후보를 추천하지 않습니다. 후속 질문에서 구매 품목과 금액이 제시될 때만, 법적으로 가능한 경로 안에서 부산 조달등록 업체, 직접생산확인 업체, 기술개발·혁신제품 보유 업체 후보를 붙여 검토합니다.",
+            "",
+            "### 5. 최종 판단",
+            "- 국가기관은 지방계약법의 부산 지역제한 기준을 **비교표나 내부 검토자료로 참고**할 수는 있습니다.",
+            "- 하지만 실제 입찰공고, 참가자격, 낙찰자 결정 기준에는 반드시 **국가계약법령상 지역제한 가능 금액과 제한 근거**를 써야 합니다.",
+            "- 따라서 질문의 핵심 답은 `지방계약 기준을 참고는 하되, 적용은 국가계약 기준으로만 한다`입니다.",
+        ]
+        return "\n".join(sections), cards
     elif is_fire_facility_construction_question:
         sections.extend([
             "",
