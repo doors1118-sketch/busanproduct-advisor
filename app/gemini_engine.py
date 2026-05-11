@@ -5696,55 +5696,48 @@ def _chat_v144(
 
         print(f"  [MULTI-ROUTE] tier=2, amount={amount_detected}, query='{query}', prefetched={len(all_tool_results)} tools", flush=True)
         if should_prefetch_company and os.getenv("BYPASS_MULTI_ROUTE_LLM", "true").lower() == "true":
-            company_sections = []
             policy_company_sections_skipped = False
             hidden_prefetch_candidate_types = set(
                 (locals().get("route_candidate_display_options") or {}).get("hidden_candidate_types", [])
             )
-            for tr in all_tool_results:
-                tool_name = tr.get("tool_name", "")
-                if not (
-                    "company" in tool_name
-                    or "shopping_mall" in tool_name
-                    or "certified_product" in tool_name
-                    or "innovation_product" in tool_name
-                ):
-                    continue
-                if "company_by_policy" in tool_name and "policy_company" in hidden_prefetch_candidate_types:
-                    policy_company_sections_skipped = True
-                    continue
-                result_text = str(tr.get("result", "") or "").strip()
-                if result_text:
-                    company_sections.append(f"#### {_company_tool_label(tool_name)}\n{result_text[:2500]}")
+            policy_company_sections_skipped = "policy_company" in hidden_prefetch_candidate_types
 
-            route_answer_parts = [
-                "### 판단 요약",
-                f"- 질문 조건은 **{_display_amount_for_answer(amount_detected, user_message)} 규모의 {legacy_router_meta['company_prefetch_canonical_item'] or query} 구매 검토**입니다.",
-                "- 일반 소액 수의계약만으로 단정하기보다, 금액 기준과 품목 특성을 함께 보면서 지역상품 구매 경로를 나누어 검토하는 편이 안전합니다.",
+            from policies.candidate_policy import classify_candidates, get_candidate_counts
+            from policies.candidate_formatter import format_candidate_tables
+            from policies.practical_answer_template import build_multi_route_practical_answer_parts
+
+            classified_candidates = classify_candidates(all_tool_results, user_message)
+            candidate_counts = get_candidate_counts(classified_candidates)
+            formatter_options = {
+                "hidden_candidate_types": (
+                    locals().get("route_candidate_display_options") or {}
+                ).get("hidden_candidate_types", []),
+                "preferred_order": (
+                    locals().get("route_candidate_display_options") or {}
+                ).get("preferred_candidate_order", []),
+                "max_rows_per_table": 8,
+            }
+            candidate_table_text = format_candidate_tables(
+                classified_candidates,
+                user_message,
                 "",
-                "### 구매 경로 검토",
-                _clean_route_guidance_for_answer(route_guidance_context) or "- 지역제한, 종합쇼핑몰/MAS, 정책기업, 인증제품 여부를 함께 확인하세요.",
-                _clean_catalog_guidance_for_answer(catalog_guidance_context),
-                render_practice_manual_cards_for_answer(practice_manual_cards),
-                render_pps_qa_cards_for_answer(pps_qa_cards),
-                "",
-                "### 업체 후보 및 확인 포인트",
-            ]
-            if company_sections:
-                route_answer_parts.extend(company_sections)
-                if policy_company_sections_skipped:
-                    route_answer_parts.append(
-                        "- 정책기업 1인 견적 경로는 금액상 우선 제외되어 정책기업 전용 후보표는 생략했습니다. "
-                        "후보 업체 상세조회에서 여성기업ㆍ장애인기업ㆍ사회적기업 등 정책기업 여부를 별도 확인하세요."
-                    )
-            else:
-                route_answer_parts.append("- 현재 사전검색 결과에서 바로 표시할 업체 후보가 부족합니다. 품목명 또는 세부 규격을 더 구체화해 재검색하세요.")
-            route_answer_parts.extend([
-                "",
-                "### 다음 확인사항",
-                "- 후보 업체의 조달등록, 종합쇼핑몰 등록, 정책기업 여부, 인증제품 상태, 세부품명 일치 여부를 계약 전 확인하세요.",
-                "- 이 답변은 내부 법령 DB와 업체 API 사전조회 결과를 조합한 실무 검토용 안내입니다.",
-            ])
+                **formatter_options,
+            )
+            candidate_export_count = sum(len(rows) for rows in classified_candidates.values())
+
+            route_answer_parts = build_multi_route_practical_answer_parts(
+                amount_label=_display_amount_for_answer(amount_detected, user_message),
+                item_label=legacy_router_meta["company_prefetch_canonical_item"] or query,
+                contract_object=contract_object_for_prefetch,
+                route_guidance=_clean_route_guidance_for_answer(route_guidance_context)
+                or "- 지역제한, 종합쇼핑몰/MAS, 정책기업, 인증제품 여부를 함께 확인하세요.",
+                catalog_guidance="",
+                practice_manual_text="",
+                pps_qa_text="",
+                candidate_table_text=candidate_table_text,
+                candidate_export_row_count=candidate_export_count if candidate_export_count > 8 else 0,
+                policy_company_sections_skipped=policy_company_sections_skipped,
+            )
 
             api_status = ApiStatus()
             _multi_route_fast_meta = {
@@ -5786,6 +5779,9 @@ def _chat_v144(
                 "complex_judgment_card_count": len(complex_judgment_cards),
                 "practice_manual_card_count": len(practice_manual_cards),
                 "pps_qa_card_count": len(pps_qa_cards),
+                "classified_candidate_count": candidate_export_count,
+                "candidate_counts_by_type": candidate_counts,
+                "formatter_output_chars": len(candidate_table_text or ""),
                 "skip_citation_verify": True,
             }
             return _finalize_answer(

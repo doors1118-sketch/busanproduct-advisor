@@ -46,9 +46,9 @@ _PRIORITY_LABELS = {
 
 _ROUTE_TITLE_SHORT_LABELS = {
     "general_small_value_direct": "일반 1인견적",
-    "two_quote_small_value": "2인견적",
-    "shopping_mall_mas": "종합쇼핑몰/MAS",
-    "sme_competition_direct_production": "중기간경쟁/직생",
+    "two_quote_small_value": "지역제한 2인견적",
+    "shopping_mall_mas": "종합쇼핑몰(MAS) 직접구매",
+    "sme_competition_direct_production": "중기간경쟁/직접생산",
     "innovation_product": "혁신제품",
     "technology_development_product": "인증제품",
     "policy_company_one_quote": "정책기업 1인견적",
@@ -81,9 +81,9 @@ _CANDIDATE_TYPE_ORDER = [
 ]
 
 _ROUTE_DISPLAY_ORDER = {
-    "policy_company_one_quote": 10,
+    "policy_company_one_quote": 5,
+    "shopping_mall_mas": 10,
     "two_quote_small_value": 20,
-    "shopping_mall_mas": 30,
     "sme_competition_direct_production": 40,
     "local_company_competitive": 50,
     "technology_development_product": 60,
@@ -235,6 +235,19 @@ def _two_quote_status(amount: int | None) -> tuple[str, str, str, str]:
     ref = "P_LOCAL_DIRECT_SMALL_BUSINESS_THRESHOLD"
     threshold = _money(ref)
     compare = compare_amount(amount, ref)
+    general_one_quote_value = get_numeric_value("P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD")
+    if (
+        compare == "below_or_equal"
+        and isinstance(general_one_quote_value, (int, float))
+        and isinstance(amount, (int, float))
+        and amount <= general_one_quote_value
+    ):
+        return (
+            "viable_check",
+            f"{threshold} 이하 2인 이상 견적도 가능",
+            "질문 금액은 일반 1인 견적 검토 구간이므로 2인 이상 견적은 경쟁성을 높이는 대안 경로로 봅니다.",
+            "secondary",
+        )
     if compare == "below_or_equal":
         return (
             "viable_check",
@@ -334,8 +347,6 @@ def _policy_one_quote(amount: int | None, object_label: str) -> tuple[str, str, 
 
 
 def _candidate_priority(status: str, default: str = "secondary") -> str:
-    if status == "candidate_found":
-        return "primary"
     return default
 
 
@@ -364,7 +375,18 @@ def _mas_route_status(
     mas_sme_threshold = _money("P_MAS_SECOND_STAGE_SME_COMPETITION_THRESHOLD")
     general_value = get_numeric_value("P_MAS_SECOND_STAGE_GENERAL_PRODUCT_THRESHOLD")
     sme_value = get_numeric_value("P_MAS_SECOND_STAGE_SME_COMPETITION_THRESHOLD")
+    policy_one_quote_value = get_numeric_value("P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD")
     likely_sme = _is_likely_sme_competition_item(item_name)
+
+    def direct_purchase_priority() -> str:
+        if (
+            likely_sme
+            and isinstance(policy_one_quote_value, (int, float))
+            and isinstance(amount, (int, float))
+            and amount <= policy_one_quote_value
+        ):
+            return "secondary"
+        return "primary"
 
     if amount is None or not isinstance(general_value, (int, float)) or not isinstance(sme_value, (int, float)):
         base = (
@@ -379,7 +401,7 @@ def _mas_route_status(
 
     if amount < general_value:
         meaning = (
-            f"{item_name or '해당 물품'}이 종합쇼핑몰/MAS 등록 물품이면 일반 제품 기준({mas_general_threshold})에도 못 미치므로 "
+            f"{item_name or '해당 물품'} 품목이 종합쇼핑몰/MAS 등록 물품이면 일반 제품 기준({mas_general_threshold})에도 못 미치므로 "
             "2단계 경쟁보다 납품요구·직접구매 가능성을 먼저 확인합니다."
         )
         if likely_sme:
@@ -387,23 +409,19 @@ def _mas_route_status(
                 f" 노트북·컴퓨터류가 중소기업자간 경쟁제품 세부품명에 해당하면 기준은 {mas_sme_threshold} 이상이므로, "
                 "질문 금액은 2단계 경쟁 기준 미만입니다."
             )
-        if candidate_count is not None:
-            return candidate_status, candidate_label, meaning, _candidate_priority(candidate_status, "secondary")
-        return "mas_direct_check", "2단계 기준 미만", meaning, "primary"
+        return "mas_direct_check", "2단계 기준 미만", meaning, direct_purchase_priority()
 
     if likely_sme and amount < sme_value:
         meaning = (
-            f"{item_name or '해당 물품'}이 중소기업자간 경쟁제품 세부품명에 해당하면 MAS 2단계 경쟁 기준은 "
+            f"{item_name or '해당 물품'} 품목이 중소기업자간 경쟁제품 세부품명에 해당하면 MAS 2단계 경쟁 기준은 "
             f"{mas_sme_threshold} 이상이므로 질문 금액은 직접구매 가능성을 먼저 확인합니다. "
             f"다만 일반 제품으로 보면 {mas_general_threshold} 이상 구간이므로 세부품명 확인이 필요합니다."
         )
-        if candidate_count is not None:
-            return candidate_status, candidate_label, meaning, _candidate_priority(candidate_status, "secondary")
         return (
             "mas_direct_check",
-            "중기제품 직접구매 확인",
+            "중기제품 직접구매 우선",
             meaning,
-            "primary",
+            direct_purchase_priority(),
         )
 
     meaning = (
@@ -502,7 +520,7 @@ def build_purchase_route_cards(
             practical_meaning="물품은 세부품명이 중소기업자간 경쟁제품 또는 직접생산확인 대상인지 먼저 확인해야 하며, 해당되면 참가자격과 후보 업체 풀이 달라집니다.",
             required_checks=["세부품명번호", "중소기업자간 경쟁제품 해당 여부", "직접생산확인 필요 여부", "부산 소재 조달업체 여부"],
             evidence_topics=["sme_competition", "direct_production", "local_company"],
-            route_priority="primary",
+            route_priority="reference",
             legal_refs=["중소기업제품 구매촉진 및 판로지원에 관한 법률", "중소기업자간 경쟁제품 직접생산 확인기준"],
             candidate_table_types=("local_procurement_company",),
             candidate_lookup_policy="local_company",
@@ -515,7 +533,7 @@ def build_purchase_route_cards(
             practical_meaning="혁신제품 또는 혁신시제품 후보가 있으면 지정 상태와 제품 일치 여부를 확인한 뒤 수의계약 특례·혁신장터 구매 가능성을 검토합니다.",
             required_checks=["혁신제품 지정 상태", "혁신장터 등록 여부", "구매 품목과 지정 제품의 일치", "수요기관 적용 법령"],
             evidence_topics=["innovation_product", "priority_purchase", "direct_contract_exception"],
-            route_priority=_candidate_priority(innovation_status),
+            route_priority=_candidate_priority(innovation_status, "reference"),
             legal_refs=["혁신제품 구매 운영 규정", "혁신제품 시범구매계약 추가특수조건"],
             candidate_table_types=("innovation_product",),
             candidate_lookup_policy="innovation_product",
@@ -528,7 +546,7 @@ def build_purchase_route_cards(
             practical_meaning="성능인증, NEP, NET, GS, 우수조달물품 등 인증제품 후보가 있으면 우선구매 또는 수의계약 가능성을 검토합니다.",
             required_checks=["인증 유형", "인증 상태", "인증제품명과 구매품목 일치", "조달등록 또는 쇼핑몰 등록 여부"],
             evidence_topics=["technology_development_product", "priority_purchase", "excellent_procurement"],
-            route_priority=_candidate_priority(cert_status),
+            route_priority=_candidate_priority(cert_status, "reference"),
             legal_refs=["중소기업제품 구매촉진 및 판로지원에 관한 법률", "중소기업제품 구매촉진법 시행령", "우수조달물품 지정관리 규정"],
             candidate_table_types=("priority_purchase_product",),
             candidate_lookup_policy="priority_purchase_product",
@@ -556,7 +574,7 @@ def build_purchase_route_cards(
             practical_meaning="수의계약이 곧바로 어렵거나 견적 경쟁이 필요하면 부산 조달등록 업체를 후보로 놓고 지역제한, 평가요소, 쇼핑몰 경로를 함께 검토합니다.",
             required_checks=["부산 소재 여부", "조달등록/영업상태", "직접생산확인", "면허·업종·규격 적합성"],
             evidence_topics=["regional_restriction", "local_company_point", "direct_production"],
-            route_priority=_candidate_priority(local_status),
+            route_priority=_candidate_priority(local_status, "reference"),
             legal_refs=["지방계약법 시행규칙 제24조", "지방자치단체 입찰시 낙찰자 결정기준", "지역업체 정의"],
             candidate_table_types=("local_procurement_company",),
             candidate_lookup_policy="local_company",
@@ -826,6 +844,16 @@ def _format_route_display_judgment(card: PurchaseRouteCard) -> str:
     return card.user_label
 
 
+def _format_route_display_priority(card: PurchaseRouteCard, rank: int) -> str:
+    if card.route_priority == "excluded":
+        return "제외"
+    if card.route_id == "sme_competition_direct_production":
+        return "필수확인"
+    if card.route_priority == "reference":
+        return "참고"
+    return f"{rank}순위"
+
+
 def _route_display_sort_key(card: PurchaseRouteCard) -> tuple[int, int, str]:
     return (
         _ROUTE_PRIORITY_ORDER.get(card.route_priority, 9),
@@ -871,10 +899,13 @@ def format_purchase_route_guidance_for_llm(
         "| 순위 | 경로 | 판단 | 법적 근거 | 실무 의미 |",
         "|---|---|---|---|---|",
     ]
+    route_rank = 1
     for card in sorted(cards, key=_route_display_sort_key):
         if card.display_policy == "hide":
             continue
-        priority = _PRIORITY_LABELS.get(card.route_priority, card.route_priority)
+        priority = _format_route_display_priority(card, route_rank)
+        if card.route_priority in {"primary", "secondary"}:
+            route_rank += 1
         refs = ", ".join(card.legal_refs[:3]) or ", ".join(card.evidence_topics[:3])
         title = _format_route_display_title(card)
         judgment = _format_route_display_judgment(card)

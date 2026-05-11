@@ -42,10 +42,19 @@ def test_60m_computer_prefers_two_quote_mas_and_hides_policy_table():
     assert by_id["general_small_value_direct"].route_priority == "excluded"
     assert by_id["two_quote_small_value"].route_priority == "primary"
     assert by_id["shopping_mall_mas"].route_priority == "primary"
-    assert by_id["sme_competition_direct_production"].route_priority == "primary"
+    assert by_id["sme_competition_direct_production"].route_priority == "reference"
     assert by_id["policy_company_one_quote"].route_priority == "excluded"
     assert "policy_company" in options["hidden_candidate_types"]
     assert "shopping_mall_supplier" in options["preferred_candidate_order"]
+
+    context = format_purchase_route_guidance_for_llm(
+        amount=60_000_000,
+        item_name="컴퓨터",
+        contract_object="goods",
+        tool_results=[],
+    )
+    assert context.index("| 1순위 | 종합쇼핑몰(MAS) 직접구매 |") < context.index("| 2순위 | 지역제한 2인견적 |")
+    assert "| 제외 | 정책기업 1인견적 | 5천만원 초과 |" in context
 
 
 def test_route_guidance_uses_company_tool_counts_as_candidates():
@@ -84,7 +93,7 @@ def test_45m_notebook_marks_policy_two_quote_and_mas_direct_check():
     mas = by_id["shopping_mall_mas"]
     assert mas.status == "mas_direct_check"
     assert mas.user_label == "2단계 기준 미만"
-    assert mas.route_priority == "primary"
+    assert mas.route_priority == "secondary"
     assert "노트북" in mas.practical_meaning
     assert "5천만원" in mas.practical_meaning
     assert "1억원" in mas.practical_meaning
@@ -95,8 +104,8 @@ def test_45m_notebook_marks_policy_two_quote_and_mas_direct_check():
         contract_object="goods",
         tool_results=[],
     )
-    assert context.index("| 우선 | 정책기업 1인견적 |") < context.index("| 우선 | 2인견적 |")
-    assert context.index("| 우선 | 2인견적 |") < context.index("| 우선 | 종합쇼핑몰/MAS |")
+    assert context.index("| 1순위 | 정책기업 1인견적 |") < context.index("| 2순위 | 지역제한 2인견적 |")
+    assert context.index("| 2순위 | 지역제한 2인견적 |") < context.index("| 3순위 | 종합쇼핑몰(MAS) 직접구매 |")
     assert "지방계약법 시행령 제25조" in context
     assert "지방계약법 시행령 제30조" in context
     assert "물품 다수공급자계약 2단계경쟁 업무처리기준" in context
@@ -121,7 +130,7 @@ def test_policy_company_one_quote_is_not_always_first_below_general_one_quote_li
         contract_object="goods",
         tool_results=[],
     )
-    assert context.index("| 우선 | 일반 1인견적 |") < context.index("| 보조 | 정책기업 1인견적 |")
+    assert context.index("| 1순위 | 일반 1인견적 |") < context.index("| 2순위 | 정책기업 1인견적 |")
 
 
 def test_purchase_route_guidance_requires_legal_basis_per_visible_route():

@@ -45,5 +45,6 @@ def test_route_candidate_counts_use_requested_item_relevance():
         ],
     )
 
-    assert "| 우선 | 종합쇼핑몰/MAS | 후보 1건 |" in context
-    assert "| 보조 | 인증제품 | 후보 미확인 |" in context
+    assert "| 1순위 | 종합쇼핑몰(MAS) 직접구매 | 중기제품 직접구매 우선 |" in context
+    assert "| 2순위 | 지역제한 2인견적 | 검토 가능 |" in context
+    assert "| 참고 | 인증제품 | 후보 미확인 |" in context
