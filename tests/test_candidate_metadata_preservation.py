@@ -168,6 +168,34 @@ def test_candidate_only_cctv_answer_suppresses_contract_routes_and_groups_streng
     assert "구매 경로별" not in table
 
 
+def test_candidate_only_brief_request_limits_rows_per_group():
+    classified = {
+        "shopping_mall_supplier": [],
+        "local_procurement_company": [
+            {
+                "company_id": f"cctv-{idx}",
+                "company_name": f"주식회사 테스트{idx}",
+                "location": "부산광역시",
+                "main_products": ["CCTV카메라"],
+                "candidate_types": ["local_procurement_company"],
+                "primary_candidate_type": "local_procurement_company",
+            }
+            for idx in range(7)
+        ],
+        "policy_company": [],
+        "innovation_product": [],
+        "priority_purchase_product": [],
+    }
+
+    table = format_candidate_tables(
+        classified,
+        "CCTV 부산업체 후보만 간단히 찾아줘. 계약 가능 여부 판단은 빼줘.",
+    )
+
+    assert table.count("주식회사 테스트") == 5
+    assert "... 외 2건" in table
+
+
 def test_irrelevant_certified_product_candidates_are_filtered_by_item():
     raw_candidate = {
         "company_id": "x2",

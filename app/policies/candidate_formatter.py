@@ -337,6 +337,17 @@ def _is_candidate_only_request(user_message: str) -> bool:
     return False
 
 
+def _candidate_only_row_limit(user_message: str, max_rows_per_table: int) -> int:
+    compact = (user_message or "").replace(" ", "").lower()
+    if any(term in compact for term in ("전체", "모두", "전부")):
+        return max_rows_per_table
+    if any(term in compact for term in ("간단", "간략", "요약", "주요")):
+        if not max_rows_per_table or max_rows_per_table <= 0:
+            return 5
+        return min(max_rows_per_table, 5)
+    return max_rows_per_table
+
+
 def _is_cctv_question(user_message: str) -> bool:
     compact = (user_message or "").replace(" ", "").lower()
     return any(term in compact for term in ("cctv", "씨씨티비", "보안용카메라", "감시카메라", "영상감시"))
@@ -483,6 +494,7 @@ def _format_candidate_only_tables(relevant_rows_by_type: dict, order: list, user
     rows = _flatten_candidate_rows_for_display(relevant_rows_by_type, order)
     if not rows:
         return ""
+    row_limit = _candidate_only_row_limit(user_message, max_rows_per_table)
     for row in rows:
         row["_candidate_group"] = _candidate_group_label(row, user_message)
 
@@ -511,12 +523,12 @@ def _format_candidate_only_tables(relevant_rows_by_type: dict, order: list, user
     remaining_total = 0
     for group in group_order:
         group_rows = grouped[group]
-        display_rows = group_rows[:max_rows_per_table] if max_rows_per_table and max_rows_per_table > 0 else group_rows
+        display_rows = group_rows[:row_limit] if row_limit and row_limit > 0 else group_rows
         answer += f"**[표 {table_no}] {group}**\n"
         answer += _build_candidate_only_table(display_rows)
         answer += "\n\n"
-        if max_rows_per_table and len(group_rows) > max_rows_per_table:
-            remaining_total += len(group_rows) - max_rows_per_table
+        if row_limit and len(group_rows) > row_limit:
+            remaining_total += len(group_rows) - row_limit
         table_no += 1
 
     if remaining_total:
