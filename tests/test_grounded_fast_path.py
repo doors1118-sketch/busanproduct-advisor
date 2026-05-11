@@ -589,6 +589,29 @@ def test_practice_fast_answer_handles_price_terms():
     assert "관급자재" in answer
 
 
+def test_practice_fast_answer_handles_goods_purchase_workflow():
+    answer, cards = _build_practice_manual_fast_answer(
+        "물품 구매 절차를 기본계획부터 검수와 대금지급까지 흐름으로 안내해줘.",
+        "local_government",
+    )
+
+    assert answer
+    assert "물품 구매 표준 워크플로우" in answer
+    assert "먼저 정해야 할 법체계" in answer
+    assert "국가계약법" in answer
+    assert "지방계약법" in answer
+    assert "공기업·준정부기관 계약사무규칙" in answer
+    assert "| 단계 | 핵심 의사결정 | 산출물·데이터 | 법적 허들 |" in answer
+    assert "기본계획" in answer
+    assert "추정가격" in answer
+    assert "VAT" in answer
+    assert "종합쇼핑몰/MAS" in answer
+    assert "검사·검수" in answer
+    assert "대금지급" in answer
+    assert "지역업체 구매 확대" in answer
+    assert "해제·해지" not in answer
+
+
 def test_practice_fast_answer_handles_specific_brand_spec_question():
     answer, cards = _build_practice_manual_fast_answer(
         "특정 브랜드 노트북만 규격서에 넣으면 부당제한이 될 수 있어? 동등 이상 표현은 어떻게 써야 해?",
