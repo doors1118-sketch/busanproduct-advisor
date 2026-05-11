@@ -33,6 +33,24 @@ def test_route_resolver_turns_amount_item_question_into_multi_section_plan():
     assert plan.candidate_policy["include_route_relevant_only"] is True
 
 
+def test_route_resolver_amountless_item_local_mas_question_still_prefetches_candidates():
+    question = "냉난방기 구매는 종합쇼핑몰로 처리할 수 있는지, 부산업체 고려는 어떻게 하는지 알려줘."
+
+    frame = build_intent_frame(question)
+    plan = resolve_route_plan(frame)
+
+    assert frame.amount is None
+    assert frame.item_name == "냉난방기"
+    assert frame.local_purchase_support_required is True
+    assert frame.has_contract_method is True
+    assert plan.query_tier == 2
+    assert plan.execution_mode == "evidence_prefetch"
+    assert plan.company_search_mode == "route_relevant_candidates"
+    assert "company_candidates" in plan.retrieval_needs
+    assert "purchase_route_cards" in plan.retrieval_needs
+    assert "purchase_intent_implies_route_relevant_candidates" in plan.reasons
+
+
 def test_route_resolver_blocks_company_candidates_when_user_says_no_company_names():
     question = "CCTV 부산업체 활용 방법 알려줘. 업체명 추천은 필요 없어"
     keyword = keyword_pre_route(question)

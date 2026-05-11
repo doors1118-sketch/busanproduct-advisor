@@ -800,7 +800,10 @@ def _should_prefetch_company_routes(user_message: str, router_result=None, inten
         for kw in ["지역업체", "부산업체", "부산 업체", "업체", "후보", "추천", "찾아", "있어", "있는지"]
     )
     fallback_purchase_case_intent = (
-        _parse_amount(user_message) is not None
+        (
+            _parse_amount(user_message) is not None
+            or _is_route_relevant_item_purchase_question(user_message)
+        )
         and any(kw in user_message for kw in ["사려고", "살려고", "하려고", "맡기", "구매", "구입", "발주", "납품", "용역", "공사", "어떻게"])
     )
 
@@ -831,6 +834,62 @@ def _should_prefetch_company_routes(user_message: str, router_result=None, inten
     if fallback_purchase_case_intent:
         return True, query, "amount_item_purchase_case_support"
     return False, query, "fallback_no_company_intent"
+
+
+def _is_route_relevant_item_purchase_question(user_message: str) -> bool:
+    """품목이 정해진 구매/발주 질문에서 지역업체 후보와 경로를 함께 봐야 하는지 판단한다."""
+    if not user_message:
+        return False
+    compact = re.sub(r"[\s\-_·ㆍ,]+", "", user_message.lower())
+    if re.search(r"(업체명|업체추천|업체후보|후보|목록|리스트|검색|조회)(?:은|는)?(?:필요없|빼|제외|말고|하지마)", compact):
+        return False
+
+    try:
+        try:
+            from app.router.intent_normalization import normalize_query_intent
+        except ImportError:
+            from router.intent_normalization import normalize_query_intent
+        norm = normalize_query_intent(user_message)
+        item_name = norm.item_name or norm.item_search_term
+        contract_object = norm.contract_object
+        local_support = norm.local_support_requested
+        company_blocked = norm.company_lookup_blocked
+    except Exception:
+        item_name = ""
+        contract_object = ""
+        local_support = False
+        company_blocked = False
+
+    if company_blocked:
+        return False
+    if contract_object and contract_object != "goods":
+        return False
+    if not item_name:
+        item_name = _resolve_company_item_query(user_message, None)
+        if any(term in compact for term in (
+            "국가기관", "국가계약", "지방계약", "공기업", "준정부", "공공기관",
+            "출자출연", "지역제한경쟁입찰", "참가자격", "면허요건", "용역계약",
+            "공사", "용역",
+        )):
+            return False
+    if not _is_specific_item_keyword(item_name):
+        return False
+
+    has_purchase_action = any(term in compact for term in (
+        "구매", "구입", "사려", "살건", "사면", "발주", "납품",
+        "처리", "도입", "설치", "유지보수",
+    ))
+    has_procurement_route = any(term in compact for term in (
+        "종합쇼핑몰", "mas", "다수공급자", "나라장터", "제3자단가",
+        "수의계약", "1인견적", "2인견적", "견적", "입찰", "지역제한",
+        "공동수급", "공동도급", "가점", "평가항목", "협상계약",
+    ))
+    has_local_signal = local_support or any(term in compact for term in (
+        "부산", "지역업체", "부산업체", "관내업체", "지역상품", "부산상품",
+        "지역제품", "부산제품", "지역구매", "지역업체고려",
+    ))
+
+    return bool(has_purchase_action and (has_local_signal or has_procurement_route))
 
 
 def _route_plan_needs(route_plan, *needs: str) -> bool:
@@ -866,11 +925,18 @@ def _should_run_legal_preflight_from_route_plan(route_plan, query_tier: int) -> 
     )
 
 
-def _should_run_multi_route_prefetch_from_route_plan(route_plan, query_tier: int, amount_detected) -> bool:
-    if amount_detected is None:
-        return False
+def _should_run_multi_route_prefetch_from_route_plan(route_plan, query_tier: int, amount_detected, user_message: str = "") -> bool:
     if route_plan is None:
-        return query_tier == 2
+        return query_tier == 2 and (
+            amount_detected is not None
+            or _is_route_relevant_item_purchase_question(user_message)
+        )
+    if amount_detected is None:
+        return (
+            getattr(route_plan, "company_search_mode", "") == "route_relevant_candidates"
+            and _route_plan_needs(route_plan, "purchase_route_cards", "company_candidates")
+            and _is_route_relevant_item_purchase_question(user_message)
+        )
     return (
         getattr(route_plan, "company_search_mode", "") == "route_relevant_candidates"
         or _route_plan_needs(route_plan, "purchase_route_cards", "company_candidates")
@@ -1097,6 +1163,8 @@ def _is_practice_manual_fast_query(user_message: str) -> bool:
     if not q:
         return False
     if _parse_amount(user_message) is not None:
+        return False
+    if _is_route_relevant_item_purchase_question(user_message):
         return False
     if any(term in q for term in ("업체추천", "업체후보", "업체있", "찾아", "검색")) and not (
         ("면허" in q and "공사" in q)
@@ -1524,11 +1592,45 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
     elif is_specific_brand_spec_question:
         sections.extend([
             "",
-            "### 2. 특정 브랜드·동등 이상 규격서 작성",
-            "- 노트북 같은 물품 규격서에 **특정 브랜드**나 특정 모델만 사실상 충족할 수 있는 조건을 쓰면 **부당제한** 문제가 생길 수 있습니다.",
-            "- 필요한 성능은 CPU, 메모리, 저장장치, 화면, 보안, A/S, 호환성처럼 객관적 기준으로 쓰고, 특정 상표가 필요하면 예외 사유를 문서화해야 합니다.",
-            "- `동등 이상` 표현을 쓸 때도 비교 가능한 성능·규격·인증 기준을 함께 적어야 하며, 특정 제조사 고유 기능만 요구하지 않도록 점검합니다.",
-            "- 시장조사 자료, 복수 제품 비교표, 업무 필요성, 예산 산출근거를 감사 대응 자료로 남기는 편이 안전합니다.",
+            "### 2. 특정 브랜드 규격의 감사 리스크",
+            "- 공공 입찰 규격서에 특정 브랜드, 특정 모델명, 특정 제조사의 고유 기능을 그대로 넣으면 **공정경쟁 제한**, **부당제한**, 또는 **특정업체 맞춤 규격**으로 감사 지적을 받을 수 있습니다.",
+            "- 핵심 근거는 **지방계약법 제6조의 공정계약 원칙**입니다. 계약담당자는 계약상대자의 이익을 부당하게 제한하거나 특정인에게 유리한 조건을 정하지 않도록 규격·참가자격을 설계해야 합니다.",
+            "- **지방계약법 시행령 제92조**는 주로 부정당업자 제재 규정이지만, 특정인 낙찰 유도, 담합, 공정경쟁 방해 정황과 결합되면 감사·분쟁에서 위험 근거로 같이 검토될 수 있습니다.",
+            "- 따라서 `특정 브랜드 + 형식적인 동등 이상 문구`만으로는 충분하지 않고, 실제로 복수 업체가 충족 가능한 객관 기준인지가 판단의 중심입니다.",
+            "",
+            "### 3. 위법성 판단 기준",
+            "| 점검 항목 | 감사에서 문제되는 경우 | 안전한 방향 |",
+            "|---|---|---|",
+            "| 특정 상표·모델명 | 브랜드명, 모델명, 카탈로그 문구를 규격서에 그대로 기재 | 상표를 삭제하고 필요한 성능·기능·호환성 기준으로 전환 |",
+            "| 동등 이상 표현 | 무엇이 동등한지 수치·시험·인증 기준이 없어 발주기관 재량으로 판단 | CPU 성능점수, 메모리, 저장장치, 화면, 보안, 인증 등 비교 가능한 기준 명시 |",
+            "| 독점적 물리 규격 | 무게, 두께, 포트 위치, 전용 액세서리처럼 특정 모델만 맞는 조건 | 업무 목적에 필요한 범위 기준으로 완화하고 대체 기술 허용 |",
+            "| 제한경쟁 요건 | 제한 사유와 범위를 설명하지 못하거나 사실상 특정 업체만 참여 가능 | 제한경쟁 사유, 시장조사 결과, 경쟁 가능한 업체 수를 문서화 |",
+            "| 지역업체 활용 | 부산업체를 돕기 위해 특정 브랜드 대리점만 납품 가능한 구조로 설계 | 지역제한 가능 여부, A/S·납기·현장지원 같은 계약이행 요소로 분리 설계 |",
+            "",
+            "### 4. `동등 이상` 문구의 안전한 작성 방식",
+            "- `A사 노트북 또는 동등 이상`처럼 쓰면 동등성 판단 기준이 불명확합니다. 감사에서는 “실제로 타사 제품이 들어올 수 있었는지”를 봅니다.",
+            "- 권장 문구는 `본 규격서의 필수 성능지표를 모두 충족하는 제품`처럼 쓰고, 필수 지표를 표로 분리하는 방식입니다.",
+            "- 예시는 다음처럼 물리적 모델값보다 기능·성능 중심으로 바꿉니다.",
+            "",
+            "| 구분 | 위험한 규격 | 권장 규격 |",
+            "|---|---|---|",
+            "| CPU | 특정 제조사·모델명 지정 | 공인 벤치마크 기준 일정 점수 이상 또는 동급 이상의 업무처리 성능 |",
+            "| 포트·확장 | 특정 브랜드 전용 도킹 지원 | USB-C PD, DP Alt mode, HDMI 등 범용 표준 지원 |",
+            "| 무게·두께 | 특정 모델과 동일한 1mm·10g 단위 조건 | 이동 업무 필요성을 설명할 수 있는 합리적 상한 범위 |",
+            "| A/S | 특정 제조사 직영센터 보유 | 계약 후 일정 시간 내 현장 대응, 수리·대체장비 제공 계획 |",
+            "| 보안·호환성 | 특정 제조사 고유 보안 기능 | 기관 보안정책, 암호화, 관리솔루션 호환성 등 결과 기준 |",
+            "",
+            "### 5. 특정 브랜드가 불가피할 때 남길 자료",
+            "- **호환성 검토서**: 기존 보안솔루션, 업무시스템, 주변장비와 타사 제품의 호환 가능성을 비교합니다.",
+            "- **시장조사표**: 최소 복수 제조사·공급사의 제품을 비교하고, 왜 특정 요건이 필요한지 남깁니다.",
+            "- **규격 결정 사유서**: 업무 목적, 필수 성능, 제외되는 대체 제품, 예산 산출근거를 연결합니다.",
+            "- **사전검토 또는 심의 기록**: 규격심의, 내부 검토, 질의응답, 공고 전 의견수렴 기록을 보관합니다.",
+            "",
+            "### 6. 판단 요약",
+            "- 특정 브랜드 노트북만 사실상 가능한 규격은 감사에서 문제될 가능성이 큽니다.",
+            "- `동등 이상` 문구는 보조 장치일 뿐이고, 동등성 판단 기준이 객관적이어야 합니다.",
+            "- 제한경쟁으로 진행하려면 제한 사유와 제한 범위가 계약목적 달성에 필요한 최소한인지, 복수 업체 경쟁이 가능한지까지 같이 확인해야 합니다.",
+            "- 이 질문은 구매 품목·금액·후보 추천 요청이 아니라 규격서 리스크 검토이므로, 업체 후보보다 규격 교정표와 소명자료를 우선 제시하는 것이 적절합니다.",
         ])
     elif is_private_school_subsidy_question:
         sections.extend([
@@ -5667,6 +5769,7 @@ def _chat_v144(
         current_route_plan,
         query_tier,
         amount_detected,
+        user_message,
     ):
         should_prefetch_company, query, prefetch_reason = _should_prefetch_company_routes(
             user_message,

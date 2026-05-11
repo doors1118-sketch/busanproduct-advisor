@@ -6,6 +6,11 @@ another LLM rewrite call.
 """
 import re
 
+try:
+    from .numeric_basis_policy import get_numeric_display
+except ImportError:
+    from policies.numeric_basis_policy import get_numeric_display
+
 
 def _clean_part(text: str | None) -> str:
     return str(text or "").strip()
@@ -21,6 +26,88 @@ def _object_label(contract_object: str | None) -> str:
         "service": "용역",
         "construction": "공사",
     }.get((contract_object or "goods").lower(), "계약")
+
+
+def _num(parameter_ref: str, fallback: str = "최신 기준 확인 필요") -> str:
+    return get_numeric_display(parameter_ref) or fallback
+
+
+def _local_purchase_strategy_lines(contract_object: str | None, item_label: str, amount_label: str) -> list[str]:
+    object_key = (contract_object or "goods").lower()
+    general_one_quote = _num("P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD")
+    policy_one_quote = _num("P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD")
+    mas_general = _num("P_MAS_SECOND_STAGE_GENERAL_PRODUCT_THRESHOLD")
+    mas_sme = _num("P_MAS_SECOND_STAGE_SME_COMPETITION_THRESHOLD")
+    local_goods_service = _num("P_LOCAL_LIMITED_BID_GOODS_SERVICE_NOTICE_THRESHOLD")
+
+    if object_key == "goods":
+        return [
+            "- **우선순위는 고정하지 않습니다.** 금액, 세부품명, 종합쇼핑몰 등록 여부, 중소기업자간 경쟁제품 여부, 정책기업/인증제품 해당 여부, 부산 후보 존재 여부를 같이 보아 경로를 정합니다.",
+            "",
+            "| 상황 | 먼저 볼 경로 | 부산업체 수주 지원 방법 | 확인 근거 |",
+            "|---|---|---|---|",
+            f"| MAS 등록 품목이고 2단계 경쟁 기준 미만 | 종합쇼핑몰/MAS 납품요구 또는 직접구매 | 공급업체 소재지, 납품지역, 인도조건, A/S 조건에서 부산 후보를 비교 | 물품 다수공급자계약 업무처리규정, 2단계경쟁 업무처리기준. 일반 제품 기준 {mas_general}, 중기경쟁제품 기준 {mas_sme} |",
+            "| MAS 2단계 경쟁 대상이거나 직접구매가 부적절 | MAS 2단계 경쟁 또는 자체 경쟁 절차 | 납기, 사후관리, 현장지원, 지역 서비스망처럼 품목 수행과 직접 관련된 평가요소로 반영 | 종합쇼핑몰 운영규정, 물품 다수공급자계약 2단계경쟁 업무처리기준 |",
+            f"| 소액수의 금액대이고 법정 사유가 맞음 | 일반 1인 견적 또는 정책기업 1인 견적 | 부산 소재 정책기업·인증기업을 후보로 검토하되 금액·사유 충족 시에만 적용 | 지방계약법 시행령 제25조·제30조. 일반 1인 견적 기준 {general_one_quote}, 정책기업 기준 {policy_one_quote} |",
+            f"| 1인 견적 한도 초과 또는 특정업체 지정 곤란 | 2인 이상 견적, 지역제한 가능성 검토 | G2B 견적공고·입찰에서 부산 지역제한 가능 여부와 경쟁 가능한 업체 수를 확인 | 지방계약법 시행규칙 제24조, 지방자치단체 입찰 및 계약집행기준. 물품·일반용역 지역제한 기준 {local_goods_service} |",
+            "| 기술개발·우수조달·혁신제품 후보가 품목과 일치 | 우선구매 또는 수의계약 특례 검토 | 부산업체 제품이라도 인증명·지정상태·구매품목 일치가 확인될 때만 별도 경로로 검토 | 중소기업제품 구매촉진법령, 우수조달물품·혁신제품 관련 규정 |",
+        ]
+
+    if object_key == "service":
+        return [
+            "- **우선순위는 금액과 과업 성격에 따라 바뀝니다.** 용역은 종합쇼핑몰보다 지역제한, 2인 이상 견적, 협상계약 평가항목, 공동수급 설계가 더 중요할 수 있습니다.",
+            "",
+            "| 상황 | 먼저 볼 경로 | 부산업체 수주 지원 방법 | 확인 근거 |",
+            "|---|---|---|---|",
+            f"| 소액수의 금액대 | 1인 견적 또는 2인 이상 견적 | 부산 소재 수행업체·정책기업 후보를 검토하되 금액과 수의계약 사유를 먼저 확인 | 지방계약법 시행령 제25조·제30조. 일반 1인 견적 기준 {general_one_quote}, 정책기업 기준 {policy_one_quote} |",
+            f"| 경쟁 절차가 필요한 일반 용역 | 지역제한 또는 지역업체 참여 평가 | 부산 지역제한 가능 금액과 경쟁 가능한 업체 수를 확인하고, 필요하면 지역업체 참여도·현장 대응성을 평가항목으로 설계 | 지방계약법 시행규칙 제24조, 지방자치단체 입찰시 낙찰자 결정기준. 물품·일반용역 지역제한 기준 {local_goods_service} |",
+            "| 제안서 평가가 적합한 용역 | 협상에 의한 계약 | 지역 이해도, 현장 운영능력, 민원·안전 대응, 지역 협력망을 정당한 평가항목으로 반영 | 지방자치단체 입찰시 낙찰자 결정기준, 협상계약 평가기준 |",
+            "| 대형·복합 용역 | 공동수급·분담이행 검토 | 전국 업체 참여가 불가피하면 부산업체 공동수급 비율 또는 지역 수행분담을 유도 | 공동계약 관련 예규, 기관별 입찰공고 기준 |",
+        ]
+
+    if object_key == "construction":
+        return [
+            "- **우선순위는 공종과 금액이 먼저 결정합니다.** 공사는 수의계약 한도, 지역제한, 지역의무공동도급, 지역업체 참여도 평가를 분리해서 봐야 합니다.",
+            "",
+            "| 상황 | 먼저 볼 경로 | 부산업체 수주 지원 방법 | 확인 근거 |",
+            "|---|---|---|---|",
+            "| 공종별 수의계약 한도 이내 | 공사 수의계약 가능성 검토 | 부산 소재 면허업체를 후보로 보되 공종·금액·수의계약 사유를 먼저 확인 | 지방계약법 시행령 제25조·제30조, 수의계약 운영요령 |",
+            "| 지역제한 가능 금액대 | 부산 지역제한 입찰 | 본점 소재지, 면허, 경쟁 가능한 업체 수를 확인해 부당제한 위험을 줄임 | 지방계약법 시행규칙 제24조 |",
+            "| 지역제한만으로 부족하거나 대형 공사 | 지역의무공동도급·공동수급 | 부산업체 지분율, 분담공종, 지역업체 참여도 평가를 함께 설계 | 공동계약 관련 예규, 지방자치단체 입찰시 낙찰자 결정기준 |",
+        ]
+
+    return [
+        "- **우선순위는 고정하지 않습니다.** 계약대상, 금액, 적용 법령, 후보 업체 존재 여부를 확인한 뒤 가능한 경로를 좁히세요.",
+    ]
+
+
+def _item_trait_checkpoints(item_label: str, contract_object: str | None) -> list[str]:
+    item = re.sub(r"\s+", "", item_label or "").lower()
+    object_key = (contract_object or "goods").lower()
+    lines: list[str] = []
+
+    if object_key == "goods":
+        lines.extend([
+            "- **납품·설치·검수 범위**: 단순 납품인지, 현장설치도·철거·시운전·사용자 교육·하자보수가 포함되는지 계약조건에 분리해서 적으세요.",
+            "- **유지보수/A/S 대응성**: 고장 대응, 부품 수급, 현장 출동, 서비스센터 또는 협력망은 특정 지역업체 지정이 아니라 품목 수행과 직접 관련된 평가요소로 설계하세요.",
+            "- **부대 공사·면허 확인**: 전기·통신·소방·건설공사가 함께 들어가면 물품 구매로만 처리할 수 있는지, 별도 공사 또는 면허 요건이 필요한지 확인하세요.",
+        ])
+        if any(term in item for term in ("냉난방", "에어컨", "공기조화", "공조", "히트펌프", "보일러", "냉동기")):
+            lines.extend([
+                "- **설비성 물품 체크**: 실외기 위치, 배관·배수, 기존 장비 철거, 전기 용량·분전반, 소음·안전 기준을 현장 확인사항에 넣으세요.",
+                "- **에너지 기준**: 에너지소비효율등급, 고효율 에너지기자재, 녹색제품 등 공공구매 의무·우선구매 대상 여부를 확인하세요.",
+            ])
+        elif any(term in item for term in ("cctv", "영상감시", "카메라", "서버", "소프트웨어", "전산", "네트워크", "컴퓨터", "노트북")):
+            lines.extend([
+                "- **기술지원·보안 조건**: 라이선스, 유지보수 기간, 기술지원확약, 보안·호환성 요건이 특정 제조사 맞춤 조건이 되지 않도록 검토하세요.",
+                "- **세부품명·직접생산**: 전산장비는 세부품명, 직접생산확인, 중소기업자간 경쟁제품 여부에 따라 후보 적격성이 달라질 수 있습니다.",
+            ])
+        else:
+            lines.append(
+                "- **품목별 특수조건**: 안전인증, 성능시험, 에너지·환경 기준, 설치 조건, 유지관리 조건 중 해당 품목에 필요한 항목을 공고 전 시장조사에서 확인하세요."
+            )
+
+    return lines
 
 
 def build_multi_route_practical_answer_parts(
@@ -53,12 +140,8 @@ def build_multi_route_practical_answer_parts(
         or "- 금액 기준, 품목 특성, 조달등록·종합쇼핑몰 등록 여부를 관련 법령·행정규칙 근거와 함께 확인하세요.",
         "",
         "### 2. 부산 지역업체 구매 확대 전략",
-        "- **종합쇼핑몰/MAS 우선 검토**: 물품이 쇼핑몰 등록 품목이고 2단계 경쟁 기준 미만이면 부산 소재 공급업체를 필터링해 직접구매 가능성을 먼저 봅니다.",
-        "- **2인 이상 견적·지역제한 검토**: 수의계약 1인 견적 한도를 넘는 금액이면 G2B 견적공고와 부산 지역제한 가능성을 차선 경로로 검토합니다.",
-        "- **정책기업 1인 견적은 금액요건 충족 시만 검토**: 여성기업·장애인기업·사회적기업이라도 한도를 넘으면 전용 1인 견적 경로는 제외하고 후보의 부가속성으로만 봅니다.",
-        "- **중소기업자간 경쟁제품·직접생산확인**: 해당 품목이면 세부품명과 직접생산확인 범위를 후보 적격성의 핵심 확인사항으로 둡니다.",
-        "- **인증제품 검토**: 기술개발제품·우수조달·혁신제품은 인증·지정 상태와 구매품목 일치가 확인될 때 우선구매 또는 수의계약 특례 검토군으로 봅니다.",
     ]
+    parts.extend(_local_purchase_strategy_lines(contract_object, item_label, amount_label))
 
     catalog = _clean_part(catalog_guidance)
     if catalog:
@@ -89,6 +172,7 @@ def build_multi_route_practical_answer_parts(
             "- **기관 내부 지침 확인**: 지역상품 구매 촉진 지침, 예산집행 기준, 조달 관련 내부 절차를 함께 확인하세요.",
         ]
     )
+    parts.extend(_item_trait_checkpoints(item_label, contract_object))
 
     references = [_clean_part(practice_manual_text), _clean_part(pps_qa_text)]
     references = [text for text in references if text]

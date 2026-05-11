@@ -155,6 +155,14 @@ def test_mas_regional_review_fast_answer():
     assert "물품 다수공급자계약 업무처리규정" in result.answer
 
 
+def test_specific_item_mas_purchase_goes_to_route_candidate_flow():
+    result = match_deterministic_legal_answer(
+        "냉난방기 구매는 종합쇼핑몰로 처리할 수 있는지, 부산업체 고려는 어떻게 하는지 알려줘."
+    )
+
+    assert result is None
+
+
 def test_specific_company_search_does_not_match():
     result = match_deterministic_legal_answer("LED 조명 부산 지역업체 있어?")
     assert result is None

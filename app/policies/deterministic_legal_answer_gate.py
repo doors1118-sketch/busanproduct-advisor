@@ -141,6 +141,8 @@ def match_deterministic_legal_answer(user_message: str) -> DeterministicLegalAns
         )
 
     if _is_mas_regional_review(q):
+        if _should_defer_mas_purchase_to_route_flow(q):
+            return None
         return DeterministicLegalAnswer(
             answer=_mas_regional_review_answer(q),
             reason="mas_regional_review_fast_answer",
@@ -180,6 +182,15 @@ def _is_agency_law_conflict(q: str) -> bool:
         "참고", "준용", "적용", "충돌", "차이",
     ))
     return has_national_or_public and has_local_law and has_conflict_ask
+
+
+def _should_defer_mas_purchase_to_route_flow(q: str) -> bool:
+    """품목 구매 실행 질문은 원칙답변보다 경로·후보 결합 플로우로 보낸다."""
+    has_mas = any(term in q for term in ("종합쇼핑몰", "mas", "다수공급자", "나라장터", "제3자단가"))
+    has_purchase_action = any(term in q for term in ("구매", "구입", "사면", "살수", "발주", "납품", "처리", "도입"))
+    has_local_signal = any(term in q for term in ("부산", "지역업체", "부산업체", "관내업체", "지역상품", "부산상품"))
+    has_execution_ask = any(term in q for term in ("가능", "방법", "어떻게", "고려", "안내", "처리", "검토", "해야"))
+    return has_mas and has_purchase_action and has_local_signal and has_execution_ask
 
 
 def _is_policy_company_product_counted_as_sme_performance(q: str) -> bool:

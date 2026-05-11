@@ -369,8 +369,12 @@ def resolve_route_plan(frame: IntentFrame) -> RoutePlan:
     implied_purchase_candidate_lookup = (
         company_mode == "none"
         and not frame.company_search_blocked
-        and frame.amount is not None
         and bool(frame.item_name or frame.item_search_term)
+        and (
+            frame.amount is not None
+            or frame.local_purchase_support_required
+            or frame.company_search_required
+        )
         and (
             frame.contract_review_required
             or frame.has_contract_method

@@ -579,6 +579,11 @@ def test_practice_fast_answer_handles_specific_brand_spec_question():
     assert "특정 브랜드" in answer
     assert "부당제한" in answer
     assert "동등 이상" in answer
+    assert "지방계약법 제6조" in answer
+    assert "지방계약법 시행령 제92조" in answer
+    assert "제한경쟁" in answer
+    assert "| 구분 | 위험한 규격 | 권장 규격 |" in answer
+    assert "시장조사표" in answer
 
 
 def test_practice_fast_answer_handles_delay_penalty_terms():
