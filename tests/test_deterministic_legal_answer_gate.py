@@ -1,4 +1,5 @@
 from app.policies.deterministic_legal_answer_gate import match_deterministic_legal_answer
+from app.policies.post_scan_policy import scan_final_answer
 
 
 def test_regional_restriction_multi_agency():
@@ -133,6 +134,7 @@ def test_innovation_product_review_uses_fast_answer():
     assert "지정·인증 유효성" in result.answer
     assert "source map" not in result.answer
     assert "우선구매" in result.answer
+    assert scan_final_answer(result.answer)["critical_count"] == 0
 
 
 def test_tech_development_product_review_uses_fast_answer_without_innovation_keyword():
