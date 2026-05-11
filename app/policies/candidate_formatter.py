@@ -318,6 +318,208 @@ def _dedupe_rows_for_display(rows: list, seen_entities: set[str]) -> list:
     return deduped
 
 
+def _is_candidate_only_request(user_message: str) -> bool:
+    compact = (user_message or "").replace(" ", "").lower()
+    if not compact:
+        return False
+    if any(term in compact for term in ("후보만", "업체만", "기업만", "후보간단", "간단히찾아")):
+        return True
+    if any(term in compact for term in ("계약가능여부", "계약판단", "가능여부판단")) and any(term in compact for term in ("빼", "제외", "말고", "없이")):
+        return True
+    return False
+
+
+def _is_cctv_question(user_message: str) -> bool:
+    compact = (user_message or "").replace(" ", "").lower()
+    return any(term in compact for term in ("cctv", "씨씨티비", "보안용카메라", "감시카메라", "영상감시"))
+
+
+def _candidate_richness_score(row: dict) -> int:
+    score = 0
+    if row.get("shopping_mall_registered") or row.get("shopping_mall_flags"):
+        score += 4
+    if _tech_product_labels(row):
+        score += 4
+    if row.get("sme_competition_product") is True or row.get("direct_production_confirmed") is True:
+        score += 3
+    if row.get("manufacturer_type") in ("manufacture", "manufacturer", "제조"):
+        score += 2
+    if row.get("license_or_business_type"):
+        score += 2
+    if row.get("policy_tags") or row.get("policy_subtypes"):
+        score += 1
+    return score
+
+
+def _flatten_candidate_rows_for_display(relevant_rows_by_type: dict, order: list) -> list[dict]:
+    by_identity: dict[str, dict] = {}
+    fallback_rows: list[dict] = []
+    for ct in order:
+        for row in relevant_rows_by_type.get(ct, []) or []:
+            if not isinstance(row, dict):
+                continue
+            identity = _candidate_identity(row)
+            if not identity:
+                fallback_rows.append(row)
+                continue
+            current = by_identity.get(identity)
+            if current is None or _candidate_richness_score(row) > _candidate_richness_score(current):
+                by_identity[identity] = row
+    rows = list(by_identity.values()) + fallback_rows
+    return sorted(rows, key=lambda row: (-_candidate_richness_score(row), _cell(row.get("company_name"))))
+
+
+def _has_si_license(row: dict) -> bool:
+    text = " ".join(str(v) for v in _as_list(row.get("license_or_business_type")))
+    return any(term in text for term in ("정보통신공사업", "소프트웨어사업자", "통신장비유지보수", "컴퓨터관련서비스사업"))
+
+
+def _has_manufacturing_signal(row: dict) -> bool:
+    return (
+        row.get("manufacturer_type") in ("manufacture", "manufacturer", "제조")
+        or row.get("sme_competition_product") is True
+        or row.get("direct_production_confirmed") is True
+    )
+
+
+def _candidate_group_label(row: dict, user_message: str) -> str:
+    has_tech_or_mall = bool(_tech_product_labels(row)) or _format_shopping_mall_status(row) not in {"해당 없음", "확인 필요"}
+    has_si = _has_si_license(row)
+    has_mfg = _has_manufacturing_signal(row)
+    if _is_cctv_question(user_message):
+        if has_tech_or_mall:
+            return "제조·기술개발 강점 후보"
+        if has_si:
+            return "설치·SI/정보통신공사 강점 후보"
+        if has_mfg:
+            return "제조·중기경쟁 확인 후보"
+        return "기타 CCTV 관련 후보"
+    if has_tech_or_mall or has_mfg:
+        return "제조·조달등록 특성 후보"
+    if has_si:
+        return "설치·SI 수행 특성 후보"
+    return "일반 조달등록 후보"
+
+
+def _candidate_strength_summary(row: dict) -> str:
+    strengths: list[str] = []
+    if row.get("manufacturer_type") in ("manufacture", "manufacturer", "제조"):
+        strengths.append("제조 단서")
+    if row.get("sme_competition_product") is True:
+        strengths.append("중기경쟁제품")
+    if row.get("direct_production_confirmed") is True:
+        strengths.append("직접생산 확인")
+    if _has_si_license(row):
+        strengths.append("설치·SI 단서")
+    mall_status = _format_shopping_mall_status(row)
+    if mall_status not in {"해당 없음", "확인 필요"}:
+        strengths.append(mall_status)
+    tech_labels = _tech_product_labels(row)
+    if tech_labels and tech_labels != "해당 없음":
+        strengths.append(tech_labels)
+    tags = ", ".join(_display_labels(row.get("policy_tags") or row.get("policy_subtypes"), POLICY_TYPE_LABELS))
+    if tags:
+        strengths.append(tags)
+    unique: list[str] = []
+    for value in strengths:
+        if value and value not in unique:
+            unique.append(value)
+    return ", ".join(unique[:5]) if unique else "품목 관련 후보"
+
+
+def _short_license_text(row: dict, limit: int = 2) -> str:
+    values = _as_list(row.get("license_or_business_type"))
+    picked = []
+    for value in values:
+        text = str(value).strip()
+        if not text:
+            continue
+        if any(term in text for term in ("정보통신공사업", "소프트웨어사업자", "통신장비유지보수", "전기공사업")):
+            picked.append(text)
+        if len(picked) >= limit:
+            break
+    if not picked:
+        picked = [str(v).strip() for v in values[:limit] if str(v).strip()]
+    suffix = f" 외 {len(values) - len(picked)}개" if len(values) > len(picked) else ""
+    return ", ".join(picked) + suffix if picked else "확인 필요"
+
+
+def _build_candidate_only_table(rows: list[dict]) -> str:
+    if not rows:
+        return ""
+    header = (
+        "| 구분 | 업체명 | 소재지 | 주요품목 | 강점 단서 | 조달/MAS | 인증·정책 | 면허·업종 |\n"
+        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n"
+    )
+    lines = []
+    for row in rows:
+        group = _cell(row.get("_candidate_group") or "후보")
+        name = _cell(row.get("company_name", row.get("product_name", "")))
+        loc = _cell(row.get("location", "부산"))
+        prods = _cell(_display_product_names(row))
+        strengths = _cell(_candidate_strength_summary(row))
+        mall = _cell(_format_shopping_mall_status(row))
+        cert_policy = ", ".join(
+            value for value in (
+                _tech_product_labels(row),
+                ", ".join(_display_labels(row.get("policy_tags") or row.get("policy_subtypes"), POLICY_TYPE_LABELS)),
+            )
+            if value and value != "해당 없음"
+        ) or "해당 없음"
+        licenses = _cell(_short_license_text(row))
+        lines.append(f"| {group} | {name} | {loc} | {prods} | {strengths} | {mall} | {_cell(cert_policy)} | {licenses} |")
+    return header + "\n".join(lines)
+
+
+def _format_candidate_only_tables(relevant_rows_by_type: dict, order: list, user_message: str, max_rows_per_table: int) -> str:
+    rows = _flatten_candidate_rows_for_display(relevant_rows_by_type, order)
+    if not rows:
+        return ""
+    for row in rows:
+        row["_candidate_group"] = _candidate_group_label(row, user_message)
+
+    grouped: dict[str, list[dict]] = {}
+    for row in rows:
+        grouped.setdefault(row["_candidate_group"], []).append(row)
+
+    preferred_groups = [
+        "제조·기술개발 강점 후보",
+        "제조·중기경쟁 확인 후보",
+        "설치·SI/정보통신공사 강점 후보",
+        "기타 CCTV 관련 후보",
+        "제조·조달등록 특성 후보",
+        "설치·SI 수행 특성 후보",
+        "일반 조달등록 후보",
+    ]
+    group_order = [group for group in preferred_groups if group in grouped]
+    group_order.extend(group for group in grouped if group not in group_order)
+
+    item_label = "CCTV(보안용카메라)" if _is_cctv_question(user_message) else "요청 품목"
+    answer = (
+        f"부산 소재 {item_label} 업체 후보입니다. "
+        "계약 가능 여부 판단은 제외하고, 업체 특성만 간단히 정리했습니다.\n\n"
+    )
+    table_no = 1
+    remaining_total = 0
+    for group in group_order:
+        group_rows = grouped[group]
+        display_rows = group_rows[:max_rows_per_table] if max_rows_per_table and max_rows_per_table > 0 else group_rows
+        answer += f"**[표 {table_no}] {group}**\n"
+        answer += _build_candidate_only_table(display_rows)
+        answer += "\n\n"
+        if max_rows_per_table and len(group_rows) > max_rows_per_table:
+            remaining_total += len(group_rows) - max_rows_per_table
+        table_no += 1
+
+    if remaining_total:
+        answer += f"... 외 {remaining_total}건은 전체 후보 엑셀에서 확인하세요.\n\n"
+    answer += (
+        "확인 포인트: 실제 납품 가능 품목, 제조·직접생산 범위, 정보통신공사업 등 설치 역량, "
+        "조달/MAS 등록 상태를 원자료로 확인하세요. 이 목록은 후보 발굴용이며 계약 가능 여부 판단은 포함하지 않았습니다."
+    )
+    return answer
+
+
 def _format_procurement_registration(row: dict) -> str:
     ptype = row.get("primary_candidate_type", "")
     candidate_types = row.get("candidate_types", [])
@@ -521,6 +723,16 @@ def format_candidate_tables(
         ct: filter_candidate_rows_by_user_item(classified.get(ct, []), user_message, candidate_type=ct)
         for ct in order
     }
+
+    if _is_candidate_only_request(user_message):
+        candidate_only = _format_candidate_only_tables(
+            relevant_rows_by_type,
+            order,
+            user_message,
+            max_rows_per_table=max_rows_per_table,
+        )
+        if candidate_only:
+            return candidate_only
 
     # 표시할 후보군이 하나라도 있는지 확인
     has_any = False

@@ -3894,6 +3894,11 @@ def _execute_tier_0_fast_track(user_message: str, history: list, api_status, pro
     # Intent -> API mapping logic
     is_detail_view = False
     detail_data = None
+    compact_user_message = (user_message or "").replace(" ", "").lower()
+    is_cctv_candidate_lookup = (
+        any(term in compact_user_message for term in ("cctv", "씨씨티비", "보안용카메라", "감시카메라", "영상감시"))
+        and any(term in compact_user_message for term in ("업체", "후보", "찾아", "검색"))
+    )
 
     if "company_detail" in intent_labels:
         match = re.search(r'[a-fA-F0-9]{32}', user_message)
@@ -3905,6 +3910,26 @@ def _execute_tier_0_fast_track(user_message: str, history: list, api_status, pro
         else:
             _run_tool("search_company_by_product", company_api.search_by_product,
                       tool_args={"query": query}, query=query)
+    elif is_cctv_candidate_lookup:
+        for product_query in ("CCTV", "영상감시장치"):
+            _run_tool(
+                "search_company_by_product",
+                company_api.search_by_product,
+                tool_args={"query": product_query, "reason": "cctv_candidate_broadening"},
+                query=product_query,
+            )
+        _run_tool(
+            "search_company_by_license",
+            company_api.search_by_license,
+            tool_args={"query": "정보통신공사업", "reason": "cctv_install_si_candidate_broadening"},
+            query="정보통신공사업",
+        )
+        _run_tool(
+            "search_shopping_mall_product",
+            company_api.search_shopping_mall_product,
+            tool_args={"product_name": "CCTV", "reason": "cctv_shopping_mall_candidate_broadening"},
+            product_name="CCTV",
+        )
     elif "policy_candidate_search" in intent_labels:
         # 정책기업 매핑 정보를 tool_args에 명시적으로 기록
         from company_api import POLICY_ALIAS_MAP

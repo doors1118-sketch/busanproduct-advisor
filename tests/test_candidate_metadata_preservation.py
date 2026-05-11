@@ -100,6 +100,62 @@ def test_shopping_mall_candidate_preserves_mas_policy_and_cert_metadata():
     assert "priority_purchase_product" not in table
 
 
+def test_candidate_only_cctv_answer_suppresses_contract_routes_and_groups_strengths():
+    classified = {
+        "shopping_mall_supplier": [
+            {
+                "company_id": "cctv-1",
+                "company_name": "주식회사 예스텍",
+                "location": "부산광역시",
+                "main_products": ["CCTV카메라"],
+                "candidate_types": ["local_procurement_company", "shopping_mall_supplier", "priority_purchase_product"],
+                "primary_candidate_type": "shopping_mall_supplier",
+                "shopping_mall_registered": True,
+                "shopping_mall_flags": ["mas_registered", "shopping_mall_registered"],
+                "certified_product_types": ["gs_certified_product"],
+                "sme_competition_product": True,
+                "manufacturer_type": "manufacture",
+                "license_or_business_type": ["정보통신공사업", "소프트웨어사업자(컴퓨터관련서비스사업)"],
+                "purchase_routes": ["수의계약 검토", "2인 이상 견적 검토"],
+            }
+        ],
+        "local_procurement_company": [
+            {
+                "company_id": "cctv-2",
+                "company_name": "(주)선진텔레콤",
+                "location": "부산광역시",
+                "main_products": ["CCTV카메라"],
+                "candidate_types": ["local_procurement_company"],
+                "primary_candidate_type": "local_procurement_company",
+                "sme_competition_product": True,
+                "manufacturer_type": "manufacture",
+                "license_or_business_type": ["정보통신공사업", "소프트웨어사업자(컴퓨터관련서비스사업)"],
+                "purchase_routes": ["수의계약 검토", "2인 이상 견적 검토"],
+            }
+        ],
+        "policy_company": [],
+        "innovation_product": [],
+        "priority_purchase_product": [],
+    }
+
+    table = format_candidate_tables(
+        classified,
+        "CCTV 부산업체 후보만 간단히 찾아줘. 계약 가능 여부 판단은 빼줘.",
+    )
+
+    assert "계약 가능 여부 판단은 제외" in table
+    assert "제조·기술개발 강점 후보" in table
+    assert "설치·SI/정보통신공사 강점 후보" in table
+    assert "주식회사 예스텍" in table
+    assert "(주)선진텔레콤" in table
+    assert "GS인증" in table
+    assert "정보통신공사업" in table
+    assert "검토 가능 경로" not in table
+    assert "수의계약 검토" not in table
+    assert "2인 이상 견적" not in table
+    assert "구매 경로별" not in table
+
+
 def test_irrelevant_certified_product_candidates_are_filtered_by_item():
     raw_candidate = {
         "company_id": "x2",
