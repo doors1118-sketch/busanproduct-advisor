@@ -202,6 +202,12 @@ def test_practice_fast_answer_handles_design_print_mixed_contract():
     assert "인쇄" in answer
     assert "용역" in answer
     assert "물품" in answer
+    assert "원가" in answer
+    assert "직접생산확인" in answer
+    assert "산업디자인전문회사" in answer
+    assert "부산업체 수주지원" in answer
+    assert "| 구분 | 용역 성격이 강한 경우 | 물품 제조·구매 성격이 강한 경우 |" in answer
+    assert "| 분류 | 참가자격·확인서류 | 주의점 |" in answer
 
 
 def test_pps_fast_gate_defers_design_print_mixed_contract_to_practice_path():
