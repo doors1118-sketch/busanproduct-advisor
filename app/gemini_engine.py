@@ -1016,8 +1016,83 @@ def _is_practice_priority_question(user_message: str) -> bool:
         (any(term in q for term in ("계약절차", "구매절차", "흐름", "단계", "순서", "처음부터"))),
         (any(term in q for term in ("소방시설공사", "정보통신공사", "조경공사", "포장공사"))),
         (any(term in q for term in ("국가기관", "국가계약", "공기업", "준정부", "공공기관")) and "지방계약" in q),
+        _is_construction_period_cost_adjustment_question(user_message),
     ]
     return any(checks)
+
+
+def _is_construction_period_cost_adjustment_question(user_message: str) -> bool:
+    q = (user_message or "").replace(" ", "").lower()
+    if not q:
+        return False
+    has_period_issue = any(term in q for term in (
+        "공사기간",
+        "공기연장",
+        "계약기간연장",
+        "기간연장",
+        "공사중지",
+        "공기지연",
+    ))
+    has_money_issue = any(term in q for term in (
+        "간접비",
+        "계약금액조정",
+        "계약금액",
+        "실비",
+        "현장관리비",
+        "공사손해보험",
+        "보증수수료",
+    ))
+    return has_period_issue and has_money_issue and "공사" in q
+
+
+def _construction_period_cost_adjustment_sections(agency_key: str | None = None) -> list[str]:
+    is_local = agency_key in {"local_government", "local_public_corporation", "default", None}
+    first_rule = (
+        "부산시·구군·부산시 산하기관처럼 지방계약 체계로 처리하는 사업이면 "
+        "조달청 질의응답 사례보다 「지방자치단체 입찰 및 계약 집행기준」(행안부 예규) "
+        "제13장 공사계약 일반조건의 계약기간 연장·계약내용 변경 조항과 실비산정 기준을 먼저 펼쳐야 합니다."
+    )
+    if not is_local:
+        first_rule = (
+            "국가기관 또는 국가계약법령을 준용하는 공공기관 사안이면 계약예규 "
+            "「공사계약일반조건」의 기타 계약내용 변경 조항과 「정부 입찰·계약 집행기준」의 "
+            "실비산정 기준을 먼저 확인합니다. 다만 부산시 산하 사업이면 지방계약 예규가 우선입니다."
+        )
+
+    return [
+        "### 2. 먼저 결론: 공기연장은 별도 조정 트랙입니다",
+        f"- {first_rule}",
+        "- 발주기관 사유로 공사기간이 늘어난 경우는 보통 **물가변동**이나 **설계변경**만으로 처리하지 않고, `기타 계약내용의 변경`에 따른 계약금액 조정 가능성을 별도 트랙으로 봅니다.",
+        "- 다만 기간이 늘었다고 간접비가 자동으로 인정되는 것은 아닙니다. 연장 원인, 승인된 연장 기간, 실제 상주·지출 내역, 계약상대자의 책임 여부가 맞아야 합니다.",
+        "",
+        "### 3. 어떤 규정을 봐야 하는가",
+        "| 기관·계약 체계 | 먼저 볼 행정규칙·계약조건 | 실무에서 보는 포인트 |",
+        "|---|---|---|",
+        "| 지방자치단체·지방계약 준용 사업 | 「지방자치단체 입찰 및 계약 집행기준」(행안부 예규) 제13장 공사계약 일반조건의 계약기간 연장·계약내용 변경 조항, 실비산정 기준 | 부산시 산하 사업이면 이 기준으로 업체 제출 내역서를 대조합니다. 조달청 Q&A는 참고자료일 뿐 결론 근거로 앞세우지 않습니다. |",
+        "| 국가기관·국가계약 준용 사업 | 계약예규 「공사계약일반조건」의 기타 계약내용 변경 조항, 「정부 입찰·계약 집행기준」의 실비산정 기준 | 공기업·준정부기관은 자체 계약규정과 계약사무규칙을 먼저 보고, 빈 부분을 국가계약 예규로 보완합니다. |",
+        "| 계약문서 | 공사계약 특수조건, 공사중지·기간연장 승인 문서, 공정표, 산출내역서 | 법령상 가능하더라도 계약문서에 따른 신청기한, 승인절차, 정산방식이 맞아야 지급 가능합니다. |",
+        "",
+        "### 4. 실비 대조 로직",
+        "| 비용 항목 | 인정 판단 기준 | 필요한 증빙 |",
+        "|---|---|---|",
+        "| 간접노무비 | 연장 기간 동안 현장대리인, 안전관리자, 품질관리자 등 현장 상주 인력이 실제 필요했고 근무했는지 확인 | 출근기록, 현장일지, 급여대장, 4대보험·고용보험 자료, 조직표 |",
+        "| 경비 | 현장사무실 임차료, 수도광열비, 장비·가설물 유지비, 공사손해보험료, 보증수수료 등 추가 지출이 연장 기간과 직접 관련되는지 확인 | 임대차계약서, 세금계산서, 영수증, 보험·보증 증권, 납부확인서 |",
+        "| 일반관리비·이윤 | 인정된 실비에 계약 기준상 적용 가능한 비율을 적용할 수 있는지 확인 | 실비산정 내역서, 계약내역서, 적용률 산출 근거 |",
+        "| 제외 가능 항목 | 본사 일반관리비처럼 현장 연장과 직접 관련이 약하거나, 현장 철수 기간에 발생했다고 보기 어려운 비용 | 철수·상주 여부 기록, 공사중지 명령, 인력 배치 변경 문서 |",
+        "",
+        "### 5. 행정 처리 절차",
+        "1. **원인 확정**: 공기연장 사유가 발주기관 귀책인지, 불가항력인지, 시공사 책임인지 먼저 문서로 구분합니다. 용지보상 지연, 설계 오류, 인허가 지연, 발주기관 지시로 인한 중지는 발주기관 사유 검토 대상입니다.",
+        "2. **공기연장 승인**: 사유 발생 즉시 연장 신청서, 수정 공정표, 공사중지·재개 문서, 회의록을 붙여 계약기간 연장을 승인받습니다. 이 단계에서 `발주기관 사유`라는 문구가 문서에 남는 것이 중요합니다.",
+        "3. **계약금액 조정 신청**: 준공·최종대가 지급 전에 연장 기간별 실비 산정 내역서를 제출합니다. 사후에 한꺼번에 주장하면 신청기한·증빙 부족으로 다툼이 커집니다.",
+        "4. **내역서 대조**: 발주기관은 행안부 예규의 실비산정 기준에 맞춰 항목별 증빙, 연장 기간과의 인과관계, 실제 상주 여부, 중복 계상 여부를 대조합니다.",
+        "5. **협의 및 변경계약**: 인정 금액을 협의한 뒤 계약금액 변경 계약을 체결하고, 이후 준공검사·정산·대금지급으로 연결합니다.",
+        "",
+        "### 6. 감사 대응 체크포인트",
+        "- 현장 인력이 연장 기간에 실제 상주하지 않았다면 간접노무비 인정은 어렵습니다. 반대로 현장을 유지했다면 출근기록, 현장일지, 급여·보험 자료가 핵심 증빙입니다.",
+        "- 보험료·보증수수료처럼 기간 연장 때문에 추가 납부한 비용은 증권, 추가 납부 영수증, 기간 산출표를 붙여야 합니다.",
+        "- `총 공기만 늘었다`가 아니라 `어떤 사유로 며칠 늘었고, 그 기간에 어떤 비용이 실제로 발생했는지`를 일자별로 맞춰야 합니다.",
+        "- 업체가 제출한 내역서를 그대로 인정하지 말고, 행안부 예규 실비산정 기준표처럼 항목별로 인정·삭감·보완요청 사유를 남기는 방식이 가장 방어력이 좋습니다.",
+    ]
 
 
 def _build_pps_qa_interpretation_fast_answer(user_message: str, intent_rag_decision=None) -> tuple[str, list[dict]]:
@@ -1039,7 +1114,7 @@ def _build_pps_qa_interpretation_fast_answer(user_message: str, intent_rag_decis
     lines = [
         "### 1. 질문의도 파악",
         "- 이 질문은 단순 조문 조회가 아니라, 기존 조달청 질의응답·실무 해석사례와 유사한 쟁점을 설명해 달라는 요청으로 분류했습니다.",
-        "- 아래 사례는 실무 해석 보조자료이며, 최종 법적 결론은 적용 기관, 계약문서, 내부 법령 DB와 source map으로 다시 확인해야 합니다.",
+        "- 아래 사례는 실무 해석 보조자료이며, 최종 법적 결론은 적용 기관, 계약문서, 내부 법령 DB와 근거 자료로 다시 확인해야 합니다.",
         "",
         "### 2. 유사 해석사례 요지",
     ]
@@ -1080,7 +1155,7 @@ def _build_pps_qa_interpretation_fast_answer(user_message: str, intent_rag_decis
         "### 4. 확인 필요사항",
         "- 유사 조달청 Q&A는 법적 구속력이 있는 최종 근거가 아니라 실무 해석 참고자료입니다.",
         "- 실제 처리 전에는 해당 기관의 계약담당자 판단, 계약문서, 적용 법령·행정규칙 원문을 함께 확인하세요.",
-        "- 금액 기준, 조문 번호, 시행일은 매뉴얼·Q&A가 아니라 내부 법령 DB와 source map 기준을 우선합니다.",
+        "- 금액 기준, 조문 번호, 시행일은 매뉴얼·Q&A가 아니라 내부 법령 DB와 근거 자료 기준을 우선합니다.",
     ])
     return "\n".join(lines), cards
 
@@ -1388,6 +1463,7 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
         "조경공사" in q
         and any(term in q for term in ("부산업체", "부산", "지역제한", "면허"))
     )
+    is_construction_period_cost_adjustment_question = _is_construction_period_cost_adjustment_question(user_message)
     is_invested_institution_local_law_question = (
         any(term in q for term in ("출자출연기관", "출자·출연기관", "출연기관"))
         and any(term in q for term in ("지방계약", "지방계약법", "지역업체", "그대로"))
@@ -1434,6 +1510,7 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
         is_specific_brand_spec_question,
         is_private_school_subsidy_question,
         is_landscape_construction_regional_question,
+        is_construction_period_cost_adjustment_question,
         is_invested_institution_local_law_question,
         is_info_telecom_construction_question,
         is_agency_law_conflict_question,
@@ -1549,7 +1626,10 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
         "- 이 질문은 특정 금액의 계약 가능 여부 판단이 아니라, 계약 유형·절차·실무 쟁점을 설명해 달라는 요청으로 분류했습니다.",
     ]
 
-    if "중소기업자간" in q or "직접생산" in q:
+    if is_construction_period_cost_adjustment_question:
+        sections.extend(["", *_construction_period_cost_adjustment_sections(agency_key)])
+        return "\n".join(sections), cards
+    elif "중소기업자간" in q or "직접생산" in q:
         subject = f"**{item_hint}** 같은 " if item_hint else ""
         is_security_camera_question = any(
             term in q

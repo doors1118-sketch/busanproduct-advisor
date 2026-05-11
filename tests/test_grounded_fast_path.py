@@ -244,6 +244,55 @@ def test_pps_fast_gate_defers_design_print_mixed_contract_to_practice_path():
     assert cards == []
 
 
+def test_pps_fast_gate_defers_construction_period_cost_adjustment_to_practice_path():
+    answer, cards = _build_pps_qa_interpretation_fast_answer(
+        "공사기간이 발주기관 사유로 늘어난 경우 간접비나 계약금액 조정은 어떤 행정규칙과 절차를 봐야 해?",
+        SimpleNamespace(answer_mode="pps_qa_interpretation", confidence=0.99),
+    )
+
+    assert answer == ""
+    assert cards == []
+
+
+def test_practice_fast_answer_handles_construction_period_cost_adjustment_local():
+    answer, cards = _build_practice_manual_fast_answer(
+        "공사기간이 발주기관 사유로 늘어난 경우 간접비나 계약금액 조정은 어떤 행정규칙과 절차를 봐야 해?",
+        "local_government",
+    )
+
+    assert answer
+    assert "지방자치단체 입찰 및 계약 집행기준" in answer
+    assert "제13장" in answer
+    assert "실비산정 기준" in answer
+    assert "기타 계약내용의 변경" in answer
+    assert "계약예규" in answer
+    assert "정부 입찰·계약 집행기준" in answer
+    assert "공기연장 승인" in answer
+    assert "계약금액 조정 신청" in answer
+    assert "변경계약" in answer
+    assert "출근기록" in answer
+    assert "고용보험" in answer
+    assert "조달청 Q&A는 참고자료" in answer
+    assert "source map" not in answer
+
+
+def test_practice_fast_answer_handles_construction_period_cost_adjustment_national():
+    answer, cards = _build_practice_manual_fast_answer(
+        "공사기간이 발주기관 사유로 늘어난 경우 간접비나 계약금액 조정은 어떤 행정규칙과 절차를 봐야 해?",
+        "national_agency",
+    )
+
+    assert answer
+    assert "계약예규" in answer
+    assert "공사계약일반조건" in answer
+    assert "정부 입찰·계약 집행기준" in answer
+    assert "공기업·준정부기관" in answer
+    assert "자체 계약규정" in answer
+    assert "부산시 산하 사업이면 지방계약 예규가 우선" in answer
+    assert "실비 대조 로직" in answer
+    assert "source map" not in answer
+
+
 def test_practice_fast_answer_handles_incidental_work_question():
     answer, cards = _build_practice_manual_fast_answer(
         "부대공사로 묶을 수 있는지 판단할 때 어떤 자료를 확인해야 해?",
