@@ -1191,9 +1191,26 @@ def _search_landscape_construction_candidates(max_results: int = 8) -> list[dict
                 continue
             seen.add(key)
             candidates.append(raw)
-            if len(candidates) >= max_results:
-                return candidates
-    return candidates
+    return sorted(candidates, key=_landscape_candidate_rank)[:max_results]
+
+
+def _landscape_candidate_rank(candidate: dict) -> tuple[int, int, str]:
+    name = str(candidate.get("company_name") or "")
+    licenses = " ".join(candidate.get("license_or_business_type") or [])
+    products = " ".join(candidate.get("main_products") or [])
+    target = f"{name} {licenses} {products}"
+    if any(term in target for term in ("조경식재", "조경시설물", "조경식재·시설물")):
+        group = 0
+    elif "조경" in name and "조경공사업" in target:
+        group = 1
+    elif "조경공사업" in target:
+        group = 2
+    elif "조경" in target:
+        group = 3
+    else:
+        group = 4
+    license_count = len(candidate.get("license_or_business_type") or [])
+    return (group, license_count, name)
 
 
 def _landscape_candidate_fit(candidate: dict) -> str:
