@@ -292,6 +292,92 @@ def test_practice_fast_answer_preserves_server_owned_comparison_tables(monkeypat
     assert meta["llm_generated_table_discarded"] is False
 
 
+def test_finalize_preserves_non_candidate_llm_comparison_tables(monkeypatch):
+    monkeypatch.setattr(gemini_engine, "NATURAL_LANGUAGE_WRITER_ENABLED", False)
+    monkeypatch.setattr(
+        gemini_engine,
+        "evaluate_legal_scope",
+        lambda *args, **kwargs: SimpleNamespace(
+            legal_conclusion_allowed=True,
+            blocked_scope=[],
+            critical_missing=[],
+        ),
+    )
+    answer = (
+        "### 기준 비교\n"
+        "| 구분 | 국가계약 기준 | 지방계약 기준 |\n"
+        "|---|---|---|\n"
+        "| 물품 | 국가계약법 제4조 고시금액 | 지방계약법 고시금액 |\n"
+        "| 종합공사 | 국가계약법 시행규칙 제24조 | 지방계약법 시행규칙 제24조 |\n"
+    )
+    meta = {
+        "model_used": "gemini-2.5-pro",
+        "tier_resolved": 1,
+        "skip_citation_verify": True,
+        "amount_rewrite_bypass": True,
+        "candidate_table_source": "none",
+    }
+
+    final_answer, _ = gemini_engine._finalize_answer(
+        answer,
+        [],
+        "국가기관과 지방계약 지역제한 기준을 비교해줘.",
+        [],
+        gemini_engine.ApiStatus(),
+        generation_meta=meta,
+    )
+
+    assert "| 구분 | 국가계약 기준 | 지방계약 기준 |" in final_answer
+    assert "| 종합공사 |" in final_answer
+    assert meta["llm_generated_table_detected"] is True
+    assert meta["llm_generated_table_discarded"] is False
+    assert meta["llm_non_candidate_markdown_table_preserved"] is True
+
+
+def test_finalize_removes_only_llm_candidate_company_tables(monkeypatch):
+    monkeypatch.setattr(gemini_engine, "NATURAL_LANGUAGE_WRITER_ENABLED", False)
+    monkeypatch.setattr(
+        gemini_engine,
+        "evaluate_legal_scope",
+        lambda *args, **kwargs: SimpleNamespace(
+            legal_conclusion_allowed=True,
+            blocked_scope=[],
+            critical_missing=[],
+        ),
+    )
+    answer = (
+        "### 검토 후보\n"
+        "| 업체명 | 소재지 | 조달등록 | 대표품목 |\n"
+        "|---|---|---|---|\n"
+        "| 예시기업 | 부산 | 확인 | 노트북 |\n"
+        "\n"
+        "계약 전 실제 업체 데이터로 다시 확인해야 합니다."
+    )
+    meta = {
+        "model_used": "gemini-2.5-pro",
+        "tier_resolved": 1,
+        "skip_citation_verify": True,
+        "amount_rewrite_bypass": True,
+        "candidate_table_source": "none",
+    }
+
+    final_answer, _ = gemini_engine._finalize_answer(
+        answer,
+        [],
+        "노트북 부산업체 후보를 알려줘.",
+        [],
+        gemini_engine.ApiStatus(),
+        generation_meta=meta,
+    )
+
+    assert "| 업체명 | 소재지 | 조달등록 | 대표품목 |" not in final_answer
+    assert "예시기업" not in final_answer
+    assert "계약 전 실제 업체 데이터로 다시 확인해야 합니다." in final_answer
+    assert meta["llm_generated_table_detected"] is True
+    assert meta["llm_generated_table_discarded"] is True
+    assert meta["llm_generated_candidate_table_removed_count"] == 1
+
+
 def test_practice_fast_answer_handles_public_corp_law_conflict_question():
     answer, cards = _build_practice_manual_fast_answer(
         "공기업이 부산업체를 우대하려고 할 때 지방계약법, 국가계약법, 공기업 계약사무규칙 중 무엇을 우선 봐야 하는지 설명해줘.",

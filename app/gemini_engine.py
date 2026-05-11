@@ -1955,6 +1955,63 @@ def _apply_natural_language_writer(
         return _sanitize_natural_writer_internal_terms(answer)
 
 
+def _is_markdown_table_line(line: str) -> bool:
+    stripped = (line or "").strip()
+    return stripped.startswith("|") and stripped.endswith("|") and stripped.count("|") >= 2
+
+
+def _looks_like_candidate_or_company_table(table_text: str) -> bool:
+    """Return True only for company/candidate tables that server formatter owns."""
+    compact = re.sub(r"\s+", "", table_text or "").lower()
+    if not compact:
+        return False
+
+    identity_terms = (
+        "업체명", "기업명", "회사명", "사업자", "소재지", "주소",
+        "대표품목", "등록상품명", "제품명",
+    )
+    candidate_context_terms = (
+        "후보유형", "조달등록", "쇼핑몰/mas", "mas", "정책기업",
+        "직접생산", "중기경쟁", "기술개발", "혁신", "인증번호",
+        "확인포인트", "검토가능경로", "부산업체후보", "지역업체후보",
+    )
+
+    has_identity = any(term in compact for term in identity_terms)
+    has_candidate_context = any(term in compact for term in candidate_context_terms)
+    return has_identity and has_candidate_context
+
+
+def _strip_candidate_or_company_markdown_tables(text: str) -> tuple[str, int]:
+    """Remove only LLM-created company/candidate Markdown tables.
+
+    Legal comparison tables and route/risk comparison tables remain intact.
+    """
+    lines = (text or "").splitlines()
+    output: list[str] = []
+    removed_count = 0
+    idx = 0
+
+    while idx < len(lines):
+        if _is_markdown_table_line(lines[idx]):
+            start = idx
+            while idx < len(lines) and _is_markdown_table_line(lines[idx]):
+                idx += 1
+            block = lines[start:idx]
+            block_text = "\n".join(block)
+            if len(block) >= 2 and _looks_like_candidate_or_company_table(block_text):
+                removed_count += 1
+                continue
+            output.extend(block)
+            continue
+
+        output.append(lines[idx])
+        idx += 1
+
+    cleaned = "\n".join(output)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip(), removed_count
+
+
 def _to_jsonable_for_meta(value: Any) -> Any:
     if value is None:
         return None
@@ -6998,7 +7055,9 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
     formatter_input_count = locals().get("formatter_input_count", 0)
     formatter_output_chars = locals().get("formatter_output_chars", 0)
 
-    # LLM 생성 표 감지 및 폐기 (단, 멀티 라우트 사전검색 시에는 LLM 표 보존)
+    # LLM 생성 업체/후보 표 감지 및 폐기
+    # 법령ㆍ계약경로 비교표는 답변 품질 요소이므로 보존하고,
+    # 업체DB 성격의 표만 서버 formatter 결과로 대체한다.
     _multi_route_prefetched = generation_meta.get("tier_resolved") == 2 if generation_meta else False
     _server_owned_markdown_table = bool(generation_meta and (
         generation_meta.get("deterministic_template_used", False)
@@ -7019,18 +7078,26 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
             generation_meta["llm_generated_table_detected"] = False
             generation_meta["llm_generated_table_discarded"] = False
     elif llm_has_table and not _multi_route_prefetched:
-        # Markdown 표 형태 제거 (멀티 라우트가 아닌 경우에만)
-        answer = re.sub(r"(\n?\|.*\|.*)+", "", answer)
+        answer_without_candidate_tables, removed_table_count = _strip_candidate_or_company_markdown_tables(answer)
         if generation_meta is not None:
             generation_meta["llm_generated_table_detected"] = True
-            generation_meta["llm_generated_table_discarded"] = True
+            generation_meta["llm_generated_candidate_table_removed_count"] = removed_table_count
+            generation_meta["llm_generated_table_discarded"] = removed_table_count > 0
 
+        if removed_table_count > 0:
+            answer = answer_without_candidate_tables
             if formatted:
                 server_table = formatted
                 if "표" not in answer:
                     answer += f"\n\n---\n{server_table}"
                 else:
                     answer += f"\n\n---\n**[시스템 자동 생성 표]**\n{server_table}"
+        elif generation_meta is not None:
+            generation_meta["llm_non_candidate_markdown_table_preserved"] = True
+
+        if removed_table_count == 0 and formatted:
+            server_table = formatted
+            answer += f"\n\n---\n{server_table}"
     elif llm_has_table and _multi_route_prefetched:
         # 멀티 라우트: LLM의 구매경로 표는 보존하되, 업체 후보표는
         # 서버 formatter가 만든 구조화 표를 뒤에 붙인다.
