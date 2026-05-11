@@ -76,6 +76,6 @@ def test_contract_lifecycle_render_separates_procedure_from_legal_judgment():
     assert "물품 계약 절차 흐름" in rendered
     assert "기본계획 수립" in rendered
     assert "계약방법 결정" in rendered
-    assert "법령/source map으로 따로 검증할 지점" in rendered
-    assert "source map resolved_value" in rendered
+    assert "법령·고시 기준으로 따로 검증할 지점" in rendered
+    assert "최신 법령·고시 기준" in rendered
     assert "중소기업자간 경쟁제품" in rendered

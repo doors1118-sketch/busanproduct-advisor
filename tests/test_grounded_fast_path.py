@@ -245,8 +245,18 @@ def test_practice_fast_answer_handles_public_corp_law_conflict_question():
 
     assert answer
     assert "공기업·준정부기관" in answer
+    assert "지방공기업" in answer
+    assert "공공기관운영법" in answer
     assert "계약사무규칙" in answer
+    assert "지방공기업법" in answer
+    assert "국가계약법령" in answer
+    assert "지방계약법령" in answer
     assert "지방계약법 지역제한 기준을 그대로 적용" in answer
+    assert "최신 법령·고시 기준" in answer
+    assert "source map" not in answer
+    assert "2.1억" not in answer
+    assert "3.3억" not in answer
+    assert "질문의도" not in answer
     assert "국가기관이 발주" not in answer
 
 
@@ -259,7 +269,8 @@ def test_practice_fast_answer_handles_bid_notice_local_company_checklist():
     assert answer
     assert "입찰공고문" in answer
     assert "지역업체" in answer
-    assert "source map" in answer
+    assert "source map" not in answer
+    assert "최신 법령·" in answer
 
 
 def test_practice_fast_answer_repeats_sme_item_name():

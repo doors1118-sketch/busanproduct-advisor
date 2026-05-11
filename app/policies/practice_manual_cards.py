@@ -195,7 +195,7 @@ def render_contract_lifecycle_for_answer(
 
     verification_points = [
         "계약방법 결정 단계에서 일반경쟁·제한경쟁·지명경쟁·수의계약 가능 사유를 최신 법령 DB로 확인",
-        "추정가격·예정가격 단계에서 금액 기준은 source map resolved_value로 확인",
+        "추정가격·예정가격 단계에서 금액 기준은 최신 법령·고시 기준으로 확인",
         "지역제한, 지역업체 참여도, 공동도급, 정책기업, 기술개발제품·혁신제품은 적용 요건을 별도 근거카드로 확인",
         "물품은 세부품명, 중소기업자간 경쟁제품, 직접생산확인, 종합쇼핑몰/MAS 등록 여부를 별도 확인",
         "용역은 과업 범위, 면허·업종, 보안·저작권, 성과물·검수 기준을 별도 확인",
@@ -210,7 +210,7 @@ def render_contract_lifecycle_for_answer(
 
     lines.extend([
         "",
-        "### 3. 법령/source map으로 따로 검증할 지점",
+        "### 3. 법령·고시 기준으로 따로 검증할 지점",
     ])
     lines.extend(f"- {point}" for point in verification_points)
     return "\n".join(lines)
@@ -256,5 +256,5 @@ def render_practice_manual_cards_for_answer(cards: list[dict[str, Any]], max_car
         checks = card.get("checklist") or []
         if checks:
             lines.append(f"  확인: {', '.join(checks[:3])}")
-    lines.append("- 금액·비율·시행일은 매뉴얼이 아니라 최신 법령 DB와 source map 기준을 우선했습니다.")
+    lines.append("- 금액·비율·시행일은 매뉴얼이 아니라 최신 법령·행정규칙 기준을 우선했습니다.")
     return "\n".join(lines)
