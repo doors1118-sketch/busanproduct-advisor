@@ -460,6 +460,11 @@ def test_practice_fast_answer_handles_event_service_regional_qualification():
     assert "행사용역" in answer
     assert "부산업체" in answer
     assert "참가자격" in answer
+    assert "협상계약 평가항목" in answer
+    assert "공동수급" in answer
+    assert "지역업체 참여비율" in answer
+    assert "공고문·제안요청서 문구 예시" in answer
+    assert "독소조항" in answer
 
 
 def test_practice_fast_answer_handles_private_school_subsidy_question():
@@ -532,6 +537,24 @@ def test_practice_fast_answer_handles_service_local_participation_method():
     assert "지역제한" in answer
     assert "수의계약" in answer
     assert "지방계약법 시행령 제20조" in answer
+    assert "공동수급" in answer
+    assert "협상계약 평가항목" in answer
+    assert "지역업체 참여비율" in answer
+
+
+def test_practice_fast_answer_handles_general_local_supplier_award_support():
+    answer, cards = _build_practice_manual_fast_answer(
+        "지역업체 수주를 지원하려면 어떤 방법을 써야 해?",
+        "local_government",
+    )
+
+    assert answer
+    assert "지역업체 활용 발주" in answer
+    assert "지역업체 수주" in answer
+    assert "지역제한" in answer
+    assert "공동수급" in answer
+    assert "협상계약 평가항목" in answer
+    assert "공고문·제안요청서 문구 예시" in answer
 
 
 def test_practice_fast_answer_handles_price_terms():

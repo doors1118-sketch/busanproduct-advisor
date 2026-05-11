@@ -1036,6 +1036,61 @@ def _display_amount_for_answer(amount: int | None, user_message: str) -> str:
     return numeric
 
 
+def _local_supplier_numeric_labels() -> dict[str, str]:
+    try:
+        from policies.numeric_basis_policy import get_numeric_display
+    except ImportError:
+        from importlib import import_module
+
+        get_numeric_display = import_module("app.policies.numeric_basis_policy").get_numeric_display
+
+    return {
+        "local_general_service": (
+            get_numeric_display("P_LOCAL_LIMITED_BID_GOODS_SERVICE_NOTICE_THRESHOLD")
+            or "행정안전부장관 고시금액 확인 필요"
+        ),
+        "local_busan_gu_gun": (
+            get_numeric_display("P_LOCAL_LIMITED_BID_SEOUL_BUSAN_INCHEON_GU_GUN_THRESHOLD")
+            or "지방계약법 시행규칙 제24조 금액 확인 필요"
+        ),
+        "participation_full_rate": get_numeric_display("P_LOCAL_SERVICE_REGIONAL_PARTICIPATION_FULL_RATE") or "기준비율 확인 필요",
+        "participation_full_score": get_numeric_display("P_LOCAL_SERVICE_REGIONAL_PARTICIPATION_FULL_SCORE") or "배점 확인 필요",
+        "participation_partial_rate": get_numeric_display("P_LOCAL_SERVICE_REGIONAL_PARTICIPATION_PARTIAL_RATE") or "기준비율 확인 필요",
+        "participation_partial_score": get_numeric_display("P_LOCAL_SERVICE_REGIONAL_PARTICIPATION_PARTIAL_SCORE") or "배점 확인 필요",
+    }
+
+
+def _local_supplier_award_support_lines(subject_label: str = "지역업체 활용 발주") -> list[str]:
+    labels = _local_supplier_numeric_labels()
+    return [
+        f"### 2. {subject_label}에서 지역업체 수주를 늘리는 실무 설계",
+        "- 금액이 아직 정해지지 않았더라도 실무 검토는 `주의사항`에서 멈추지 말고 **지역제한, 공동수급, 협상계약 평가항목, 지역업체 참여비율**을 조합해 설계해야 합니다.",
+        "- 단, 지역업체를 직접 지정하는 방식이 아니라 계약이행과 관련 있는 객관 요소로 부산업체 참여 가능성을 높이는 방식이어야 합니다.",
+        "",
+        "| 설계 수단 | 공고·평가에 넣을 내용 | 지역업체 수주 지원 효과 | 주의할 점 |",
+        "|---|---|---|---|",
+        f"| 지역제한 입찰 | 추정가격이 허용 범위이면 `주된 영업소 소재지 부산광역시` 제한을 검토 | 부산업체만 경쟁하게 하므로 가장 직접적입니다. | 지방계약법 시행령 제20조, 시행규칙 제24조 및 최신 고시금액을 확인합니다. 시·도 일반용역·물품은 {labels['local_general_service']}, 부산 관할 군·구 일반용역·물품은 {labels['local_busan_gu_gun']} 기준 확인이 필요합니다. |",
+        "| 2인 이상 견적 지역제한 | 소액수의 안내공고를 쓰는 금액대라면 G2B 견적 제출 대상을 부산 소재 업체로 제한할 수 있는지 검토 | 입찰보다 간단한 절차에서도 부산업체 견적 참여를 유도합니다. | 금액 기준, 수의계약 사유, 견적 방식이 먼저 맞아야 합니다. |",
+        "| 공동수급·컨소시엄 | 단독 수행이 어려운 규모라면 공동이행 또는 분담이행을 허용하고 부산업체 역할을 명시 | 전국 업체가 들어오더라도 부산업체가 수행 지분을 확보할 수 있습니다. | 용역·물품에 공사식 지역의무공동도급을 기계적으로 강제하지 말고 공동수급 허용·평가 우대 방식으로 설계합니다. |",
+        f"| 지역업체 참여비율 평가 | 제안서 또는 적격심사에서 부산업체 참여비율, 담당 과업, 투입 인력의 실질성을 평가 | 부산업체가 형식적 하도급이 아니라 핵심 수행자로 들어오게 만듭니다. | 참고 기준으로 지역업체 합산 참여비율 {labels['participation_full_rate']} 이상 {labels['participation_full_score']}, {labels['participation_partial_rate']} 이상 구간 {labels['participation_partial_score']} 같은 내부 기준을 확인합니다. |",
+        "| 협상계약 평가항목 | 지역 현장 운영계획, 긴급 대응, 지역 자원 활용, 지역 협력업체 활용, 사후관리 계획을 평가 | 지역 이해도와 현장 대응력이 있는 부산업체가 정성평가에서 경쟁력을 갖습니다. | `부산업체라서 가점`이 아니라 과업 수행 품질과 연결된 항목으로 써야 합니다. |",
+        "",
+        "### 3. 공고문·제안요청서 문구 예시",
+        "- **참가자격**: `입찰공고일 전일부터 입찰일까지 주된 영업소의 소재지가 부산광역시에 있는 업체. 낙찰자는 계약체결일까지 이를 유지하여야 한다.`",
+        "- **공동수급**: `공동수급체 구성을 허용하며, 부산광역시 소재 업체가 참여하는 경우 수행분담의 실질성, 참여비율, 투입인력 계획을 평가한다.`",
+        "- **협상계약 평가항목**: `지역업체 참여계획, 지역 현장 운영계획, 안전·민원 대응계획, 지역 자원 활용계획, 사후관리 및 성과관리 계획`",
+        "- **평가표 문구**: `지역업체 참여비율만이 아니라 실제 담당 과업, 투입 인력, 책임 범위, 하도급이 아닌 직접 수행 여부를 종합 평가한다.`",
+        "",
+        "### 4. 부당제한을 피하는 교정 기준",
+        "| 위험한 조건 | 교정 방향 |",
+        "|---|---|",
+        "| 특정 지역·특정 행사·특정 기관 실적만 요구 | 단일 건 금액, 행사 규모, 수행 난이도 등 과업 관련 실적으로 바꿉니다. |",
+        "| 공고일 현재 특정 장비·창고·사무실 보유 요구 | 계약 후 착수 전까지 장비·인력·현장 운영본부를 확보하도록 바꿉니다. |",
+        "| 특정 업체·단체·거래처 사용 경험 요구 | 지역 자원 활용계획, 협력체계 구축계획처럼 개방형 평가항목으로 바꿉니다. |",
+        "| 부산업체 참여를 형식적 하도급으로만 인정 | 공동수급 지분, 직접 수행 과업, 투입 인력, 책임 범위를 평가합니다. |",
+    ]
+
+
 def _is_practice_manual_fast_query(user_message: str) -> bool:
     """실무 매뉴얼 카드로 빠르게 답할 수 있는 설명/비교/절차형 질문인지 판별한다."""
     q = (user_message or "").replace(" ", "").lower()
@@ -1076,7 +1131,7 @@ def _is_practice_manual_fast_query(user_message: str) -> bool:
         "절차", "흐름", "단계", "순서", "프로세스", "쟁점", "체크", "봐야", "확인", "검토", "방법", "알려",
         "유의", "주의", "어떤계약", "어떻게검토", "어떻게", "달라", "예시", "설명",
         "정리", "한번에", "전체", "문제", "리스크", "분리발주", "분할발주", "쪼개기",
-        "나눠발주", "나누어발주", "묶어발주", "기준", "공고문", "입찰공고",
+        "나눠발주", "나누어발주", "묶어발주", "기준", "공고문", "입찰공고", "방안", "지원",
     ))
     procurement_context = any(term in q for term in (
         "계약", "입찰", "수의", "견적", "물품", "용역", "공사", "유지보수",
@@ -1084,7 +1139,7 @@ def _is_practice_manual_fast_query(user_message: str) -> bool:
         "공동이행", "분담이행", "공동수급", "공동계약", "제안요청서", "과업지시서",
         "중소기업자간", "직접생산", "지역상품", "구매", "제품", "공공구매", "우선구매", "구매지원", "지원제도",
         "추정가격", "예정가격", "기초금액", "추정금액", "규격서", "브랜드", "부당제한", "동등이상",
-        "지체상금", "지연배상금",
+        "지체상금", "지연배상금", "지역업체", "부산업체", "관내업체", "수주",
     ))
     return practice_intent and procurement_context
 
@@ -1146,6 +1201,10 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
         and any(term in q for term in ("부산업체", "지역업체", "부산", "지역상품"))
         and any(term in q for term in ("참여", "활용", "방법", "가능한방법", "계약하려면", "발주하려면", "어떻게"))
     )
+    is_general_local_supplier_award_question = (
+        any(term in q for term in ("지역업체", "부산업체", "관내업체", "지역상품", "부산업체중심"))
+        and any(term in q for term in ("수주", "참여", "지원", "우대", "가점", "공동수급", "공동도급", "협상계약", "평가항목", "지역제한", "발주", "방법", "방안", "어떻게"))
+    )
     is_price_terms_question = all(term in q for term in ("추정가격", "예정가격", "기초금액")) or (
         "추정금액" in q and any(term in q for term in ("차이", "구분", "뭐야"))
     )
@@ -1203,6 +1262,7 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
         is_event_service_regional_question,
         is_service_regional_restriction_question,
         is_service_local_participation_question,
+        is_general_local_supplier_award_question,
         is_price_terms_question,
         is_delay_penalty_question,
         is_specific_brand_spec_question,
@@ -1375,26 +1435,72 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
             "- 적격심사나 평가 단계에서는 지역업체 참여도, 시공경험, 기술능력, 신인도 항목을 공고문·평가기준과 맞춰야 합니다.",
         ])
     elif is_event_service_regional_question:
+        try:
+            from policies.numeric_basis_policy import get_numeric_display
+        except ImportError:
+            from importlib import import_module
+
+            get_numeric_display = import_module("app.policies.numeric_basis_policy").get_numeric_display
+
+        local_general_service = (
+            get_numeric_display("P_LOCAL_LIMITED_BID_GOODS_SERVICE_NOTICE_THRESHOLD")
+            or "행정안전부장관 고시금액 확인 필요"
+        )
+        local_busan_gu_gun = (
+            get_numeric_display("P_LOCAL_LIMITED_BID_SEOUL_BUSAN_INCHEON_GU_GUN_THRESHOLD")
+            or "지방계약법 시행규칙 제24조 금액 확인 필요"
+        )
+        participation_full_rate = get_numeric_display("P_LOCAL_SERVICE_REGIONAL_PARTICIPATION_FULL_RATE") or "기준비율 확인 필요"
+        participation_full_score = get_numeric_display("P_LOCAL_SERVICE_REGIONAL_PARTICIPATION_FULL_SCORE") or "배점 확인 필요"
+        participation_partial_rate = get_numeric_display("P_LOCAL_SERVICE_REGIONAL_PARTICIPATION_PARTIAL_RATE") or "기준비율 확인 필요"
+        participation_partial_score = get_numeric_display("P_LOCAL_SERVICE_REGIONAL_PARTICIPATION_PARTIAL_SCORE") or "배점 확인 필요"
+
         sections.extend([
             "",
-            "### 2. 행사용역 참가자격 설계",
-            "- **행사용역**을 부산업체 중심으로 검토하더라도 참가자격은 과업 수행에 필요한 범위에서 객관적으로 설계해야 합니다.",
-            "- 부산업체 활용은 지역제한 가능성, 현장 대응성, 유사 행사 수행경험, 안전관리, 장비·인력 투입계획, 긴급 대응체계 같은 정당한 요소로 연결합니다.",
-            "- 특정 업체만 충족할 수 있는 과도한 실적, 특정 장소·거래처 경험, 불필요한 장비 보유 조건은 부당제한 리스크가 큽니다.",
-            "- 제안평가를 쓰는 경우 지역업체 여부 자체보다 수행계획, 현장 운영능력, 지역 이해도, 안전·민원 대응을 평가항목으로 정리하는 편이 안전합니다.",
+            "### 2. 결론: 참가자격만으로는 부족하고 평가·공동수급까지 같이 설계해야 합니다",
+            "- 행사용역을 부산업체 중심으로 발주하려면 `부산업체만 참여`라는 문구 하나로 끝내면 실무 효과도 약하고 부당제한 리스크도 큽니다.",
+            "- 수주 가능성을 높이려면 **1단계 지역제한 가능 여부**, **2단계 공동수급 구조**, **3단계 협상계약 평가항목**을 같이 설계해야 합니다.",
+            "- 핵심은 부산업체 우대를 `지역경제 기여`라는 추상 문구가 아니라 **현장 운영, 안전관리, 민원 대응, 지역 자원 활용, 공동수급 참여비율** 같은 계약이행 요소로 연결하는 것입니다.",
+            "",
+            "### 3. 지역업체 수주 지원 설계표",
+            "| 설계 수단 | 공고·평가에 넣을 내용 | 부산업체 수주 지원 효과 | 주의할 점 |",
+            "|---|---|---|---|",
+            f"| 지역제한 입찰 | 추정가격이 지역제한 가능 범위이면 `입찰공고일 전일부터 입찰일까지, 낙찰자는 계약체결일까지 주된 영업소가 부산광역시에 있는 업체`로 제한 | 부산업체만 경쟁하게 하므로 가장 직접적입니다. | 지방계약법 시행령 제20조, 시행규칙 제24조 및 최신 고시금액을 먼저 확인합니다. 시·도 일반용역은 {local_general_service}, 부산 관할 군·구 일반용역은 {local_busan_gu_gun} 기준 확인이 필요합니다. |",
+            "| 공동수급 허용 | 전국 단위 기획사가 들어올 수 있는 규모라면 부산업체와 공동수급체를 구성하도록 공동이행·분담이행을 허용 | 대형 행사에서도 부산업체가 실제 수행 지분을 확보할 수 있습니다. | 용역에서 공사식 지역의무공동도급을 기계적으로 강제하지 말고, 공동수급 허용·평가 우대 방식의 근거를 확인합니다. |",
+            f"| 지역업체 참여비율 평가 | 제안서 평가 또는 적격심사에서 부산업체 참여비율·수행분담의 실질성을 평가. 참고 기준으로 지역업체 합산 참여비율 {participation_full_rate} 이상 {participation_full_score}, {participation_partial_rate} 이상 구간 {participation_partial_score} 같은 내부 기준을 확인 | 부산업체를 형식적 하도급이 아니라 제안서상 핵심 수행자로 넣도록 유도합니다. | 배점은 낙찰자 결정기준·기관 평가기준 범위에서 과도하지 않게 둡니다. |",
+            "| 현장 대응성 평가 | 행사장 사전답사, 리허설, 긴급상황 1시간 내 대응계획, 현장 운영인력 투입계획을 평가 | 부산 소재 업체의 지리적 장점이 정성평가에 반영됩니다. | `부산 사무실 보유` 자체를 과도하게 요구하기보다 계약이행에 필요한 대응계획으로 씁니다. |",
+            "| 지역 자원 활용 계획 | 지역 공연팀, 지역 장비·인력, 지역 홍보채널, 지역 상권 연계 방안을 평가 | 부산 업체나 부산 협력사가 제안서에서 경쟁력을 갖습니다. | 특정 거래처·특정 단체를 지명하면 안 되고, 개방적인 활용계획으로 평가합니다. |",
+            "",
+            "### 4. 공고문·제안요청서 문구 예시",
+            "- **참가자격 예시**: `입찰공고일 전일부터 입찰일까지 주된 영업소의 소재지가 부산광역시에 있는 업체. 단, 낙찰자는 계약체결일까지 이를 유지하여야 한다.`",
+            "- **공동수급 예시**: `공동수급체 구성을 허용하며, 부산광역시 소재 업체가 공동수급체 구성원으로 참여하는 경우 제안서 평가에서 지역업체 참여계획의 실질성을 평가한다.`",
+            "- **평가항목 예시**: `지역 현장 운영계획, 지역업체 참여비율 및 역할, 안전관리·민원대응계획, 지역 자원 활용계획, 행사 종료 후 정산·성과관리 계획`",
+            "- **과업지시서 예시**: `착수보고, 현장답사, 리허설, 행사 당일 운영, 사고·민원 발생 시 대응, 사후 결과보고를 과업 범위에 포함한다.`",
+            "",
+            "### 5. 독소조항 제거 체크리스트",
+            "| 위험한 조건 | 왜 위험한가 | 교정 방향 |",
+            "|---|---|---|",
+            "| `최근 3년 내 부산 ○○축제 수행 실적` | 특정 행사 경험 업체만 유리할 수 있습니다. | `최근 3년 내 단일 건 일정 금액 이상의 행사 운영 실적`처럼 과업 규모 중심으로 씁니다. |",
+            "| `공고일 현재 부산 내 전담 사무실·창고·장비 보유` | 계약 전 보유를 요구하면 진입장벽이 됩니다. | `계약 후 행사 기간 중 현장 운영본부와 장비·인력 투입계획 제출`로 바꿉니다. |",
+            "| `특정 공연팀·특정 장소·특정 협력사 사용 경험` | 특정 업체 맞춤 조건으로 보일 수 있습니다. | `지역 문화자원 활용계획` 또는 `유사 행사 수행역량`으로 평가합니다. |",
+            "| `대표사만 부산업체 인정` | 공동수급을 통한 부산업체 참여 효과를 줄일 수 있습니다. | 부산업체의 수행 지분, 담당 과업, 투입 인력의 실질성을 평가합니다. |",
+            "",
+            "### 6. 실무 적용 순서",
+            "- **예산이 지역제한 가능 범위 안이면** 부산 지역제한을 먼저 검토합니다. 이 방식이 가장 직접적으로 부산업체 수주를 지원합니다.",
+            "- **예산이 크거나 전국 경쟁이 필요한 행사라면** 지역제한만 고집하지 말고 공동수급 허용, 부산업체 참여비율 평가, 현장 대응성 평가로 설계합니다.",
+            "- **협상에 의한 계약을 쓰는 경우** 가격보다 제안서 평가가 중요하므로, 지역업체 참여계획을 평가표의 독립 항목 또는 수행체계 항목 안에 명확히 넣어야 합니다.",
+            "- **최종 공고 전에는** 부산 지역 내 경쟁 가능한 행사대행 업체 수, 업종코드, 유사실적 요구 수준, 공동수급 허용 방식, 평가 배점 근거를 시장조사표로 남기세요.",
         ])
     elif is_service_regional_restriction_question or is_service_local_participation_question:
-        service_subject = item_hint or "용역"
+        service_subject = item_hint or "용역계약"
+        sections.extend(["", *_local_supplier_award_support_lines(service_subject)])
         sections.extend([
             "",
-            f"### 2. {service_subject}에서 지역업체 참여를 늘리는 검토 경로",
-            f"- **{service_subject}**은 과업 성격, 면허·등록 요건, 수행 장소, 현장 대응 필요성을 먼저 확정한 뒤 지역업체 참여 방식을 설계합니다.",
-            "- **지역제한경쟁입찰**: 계약유형, 추정가격, 과업 성격, 부산 지역 내 경쟁 가능한 업체 수를 확인한 뒤 검토합니다. 공사 기준을 그대로 가져오면 안 됩니다.",
-            "- **지역업체 참여도·가점**: 적격심사, 협상계약, 제안평가 등 평가방식에서 지역업체 참여도, 현장 대응성, 지역 내 수행체계 같은 객관적 항목으로 연결할 수 있는지 봅니다.",
-            "- **공동수급 허용**: 단독 수행이 어렵거나 전문 분야가 섞인 용역이면 공동이행·분담이행을 허용해 부산업체가 구성원으로 참여할 여지를 검토합니다.",
-            "- **수의계약·견적 방식**: 금액, 수의계약 사유, 정책기업 여부가 맞는 경우에만 검토합니다. 지역업체라는 이유만으로 바로 수의계약 결론을 내리면 안 됩니다.",
-            "- **참가자격·과업 설계**: 면허·등록, 실적, 인력, 장비, 현장 대응 요건은 과업 수행에 필요한 범위로 쓰고 특정 업체만 유리한 조건은 피해야 합니다.",
-            "- 확인할 근거 축은 지방계약법 시행령 제20조·제25조·제30조, 지방계약법 시행규칙 제24조, 지방자치단체 입찰 및 계약집행기준, 지방자치단체 입찰시 낙찰자 결정기준입니다.",
+            "### 5. 용역에서 특히 확인할 근거 축",
+            "- **지역제한**: 지방계약법 시행령 제20조, 지방계약법 시행규칙 제24조, 지방자치단체 입찰 및 계약집행기준의 제한입찰 운영요령을 확인합니다.",
+            "- **수의계약·2인 이상 견적**: 지방계약법 시행령 제25조·제30조와 수의계약 운영요령을 확인합니다.",
+            "- **평가·가점**: 협상에 의한 계약, 적격심사, 제안서 평가 중 어떤 낙찰자 결정방식을 쓰는지 먼저 정하고, 지방자치단체 입찰시 낙찰자 결정기준 및 기관 자체 평가기준 안에서 지역업체 참여항목을 설계합니다.",
+            "- **참가자격**: 면허·등록, 실적, 인력, 장비, 현장 대응 요건은 과업 수행에 필요한 범위로 쓰고 특정 업체만 유리한 조건은 피해야 합니다.",
         ])
     elif is_price_terms_question:
         sections.extend([
@@ -1537,6 +1643,18 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
             "- 따라서 질문의 핵심 답은 `지방계약 기준을 참고는 하되, 적용은 국가계약 기준으로만 한다`입니다.",
         ]
         return "\n".join(sections), cards
+    elif is_general_local_supplier_award_question:
+        if item_hint:
+            subject = item_hint
+        elif "용역" in q:
+            subject = "용역계약"
+        elif "공사" in q:
+            subject = "공사 발주"
+        elif "물품" in q or "구매" in q:
+            subject = "물품 구매"
+        else:
+            subject = "지역업체 활용 발주"
+        sections.extend(["", *_local_supplier_award_support_lines(subject)])
     elif is_fire_facility_construction_question:
         sections.extend([
             "",
@@ -1622,7 +1740,7 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
 
     sections.extend([
         "",
-        "### 3. 다음 단계",
+        "### 다음 단계",
         "- 금액, 기관유형, 구체 품목·과업범위가 정해지면 최신 법령 DB 기준으로 수의계약, 입찰, 지역제한, 지역업체 우대제도 적용 가능성을 별도로 검토해야 합니다.",
         "- 이 답변은 실무 매뉴얼 카드에 기반한 설명입니다. 금액 기준·조문·시행일은 최신 법령·행정규칙 기준을 우선합니다.",
     ])
