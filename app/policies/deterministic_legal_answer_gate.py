@@ -10,13 +10,14 @@ from dataclasses import dataclass
 import re
 
 try:
-    from policies.numeric_basis_policy import get_numeric_display, get_numeric_value
+    from policies.numeric_basis_policy import get_numeric_display, get_numeric_value, get_rule_source_titles
 except ImportError:
     from importlib import import_module
 
     _numeric_basis_policy = import_module("app.policies.numeric_basis_policy")
     get_numeric_display = _numeric_basis_policy.get_numeric_display
     get_numeric_value = _numeric_basis_policy.get_numeric_value
+    get_rule_source_titles = _numeric_basis_policy.get_rule_source_titles
 
 
 @dataclass(frozen=True)
@@ -119,6 +120,13 @@ def match_deterministic_legal_answer(user_message: str) -> DeterministicLegalAns
             schema_version="local_company_point_standard_v1",
         )
 
+    if _is_mas_second_stage_threshold_comparison(q):
+        return DeterministicLegalAnswer(
+            answer=_mas_second_stage_threshold_comparison_answer(),
+            reason="mas_second_stage_threshold_comparison_fast_answer",
+            schema_version="mas_second_stage_threshold_comparison_v1",
+        )
+
     if _is_excellent_procurement_or_third_party(q):
         return DeterministicLegalAnswer(
             answer=_excellent_procurement_or_third_party_answer(),
@@ -198,6 +206,65 @@ def _is_policy_company_product_counted_as_sme_performance(q: str) -> bool:
     has_sme_performance = "중소기업제품" in q and any(term in q for term in ("구매실적", "실적", "구매목표", "목표비율"))
     asks_counting = any(term in q for term in ("포함", "인정", "잡히", "되는지", "되나요", "되나", "맞는지"))
     return has_policy_company and has_sme_performance and asks_counting
+
+
+def _is_mas_second_stage_threshold_comparison(q: str) -> bool:
+    has_mas = any(term in q for term in ("mas", "종합쇼핑몰", "합쇼핑몰", "다수공급자", "나라장터"))
+    has_second_stage = any(term in q for term in ("2단계", "이단계", "제안요청"))
+    has_threshold_ask = any(term in q for term in ("기준", "금액", "한도", "달라", "다르", "비교", "의무"))
+    compares_product_types = (
+        any(term in q for term in ("일반물품", "일반제품", "일반수요물자", "일반"))
+        and any(term in q for term in ("중소기업자간", "중기간", "경쟁제품"))
+    )
+    return has_mas and has_second_stage and has_threshold_ask and compares_product_types
+
+
+def _source_title_list(rule_id: str) -> str:
+    titles = get_rule_source_titles(rule_id, include_related=True, limit=3)
+    return ", ".join(f"「{title}」" for title in titles) if titles else "내부 법령ㆍ행정규칙 DB"
+
+
+def _mas_second_stage_threshold_comparison_answer() -> str:
+    general_threshold = _num("P_MAS_SECOND_STAGE_GENERAL_PRODUCT_THRESHOLD")
+    sme_threshold = _num("P_MAS_SECOND_STAGE_SME_COMPETITION_THRESHOLD")
+    optional_min = _num("P_MAS_SECOND_STAGE_SME_MANUFACTURED_OPTIONAL_MIN")
+    optional_max = _num("P_MAS_SECOND_STAGE_SME_MANUFACTURED_OPTIONAL_MAX")
+    general_sources = _source_title_list("R_MAS_SECOND_STAGE_THRESHOLD_GENERAL_PRODUCT")
+    sme_sources = _source_title_list("R_MAS_SECOND_STAGE_THRESHOLD_SME_COMPETITION")
+
+    return "\n".join([
+        "결론부터 말하면, **현재 내부 법령ㆍ행정규칙 DB 기준으로 MAS 2단계 경쟁 기준은 일반 물품과 중소기업자간 경쟁제품에서 달라집니다.**",
+        "기준 금액은 계약법의 일반 수의계약 한도가 아니라, 조달청 행정규칙인 「물품 다수공급자계약 업무처리규정」의 2단계경쟁 대상 규정에서 확인해야 합니다.",
+        "",
+        "### 1. 기준 금액 비교",
+        "| 구분 | 2단계 경쟁 의무 기준 | 기준 미만 처리 | 실무 포인트 | 근거 |",
+        "|---|---:|---|---|---|",
+        f"| 중소기업자간 경쟁제품 | **1회 납품요구대상 구매예산 {sme_threshold} 이상** | {sme_threshold} 미만이면 2단계 경쟁 의무 기준 미만 | 먼저 세부품명이 중소기업자간 경쟁제품인지, 직접생산확인 대상인지 확인합니다. | {sme_sources}, 제49조제1항제1호 |",
+        f"| 중소기업자간 경쟁제품이 아닌 일반 수요물자 | **1회 납품요구대상 구매예산 {general_threshold} 이상** | {general_threshold} 미만이면 2단계 경쟁 의무 기준 미만 | 일반 물품은 중기경쟁제품보다 낮은 금액에서 2단계 경쟁 검토가 시작됩니다. | {general_sources}, 제49조제1항제2호 |",
+        f"| 일반 수요물자 중 `중소기업 제조품목` 예외 | 원칙은 {general_threshold} 이상이나, **{optional_min} 이상 {optional_max} 미만** 구간에서 예외 가능 | 요건 충족 시 2단계 경쟁 없이 납품대상업체 선정 가능 | 계약상대자가 해당 계약품목의 제조자이면서 중소기업인지 확인해야 합니다. | 「물품 다수공급자계약 업무처리규정」 제49조제4항 |",
+        "",
+        "### 2. 왜 기준이 달라지는가",
+        "- MAS 2단계 경쟁은 종합쇼핑몰에 이미 계약된 여러 업체 중 어느 업체에 납품요구할지를 다시 경쟁시키는 절차입니다.",
+        "- 중소기업자간 경쟁제품은 판로지원법 체계에서 중소기업 보호와 직접생산 확인이 함께 작동하므로, 일반 물품과 같은 방식으로만 보지 않습니다.",
+        "- 반대로 일반 물품은 중소기업자간 경쟁제품이 아니므로 원칙 기준이 더 낮게 잡혀 있습니다. 다만 중소기업이 직접 제조하는 일반 물품은 별도 예외 구간을 둡니다.",
+        "",
+        "### 3. 실무 확인 순서",
+        "| 순서 | 확인할 것 | 확인 이유 |",
+        "|---|---|---|",
+        "| 1 | 세부품명번호와 품목명 | 중소기업자간 경쟁제품인지 일반 수요물자인지 먼저 갈립니다. |",
+        "| 2 | 1회 납품요구대상 구매예산 | 2단계 경쟁 기준은 `추정가격` 표현보다 MAS 규정상 1회 납품요구대상 구매예산 기준으로 봅니다. |",
+        "| 3 | 중소기업 제조품목 예외 여부 | 일반 수요물자라도 제조자인 중소기업이면 5천만원 이상 1억원 미만 구간에서 예외 검토가 가능합니다. |",
+        "| 4 | 복수 품목 구매 여부 | 물품별 기준이 다르면 가장 낮은 기준금액을 적용합니다. |",
+        "| 5 | 분할 납품요구 여부 | 2단계 경쟁 회피 목적의 분할 납품요구는 금지됩니다. |",
+        "",
+        "### 4. 주의할 조항",
+        "- 「물품 다수공급자계약 업무처리규정」 제49조제6항은 여러 물품을 함께 구매할 때 물품별 기준금액이 다르면 **가장 낮은 기준금액**을 적용하도록 합니다.",
+        "- 같은 규정 제51조는 2단계 경쟁 회피를 목적으로 기준금액 미만으로 쪼개 납품요구하는 것을 금지합니다.",
+        "- 제52조는 2단계 경쟁 시 원칙적으로 종합쇼핑몰을 통해 복수 계약상대자에게 제안요청하는 절차를 둡니다.",
+        "",
+        "정리하면, **중소기업자간 경쟁제품은 1억원 이상, 일반 수요물자는 5천만원 이상**부터 MAS 2단계 경쟁 기준을 먼저 확인합니다. 다만 일반 수요물자 중 중소기업 제조품목은 5천만원 이상 1억원 미만 예외 구간이 있으므로, `일반/중기경쟁제품/중소기업 제조품목`을 분리해 판단해야 합니다.",
+        "⚖️ 본 답변은 내부 DB에 적재된 「물품 다수공급자계약 업무처리규정」 및 중소기업자간 경쟁제품 지정 자료의 숫자값을 사용한 참고 안내입니다.",
+    ])
 
 
 def _policy_company_product_counted_as_sme_performance_answer() -> str:

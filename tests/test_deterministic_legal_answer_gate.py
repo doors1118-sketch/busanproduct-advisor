@@ -120,6 +120,24 @@ def test_local_company_point_answer_gives_annex_lookup_sequence():
     assert "공고문에서 마지막으로 확인할 문구" in result.answer
 
 
+def test_mas_second_stage_threshold_comparison_uses_admin_rule_values():
+    result = match_deterministic_legal_answer(
+        "종합쇼핑몰 MAS 2단계 경쟁 기준이 일반물품과 중소기업자간 경쟁제품에서 달라지는지 법령과 행정규칙 기준으로 비교해줘."
+    )
+
+    assert result is not None
+    assert result.reason == "mas_second_stage_threshold_comparison_fast_answer"
+    assert "일반 물품과 중소기업자간 경쟁제품에서 달라집니다" in result.answer
+    assert "5천만원 이상" in result.answer
+    assert "1억원 이상" in result.answer
+    assert "중소기업 제조품목" in result.answer
+    assert "제49조제1항제1호" in result.answer
+    assert "제49조제1항제2호" in result.answer
+    assert "제49조제4항" in result.answer
+    assert "제51조" in result.answer
+    assert "물품 구매 표준 워크플로우" not in result.answer
+
+
 def test_local_company_route_combination_goes_to_practice_flow():
     result = match_deterministic_legal_answer(
         "도로 포장공사에서 지역업체 참여도를 높이려면 지역제한, 공동도급, 적격심사를 어떻게 연결해?"
