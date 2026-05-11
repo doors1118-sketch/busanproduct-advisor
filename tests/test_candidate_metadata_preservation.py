@@ -131,7 +131,17 @@ def test_candidate_only_cctv_answer_suppresses_contract_routes_and_groups_streng
                 "manufacturer_type": "manufacture",
                 "license_or_business_type": ["정보통신공사업", "소프트웨어사업자(컴퓨터관련서비스사업)"],
                 "purchase_routes": ["수의계약 검토", "2인 이상 견적 검토"],
-            }
+            },
+            {
+                "company_id": "cctv-3",
+                "company_name": "주식회사 리더캠",
+                "location": "부산광역시",
+                "main_products": ["영상감시장치"],
+                "candidate_types": ["local_procurement_company"],
+                "primary_candidate_type": "local_procurement_company",
+                "license_or_business_type": ["정보통신공사업"],
+                "purchase_routes": ["수의계약 검토"],
+            },
         ],
         "policy_company": [],
         "innovation_product": [],
@@ -148,6 +158,8 @@ def test_candidate_only_cctv_answer_suppresses_contract_routes_and_groups_streng
     assert "설치·SI/정보통신공사 강점 후보" in table
     assert "주식회사 예스텍" in table
     assert "(주)선진텔레콤" in table
+    assert "주식회사 리더캠" in table
+    assert "영상감시장치" in table
     assert "GS인증" in table
     assert "정보통신공사업" in table
     assert "검토 가능 경로" not in table
