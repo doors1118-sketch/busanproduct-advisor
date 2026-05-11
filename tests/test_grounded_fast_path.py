@@ -429,6 +429,13 @@ def test_practice_fast_answer_repeats_sme_item_name():
     assert answer
     assert "보안용카메라" in answer
     assert "직접생산" in answer
+    assert "세부품명번호" in answer
+    assert "SMPP" in answer
+    assert "종합쇼핑몰/MAS" in answer
+    assert "정보통신공사업" in answer
+    assert "소프트웨어사업자" in answer
+    assert "직접생산 범위" in answer
+    assert "부산 제조사" in answer
 
 
 def test_practice_fast_answer_handles_construction_license_basis():
