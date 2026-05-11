@@ -216,6 +216,10 @@ def test_route_plan_keeps_explicit_route_comparison_narrow():
 
     assert frame.item_name == "노트북"
     assert frame.amount == 45_000_000
+    assert plan.company_search_mode == "route_relevant_candidates"
+    assert "company_candidates" in plan.retrieval_needs
+    assert "purchase_intent_implies_route_relevant_candidates" in plan.reasons
+    assert "include_legal_basis_for_each_purchase_route" in plan.quality_controls
     assert "mas_shopping_mall" in plan.evidence_topics
     assert "innovation_or_technology_development_product" not in plan.evidence_topics
     assert len(mcp_plan) <= 11
@@ -241,6 +245,7 @@ def test_route_plan_ignores_llm_local_support_without_local_signal():
 
     assert frame.local_purchase_support_required is False
     assert "local_purchase_support" not in frame.labels
+    assert plan.company_search_mode == "route_relevant_candidates"
     assert "regional_support_catalog" not in plan.retrieval_needs
     assert "regional_support_methods" not in plan.evidence_topics
 

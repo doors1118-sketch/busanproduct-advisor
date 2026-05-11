@@ -11,7 +11,7 @@ from functools import lru_cache
 import re
 
 try:
-    from app.policies.item_normalization_policy import normalize_item_query
+    from ..policies.item_normalization_policy import normalize_item_query
 except Exception:  # Runtime path when app/ is on sys.path.
     from policies.item_normalization_policy import normalize_item_query
 

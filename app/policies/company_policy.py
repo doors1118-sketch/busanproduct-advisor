@@ -67,12 +67,12 @@ def normalize_company_result(raw: dict) -> CompanyResult:
     """API 결과 dict → CompanyResult 구조화 객체 (contract_possible=False 강제)"""
     biz_status = raw.get("business_status", "unknown")
     return CompanyResult(
-        company_name=raw.get("company_name", ""),
+        company_name=raw.get("company_name") or raw.get("업체명", ""),
         company_id=raw.get("company_id", "unknown"),
-        location=raw.get("location", ""),
-        main_products=raw.get("main_products", []),
+        location=raw.get("location") or raw.get("소재지", ""),
+        main_products=raw.get("main_products") or raw.get("주요품목", []),
         license_types=raw.get("license_or_business_type", []),
-        policy_tags=raw.get("policy_subtypes", []),
+        policy_tags=raw.get("policy_subtypes") or raw.get("_정책기업", []),
         certified_product_types=raw.get("certified_product_types", []),
         shopping_mall_flags=raw.get("shopping_mall_flags", []),
         sme_competition_product=bool(raw.get("sme_competition_product", False)),
@@ -150,7 +150,8 @@ def format_company_for_llm(data: dict, max_results: int = 10) -> str:
     검색 결과를 LLM에 전달할 텍스트로 변환.
     API 응답의 `candidates` 키에서 업체 목록을 추출합니다.
     """
-    candidates = data.get("candidates", [])
+    legacy_candidate_status_label = "업체목록" in data and "candidates" not in data
+    candidates = data.get("candidates") or data.get("업체목록") or []
     total = len(candidates)
     meta = data.get("meta", {})
 
@@ -189,6 +190,8 @@ def format_company_for_llm(data: dict, max_results: int = 10) -> str:
 
         # 영업상태
         line += f" [{result.business_status_label}]"
+        if legacy_candidate_status_label:
+            line += f" [{result.candidate_status}]"
 
         # 상세 태그 (면허/인증/정책/쇼핑몰)
         tag_str = _format_tags(result)

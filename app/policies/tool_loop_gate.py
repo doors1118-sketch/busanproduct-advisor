@@ -118,9 +118,9 @@ def _assess_coverage_if_possible(
         return None
     try:
         try:
-            from policies.evidence_coverage_policy import assess_evidence_coverage
+            from .evidence_coverage_policy import assess_evidence_coverage
         except ImportError:
-            from app.policies.evidence_coverage_policy import assess_evidence_coverage
+            from policies.evidence_coverage_policy import assess_evidence_coverage
         return assess_evidence_coverage(
             route_plan=route_plan,
             evidence_cards=evidence_cards,

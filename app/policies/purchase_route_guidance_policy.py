@@ -80,6 +80,24 @@ _CANDIDATE_TYPE_ORDER = [
     "policy_company",
 ]
 
+_ROUTE_DISPLAY_ORDER = {
+    "policy_company_one_quote": 10,
+    "two_quote_small_value": 20,
+    "shopping_mall_mas": 30,
+    "sme_competition_direct_production": 40,
+    "local_company_competitive": 50,
+    "technology_development_product": 60,
+    "innovation_product": 70,
+    "general_small_value_direct": 90,
+}
+
+_ROUTE_PRIORITY_ORDER = {
+    "primary": 0,
+    "secondary": 1,
+    "reference": 2,
+    "excluded": 3,
+}
+
 _AGENCY_DISPLAY_LABELS = {
     "default": "미지정",
     "local_government": "지방자치단체",
@@ -272,6 +290,9 @@ def _policy_one_quote(amount: int | None, object_label: str) -> tuple[str, str, 
     ref = "P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD"
     threshold = _money(ref)
     compare = compare_amount(amount, ref)
+    general_one_quote_ref = "P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD"
+    general_one_quote_threshold = _money(general_one_quote_ref)
+    general_compare = compare_amount(amount, general_one_quote_ref)
     if compare == "above":
         return (
             "not_viable",
@@ -282,6 +303,18 @@ def _policy_one_quote(amount: int | None, object_label: str) -> tuple[str, str, 
             f"정책기업 1인 견적 기준({threshold}) 초과",
         )
     if compare == "below_or_equal":
+        if general_compare == "below_or_equal":
+            return (
+                "viable_check",
+                "정책기업이면 함께 고려",
+                (
+                    f"질문 금액은 일반 1인 견적 기준({general_one_quote_threshold}) 안에 들어오므로 정책기업 요건이 최우선 경로는 아닙니다. "
+                    "다만 부산 소재 여성기업·장애인기업·사회적기업이면 지역상품 구매와 사회적 가치 측면에서 후보 선별 기준으로 함께 볼 수 있습니다."
+                ),
+                "secondary",
+                "show",
+                "",
+            )
         return (
             "viable_check",
             "정책기업 1인 견적 검토 가능",
@@ -304,6 +337,87 @@ def _candidate_priority(status: str, default: str = "secondary") -> str:
     if status == "candidate_found":
         return "primary"
     return default
+
+
+def _is_likely_sme_competition_item(item_name: str) -> bool:
+    compact = re.sub(r"\s+", "", str(item_name or "")).lower()
+    return any(
+        term in compact
+        for term in (
+            "노트북",
+            "노트북컴퓨터",
+            "휴대용컴퓨터",
+            "컴퓨터",
+            "데스크톱컴퓨터",
+        )
+    )
+
+
+def _mas_route_status(
+    *,
+    amount: int | None,
+    item_name: str,
+    candidate_count: int | None,
+) -> tuple[str, str, str, str]:
+    candidate_status, candidate_label = _candidate_status(candidate_count)
+    mas_general_threshold = _money("P_MAS_SECOND_STAGE_GENERAL_PRODUCT_THRESHOLD")
+    mas_sme_threshold = _money("P_MAS_SECOND_STAGE_SME_COMPETITION_THRESHOLD")
+    general_value = get_numeric_value("P_MAS_SECOND_STAGE_GENERAL_PRODUCT_THRESHOLD")
+    sme_value = get_numeric_value("P_MAS_SECOND_STAGE_SME_COMPETITION_THRESHOLD")
+    likely_sme = _is_likely_sme_competition_item(item_name)
+
+    if amount is None or not isinstance(general_value, (int, float)) or not isinstance(sme_value, (int, float)):
+        base = (
+            "needs_lookup",
+            "금액·품목 확인 필요",
+            "종합쇼핑몰 등록 여부, 세부품명, 2단계 경쟁 기준 금액을 함께 확인해야 합니다.",
+            "secondary",
+        )
+        if candidate_count is not None:
+            return candidate_status, candidate_label, base[2], _candidate_priority(candidate_status, "secondary")
+        return base
+
+    if amount < general_value:
+        meaning = (
+            f"{item_name or '해당 물품'}이 종합쇼핑몰/MAS 등록 물품이면 일반 제품 기준({mas_general_threshold})에도 못 미치므로 "
+            "2단계 경쟁보다 납품요구·직접구매 가능성을 먼저 확인합니다."
+        )
+        if likely_sme:
+            meaning += (
+                f" 노트북·컴퓨터류가 중소기업자간 경쟁제품 세부품명에 해당하면 기준은 {mas_sme_threshold} 이상이므로, "
+                "질문 금액은 2단계 경쟁 기준 미만입니다."
+            )
+        if candidate_count is not None:
+            return candidate_status, candidate_label, meaning, _candidate_priority(candidate_status, "secondary")
+        return "mas_direct_check", "2단계 기준 미만", meaning, "primary"
+
+    if likely_sme and amount < sme_value:
+        meaning = (
+            f"{item_name or '해당 물품'}이 중소기업자간 경쟁제품 세부품명에 해당하면 MAS 2단계 경쟁 기준은 "
+            f"{mas_sme_threshold} 이상이므로 질문 금액은 직접구매 가능성을 먼저 확인합니다. "
+            f"다만 일반 제품으로 보면 {mas_general_threshold} 이상 구간이므로 세부품명 확인이 필요합니다."
+        )
+        if candidate_count is not None:
+            return candidate_status, candidate_label, meaning, _candidate_priority(candidate_status, "secondary")
+        return (
+            "mas_direct_check",
+            "중기제품 직접구매 확인",
+            meaning,
+            "primary",
+        )
+
+    meaning = (
+        f"종합쇼핑몰/MAS 등록 물품이라도 일반 제품은 {mas_general_threshold}, "
+        f"중소기업자간 경쟁제품은 {mas_sme_threshold} 이상이면 2단계 경쟁 대상 여부를 확인해야 합니다."
+    )
+    if candidate_count is not None:
+        return candidate_status, candidate_label, meaning, _candidate_priority(candidate_status, "secondary")
+    return (
+        "mas_second_stage_check",
+        "2단계 경쟁 확인",
+        meaning,
+        "secondary",
+    )
 
 
 def build_purchase_route_cards(
@@ -330,13 +444,14 @@ def build_purchase_route_cards(
         _policy_one_quote(amount, "물품")
     )
     two_status, two_label, two_meaning, two_priority = _two_quote_status(amount)
-    shopping_status, shopping_label = _candidate_status(counts["shopping_mall"])
+    shopping_status, shopping_label, shopping_meaning, shopping_priority = _mas_route_status(
+        amount=amount,
+        item_name=item_name,
+        candidate_count=counts["shopping_mall"],
+    )
     cert_status, cert_label = _candidate_status(counts["certified_product"])
     innovation_status, innovation_label = _candidate_status(counts["innovation_product"])
     local_status, local_label = _candidate_status(counts["local_company"])
-
-    mas_general_threshold = _money("P_MAS_SECOND_STAGE_GENERAL_PRODUCT_THRESHOLD")
-    mas_sme_threshold = _money("P_MAS_SECOND_STAGE_SME_COMPETITION_THRESHOLD")
 
     return [
         _card(
@@ -371,14 +486,11 @@ def build_purchase_route_cards(
             title="종합쇼핑몰/MAS",
             status=shopping_status,
             user_label=shopping_label,
-            practical_meaning=(
-                "종합쇼핑몰에 해당 품목이 등록되어 있으면 납품요구 또는 MAS 2단계 경쟁을 우선 검토합니다. "
-                f"일반물품은 {mas_general_threshold}, 중소기업자간 경쟁제품은 {mas_sme_threshold} 기준의 2단계 경쟁 여부를 함께 확인합니다."
-            ),
-            required_checks=["쇼핑몰 계약상태", "납품 가능 지역", "규격 일치", "2단계 경쟁 대상 여부", "부산업체 여부"],
+            practical_meaning=shopping_meaning,
+            required_checks=["쇼핑몰 계약상태", "공급업체 소재지", "납품 가능 지역", "규격 일치", "2단계 경쟁 대상 여부"],
             evidence_topics=["mas", "shopping_mall", "regional_factor"],
-            route_priority=_candidate_priority(shopping_status, "primary"),
-            legal_refs=["나라장터 종합쇼핑몰 운영규정", "물품 다수공급자계약 업무처리규정"],
+            route_priority=shopping_priority,
+            legal_refs=["나라장터 종합쇼핑몰 운영규정", "물품 다수공급자계약 업무처리규정", "물품 다수공급자계약 2단계경쟁 업무처리기준"],
             candidate_table_types=("shopping_mall_supplier",),
             candidate_lookup_policy="shopping_mall",
         ),
@@ -431,7 +543,7 @@ def build_purchase_route_cards(
             evidence_topics=["policy_company", "one_person_quote", "amount_threshold"],
             route_priority=policy_priority,
             display_policy=policy_display,
-            legal_refs=["여성기업지원법", "장애인기업활동 촉진법", "사회적기업 육성법", "지방자치단체 입찰 및 계약집행기준 수의계약 운영요령"],
+            legal_refs=["지방계약법 시행령 제25조", "지방계약법 시행령 제30조", "여성기업지원법", "장애인기업활동 촉진법", "사회적기업 육성법"],
             candidate_table_types=("policy_company",),
             candidate_lookup_policy="policy_company",
             exclusion_reason=policy_exclusion,
@@ -502,7 +614,7 @@ def _build_service_route_cards(amount: int | None, item_name: str, counts: dict[
             evidence_topics=["policy_company", "one_person_quote", "amount_threshold"],
             route_priority=policy_priority,
             display_policy=policy_display,
-            legal_refs=["여성기업지원법", "장애인기업활동 촉진법", "사회적기업 육성법", "지방자치단체 입찰 및 계약집행기준 수의계약 운영요령"],
+            legal_refs=["지방계약법 시행령 제25조", "지방계약법 시행령 제30조", "여성기업지원법", "장애인기업활동 촉진법", "사회적기업 육성법"],
             candidate_table_types=("policy_company",),
             candidate_lookup_policy="policy_company",
             exclusion_reason=policy_exclusion,
@@ -543,7 +655,7 @@ def _build_service_route_cards(amount: int | None, item_name: str, counts: dict[
             evidence_topics=["policy_company", "direct_contract"],
             route_priority=_candidate_priority(policy_candidate_status, "reference"),
             display_policy=policy_candidate_display,
-            legal_refs=["정책기업 수의계약", "지방자치단체 입찰 및 계약집행기준 수의계약 운영요령"],
+            legal_refs=["지방계약법 시행령 제25조", "지방계약법 시행령 제30조", "정책기업 수의계약"],
             candidate_table_types=("policy_company",),
             candidate_lookup_policy="policy_company",
         ),
@@ -714,6 +826,14 @@ def _format_route_display_judgment(card: PurchaseRouteCard) -> str:
     return card.user_label
 
 
+def _route_display_sort_key(card: PurchaseRouteCard) -> tuple[int, int, str]:
+    return (
+        _ROUTE_PRIORITY_ORDER.get(card.route_priority, 9),
+        _ROUTE_DISPLAY_ORDER.get(card.route_id, 80),
+        card.route_id,
+    )
+
+
 def format_purchase_route_guidance_for_llm(
     *,
     amount: int | None,
@@ -744,13 +864,14 @@ def format_purchase_route_guidance_for_llm(
         f"- 금액: {amount_label}",
         f"- 기관유형: {agency_label}",
         "- 작성 원칙: 주경로를 먼저 설명하고, 제외 경로는 이유만 짧게 정리한다.",
+        "- 작성 원칙: 구매경로 판단에는 경로별 법적 근거를 반드시 함께 제시한다. 근거가 약하거나 적용 여부가 불명확하면 '확인 필요'로 표시한다.",
         "- 작성 원칙: 후보표는 구매경로 판단과 맞는 표만 사용한다. 금액상 제외된 경로의 전용 후보표는 만들지 않는다.",
         "- 주의: 아래 판단 재료만으로 계약 가능을 확정하지 말고, 확인된 법령/행정규칙 근거와 업체 데이터에 맞춰 제한적으로 표현한다.",
         "",
         "| 순위 | 경로 | 판단 | 법적 근거 | 실무 의미 |",
         "|---|---|---|---|---|",
     ]
-    for card in cards:
+    for card in sorted(cards, key=_route_display_sort_key):
         if card.display_policy == "hide":
             continue
         priority = _PRIORITY_LABELS.get(card.route_priority, card.route_priority)
@@ -764,10 +885,11 @@ def format_purchase_route_guidance_for_llm(
         "답변 형식 지시:",
         "1. 판단요약에서 금액·계약대상·품목을 먼저 확정하고, 관련 조문 또는 행정규칙 근거를 함께 적어라.",
         "2. 바로 어려운 경로와 검토 가능한 대체 경로를 분리하라. 제외 경로는 길게 설명하지 말고 제외 이유만 쓴다.",
-        "3. 물품은 2인 이상 견적, 종합쇼핑몰/MAS, 중소기업자간 경쟁제품·직접생산확인, 기술개발제품·혁신제품을 우선 검토한다.",
-        "4. 용역은 2인 이상 견적, 지역제한, 평가요소, 면허·업종 기준 부산 용역업체 후보를 연결한다.",
-        "5. 공사는 공종별 수의계약 한도, 지역제한, 공동도급, 지역업체 참여도/가점을 연결한다.",
-        "6. 업체명은 '가능 업체'가 아니라 '검토 후보'로 표현하라.",
-        "7. 마지막에 계약담당자가 바로 확인할 체크리스트를 붙여라.",
+        "3. 구매경로 표나 문단에는 각 경로의 법적 근거를 생략하지 말고, 업체 후보표는 해당 경로의 근거 뒤에 붙인다.",
+        "4. 물품은 2인 이상 견적, 종합쇼핑몰/MAS, 중소기업자간 경쟁제품·직접생산확인, 기술개발제품·혁신제품을 우선 검토한다.",
+        "5. 용역은 2인 이상 견적, 지역제한, 평가요소, 면허·업종 기준 부산 용역업체 후보를 연결한다.",
+        "6. 공사는 공종별 수의계약 한도, 지역제한, 공동도급, 지역업체 참여도/가점을 연결한다.",
+        "7. 업체명은 '가능 업체'가 아니라 '검토 후보'로 표현하라.",
+        "8. 마지막에 계약담당자가 바로 확인할 체크리스트를 붙여라.",
     ])
     return "\n".join(lines)

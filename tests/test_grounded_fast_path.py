@@ -8,6 +8,7 @@ sys.path.insert(0, str(APP_DIR))
 import gemini_engine
 from gemini_engine import (
     _answer_thinking_budget_for,
+    _build_grounded_case_timeout_fallback,
     _build_pps_qa_interpretation_fast_answer,
     _build_practice_manual_fast_answer,
     _build_simple_amount_contract_answer,
@@ -96,15 +97,21 @@ def test_local_company_amount_question_keeps_gemini_intent_router():
     assert _should_skip_gemini_intent_router(question, decide_query_gateway(question)) is True
 
 
-def test_company_prefetch_route_plan_none_handles_purchase_route_question():
+def test_company_prefetch_route_plan_handles_purchase_route_question_as_purchase_intent():
+    from router.route_resolver import build_intent_frame, resolve_route_plan
+
+    question = "노트북 4천5백만원 구매는 1인 견적, 2인 견적, 종합쇼핑몰 중 뭐부터 봐야 해?"
+    route_plan = resolve_route_plan(build_intent_frame(question))
+
     should_prefetch, query, reason = _should_prefetch_company_routes(
-        "노트북 4천5백만원 구매는 1인 견적, 2인 견적, 종합쇼핑몰 중 뭐부터 봐야 해?",
-        route_plan=SimpleNamespace(company_search_mode="none"),
+        question,
+        route_plan=route_plan,
     )
 
-    assert should_prefetch is False
+    assert should_prefetch is True
     assert query
-    assert reason == "route_plan_no_company_lookup"
+    assert reason == "route_plan_company_prefetch:route_relevant_candidates"
+    assert route_plan.company_search_mode == "route_relevant_candidates"
     assert _is_explicit_company_lookup("CCTV 부산업체 후보만 보여줘") is True
     assert _is_explicit_company_lookup("업체 후보는 빼고 CCTV 구매 절차만 알려줘") is False
 
@@ -135,11 +142,40 @@ def test_simple_amount_answer_for_20m_goods_avoids_critical_scan_terms():
 
 def test_display_amount_preserves_korean_ten_million_unit():
     assert _display_amount_for_answer(80_000_000, "8천만원 예산이면 어떻게 해?") == "8천만원(80,000,000원)"
+    assert _display_amount_for_answer(45_000_000, "노트북 4천5백만원 구매") == "4천5백만원(45,000,000원)"
 
 
 def test_parse_amount_handles_composite_thousand_hundred_manwon():
     assert _parse_amount("노트북 4천5백만원 구매") == 45_000_000
     assert _parse_amount("1억4천5백만원 사업") == 145_000_000
+
+
+def test_timeout_fallback_for_45m_notebook_uses_regional_purchase_order():
+    answer = _build_grounded_case_timeout_fallback(
+        "노트북 4천5백만원 구매는 1인 견적, 2인 견적, 종합쇼핑몰 중 뭐부터 봐야 해?"
+    )
+
+    assert "여성·장애인·사회적기업" in answer
+    assert "지역제한 2인 이상 견적" in answer
+    assert "종합쇼핑몰/MAS 지역업체 필터" in answer
+    assert answer.index("여성·장애인·사회적기업") < answer.index("지역제한 2인 이상 견적")
+    assert answer.index("지역제한 2인 이상 견적") < answer.index("종합쇼핑몰/MAS 지역업체 필터")
+    assert "2천만원" in answer
+    assert "5천만원" in answer
+    assert "1억원" in answer
+    assert "내부 DB" not in answer
+    assert "지연" not in answer
+
+
+def test_timeout_fallback_does_not_put_policy_company_first_under_general_one_quote_limit():
+    answer = _build_grounded_case_timeout_fallback(
+        "노트북 1천만원 구매는 1인 견적, 2인 견적, 종합쇼핑몰 중 뭐부터 봐야 해?"
+    )
+
+    assert "일반 1인 견적" in answer
+    assert "정책기업" in answer
+    assert answer.index("일반 1인 견적") < answer.index("정책기업")
+    assert "정책기업 요건이 최우선 경로는 아닙니다" in answer
 
 
 def test_practice_fast_answer_handles_split_procurement_risk():

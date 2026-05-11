@@ -67,6 +67,86 @@ def test_route_guidance_uses_company_tool_counts_as_candidates():
     assert by_id["innovation_product"].user_label == "후보 미확인"
 
 
+def test_45m_notebook_marks_policy_two_quote_and_mas_direct_check():
+    cards = build_purchase_route_cards(
+        amount=45_000_000,
+        item_name="노트북",
+        contract_object="goods",
+        tool_results=[],
+    )
+    by_id = {card.route_id: card for card in cards}
+
+    assert by_id["policy_company_one_quote"].route_priority == "primary"
+    assert by_id["two_quote_small_value"].route_priority == "primary"
+    assert by_id["general_small_value_direct"].route_priority == "excluded"
+    assert "2천만원" in by_id["general_small_value_direct"].user_label
+
+    mas = by_id["shopping_mall_mas"]
+    assert mas.status == "mas_direct_check"
+    assert mas.user_label == "2단계 기준 미만"
+    assert mas.route_priority == "primary"
+    assert "노트북" in mas.practical_meaning
+    assert "5천만원" in mas.practical_meaning
+    assert "1억원" in mas.practical_meaning
+
+    context = format_purchase_route_guidance_for_llm(
+        amount=45_000_000,
+        item_name="노트북",
+        contract_object="goods",
+        tool_results=[],
+    )
+    assert context.index("| 우선 | 정책기업 1인견적 |") < context.index("| 우선 | 2인견적 |")
+    assert context.index("| 우선 | 2인견적 |") < context.index("| 우선 | 종합쇼핑몰/MAS |")
+    assert "지방계약법 시행령 제25조" in context
+    assert "지방계약법 시행령 제30조" in context
+    assert "물품 다수공급자계약 2단계경쟁 업무처리기준" in context
+
+
+def test_policy_company_one_quote_is_not_always_first_below_general_one_quote_limit():
+    cards = build_purchase_route_cards(
+        amount=10_000_000,
+        item_name="노트북",
+        contract_object="goods",
+        tool_results=[],
+    )
+    by_id = {card.route_id: card for card in cards}
+
+    assert by_id["general_small_value_direct"].route_priority == "primary"
+    assert by_id["policy_company_one_quote"].route_priority == "secondary"
+    assert "최우선 경로는 아닙니다" in by_id["policy_company_one_quote"].practical_meaning
+
+    context = format_purchase_route_guidance_for_llm(
+        amount=10_000_000,
+        item_name="노트북",
+        contract_object="goods",
+        tool_results=[],
+    )
+    assert context.index("| 우선 | 일반 1인견적 |") < context.index("| 보조 | 정책기업 1인견적 |")
+
+
+def test_purchase_route_guidance_requires_legal_basis_per_visible_route():
+    context = format_purchase_route_guidance_for_llm(
+        amount=45_000_000,
+        item_name="노트북",
+        contract_object="goods",
+        tool_results=[],
+    )
+    route_rows = [
+        line
+        for line in context.splitlines()
+        if line.startswith("| ") and not line.startswith("| 순위") and not line.startswith("|---")
+    ]
+
+    assert route_rows
+    for row in route_rows:
+        cells = [cell.strip() for cell in row.strip("|").split("|")]
+        assert len(cells) == 5
+        assert cells[3]
+        assert cells[3] != "확인 필요"
+    assert "구매경로 판단에는 경로별 법적 근거를 반드시 함께 제시" in context
+    assert "업체 후보표는 해당 경로의 근거 뒤에 붙인다" in context
+
+
 def test_llm_guidance_explicitly_preserves_llm_practical_answer_role():
     context = format_purchase_route_guidance_for_llm(
         amount=80_000_000,

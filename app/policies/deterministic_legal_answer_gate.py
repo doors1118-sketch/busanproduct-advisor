@@ -10,12 +10,13 @@ from dataclasses import dataclass
 import re
 
 try:
-    from policies.numeric_basis_policy import get_numeric_display
+    from policies.numeric_basis_policy import get_numeric_display, get_numeric_value
 except ImportError:
     from importlib import import_module
 
     _numeric_basis_policy = import_module("app.policies.numeric_basis_policy")
     get_numeric_display = _numeric_basis_policy.get_numeric_display
+    get_numeric_value = _numeric_basis_policy.get_numeric_value
 
 
 @dataclass(frozen=True)
@@ -215,33 +216,35 @@ def _is_sme_small_business_priority_procurement(q: str) -> bool:
     has_small_business = "소기업" in q or "소상공인" in q
     has_small_amount = any(term in q for term in ("1억원미만", "1억미만", "일억원미만"))
     amount = _extract_amount_won(q)
-    if amount is not None and amount < 100_000_000:
+    threshold = get_numeric_value("P_LOCAL_DIRECT_SMALL_BUSINESS_THRESHOLD")
+    if amount is not None and isinstance(threshold, (int, float)) and amount < threshold:
         has_small_amount = True
     asks_limit = any(term in q for term in ("입찰참가자격", "제한", "맞", "해야", "원칙", "우선조달"))
     return has_sme_competition and has_small_business and has_small_amount and asks_limit
 
 
 def _sme_small_business_priority_procurement_answer() -> str:
+    threshold = _num("P_LOCAL_DIRECT_SMALL_BUSINESS_THRESHOLD")
     return "\n".join([
-        "네. 질문 조건처럼 **중소기업자간 경쟁제품**이고 추정가격이 **1억원 미만**인 물품·용역이라면, 먼저 **소기업 또는 소상공인 간 제한경쟁입찰** 적용 여부를 검토하는 구조가 맞습니다.",
+        f"네. 질문 조건처럼 **중소기업자간 경쟁제품**이고 추정가격이 **{threshold} 미만**인 물품·용역이라면, 먼저 **소기업 또는 소상공인 간 제한경쟁입찰** 적용 여부를 검토하는 구조가 맞습니다.",
         "",
         "### 1. 판단 요약",
-        "- 중소기업자간 경쟁제품이라는 점만으로 곧바로 `중소기업자 전체`로 넓히기보다, 추정가격이 1억원 미만이면 판로지원법 시행령의 **소기업·소상공인 우선조달계약** 기준을 먼저 봅니다.",
+        f"- 중소기업자간 경쟁제품이라는 점만으로 곧바로 `중소기업자 전체`로 넓히기보다, 추정가격이 {threshold} 미만이면 판로지원법 시행령의 **소기업·소상공인 우선조달계약** 기준을 먼저 봅니다.",
         "- 다만 품목의 세부품명, 직접생산확인 대상 여부, 유찰·긴급 등 예외 사유가 있는지는 별도 확인해야 합니다.",
         "",
         "### 2. 근거 축",
-        "- **중소기업제품 구매촉진 및 판로지원에 관한 법률 시행령 제2조의2**: 추정가격 1억원 미만 물품 또는 용역은 소기업 또는 소상공인 간 제한경쟁입찰로 조달계약을 체결하는 구조를 둡니다.",
+        f"- **중소기업제품 구매촉진 및 판로지원에 관한 법률 시행령 제2조의2**: 추정가격 {threshold} 미만 물품 또는 용역은 소기업 또는 소상공인 간 제한경쟁입찰로 조달계약을 체결하는 구조를 둡니다.",
         "- **중소기업제품 구매촉진 및 판로지원에 관한 법률 제7조**: 경쟁제품은 중소기업자만을 대상으로 하는 제한경쟁 또는 지명경쟁 입찰로 조달하는 원칙을 둡니다.",
         "- **지방계약법 시행령 제20조**: 중소기업자간 경쟁제품, 소기업·소상공인 등 입찰참가자격 제한의 계약법상 연결 근거를 확인합니다.",
         "",
         "### 3. 실무 처리 순서",
         "- 먼저 세부품명 기준으로 해당 품목이 중소기업자간 경쟁제품인지 확인합니다.",
-        "- 추정가격이 1억원 미만인지 산정합니다. 맞다면 소기업·소상공인 제한경쟁입찰을 우선 검토합니다.",
+        f"- 추정가격이 {threshold} 미만인지 산정합니다. 맞다면 소기업·소상공인 제한경쟁입찰을 우선 검토합니다.",
         "- 직접생산확인증명서가 필요한 품목이면 입찰참가자격에 직접생산확인 범위와 유효기간 확인을 넣습니다.",
         "- 소기업·소상공인 입찰에서 유찰되거나 적격자가 없는 등 예외 사유가 생기면 중소기업자 간 제한경쟁으로 넓힐 수 있는지 근거를 남깁니다.",
         "- 부산 지역업체 참여까지 검토하려면 별도로 지역제한 가능 금액, 지역 내 경쟁 가능한 업체 수, 부당제한 여부를 확인해야 합니다.",
         "",
-        "정리하면, **1억원 미만이면 소기업·소상공인 제한을 먼저 검토하고, 예외 사유가 있을 때 중소기업자 간 제한으로 전환하는지 따져보는 순서**가 안전합니다.",
+        f"정리하면, **{threshold} 미만이면 소기업·소상공인 제한을 먼저 검토하고, 예외 사유가 있을 때 중소기업자 간 제한으로 전환하는지 따져보는 순서**가 안전합니다.",
         "⚖️ 본 답변은 내부 법령 DB 기준의 참고 안내입니다. 공고 전에는 최신 조문 원문과 해당 품목 고시를 함께 확인하세요.",
     ])
 

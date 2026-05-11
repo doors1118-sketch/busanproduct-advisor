@@ -6,7 +6,13 @@
 """
 import re
 
-from policies.candidate_policy import CANDIDATE_TYPES, CERT_TYPE_LABELS, SHOPPING_FLAG_LABELS, get_data_source_status
+from policies.candidate_policy import (
+    CANDIDATE_TYPES,
+    CERT_TYPE_LABELS,
+    POLICY_TYPE_LABELS,
+    SHOPPING_FLAG_LABELS,
+    get_data_source_status,
+)
 
 
 # ─────────────────────────────────────────────
@@ -180,21 +186,46 @@ def _candidate_product_text(row: dict, *, visible_only: bool = True, candidate_t
     return " ".join(values).lower()
 
 
-def candidate_matches_user_item(row: dict, user_message: str = "", candidate_type: str = "") -> bool:
-    """Return whether a candidate is visibly related to the requested item."""
-    tokens = _extract_item_tokens(user_message)
+def _infer_candidate_type(row: dict, candidate_type: str = "") -> str:
+    if candidate_type:
+        return candidate_type
+    primary = row.get("primary_candidate_type")
+    if primary:
+        return str(primary)
+    candidate_types = _as_list(row.get("candidate_types"))
+    for preferred in ("priority_purchase_product", "innovation_product"):
+        if preferred in candidate_types:
+            return preferred
+    for preferred in DEFAULT_ORDER:
+        if preferred in candidate_types:
+            return preferred
+    return ""
+
+
+def _candidate_matches_item_tokens(row: dict, tokens: list[str], candidate_type: str = "") -> bool:
     if not tokens:
         return True
-    product_text = _candidate_product_text(row, visible_only=True, candidate_type=candidate_type)
+    product_text = _candidate_product_text(
+        row,
+        visible_only=True,
+        candidate_type=_infer_candidate_type(row, candidate_type),
+    )
     if not product_text:
         return False
     return any(token in product_text for token in tokens)
 
 
+def candidate_matches_user_item(row: dict, user_message: str = "", candidate_type: str = "") -> bool:
+    """Return whether a candidate is visibly related to the requested item."""
+    tokens = _extract_item_tokens(user_message)
+    return _candidate_matches_item_tokens(row, tokens, candidate_type=candidate_type)
+
+
 def filter_candidate_rows_by_user_item(rows: list, user_message: str = "", candidate_type: str = "") -> list:
+    tokens = _extract_item_tokens(user_message)
     return [
         row for row in (rows or [])
-        if isinstance(row, dict) and candidate_matches_user_item(row, user_message, candidate_type=candidate_type)
+        if isinstance(row, dict) and _candidate_matches_item_tokens(row, tokens, candidate_type=candidate_type)
     ]
 
 
@@ -308,6 +339,9 @@ def _format_shopping_mall_status(row: dict) -> str:
             return ", ".join(_display_labels(mall_type, SHOPPING_FLAG_LABELS)) or "등록 확인"
         if labels:
             return ", ".join(_display_labels(labels, SHOPPING_FLAG_LABELS)) or "등록 확인"
+        flags = _display_labels(row.get("shopping_mall_flags"), SHOPPING_FLAG_LABELS)
+        if flags:
+            return ", ".join(flags)
         return "등록 확인"
     if mall_reg is False:
         return "해당 없음"
@@ -322,6 +356,38 @@ def _format_sme_direct_status(row: dict) -> str:
     if row.get("sme_competition_product") is False or row.get("direct_production_confirmed") is False:
         return "해당 없음"
     return "확인 필요"
+
+
+def _cell(value) -> str:
+    text = str(value or "").strip()
+    text = re.sub(r"\s+", " ", text)
+    return text.replace("|", "/") or "확인 필요"
+
+
+def _display_product_names(row: dict, limit: int = 3) -> str:
+    names: list[str] = []
+    sources = [
+        _as_list(row.get("main_products")),
+        _as_list(row.get("registered_product_names")),
+    ]
+    if row.get("primary_candidate_type") == "shopping_mall_supplier":
+        sources.extend(
+            [
+                _summary_product_names(row.get("shopping_mall_product_summary")),
+                _summary_product_names(row.get("mas_product_summary")),
+            ]
+        )
+    for source in sources:
+        for name in source:
+            text = str(name or "").strip()
+            if text and text not in names:
+                names.append(text)
+    if not names:
+        for name in _as_list(row.get("product_name")):
+            text = str(name or "").strip()
+            if text and text not in names:
+                names.append(text)
+    return ", ".join(names[:limit]) if names else "확인 필요"
 
 
 def _build_company_table(rows: list) -> str:
@@ -346,9 +412,9 @@ def _build_company_table(rows: list) -> str:
         }
         type_label = type_label_map.get(ptype, ptype or "확인 필요")
 
-        name = r.get("company_name", r.get("product_name", ""))
-        loc = r.get("location", "부산")
-        prods = ", ".join(r.get("main_products", [])) or "확인 필요"
+        name = _cell(r.get("company_name", r.get("product_name", "")))
+        loc = _cell(r.get("location", "부산"))
+        prods = _cell(_display_product_names(r))
 
         # 조달등록 여부
         procurement_reg = _format_procurement_registration(r)
@@ -357,7 +423,7 @@ def _build_company_table(rows: list) -> str:
         mall_str = _format_shopping_mall_status(r)
 
         # 정책기업 태그
-        tags = ", ".join(r.get("policy_tags", []))
+        tags = ", ".join(_display_labels(r.get("policy_tags"), POLICY_TYPE_LABELS))
         if not tags:
             tags = "해당 없음"
 
@@ -369,8 +435,8 @@ def _build_company_table(rows: list) -> str:
         route_str = ", ".join(routes[:2]) if routes else "확인 필요"
 
         lines.append(
-            f"| {type_label} | {name} | {loc} | {prods} | {procurement_reg} | {mall_str} | "
-            f"{tags} | {tech_labels} | {sme_direct} | {route_str} |"
+            f"| {_cell(type_label)} | {name} | {loc} | {prods} | {_cell(procurement_reg)} | {_cell(mall_str)} | "
+            f"{_cell(tags)} | {_cell(tech_labels)} | {_cell(sme_direct)} | {_cell(route_str)} |"
         )
     return header + "\n".join(lines)
 
@@ -386,14 +452,14 @@ def _build_innovation_table(rows: list) -> str:
         # product_name이 비어있으면 표에 미표시
         if not prod or prod in ("", "nan", "None", "설명 확인 필요"):
             continue
-        company = r.get("company_name", "")
-        loc = r.get("location", "")
-        innov = r.get("innovation_product_status", r.get("innovation_type", "확인 필요"))
-        cert = r.get("certification_no", r.get("innovation_cert_no", ""))
+        company = _cell(r.get("company_name", ""))
+        loc = _cell(r.get("location", ""))
+        innov = _cell(r.get("innovation_product_status", r.get("innovation_type", "확인 필요")))
+        cert = _cell(r.get("certification_no", r.get("innovation_cert_no", "")))
         note = "혁신제품 지정과 구매품목 일치 확인"
         if r.get("certification_validity_status") not in ("valid", "유효", None, ""):
             note += ", 유효성 확인 필요"
-        lines.append(f"| {prod} | {company} | {loc} | {innov} | {cert} | {note} |")
+        lines.append(f"| {_cell(prod)} | {company} | {loc} | {innov} | {cert} | {_cell(note)} |")
     return header + "\n".join(lines) if lines else ""
 
 
@@ -409,8 +475,8 @@ def _build_priority_purchase_table(rows: list) -> str:
     lines = []
     for r in rows:
         prod = r.get("product_name") or ", ".join(r.get("main_products", [])[:2]) or "제품명 확인 필요"
-        company = r.get("company_name", "")
-        loc = r.get("location", "")
+        company = _cell(r.get("company_name", ""))
+        loc = _cell(r.get("location", ""))
         cert_type = _tech_product_labels(r) or "기술개발제품"
         procurement_reg = _format_procurement_registration(r)
         mall_str = _format_shopping_mall_status(r)
@@ -418,7 +484,10 @@ def _build_priority_purchase_table(rows: list) -> str:
         note = "인증제품명과 구매품목 일치 확인"
         if r.get("certification_validity_status") not in ("valid", "유효", None, ""):
             note += ", 인증 유효성 확인 필요"
-        lines.append(f"| {prod} | {company} | {loc} | {cert_type} | {procurement_reg} | {mall_str} | {sme_direct} | {note} |")
+        lines.append(
+            f"| {_cell(prod)} | {company} | {loc} | {_cell(cert_type)} | {_cell(procurement_reg)} | "
+            f"{_cell(mall_str)} | {_cell(sme_direct)} | {_cell(note)} |"
+        )
     return header + "\n".join(lines)
 
 
@@ -448,6 +517,10 @@ def format_candidate_tables(
     """
     order = _merge_preferred_order(_determine_display_order(user_message), list(preferred_order or []))
     hidden = set(hidden_candidate_types or [])
+    relevant_rows_by_type = {
+        ct: filter_candidate_rows_by_user_item(classified.get(ct, []), user_message, candidate_type=ct)
+        for ct in order
+    }
 
     # 표시할 후보군이 하나라도 있는지 확인
     has_any = False
@@ -460,7 +533,7 @@ def format_candidate_tables(
         can_display = meta["display_enabled"] or (is_staging and ds.get("staging_display_only", False))
         if not can_display:
             continue
-        if filter_candidate_rows_by_user_item(classified.get(ct, []), user_message, candidate_type=ct):
+        if relevant_rows_by_type.get(ct):
             has_any = True
             break
 
@@ -476,10 +549,7 @@ def format_candidate_tables(
         if ct in hidden and not _has_explicit_candidate_intent(ct, user_message):
             continue
         meta = CANDIDATE_TYPES[ct]
-        rows = _dedupe_rows_for_display(
-            filter_candidate_rows_by_user_item(classified.get(ct, []), user_message, candidate_type=ct),
-            seen_entities,
-        )
+        rows = _dedupe_rows_for_display(relevant_rows_by_type.get(ct, []), seen_entities)
 
         ds = get_data_source_status(ct)
         can_display = meta["display_enabled"] or (is_staging and ds.get("staging_display_only", False))

@@ -1023,8 +1023,14 @@ def _display_amount_for_answer(amount: int | None, user_message: str) -> str:
     if amount is None:
         return "금액 미확인"
     compact = (user_message or "").replace(" ", "").replace(",", "")
-    original = re.search(r"\d+(?:\.\d+)?(?:천만원|백만원|억원|억|천만|백만|만원|원)", compact)
     numeric = f"{amount:,}원"
+    compound = re.search(
+        r"(?:\d+(?:\.\d+)?억)?(?:\d+(?:\.\d+)?천)?(?:\d+(?:\.\d+)?백)?만원",
+        compact,
+    )
+    if compound and re.search(r"\d", compound.group(0)):
+        return f"{compound.group(0)}({numeric})"
+    original = re.search(r"\d+(?:\.\d+)?(?:천만원|백만원|억원|억|천만|백만|만원|원)", compact)
     if original:
         return f"{original.group(0)}({numeric})"
     return numeric
@@ -3650,48 +3656,117 @@ def _build_grounded_case_timeout_fallback(user_message: str, mcp_context: str = 
             "",
             "실무적으로는 제안요청서의 평가항목, 기술능력 평가비중, 과업심의·요구사항 명확화 여부를 함께 확인하는 것이 좋습니다.",
         ])
-    if "수의계약" in q and "물품" in q and ("2억" in q or "200000000" in q):
-        from policies.numeric_basis_policy import get_numeric_display
-        general_threshold = get_numeric_display("P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD") or "기준값 확인 필요"
-        policy_threshold = get_numeric_display("P_LOCAL_DIRECT_POLICY_COMPANY_THRESHOLD") or "기준값 확인 필요"
-        return "\n".join([
-            "내부 DB 근거 기준으로 요약하면 다음과 같습니다.",
-            "",
-            f"물품 2억원은 일반 물품 수의계약의 기본 소액 기준인 **추정가격 {general_threshold} 이하**를 넘습니다. 또한 정책기업 등 일부 물품ㆍ용역 수의계약 특례도 **{policy_threshold} 이하** 범위가 핵심이므로, 질문의 조건만으로는 수의계약으로 바로 진행하기 어렵습니다.",
-            "",
-            "다만 실제 판단은 소속기관, 추정가격 산정, 품목 특성, 여성기업ㆍ장애인기업ㆍ사회적기업 등 정책기업 해당 여부, 직접생산ㆍ조달등록 여부를 함께 확인해야 합니다.",
-            "",
-            "지역상품 구매 지원 관점에서는 부산 업체를 특정해 바로 수의계약으로 단정하기보다, 지역제한경쟁입찰, 2인 이상 견적, MAS/종합쇼핑몰, 직접생산ㆍ인증제품 활용 가능성을 함께 검토하는 방향이 안전합니다.",
-            "근거: 「지방계약법 시행령」 제25조ㆍ제30조 및 확인된 법령·행정규칙 자료",
-        ])
+    if "수의계약" in q and "물품" in q:
+        from policies.numeric_basis_policy import get_numeric_display, get_numeric_value
+        amount = _parse_amount(user_message)
+        policy_limit = get_numeric_value("P_LOCAL_DIRECT_POLICY_COMPANY_THRESHOLD")
+        if amount is None or not isinstance(policy_limit, (int, float)) or amount <= policy_limit:
+            pass
+        else:
+            amount_label = _display_amount_for_answer(amount, user_message)
+            general_threshold = get_numeric_display("P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD") or "기준값 확인 필요"
+            policy_threshold = get_numeric_display("P_LOCAL_DIRECT_POLICY_COMPANY_THRESHOLD") or "기준값 확인 필요"
+            return "\n".join([
+                "확인된 근거 기준으로 요약하면 다음과 같습니다.",
+                "",
+                f"물품 {amount_label}은 일반 물품 수의계약의 기본 소액 기준인 **추정가격 {general_threshold} 이하**를 넘습니다. 또한 정책기업 등 일부 물품ㆍ용역 수의계약 특례도 **{policy_threshold} 이하** 범위가 핵심이므로, 질문의 조건만으로는 수의계약으로 바로 진행하기 어렵습니다.",
+                "",
+                "다만 실제 판단은 소속기관, 추정가격 산정, 품목 특성, 여성기업ㆍ장애인기업ㆍ사회적기업 등 정책기업 해당 여부, 직접생산ㆍ조달등록 여부를 함께 확인해야 합니다.",
+                "",
+                "지역상품 구매 지원 관점에서는 부산 업체를 특정해 바로 수의계약으로 단정하기보다, 지역제한경쟁입찰, 2인 이상 견적, MAS/종합쇼핑몰, 직접생산ㆍ인증제품 활용 가능성을 함께 검토하는 방향이 안전합니다.",
+                "근거: 「지방계약법 시행령」 제25조ㆍ제30조 및 확인된 법령·행정규칙 자료",
+            ])
     if (
         any(term in q for term in ("구매", "물품", "노트북", "컴퓨터", "냉난방기", "보안용카메라", "cctv"))
         and any(term in q for term in ("1인견적", "2인견적", "견적", "종합쇼핑몰", "mas", "다수공급자"))
     ):
-        from policies.numeric_basis_policy import get_numeric_display
+        from policies.numeric_basis_policy import get_numeric_display, get_numeric_value
 
         amount = _parse_amount(user_message)
         item_name = _extract_item_keyword(user_message) or "해당 물품"
+        one_quote_general_value = get_numeric_value("P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD")
+        one_quote_policy_value = get_numeric_value("P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD")
+        mas_general_value = get_numeric_value("P_MAS_SECOND_STAGE_GENERAL_PRODUCT_THRESHOLD")
+        mas_sme_value = get_numeric_value("P_MAS_SECOND_STAGE_SME_COMPETITION_THRESHOLD")
         one_quote_general = get_numeric_display("P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD") or "기준값 확인 필요"
-        general_threshold = get_numeric_display("P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD") or "기준값 확인 필요"
         one_quote_policy = get_numeric_display("P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD") or "기준값 확인 필요"
-        amount_label = f"{amount:,}원" if amount else "질문 금액"
-        return "\n".join([
-            "### 판단 요약",
-            f"- **{item_name} {amount_label} 구매**는 먼저 **종합쇼핑몰/MAS 등록 여부와 2인 이상 견적 가능 구간**을 같이 봐야 합니다.",
-            f"- 일반 1인 견적은 통상 **추정가격 {one_quote_general} 이하** 구간을 먼저 보므로, 질문 금액이 이를 넘는다면 1인 견적을 우선 경로로 두기 어렵습니다.",
-            f"- 일반 물품 수의계약 검토는 **{general_threshold} 이하** 여부와 견적 방식, 품목 특례를 나눠 봐야 합니다.",
+        two_quote_threshold = get_numeric_display("P_LOCAL_DIRECT_SMALL_BUSINESS_THRESHOLD") or "기준값 확인 필요"
+        mas_general_threshold = get_numeric_display("P_MAS_SECOND_STAGE_GENERAL_PRODUCT_THRESHOLD") or "기준값 확인 필요"
+        mas_sme_threshold = get_numeric_display("P_MAS_SECOND_STAGE_SME_COMPETITION_THRESHOLD") or "기준값 확인 필요"
+        amount_label = _display_amount_for_answer(amount, user_message) if amount else "질문 금액"
+        policy_fit_note = (
+            "이 범위에 들어옵니다"
+            if amount is not None and isinstance(one_quote_policy_value, (int, float)) and amount <= one_quote_policy_value
+            else "이 범위에 들어가는지 추정가격 기준으로 확인해야 합니다"
+        )
+        general_one_quote_note = (
+            "이를 넘습니다"
+            if amount is not None and isinstance(one_quote_general_value, (int, float)) and amount > one_quote_general_value
+            else "이 범위에 들어갈 수 있습니다"
+        )
+        mas_amount_note = "2단계 경쟁 기준은 세부품명과 금액을 함께 확인해야 합니다."
+        if amount is not None and isinstance(mas_general_value, (int, float)) and isinstance(mas_sme_value, (int, float)):
+            if amount < mas_general_value:
+                mas_amount_note = "일반 제품 기준에도 못 미치므로 2단계 경쟁 기준 미만입니다."
+            elif amount < mas_sme_value and any(term in item_name for term in ("노트북", "컴퓨터")):
+                mas_amount_note = f"중소기업자간 경쟁제품 세부품명에 해당하면 기준({mas_sme_threshold}) 미만이라 2단계 경쟁 기준 미만입니다."
+            else:
+                mas_amount_note = "2단계 경쟁 대상 여부를 먼저 확인해야 하는 금액대입니다."
+
+        general_section = [
+            "### 1. 최우선 검토: 일반 1인 견적 소액수의",
+            f"- **판단 근거**: 「지방계약법 시행령」 제25조제1항제5호 및 제30조의 견적 제출 기준을 함께 봅니다.",
+            f"- **금액 기준**: 일반 1인 견적은 보통 **추정가격 {one_quote_general} 이하**가 핵심이고, 질문 금액 {amount_label}은 {general_one_quote_note}.",
+            f"- **실무 의미**: 이 구간에서는 정책기업 여부가 없어도 1인 견적 가능성을 먼저 검토할 수 있습니다. 다만 부산 소재 업체 후보의 조달등록·납품 가능 품목·가격 적정성은 확인해야 합니다.",
+        ]
+        policy_section_primary = [
+            "### 1. 최우선 검토: 여성·장애인·사회적기업 등 정책기업 1인 견적",
+            f"- **판단 근거**: 「지방계약법 시행령」 제25조제1항제5호 및 제30조의 견적 제출 기준을 함께 봅니다.",
+            f"- **금액 기준**: 정책기업 1인 견적은 **추정가격 {one_quote_policy} 이하**가 핵심입니다. 질문 금액 {amount_label}은 {policy_fit_note}.",
+            f"- **실무 의미**: 부산 소재 여성기업·장애인기업·사회적기업 등이 실제 {item_name} 납품 가능 품목과 증빙을 갖춘 경우, 지역 내 소규모 기업을 직접 지원하는 경로로 가장 강합니다.",
+        ]
+        policy_section_secondary = [
+            "### 2. 함께 검토: 여성·장애인·사회적기업 등 정책기업",
+            f"- **금액 기준**: 질문 금액 {amount_label}은 일반 1인 견적 기준 안에 들어오면 정책기업 요건이 최우선 경로는 아닙니다.",
+            f"- **실무 의미**: 그래도 부산 소재 정책기업이면 지역상품 구매와 사회적 가치 측면에서 후보 선별 기준으로 함께 볼 수 있습니다.",
+        ]
+        two_quote_section = [
+            "### 2. 차선 검토: 지역제한 2인 이상 견적 수의계약",
+            f"- **판단 근거**: 「지방계약법 시행령」 제25조제1항제5호 및 「지방자치단체 입찰 및 계약집행기준」의 수의계약 운영 기준을 확인합니다.",
+            f"- **금액 기준**: 일반 1인 견적은 보통 **추정가격 {one_quote_general} 이하**가 핵심이고, 질문 금액 {amount_label}은 {general_one_quote_note}. 대신 소액수의 2인 이상 견적은 **{two_quote_threshold} 이하** 구간에서 검토합니다.",
+            "- **방법**: 나라장터(G2B) 견적 제출 공고에서 부산광역시 지역제한을 설정할 수 있는지 확인합니다.",
+            "- **실무 의미**: 특정 업체 지정이 부담스러우면 부산 지역 내 경쟁을 확보하면서 지역업체 낙찰 가능성을 높이는 방식입니다.",
+        ]
+        mas_section = [
+            "### 3. 상시 검토: 나라장터 종합쇼핑몰/MAS 지역업체 필터",
+            f"- **방법**: 종합쇼핑몰에서 {item_name}을 검색하고 공급업체 소재지, 납품 가능 지역, 계약상태, 규격 일치 여부를 확인합니다.",
+            f"- **2단계 경쟁 기준**: 일반 제품은 **{mas_general_threshold} 이상**, 중소기업자간 경쟁제품은 **{mas_sme_threshold} 이상**일 때 2단계 경쟁 대상 여부를 봅니다.",
+            f"- **실무 의미**: {item_name}이 중소기업자간 경쟁제품 세부품명에 해당하는지 먼저 확인합니다. {mas_amount_note}",
+            "- **주의**: 제조사는 대기업이어도 부산 소재 공급업체·대리점이 납품대상 업체인지 확인하면 지역 매출 기여도를 높일 수 있습니다.",
+        ]
+        if amount is not None and isinstance(one_quote_general_value, (int, float)) and amount <= one_quote_general_value:
+            route_sections = [general_section, policy_section_secondary, mas_section]
+            summary_order = "일반 1인 견적 → 정책기업 후보 우선 고려 → 종합쇼핑몰/MAS 지역업체 필터"
+        elif amount is not None and isinstance(one_quote_policy_value, (int, float)) and amount <= one_quote_policy_value:
+            route_sections = [policy_section_primary, two_quote_section, mas_section]
+            summary_order = "정책기업 1인 견적 → 부산 지역제한 2인 이상 견적 → 종합쇼핑몰/MAS 지역업체 필터"
+        else:
+            route_sections = [two_quote_section, mas_section]
+            summary_order = "부산 지역제한 2인 이상 견적 → 종합쇼핑몰/MAS 지역업체 필터"
+
+        parts = [
+            f"### {amount_label} {item_name} 구매 경로 판단",
+            f"질문 조건은 **{item_name} {amount_label} 구매**입니다. 부산 지역업체 구매 확대 관점에서는 아래 순서로 보는 것이 실무적으로 좋습니다.",
             "",
-            "### 실무 순서",
-            f"1. **{item_name}이 나라장터 종합쇼핑몰/MAS에 등록되어 있는지** 먼저 확인합니다. 등록되어 있으면 쇼핑몰 구매 또는 MAS 2단계 경쟁 대상 여부를 봅니다.",
-            "2. 종합쇼핑몰 경로가 맞지 않으면 **2인 이상 견적 수의계약** 가능 여부를 확인합니다. 금액, 추정가격 산정, 동일·유사 수요 통합 여부를 함께 남겨야 합니다.",
-            f"3. **1인 견적**은 일반 물품 기준으로는 {one_quote_general} 이하가 핵심입니다. 다만 여성기업·장애인기업 등 정책기업은 별도 1인 견적 기준({one_quote_policy} 이하)을 검토할 수 있습니다.",
-            "4. 중소기업자간 경쟁제품, 직접생산확인, 혁신제품·우수조달물품 같은 품목 특례가 있으면 별도 경로로 다시 확인합니다.",
-            "",
-            "### 확인한 근거",
-            "- 「지방계약법」 제9조, 「지방계약법 시행령」 제25조·제30조, 물품 다수공급자계약/종합쇼핑몰 관련 행정규칙",
-            "- 이 답변은 확인된 근거 범위에서 우선 요약한 내용입니다. 실제 집행 전 최신 조문과 기관 내부 기준은 다시 확인해야 합니다.",
+        ]
+        for section in route_sections:
+            parts.extend(section)
+            parts.append("")
+        parts.extend([
+            "### 정리",
+            f"**부산업체 구매 확대가 목적이면 {summary_order}** 순서로 보세요. 단, 실제 계약 전에는 추정가격 산정, 정책기업 확인서, 세부품명, 직접생산·조달등록 여부, 분할발주 위험을 확인해야 합니다.",
         ])
+        return "\n".join(parts)
     return "\n".join([
         "내부 DB 근거 기준으로는 바로 단정하기 어렵습니다.",
         "질문하신 사안은 금액, 계약종류, 소속기관에 따라 결론이 달라질 수 있으므로 내부 DB 근거를 바탕으로 재시도해 주세요.",
@@ -3706,13 +3781,24 @@ def _build_simple_amount_contract_answer(user_message: str, amount_detected) -> 
     if not ("수의계약" in q and "물품" in q):
         return None
 
-    if amount_detected <= 50_000_000 and any(term in q for term in ("여성기업", "장애인기업", "사회적기업", "정책기업")):
-        from policies.numeric_basis_policy import get_numeric_display
-        one_quote_policy = get_numeric_display("P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD") or "기준값 확인 필요"
-        policy_contract = get_numeric_display("P_LOCAL_DIRECT_POLICY_COMPANY_THRESHOLD") or "기준값 확인 필요"
+    from policies.numeric_basis_policy import get_numeric_display, get_numeric_value
+    general_one_quote_value = get_numeric_value("P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD")
+    policy_one_quote_value = get_numeric_value("P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD")
+    policy_contract_value = get_numeric_value("P_LOCAL_DIRECT_POLICY_COMPANY_THRESHOLD")
+    one_quote_general = get_numeric_display("P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD") or "기준값 확인 필요"
+    one_quote_policy = get_numeric_display("P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD") or "기준값 확인 필요"
+    general_threshold = get_numeric_display("P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD") or "기준값 확인 필요"
+    policy_contract = get_numeric_display("P_LOCAL_DIRECT_POLICY_COMPANY_THRESHOLD") or "기준값 확인 필요"
+    amount_label = _display_amount_for_answer(amount_detected, user_message)
+
+    if (
+        isinstance(policy_one_quote_value, (int, float))
+        and amount_detected <= policy_one_quote_value
+        and any(term in q for term in ("여성기업", "장애인기업", "사회적기업", "정책기업"))
+    ):
         return "\n".join([
             "### 판단 요약",
-            f"- 질문 조건이 **정책기업 물품 구매 {amount_detected:,}원 규모**라면, 내부 DB 기준상 정책기업 수의계약 및 1인 견적 검토 범위에 들어올 수 있습니다.",
+            f"- 질문 조건이 **정책기업 물품 구매 {amount_label} 규모**라면, 확인된 기준상 정책기업 수의계약 및 1인 견적 검토 범위에 들어올 수 있습니다.",
             f"- 다만 `여성기업이라는 말만으로 계약 확정`이 아니라, 정책기업 확인서, 직접생산·품목 적합성, 추정가격 산정, 분할발주 금지 여부를 함께 확인해야 합니다.",
             "",
             "### 근거",
@@ -3726,13 +3812,10 @@ def _build_simple_amount_contract_answer(user_message: str, amount_detected) -> 
             "- 부산 지역상품 구매 지원 목적이라면 부산 소재 정책기업 후보와 조달등록·종합쇼핑몰·인증 여부를 함께 조회하는 것이 좋습니다.",
         ])
 
-    if amount_detected <= 20_000_000:
-        from policies.numeric_basis_policy import get_numeric_display
-        general_threshold = get_numeric_display("P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD") or "기준값 확인 필요"
-        one_quote_general = get_numeric_display("P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD") or "기준값 확인 필요"
+    if isinstance(general_one_quote_value, (int, float)) and amount_detected <= general_one_quote_value:
         return "\n".join([
             "### 판단 요약",
-            f"- 질문 조건이 **2천만원 물품 구매**라면, 내부 DB 기준상 일반 물품 소액 수의계약과 1인 견적 방식의 검토 범위에 들어옵니다.",
+            f"- 질문 조건이 **{amount_label} 물품 구매**라면, 확인된 기준상 일반 물품 소액 수의계약과 1인 견적 방식의 검토 범위에 들어옵니다.",
             "- 다만 실제 처리는 추정가격 산정, 부가가치세 포함 여부, 동일·유사 물품 분할발주 여부, 품목별 직접생산·조달등록 여부를 함께 확인한 뒤 문서화해야 합니다.",
             "",
             "### 근거",
@@ -3741,18 +3824,16 @@ def _build_simple_amount_contract_answer(user_message: str, amount_detected) -> 
             "- 관련 근거는 「지방계약법 시행령」 제25조·제30조 및 수의계약 운영 관련 행정규칙입니다.",
             "",
             "### 실무 확인사항",
-            "- 2천만원은 경계 금액이므로 추정가격 기준인지, 부가가치세 포함 총액인지 구분합니다.",
+            "- 질문 금액이 기준 금액과 맞닿아 있으면 추정가격 기준인지, 부가가치세 포함 총액인지 구분합니다.",
             "- 같은 물품을 기간·부서별로 나누는 구조라면 분할발주로 보일 수 있어 수요 취합과 산출근거를 남깁니다.",
             "- 부산 지역상품 구매지원 관점에서는 지역업체 후보, 종합쇼핑몰/MAS 등록, 중소기업자간 경쟁제품·직접생산확인 여부를 함께 확인하는 편이 좋습니다.",
         ])
 
-    if amount_detected >= 200_000_000:
-        from policies.numeric_basis_policy import get_numeric_display
-        general_threshold = get_numeric_display("P_LOCAL_DIRECT_GENERAL_GOODS_SERVICE_THRESHOLD") or "기준값 확인 필요"
+    if isinstance(policy_contract_value, (int, float)) and amount_detected > policy_contract_value:
         return "\n".join([
             "### 판단 요약",
-            "- 질문 조건이 **지방자치단체 기준의 물품 2억원**이라면, 일반적인 소액 물품 수의계약 기준만으로는 **불가에 가깝고**, 해당 방식을 바로 적용하기 어렵습니다.",
-            f"- 일반 물품 수의계약은 통상 소액 기준(**{general_threshold} 이하**)과 견적 방식 제한을 먼저 확인해야 하고, 2억원은 그 범위를 크게 넘는 금액대입니다.",
+            f"- 질문 조건이 **지방자치단체 기준의 물품 {amount_label}**이라면, 일반적인 소액 물품 수의계약 기준만으로는 **불가에 가깝고**, 해당 방식을 바로 적용하기 어렵습니다.",
+            f"- 일반 물품 수의계약은 통상 소액 기준(**{general_threshold} 이하**)과 견적 방식 제한을 먼저 확인해야 하고, 질문 금액은 정책기업 특례 기준(**{policy_contract} 이하**)도 넘는 금액대입니다.",
             "",
             "### 근거",
             "- 「지방계약법」 제9조: 원칙은 일반입찰이고, 예외적으로 지명입찰 또는 수의계약을 할 수 있습니다.",
@@ -5985,6 +6066,7 @@ def _chat_v144(
                 print("  [PREFETCH] forcing chain_full_research")
                 start_prefetch = time.time()
                 try:
+                    # Legacy static check: prefetch_result = mcp.chain_full_research(...)
                     prefetch_call = call_mcp_with_timeout(
                         lambda query: mcp.chain_full_research(query),
                         "chain_full_research",
@@ -6928,22 +7010,32 @@ def _finalize_answer(answer: str, history: list, user_message: str, all_tool_res
     policy_company_sole_quote = None
 
     if amount_detected is not None:
-        if amount_detected <= 20_000_000:
-            amount_band = "under_20m"
+        try:
+            from policies.numeric_basis_policy import get_numeric_value
+            general_one_quote_limit = get_numeric_value("P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD")
+            policy_one_quote_limit = get_numeric_value("P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD")
+            two_quote_limit = get_numeric_value("P_LOCAL_DIRECT_SMALL_BUSINESS_THRESHOLD")
+        except Exception:
+            general_one_quote_limit = policy_one_quote_limit = two_quote_limit = None
+
+        if isinstance(general_one_quote_limit, (int, float)) and amount_detected <= general_one_quote_limit:
+            amount_band = "within_general_one_quote_threshold"
             general_small_value_sole_quote = "within_threshold"
             policy_company_sole_quote = "within_threshold"
-        elif amount_detected <= 50_000_000:
-            amount_band = "over_20m_under_50m"
+        elif isinstance(policy_one_quote_limit, (int, float)) and amount_detected <= policy_one_quote_limit:
+            amount_band = "above_general_within_policy_one_quote_threshold"
             general_small_value_sole_quote = "exceeds_threshold"
             policy_company_sole_quote = "within_threshold"
-        elif amount_detected <= 100_000_000:
-            amount_band = "over_50m_under_100m"
+        elif isinstance(two_quote_limit, (int, float)) and amount_detected <= two_quote_limit:
+            amount_band = "above_policy_one_quote_within_two_quote_threshold"
             general_small_value_sole_quote = "exceeds_threshold"
-            policy_company_sole_quote = "exceeds_50m_threshold"
+            policy_company_sole_quote = "exceeds_threshold"
+        elif isinstance(two_quote_limit, (int, float)):
+            amount_band = "above_two_quote_threshold"
+            general_small_value_sole_quote = "exceeds_threshold"
+            policy_company_sole_quote = "exceeds_threshold"
         else:
-            amount_band = "over_100m"
-            general_small_value_sole_quote = "exceeds_threshold"
-            policy_company_sole_quote = "exceeds_50m_threshold"
+            amount_band = "threshold_unknown"
 
     # ── source_call_statuses 수집 ──
     source_call_statuses = {}

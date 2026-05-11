@@ -87,3 +87,43 @@ def test_certified_product_row_must_match_visible_product_name_not_company_catal
 
     assert not candidate_matches_user_item(row, "컴퓨터 구매")
     assert not candidate_matches_user_item(row, "컴퓨터 구매", candidate_type="priority_purchase_product")
+
+
+def test_certified_product_filter_infers_type_from_candidate_types_for_export_path():
+    row = {
+        "company_id": "cert-4",
+        "company_name": "컴퓨터도취급하는업체",
+        "location": "부산광역시",
+        "product_name": "운송관리시스템 v2.0",
+        "main_products": ["데스크톱컴퓨터", "컴퓨터서버"],
+        "candidate_types": ["local_procurement_company", "priority_purchase_product"],
+        "certified_product_types": ["gs_certified_product"],
+    }
+
+    assert not candidate_matches_user_item(row, "컴퓨터 구매")
+
+
+def test_company_table_uses_registered_product_names_and_escapes_markdown_pipes():
+    row = {
+        "company_id": "mall-1",
+        "company_name": "부산컴퓨터|테스트",
+        "location": "부산광역시",
+        "registered_product_names": ["데스크톱컴퓨터|고급형"],
+        "candidate_types": ["shopping_mall_supplier"],
+        "primary_candidate_type": "shopping_mall_supplier",
+        "shopping_mall_registered": True,
+        "shopping_mall_flags": ["mas_registered"],
+    }
+    classified = {
+        "shopping_mall_supplier": [row],
+        "local_procurement_company": [],
+        "policy_company": [],
+        "innovation_product": [],
+        "priority_purchase_product": [],
+    }
+
+    rendered = format_candidate_tables(classified, "컴퓨터 구매")
+
+    assert "부산컴퓨터/테스트" in rendered
+    assert "데스크톱컴퓨터/고급형" in rendered
+    assert "MAS" in rendered

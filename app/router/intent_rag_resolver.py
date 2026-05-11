@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from app.prompting.schemas import KeywordRouteResult
+    from ..prompting.schemas import KeywordRouteResult
 except Exception:  # Runtime path when app/ is on sys.path.
     try:
         from prompting.schemas import KeywordRouteResult
@@ -24,7 +24,7 @@ except Exception:  # Runtime path when app/ is on sys.path.
         KeywordRouteResult = None  # type: ignore
 
 try:
-    from app.router.intent_normalization import normalize_query_intent
+    from .intent_normalization import normalize_query_intent
 except Exception:  # Runtime path when app/ is on sys.path.
     from router.intent_normalization import normalize_query_intent
 
@@ -515,7 +515,7 @@ def _top_matches(query: str, limit: int = 4) -> tuple[IntentRagMatch, ...]:
 def _has_pps_qa_case_match(query: str) -> bool:
     try:
         try:
-            from app.policies.pps_qa_cards import match_pps_qa_cards
+            from ..policies.pps_qa_cards import match_pps_qa_cards
         except Exception:
             from policies.pps_qa_cards import match_pps_qa_cards
         return bool(match_pps_qa_cards(query, max_cards=1))

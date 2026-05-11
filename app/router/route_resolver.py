@@ -366,10 +366,30 @@ def resolve_route_plan(frame: IntentFrame) -> RoutePlan:
         _append_unique(negative_constraints, "omit_company_candidates")
         _append_unique(quality_controls, "respect_user_request_to_exclude_company_names")
 
+    implied_purchase_candidate_lookup = (
+        company_mode == "none"
+        and not frame.company_search_blocked
+        and frame.amount is not None
+        and bool(frame.item_name or frame.item_search_term)
+        and (
+            frame.contract_review_required
+            or frame.has_contract_method
+            or frame.contract_object == "goods"
+            or "item_purchase" in labels
+        )
+    )
+    if implied_purchase_candidate_lookup:
+        company_mode = "route_relevant_candidates"
+        _append_unique(sections, "company_candidates")
+        _append_unique(retrieval, "company_candidates")
+        _append_unique(quality_controls, "include_route_relevant_candidates_for_purchase_intent")
+        reasons.append("purchase_intent_implies_route_relevant_candidates")
+
     if frame.contract_review_required or frame.amount is not None or frame.has_contract_method:
         _append_unique(sections, "contract_summary", "procurement_routes")
         _append_unique(retrieval, "purchase_route_cards", "legal_basis")
         _append_unique(evidence_topics, "amount_based_contract_route", "direct_contract_thresholds")
+        _append_unique(quality_controls, "include_legal_basis_for_each_purchase_route")
         reasons.append("contract_review_or_amount")
 
     if frame.procedure_required:
