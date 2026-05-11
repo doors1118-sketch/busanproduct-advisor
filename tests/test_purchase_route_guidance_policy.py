@@ -76,7 +76,7 @@ def test_route_guidance_uses_company_tool_counts_as_candidates():
     assert by_id["innovation_product"].user_label == "후보 미확인"
 
 
-def test_45m_notebook_marks_policy_two_quote_and_mas_direct_check():
+def test_45m_notebook_prefers_mas_then_two_quote_and_keeps_policy_as_exception():
     cards = build_purchase_route_cards(
         amount=45_000_000,
         item_name="노트북",
@@ -85,7 +85,7 @@ def test_45m_notebook_marks_policy_two_quote_and_mas_direct_check():
     )
     by_id = {card.route_id: card for card in cards}
 
-    assert by_id["policy_company_one_quote"].route_priority == "primary"
+    assert by_id["policy_company_one_quote"].route_priority == "secondary"
     assert by_id["two_quote_small_value"].route_priority == "primary"
     assert by_id["general_small_value_direct"].route_priority == "excluded"
     assert "2천만원" in by_id["general_small_value_direct"].user_label
@@ -93,10 +93,11 @@ def test_45m_notebook_marks_policy_two_quote_and_mas_direct_check():
     mas = by_id["shopping_mall_mas"]
     assert mas.status == "mas_direct_check"
     assert mas.user_label == "2단계 기준 미만"
-    assert mas.route_priority == "secondary"
+    assert mas.route_priority == "primary"
     assert "노트북" in mas.practical_meaning
     assert "5천만원" in mas.practical_meaning
     assert "1억원" in mas.practical_meaning
+    assert "예외 경로" in by_id["policy_company_one_quote"].practical_meaning
 
     context = format_purchase_route_guidance_for_llm(
         amount=45_000_000,
@@ -104,8 +105,8 @@ def test_45m_notebook_marks_policy_two_quote_and_mas_direct_check():
         contract_object="goods",
         tool_results=[],
     )
-    assert context.index("| 1순위 | 정책기업 1인견적 |") < context.index("| 2순위 | 지역제한 2인견적 |")
-    assert context.index("| 2순위 | 지역제한 2인견적 |") < context.index("| 3순위 | 종합쇼핑몰(MAS) 직접구매 |")
+    assert context.index("| 1순위 | 종합쇼핑몰(MAS) 직접구매 |") < context.index("| 2순위 | 지역제한 2인견적 |")
+    assert context.index("| 2순위 | 지역제한 2인견적 |") < context.index("| 3순위 | 정책기업 1인견적 |")
     assert "지방계약법 시행령 제25조" in context
     assert "지방계약법 시행령 제30조" in context
     assert "물품 다수공급자계약 2단계경쟁 업무처리기준" in context
@@ -130,7 +131,7 @@ def test_policy_company_one_quote_is_not_always_first_below_general_one_quote_li
         contract_object="goods",
         tool_results=[],
     )
-    assert context.index("| 1순위 | 일반 1인견적 |") < context.index("| 2순위 | 정책기업 1인견적 |")
+    assert context.index("| 1순위 | 일반 1인견적 |") < context.index("| 4순위 | 정책기업 1인견적 |")
 
 
 def test_purchase_route_guidance_requires_legal_basis_per_visible_route():
@@ -192,6 +193,54 @@ def test_service_route_cards_focus_on_license_and_regional_service_company():
     assert by_id["service_two_quote_small_value"].route_priority == "primary"
     assert by_id["local_service_company"].user_label == "후보 4건"
     assert by_id["service_policy_candidate"].user_label == "후보 2건"
+
+
+def test_40m_translation_service_prefers_regional_two_quote_over_policy_exception():
+    cards = build_purchase_route_cards(
+        amount=40_000_000,
+        item_name="번역용역",
+        contract_object="service",
+        agency_type="local_government",
+        tool_results=[
+            _tool("search_local_company_by_license", "부산 지역업체 검색 결과: 총 10건"),
+            _tool("search_company_by_policy", "부산 지역업체 검색 결과: 총 4건"),
+        ],
+    )
+    by_id = {card.route_id: card for card in cards}
+
+    assert by_id["service_two_quote_small_value"].route_priority == "primary"
+    assert by_id["service_policy_company"].route_priority == "secondary"
+    assert "부산 지역제한 2인 이상 견적을 기본 경로" in by_id["service_policy_company"].practical_meaning
+
+    context = format_purchase_route_guidance_for_llm(
+        amount=40_000_000,
+        item_name="번역용역",
+        contract_object="service",
+        agency_type="local_government",
+        tool_results=[
+            _tool("search_local_company_by_license", "부산 지역업체 검색 결과: 총 10건"),
+            _tool("search_company_by_policy", "부산 지역업체 검색 결과: 총 4건"),
+        ],
+    )
+
+    assert context.index("| 1순위 | 용역 2인 이상 견적 소액수의 |") < context.index("| 2순위 | 지역제한/지역업체 참여 용역 |")
+    assert context.index("| 2순위 | 지역제한/지역업체 참여 용역 |") < context.index("| 4순위 | 정책기업 용역 1인 견적 |")
+    assert "G2B 견적 공고" in context
+    assert "지방계약법 시행규칙 제24조" in context
+
+
+def test_policy_company_exception_wording_is_not_notebook_specific_for_software():
+    cards = build_purchase_route_cards(
+        amount=45_000_000,
+        item_name="소프트웨어",
+        contract_object="goods",
+        agency_type="local_government",
+        tool_results=[],
+    )
+    policy = {card.route_id: card for card in cards}["policy_company_one_quote"]
+
+    assert "노트북처럼" not in policy.practical_meaning
+    assert "종합쇼핑몰/MAS 등록 가능성이 높은 물품" in policy.practical_meaning
 
 
 def test_construction_route_cards_include_regional_and_joint_contract_paths():

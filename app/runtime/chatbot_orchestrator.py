@@ -16,7 +16,7 @@ from typing import Optional
 from pathlib import Path
 
 from app.router.gemini_intent_router import GeminiIntentRouter
-from app.router.intent_schema import RouterResult
+from app.router.intent_schema import RouterResult, RouterSlots
 from app.answer_builder.answer_type_router import route_answer, FORBIDDEN_PHRASES
 from app.answer_builder.schema import AnswerSection, AnswerBuilderOutput, CandidateTableSection, CandidateTableRow
 from app.runtime.runtime_schema import (
@@ -63,6 +63,30 @@ def _fallback_router_result() -> RouterResult:
         primary_intent="out_of_scope",
         routing_decision="clarification_required",
         reason="Runtime fallback",
+    )
+
+
+def _deterministic_router_result(reason: str) -> RouterResult:
+    return RouterResult(
+        primary_intent="legal_explanation",
+        confidence=1.0,
+        slots=RouterSlots(legal_topic="deterministic_legal_answer"),
+        routing_decision="legal_explanation_flow",
+        legal_review_required=True,
+        legal_explanation_only=True,
+        reason=reason,
+    )
+
+
+def _deterministic_answer_output(answer: str) -> AnswerBuilderOutput:
+    return AnswerBuilderOutput(
+        summary_section=AnswerSection(title="검토 결과", content=answer),
+        caution_section=AnswerSection(title="주의사항", content="실제 계약 전에는 최신 법령·행정규칙과 기관 내부 기준을 확인하세요."),
+        disclaimer=DISCLAIMER,
+        rendered_markdown=f"{answer}\n\n*{DISCLAIMER}*",
+        forbidden_phrase_scan_passed=True,
+        blocked_phrases_found=[],
+        fallback_applied=False,
     )
 
 
@@ -121,6 +145,48 @@ class ChatbotRuntimeOrchestrator:
         router_result: Optional[RouterResult] = None
         answer_output: Optional[AnswerBuilderOutput] = None
         company_result: Optional[CompanyCandidateResult] = None
+
+        # ── Stage 0: Deterministic Legal Gate ──
+        # 반복되는 금액/제도 기준형 질문은 라우터가 회피 답변을 만들기 전에
+        # 내부 법령 DB 기반 결정형 답변으로 먼저 처리한다.
+        deterministic = None
+        if request.mock_gemini_response is None:
+            try:
+                from app.policies.deterministic_legal_answer_gate import match_deterministic_legal_answer
+                deterministic = match_deterministic_legal_answer(request.user_query)
+            except Exception as e:
+                stages.append(RuntimeStageResult(
+                    stage_name="deterministic_legal_gate",
+                    status="failed",
+                    skipped=False,
+                    reason=str(e),
+                ))
+                errors.append(f"deterministic_legal_gate: {str(e)}")
+
+        if deterministic:
+            stages.append(RuntimeStageResult(
+                stage_name="deterministic_legal_gate",
+                status="success",
+                skipped=False,
+                reason=deterministic.reason,
+            ))
+            return ChatbotRuntimeResponse(
+                user_query=request.user_query,
+                router_result=_deterministic_router_result(deterministic.reason),
+                answer_output=_deterministic_answer_output(deterministic.answer),
+                runtime_stages=stages,
+                runtime_status="success",
+                fallback_applied=False,
+                errors=errors,
+            )
+
+        if not any(s.stage_name == "deterministic_legal_gate" for s in stages):
+            stages.append(RuntimeStageResult(
+                stage_name="deterministic_legal_gate",
+                status="skipped",
+                skipped=True,
+                reason="no deterministic match",
+            ))
 
         # ── Stage 1: Intent Router ──
         try:

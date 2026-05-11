@@ -119,6 +119,12 @@ _ITEM_SYNONYM_GROUPS: list[dict] = [
         "aliases": ["경비용역", "경비 용역", "시설경비", "보안경비", "경비"],
     },
     {
+        "canonical_name": "번역용역",
+        "primary_search_term": "번역",
+        "search_terms": ["번역", "번역용역", "통번역", "통역번역"],
+        "aliases": ["번역", "번역 용역", "번역용역", "통번역", "통역 번역", "통역번역"],
+    },
+    {
         "canonical_name": "전기공사",
         "primary_search_term": "전기공사",
         "search_terms": ["전기공사", "전기공사업"],

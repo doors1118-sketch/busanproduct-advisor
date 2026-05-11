@@ -39,6 +39,22 @@ def _get_stage(resp, name):
     return next((s for s in resp.runtime_stages if s.stage_name == name), None)
 
 
+def test_runtime_uses_deterministic_legal_gate_before_router():
+    req = ChatbotRuntimeRequest(
+        user_query="컴퓨터(데스크톱) 구매 시 MAS 2단계 경쟁을 거치지 않고 부산 업체 제품을 바로 살 수 있는 금액은?",
+        mock_gemini_response=None,
+        runtime_options={"use_mock_company_api": True, "use_mock_item_eligibility": True},
+    )
+    resp = run_chatbot_runtime(req)
+
+    assert resp.runtime_status == "success"
+    assert resp.router_result.reason == "desktop_mas_second_stage_threshold_fast_answer"
+    assert "1억원" in resp.answer_output.rendered_markdown
+    assert "중소기업자간 경쟁제품" in resp.answer_output.rendered_markdown
+    stage = _get_stage(resp, "deterministic_legal_gate")
+    assert stage is not None and stage.status == "success"
+
+
 # ────────────────────────────────────────────────────
 # 기본 flow 테스트
 # ────────────────────────────────────────────────────

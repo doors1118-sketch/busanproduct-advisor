@@ -81,14 +81,20 @@ _CANDIDATE_TYPE_ORDER = [
 ]
 
 _ROUTE_DISPLAY_ORDER = {
-    "policy_company_one_quote": 5,
-    "shopping_mall_mas": 10,
+    "shopping_mall_mas": 5,
     "two_quote_small_value": 20,
+    "policy_company_one_quote": 30,
     "sme_competition_direct_production": 40,
     "local_company_competitive": 50,
     "technology_development_product": 60,
     "innovation_product": 70,
     "general_small_value_direct": 90,
+    "service_two_quote_small_value": 10,
+    "service_regional_restriction": 20,
+    "local_service_company": 30,
+    "service_policy_company": 40,
+    "service_policy_candidate": 50,
+    "service_small_value_direct": 90,
 }
 
 _ROUTE_PRIORITY_ORDER = {
@@ -375,15 +381,14 @@ def _mas_route_status(
     mas_sme_threshold = _money("P_MAS_SECOND_STAGE_SME_COMPETITION_THRESHOLD")
     general_value = get_numeric_value("P_MAS_SECOND_STAGE_GENERAL_PRODUCT_THRESHOLD")
     sme_value = get_numeric_value("P_MAS_SECOND_STAGE_SME_COMPETITION_THRESHOLD")
-    policy_one_quote_value = get_numeric_value("P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD")
+    general_one_quote_value = get_numeric_value("P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD")
     likely_sme = _is_likely_sme_competition_item(item_name)
 
     def direct_purchase_priority() -> str:
         if (
-            likely_sme
-            and isinstance(policy_one_quote_value, (int, float))
+            isinstance(general_one_quote_value, (int, float))
             and isinstance(amount, (int, float))
-            and amount <= policy_one_quote_value
+            and amount <= general_one_quote_value
         ):
             return "secondary"
         return "primary"
@@ -467,6 +472,17 @@ def build_purchase_route_cards(
         item_name=item_name,
         candidate_count=counts["shopping_mall"],
     )
+    if (
+        shopping_status == "mas_direct_check"
+        and shopping_priority == "primary"
+        and policy_priority == "primary"
+    ):
+        policy_priority = "secondary"
+        policy_meaning = (
+            f"{policy_meaning} 다만 종합쇼핑몰/MAS 등록 가능성이 높은 물품은 "
+            "쇼핑몰 계약상태와 납품요구 가능성을 먼저 확인하고, 정책기업 1인 견적은 "
+            "부산 소재 정책기업의 품목·증빙·가격 적정성이 명확할 때 쓰는 예외 경로로 봅니다."
+        )
     cert_status, cert_label = _candidate_status(counts["certified_product"])
     innovation_status, innovation_label = _candidate_status(counts["innovation_product"])
     local_status, local_label = _candidate_status(counts["local_company"])
@@ -590,6 +606,13 @@ def _build_service_route_cards(amount: int | None, item_name: str, counts: dict[
         _policy_one_quote(amount, "용역")
     )
     two_status, two_label, two_meaning, two_priority = _two_quote_status(amount)
+    if two_priority == "primary" and policy_priority == "primary":
+        policy_priority = "secondary"
+        policy_meaning = (
+            f"{policy_meaning} 다만 일반 1인 견적 기준을 넘는 용역에서는 "
+            "부산 지역제한 2인 이상 견적을 기본 경로로 두고, 정책기업 1인 견적은 "
+            "해당 자격·증빙이 명확한 경우의 예외적 단축 경로로 검토합니다."
+        )
     local_status, local_label = _candidate_status(counts.get("local_license_company") or counts.get("local_company"))
     policy_candidate_status, policy_candidate_label = _candidate_status(counts.get("policy_company"))
     policy_candidate_display = "hide" if policy_status == "not_viable" else "show"
@@ -613,12 +636,19 @@ def _build_service_route_cards(amount: int | None, item_name: str, counts: dict[
             title="용역 2인 이상 견적 소액수의",
             status=two_status,
             user_label=two_label,
-            practical_meaning=two_meaning,
+            practical_meaning=(
+                f"{two_meaning} 부산업체 우대를 목표로 한다면 G2B 견적 공고에서 "
+                "부산 소재 업체로 지역 제한을 걸 수 있는지 먼저 검토합니다."
+            ),
             required_checks=["추정가격", "용역 종류", "2인 이상 견적", "과업 범위와 참가자격"],
-            evidence_topics=["direct_contract", "two_quote", "amount_threshold"],
+            evidence_topics=["direct_contract", "two_quote", "amount_threshold", "regional_restriction"],
             route_priority=two_priority,
             display_policy="brief" if two_status == "not_viable" else "show",
-            legal_refs=["지방계약법 시행령 제25조", "지방계약법 시행령 제30조", "지방자치단체 입찰 및 계약집행기준 수의계약 운영요령"],
+            legal_refs=[
+                "지방계약법 시행령 제25조",
+                "지방계약법 시행령 제30조",
+                "지방계약법 시행규칙 제24조",
+            ],
             candidate_table_types=("local_procurement_company",),
             candidate_lookup_policy="local_company",
         ),

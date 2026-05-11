@@ -92,6 +92,7 @@ ITEM_ALIAS_TOKENS = {
     "led": ["led", "조명", "등기구"],
     "조명": ["조명", "등기구", "led"],
     "소프트웨어": ["소프트웨어", "시스템", "프로그램"],
+    "번역": ["번역", "번역용역", "통번역", "통역", "외국어", "언어"],
 }
 
 ITEM_QUERY_STOPWORDS = {
@@ -351,6 +352,33 @@ def _candidate_only_row_limit(user_message: str, max_rows_per_table: int) -> int
 def _is_cctv_question(user_message: str) -> bool:
     compact = (user_message or "").replace(" ", "").lower()
     return any(term in compact for term in ("cctv", "씨씨티비", "보안용카메라", "감시카메라", "영상감시"))
+
+
+def _is_translation_service_question(user_message: str) -> bool:
+    compact = (user_message or "").replace(" ", "").lower()
+    return any(term in compact for term in ("번역", "번역용역", "통번역", "통역"))
+
+
+def _restore_query_specific_service_candidates(
+    relevant_rows_by_type: dict,
+    classified: dict,
+    user_message: str,
+) -> None:
+    """Keep service-company search results when item fields are sparse.
+
+    Service DB rows often describe 업종/면허/기업 유형 instead of a clean
+    대표품목 string. For translation-service questions the upstream search has
+    already used the translation term, so an empty visible-item match should not
+    erase every 부산 조달등록/정책기업 candidate.
+    """
+    if not _is_translation_service_question(user_message):
+        return
+    for candidate_type in ("policy_company", "local_procurement_company"):
+        if relevant_rows_by_type.get(candidate_type):
+            continue
+        rows = [row for row in classified.get(candidate_type, []) or [] if isinstance(row, dict)]
+        if rows:
+            relevant_rows_by_type[candidate_type] = rows
 
 
 def _candidate_richness_score(row: dict) -> int:
@@ -743,6 +771,7 @@ def format_candidate_tables(
         ct: filter_candidate_rows_by_user_item(classified.get(ct, []), user_message, candidate_type=ct)
         for ct in order
     }
+    _restore_query_specific_service_candidates(relevant_rows_by_type, classified, user_message)
 
     if _is_candidate_only_request(user_message):
         candidate_only = _format_candidate_only_tables(

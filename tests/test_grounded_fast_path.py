@@ -140,6 +140,20 @@ def test_simple_amount_answer_for_20m_goods_avoids_critical_scan_terms():
     assert scan["critical_count"] == 0
 
 
+def test_simple_amount_answer_for_18m_goods_mentions_mas_before_one_quote():
+    question = "추정가격 1,800만 원 물품 구매 시 부산 업체와 1인 수의계약이 가능한가요?"
+    answer = _build_simple_amount_contract_answer(question, _parse_amount(question))
+    scan = scan_final_answer(answer)
+
+    assert _parse_amount(question) == 18_000_000
+    assert answer
+    assert "1800만원(18,000,000원)" in answer
+    assert "종합쇼핑몰/MAS" in answer
+    assert "1인 견적" in answer
+    assert answer.index("종합쇼핑몰/MAS") < answer.index("부산 소재 업체와 1인 견적")
+    assert scan["critical_count"] == 0
+
+
 def test_simple_amount_answer_for_100m_goods_separates_one_quote_and_two_quote():
     question = "물품 1억원 구매는 수의계약이 가능한지 근거 중심으로 설명해줘."
     answer = _build_simple_amount_contract_answer(question, _parse_amount(question))
@@ -595,6 +609,23 @@ def test_practice_fast_answer_handles_event_service_regional_qualification():
     assert "독소조항" in answer
 
 
+def test_practice_fast_answer_handles_hvac_mas_local_without_question_amount():
+    answer, cards = _build_practice_manual_fast_answer(
+        "냉난방기 구매는 종합쇼핑몰로 처리할 수 있는지, 부산업체 고려는 어떻게 하는지 알려줘.",
+        "local_government",
+    )
+
+    assert answer
+    assert "냉난방기" in answer
+    assert "종합쇼핑몰/MAS" in answer
+    assert "부산 공급업체" in answer
+    assert "설치" in answer
+    assert "A/S" in answer
+    assert "2단계 경쟁" in answer
+    assert "질문 금액" not in answer
+    assert "이 범위에 들어갈 수 있습니다" not in answer
+
+
 def test_practice_fast_answer_handles_private_school_subsidy_question():
     answer, cards = _build_practice_manual_fast_answer(
         "사립대학교가 국고보조금으로 용역을 발주하면 국가계약법 절차를 따라야 하는지 어떻게 확인해?",
@@ -666,6 +697,546 @@ def test_practice_fast_answer_handles_info_telecom_construction_question():
     assert "정보통신공사" in answer
     assert "종합공사" in answer
     assert "전문공사" in answer
+
+
+def test_info_telecom_amount_review_uses_grounded_fast_path_and_integrated_answer():
+    question = "정보통신공사 1억8천만원이면 지역제한, 면허요건, 분리발주 필요성을 종합 검토해줘"
+    amount = _parse_amount(question)
+
+    assert amount == 180_000_000
+    assert _should_use_grounded_single_pass_llm(question, 2, amount) is True
+
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "1억8천만원" in answer
+    assert "정보통신공사업법" in answer
+    assert "제25조" in answer
+    assert "분리" in answer
+    assert "1억 6천만원" in answer
+    assert "초과" in answer
+    assert "지역제한 경쟁입찰" in answer
+    assert "정보통신공사업 등록업체" in answer
+    assert "제14조" in answer
+    assert "부산" in answer
+    assert "소액수의가 아니라" in answer
+    assert "종합쇼핑몰" not in answer
+    assert "MAS" not in answer
+
+
+def test_small_goods_direct_contract_gives_clear_one_quote_answer():
+    question = "추정가격 1,800만 원 물품 구매 시 부산 업체와 1인 수의계약이 가능한가요?"
+    amount = _parse_amount(question)
+
+    assert amount == 18_000_000
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "18,000,000원" in answer
+    assert "1인 견적" in answer
+    assert "2천만원 이하" in answer or "2천만원" in answer
+    assert "부산 소재 업체" in answer
+    assert "단정하기 어렵" not in answer
+
+
+def test_vat_threshold_question_answers_estimated_price_basis():
+    question = "수의계약 한도를 계산할 때 부가가치세를 포함해야 하나요, 제외해야 하나요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "부가가치세를 제외" in answer
+    assert "추정가격" in answer
+    assert "VAT 제외" in answer
+    assert "기초금액" in answer
+    assert "예정가격" in answer
+    assert "시스템이 단정할 수 없습니다" not in answer
+
+
+def test_vat_threshold_question_uses_definition_fast_answer():
+    question = "수의계약 한도를 계산할 때 부가가치세를 포함해야 하나요, 제외해야 하나요?"
+    answer = gemini_engine._try_legal_definition_fast_answer(question)
+
+    assert "부가가치세를 제외" in answer
+    assert "추정가격" in answer
+    assert "시스템이 단정할 수 없습니다" not in answer
+
+
+def test_social_cooperative_50m_direct_contract_answers_yes_first():
+    question = "사회적협동조합 제품은 5,000만 원까지 1인 수의계약이 가능한가요? 근거 법령도 알려주세요."
+    amount = _parse_amount(question)
+
+    assert amount == 50_000_000
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "사회적협동조합" in answer
+    assert "5천만원 이하" in answer or "5,000만 원 이하" in answer
+    assert "1인 견적 수의계약" in answer
+    assert "지방계약법 시행령" in answer
+    assert "제25조" in answer
+    assert "취약계층" in answer
+    assert "직접 생산" in answer or "직접생산" in answer
+    assert "단정하기 어렵" not in answer
+
+
+def test_software_women_company_45m_mentions_digital_service_mall_and_steps():
+    question = "4,500만 원 상당의 소프트웨어를 부산 소재 여성기업으로부터 1인 수의로 사고 싶습니다. 절차가 어떻게 되나요?"
+    amount = _parse_amount(question)
+
+    assert amount == 45_000_000
+    assert _should_use_grounded_single_pass_llm(question, 2, amount) is True
+
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "소프트웨어" in answer
+    assert "여성기업" in answer
+    assert "5천만원 이하" in answer or "5,000만 원 이하" in answer
+    assert "디지털서비스몰" in answer
+    assert "종합쇼핑몰" in answer
+    assert "SMPP" in answer
+    assert "견적서" in answer
+    assert "수의계약 사유서" in answer
+    assert "단정하기 어렵" not in answer
+
+
+def test_disabled_company_70m_service_one_quote_says_no_and_two_quote():
+    question = "부산에 본사를 둔 장애인기업과 7,000만 원 규모의 용역 계약을 1인 수의로 진행할 수 있나요?"
+    amount = _parse_amount(question)
+
+    assert amount == 70_000_000
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "장애인기업" in answer
+    assert "1인 견적 수의계약" in answer
+    assert "5천만원 이하" in answer or "5,000만 원 이하" in answer
+    assert "처리하기 어렵" in answer
+    assert "2인 이상 견적" in answer
+    assert "부산 지역제한" in answer
+    assert "단정하기 어렵" not in answer
+
+
+def test_split_same_item_contract_warns_against_dividing_to_fit_limit():
+    question = "동일 품목을 2,000만 원씩 세 번에 나누어 부산 업체들과 각각 수의계약해도 문제가 없나요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "동일 품목" in answer
+    assert "분할발주" in answer
+    assert "쪼개기" in answer
+    assert "수요를 먼저 합산" in answer
+    assert "단정하기 어렵" not in answer
+
+
+def test_emergency_disaster_construction_mentions_special_exception_before_amount():
+    question = "긴급 재난 복구를 위해 1억 원 규모의 공사를 부산 업체와 수의계약할 수 있는 근거가 있나요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "긴급 재난 복구" in answer
+    assert "수의계약 특례" in answer
+    assert "제25조 제1항 제1호" in answer
+    assert "긴급성" in answer
+    assert "공종·면허" in answer
+    assert "부산 업체" in answer
+    assert "단정하기 어렵" not in answer
+
+
+def test_academic_research_university_one_quote_requires_unique_expertise():
+    question = "학술연구용역 3,000만 원 건을 부산 지역 대학 부설 연구소와 1인 수의로 할 수 있나요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "학술연구용역" in answer
+    assert "항상 1인 수의계약이 가능한 것은 아닙니다" in answer
+    assert "제25조 제1항 제4호" in answer
+    assert "전문성" in answer
+    assert "대체곤란성" in answer
+    assert "제안서 평가" in answer or "협상계약" in answer
+
+
+def test_innovation_product_unlimited_amount_answer_is_direct_but_conditioned():
+    question = "혁신제품은 금액 제한 없이 수의계약이 가능한가요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "혁신제품" in answer
+    assert "일반 1인 견적 한도와 별개" in answer
+    assert "제25조 제1항 제8호" in answer
+    assert "혁신장터" in answer
+    assert "지정 상태" in answer
+    assert "바로 집행하지 말고" in answer
+
+
+def test_two_quote_regional_limit_amount_question_lists_contract_types():
+    question = "2인 이상 견적 제출 수의계약 시 부산광역시로 지역을 제한할 수 있는 금액 마지노선은 얼마인가요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "부산 지역제한" in answer
+    assert "종합공사" in answer
+    assert "4억원" in answer
+    assert "전문공사" in answer
+    assert "2억원" in answer
+    assert "그 밖의 공사" in answer
+    assert "1억 6천만원" in answer
+    assert "물품·용역" in answer
+    assert "1억원" in answer
+    assert "단정하기 어렵" not in answer
+
+
+def test_small_business_local_restriction_question_gives_g2b_settings():
+    question = "소기업·소상공인 제한 수의계약 시 부산 지역 업체만 참여하게 설정하는 방법은?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "소기업·소상공인 제한" in answer
+    assert "부산 지역제한" in answer
+    assert "G2B 소액수의 견적제출 공고" in answer
+    assert "지역제한: 부산광역시" in answer
+    assert "소기업 또는 소상공인" in answer
+    assert "직접생산확인증명서" in answer
+    assert "단정하기 어렵" not in answer
+
+
+def test_small_business_priority_goods_busan_contract_mentions_mas():
+    question = "1억 원 이하 물품 구매 시 소기업·소상공인 우선구매 제도를 활용해 부산 업체와 계약하는 법."
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "소기업·소상공인" in answer
+    assert "부산 지역제한" in answer
+    assert "종합쇼핑몰/MAS" in answer
+    assert "G2B 소액수의 견적제출 공고" in answer
+    assert "중소기업확인서" in answer
+    assert "단정하기 어렵" not in answer
+
+
+def test_women_company_and_busan_benefit_question_answers_priority():
+    question = "여성기업이면서 동시에 부산 업체인 경우, 수의계약 시 어떤 혜택을 우선 적용하는 것이 유리한가요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "여성기업 1인 견적" in answer
+    assert "5천만원 이하" in answer
+    assert "부산 지역제한" in answer
+    assert "동시" in answer or "함께" in answer
+    assert "1억원까지 바로 가능한 것은 아닙니다" in answer
+    assert "단정하기 어렵" not in answer
+
+
+def test_patent_large_contract_requires_uniqueness_not_patent_alone():
+    question = "부산 업체가 특허를 보유하고 있다면 2억 원 규모라도 수의계약이 가능한지 검토해 주세요."
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "특허를 보유했다는 사실만으로" in answer
+    assert "바로 가능" in answer or "바로 가능해지는 것은 아닙니다" in answer
+    assert "제25조 제1항 제4호" in answer
+    assert "대체곤란성" in answer
+    assert "특허 유효성" in answer
+    assert "기술자문위원회" in answer
+    assert "계약심의위원회" in answer
+    assert "가격 적정성" in answer
+
+
+def test_small_value_regional_limit_question_gives_contract_type_thresholds():
+    question = "수의계약에서 지역제한을 걸 수 있는 금액 한도는 공사, 물품, 용역별로 어떻게 되나요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "지방계약법 시행령 제25조" in answer
+    assert "제30조" in answer
+    assert "종합공사" in answer
+    assert "4억원" in answer
+    assert "전문공사" in answer
+    assert "2억원" in answer
+    assert "그 밖의 공사" in answer
+    assert "1억 6천만원" in answer
+    assert "물품·용역" in answer
+    assert "1억원" in answer
+    assert "단정하기 어렵" not in answer
+
+
+def test_small_business_and_busan_regional_restriction_can_be_combined():
+    question = "1억 원 미만 물품 용역 소액수의 공고에서 소기업·소상공인 제한과 부산 지역제한을 같이 넣을 수 있나요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "소기업·소상공인 제한과 부산 지역제한" in answer
+    assert "판로지원법 시행령 제2조의2" in answer
+    assert "1억원 미만" in answer
+    assert "2인 이상 견적" in answer
+    assert "직접생산확인증명서" in answer
+
+
+def test_women_company_busan_benefit_separates_one_quote_from_policy_contract_limit():
+    question = "부산 여성기업과 계약할 때 지역업체 혜택과 여성기업 혜택 중 뭐가 더 유리한가요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "여성기업 1인 견적" in answer
+    assert "5천만원 이하" in answer
+    assert "1인 견적이 1억원까지 바로 가능한 것은 아닙니다" in answer
+    assert "제30조" in answer
+    assert "2인 이상 견적" in answer
+    assert "단정하기 어렵" not in answer
+
+
+def test_social_enterprise_sme_competition_product_mentions_exception_and_direct_production():
+    question = "중소기업자간 경쟁제품도 부산 사회적기업과 3,000만 원 수의계약이 가능한가요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "사회적기업" in answer
+    assert "30,000,000원" in answer
+    assert "5천만원 이하" in answer
+    assert "1인 견적 검토 가능 구간" in answer
+    assert "판로지원법 시행령 제7조" in answer
+    assert "직접생산확인증명서" in answer
+    assert "단순히 `사회적기업`" in answer
+
+
+def test_social_enterprise_goods_contract_sme_exception_variant():
+    question = "부산 소재 사회적기업과 3,000만 원 물품 계약 시 중소기업자간 경쟁제품 예외 적용이 가능한가요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "사회적기업" in answer
+    assert "30,000,000원" in answer
+    assert "5천만원 이하" in answer
+    assert "판로지원법 시행령 제7조" in answer
+    assert "직접생산확인증명서" in answer
+    assert "단정하기 어렵" not in answer
+
+
+def test_temporary_one_quote_exception_separates_general_and_policy_company_limits():
+    question = "지방계약법 수의계약 한도 상향 한시적 특례 5천만원이 지금도 유효한가요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "한시적" in answer
+    assert "적용 기간" in answer
+    assert "공문·고시" in answer
+    assert "일반 업체 1인 견적" in answer
+    assert "2천만원" in answer
+    assert "정책기업 1인 견적" in answer
+    assert "5천만원" in answer
+    assert "1인 지정으로 단정" in answer
+
+
+def test_temporary_one_quote_exception_variant_with_raised_clause():
+    question = "지방계약법상 1인 수의계약 한도가 2,000만 원에서 5,000만 원으로 상향된 특례 조항이 아직 유효한가요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "한시적" in answer
+    assert "적용 기간" in answer
+    assert "2천만원" in answer
+    assert "5천만원" in answer
+    assert "정책기업" in answer
+    assert "단정하기 어렵" not in answer
+
+
+def test_regional_restriction_to_specific_gu_gun_is_high_risk():
+    question = "지역제한 입찰을 부산광역시가 아니라 해운대구 업체로만 구·군 단위 제한할 수 있나요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "부산광역시 전체" in answer
+    assert "특정 구·군" in answer
+    assert "부당 제한" in answer
+    assert "지방계약법 시행규칙" in answer
+    assert "제24조" in answer
+    assert "소기업·소상공인" in answer
+
+
+def test_gu_gun_regional_restriction_for_small_quote_notice_distinguishes_agency():
+    question = "부산 지역 업체 보호를 위해 소액 수의계약 공고 시 투찰 자격을 구·군 단위로 제한할 수 있나요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "구·군" in answer
+    assert "부산시 본청" in answer
+    assert "구·군청" in answer
+    assert "부당 제한" in answer
+    assert "내부 기준" in answer
+    assert "단정하기 어렵" not in answer
+
+
+def test_no_local_vendor_allows_adjacent_region_or_national_expansion():
+    question = "부산 지역제한으로 공고했는데 적격 업체가 없으면 울산 경남이나 전국으로 확장할 수 있나요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "인접 시·도" in answer
+    assert "전국" in answer
+    assert "재공고" in answer
+    assert "부산·울산·경남" in answer
+    assert "사유서" in answer or "사유" in answer
+    assert "절대 불가능" not in answer
+
+
+def test_no_local_vendor_direct_contract_selection_expands_to_nearby_regions():
+    question = "수의계약 대상 업체 선정 시 부산시 관내 업체가 없는 경우, 울산이나 경남 업체까지 확장해도 되나요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "부산·울산·경남" in answer
+    assert "관외 업체 선정 사유" in answer
+    assert "1인 견적" in answer
+    assert "2인 이상 견적" in answer
+    assert "내부 결재" in answer
+    assert "단정하기 어렵" not in answer
+
+
+def test_net_new_technology_product_contract_procedure_lists_documents():
+    question = "NET 신기술 인증 제품을 수의계약하려면 어떤 절차와 서류가 필요한가요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "NET" in answer
+    assert "신기술" in answer
+    assert "제25조 제1항 제4호" in answer
+    assert "조달청 종합쇼핑몰" in answer
+    assert "인증 유효기간" in answer
+    assert "수의계약 사유서" in answer
+    assert "기술 비교표" in answer
+    assert "무조건 수의계약" in answer
+
+
+def test_excellent_procurement_product_150m_self_contract_possible_but_mall_recommended():
+    question = "우수조달물품 1억5천만원을 조달청을 통하지 않고 자체 수의계약할 수 있나요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "우수조달물품" in answer
+    assert "1억5천만원" in answer
+    assert "제25조 제1항 제6호" in answer
+    assert "경쟁입찰 대상이라고 단정하지 않습니다" in answer
+    assert "나라장터 종합쇼핑몰" in answer
+    assert "가격 적정성" in answer or "가격 소명" in answer
+
+
+def test_excellent_procurement_product_decimal_amount_self_contract_variant():
+    question = "부산 업체가 생산하는 우수조달물품 1.5억 원 건을 조달청을 통하지 않고 자체 수의계약 해도 되나요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "우수조달물품" in answer
+    assert "제25조 제1항 제6호" in answer
+    assert "조달사업법 시행규칙" in answer
+    assert "제7조" in answer
+    assert "나라장터 종합쇼핑몰" in answer
+    assert "가격 소명" in answer or "가격 적정성" in answer
+    assert "단정하기 어렵" not in answer
+
+
+def test_25m_goods_contract_restores_mas_and_rejects_general_one_quote():
+    question = "2,500만 원 물품 구매 시 부산 업체 2곳으로부터 견적을 받으면 1인 수의계약이 가능한가요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "25,000,000원" in answer
+    assert "일반 업체 기준 1인 견적" in answer
+    assert "2천만원 이하" in answer
+    assert "처리하기 어렵습니다" in answer
+    assert "정책기업" in answer
+    assert "5천만원 이하" in answer
+    assert "G2B 2인 이상 견적" in answer
+    assert "종합쇼핑몰/MAS" in answer
+    assert "원 물품 시 부산 곳" not in answer
+
+
+def test_venture_company_has_no_standalone_50m_one_quote_exception():
+    question = "부산 벤처기업 제조 물품은 5천만 원까지 1인 수의계약 특례가 있나요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "벤처기업" in answer
+    assert "단순히 벤처기업이라는 이유만으로" in answer
+    assert "가능해지는 것은 아닙니다" in answer
+    assert "청년창업기업" in answer
+    assert "혁신제품" in answer
+    assert "G2B 2인 이상 견적" in answer
+
+
+def test_social_enterprise_cleaning_80m_requires_two_quote_and_direct_production():
+    question = "사회적기업과 8,000만 원 청소용역을 수의계약하려면 어떤 점을 주의해야 하나요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "사회적기업 청소용역" in answer
+    assert "80,000,000원" in answer
+    assert "5천만원" in answer
+    assert "1인 수의계약" in answer
+    assert "2인 이상 견적 제출 공고" in answer
+    assert "직접생산확인" in answer
+    assert "부산 지역제한" in answer
+    assert "8,000만 원 1인" not in answer
+
+
+def test_direct_contract_reason_cannot_use_busan_preference_as_standalone_basis():
+    question = "수의계약 사유서에 부산 업체 우대라고만 적어도 되나요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "단독 사유" in answer
+    assert "안 됩니다" in answer
+    assert "지방계약법 시행령" in answer
+    assert "제25조" in answer
+    assert "보조 설명" in answer
+    assert "법정 수의계약 사유" in answer
+
+
+def test_direct_article_defers_when_question_asks_reason_letter_wording():
+    from router.query_gateway import decide_query_gateway
+
+    question = "지방계약법 시행령 제25조 제1항 제5호에 따른 수의계약 시 '부산 업체 우대' 문구를 사유서에 넣어도 되나요?"
+    gateway = decide_query_gateway(question)
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert gateway.route == "direct_article"
+    assert "부산 업체 우대" in answer
+    assert "법정 수의계약 사유" in answer
+    assert "보조 설명" in answer
+    assert "원문 핵심" not in answer
+
+
+def test_direct_contract_restriction_list_guides_confirmation_procedure():
+    question = "수의계약 체결 제한 대상 업체 명단은 어디서 확인하나요?"
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "지방계약법" in answer
+    assert "제33조" in answer
+    assert "확인서" in answer
+    assert "지자체 계약정보공개시스템" in answer
+    assert "나라장터" in answer
+    assert "실시간 제한 대상 업체 명단을 확정 제공" in answer
+
+
+def test_fire_facility_amount_review_uses_other_construction_and_split_order():
+    question = "소방시설공사 2억2천만원에서 지역제한과 전문공사 기준을 같이 검토해줘"
+    amount = _parse_amount(question)
+
+    assert amount == 220_000_000
+    assert _should_use_grounded_single_pass_llm(question, 2, amount) is True
+
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "2억2천만원" in answer
+    assert "소방시설공사업법" in answer
+    assert "제21조" in answer
+    assert "분리" in answer
+    assert "전기·정보통신·소방공사 및 그 밖의 공사" in answer
+    assert "1억 6천만원" in answer
+    assert "초과" in answer
+    assert "지역제한 경쟁입찰" in answer
+    assert "전문소방시설공사업" in answer
+    assert "일반소방시설공사업" in answer
+    assert "제4조" in answer
+    assert "소액수의가 아니라" in answer
+    assert "종합쇼핑몰" not in answer
+    assert "MAS" not in answer
+
+
+def test_translation_service_amount_review_supports_regional_two_quote_and_policy_company():
+    from policies.item_normalization_policy import normalize_item_query
+    from router.route_resolver import build_intent_frame, resolve_route_plan
+
+    question = "번역용역 4천만원에서 부산업체 우대 조건을 넣을 수 있는지 계약방식과 평가항목 관점에서 검토해줘"
+    amount = _parse_amount(question)
+    normalized = normalize_item_query(question)
+    route_plan = resolve_route_plan(build_intent_frame(question))
+    should_prefetch, query, reason = _should_prefetch_company_routes(question, route_plan=route_plan)
+
+    assert amount == 40_000_000
+    assert normalized.canonical_name == "번역용역"
+    assert query == "번역"
+    assert should_prefetch is True
+    assert reason == "route_plan_company_prefetch:route_relevant_candidates"
+    assert route_plan.company_search_mode == "route_relevant_candidates"
+
+    answer = _build_grounded_case_timeout_fallback(question)
+
+    assert "번역용역" in answer
+    assert "4천만원" in answer
+    assert "일반 1인 견적" in answer
+    assert "초과" in answer
+    assert "정책기업 1인 견적" in answer
+    assert "기준 내" in answer
+    assert "G2B 2인 이상 견적" in answer
+    assert "지역제한" in answer
+    assert "평가항목" in answer
+    assert "업체 DB 후보" in answer
 
 
 def test_practice_fast_answer_handles_service_regional_restriction():

@@ -127,3 +127,42 @@ def test_company_table_uses_registered_product_names_and_escapes_markdown_pipes(
     assert "부산컴퓨터/테스트" in rendered
     assert "데스크톱컴퓨터/고급형" in rendered
     assert "MAS" in rendered
+
+
+def test_translation_service_question_keeps_query_specific_company_candidates():
+    local_row = {
+        "company_id": "translation-local-1",
+        "company_name": "부산번역센터",
+        "location": "부산광역시 해운대구",
+        "main_products": [],
+        "candidate_types": ["local_procurement_company"],
+        "primary_candidate_type": "local_procurement_company",
+        "purchase_routes": ["2인 이상 견적 검토", "지역제한 입찰 검토"],
+    }
+    policy_row = {
+        "company_id": "translation-policy-1",
+        "company_name": "부산통번역협동조합",
+        "location": "부산광역시 부산진구",
+        "main_products": [],
+        "candidate_types": ["policy_company"],
+        "primary_candidate_type": "policy_company",
+        "policy_tags": ["social_cooperative"],
+        "purchase_routes": ["정책기업 수의계약 검토", "2인 이상 견적 검토"],
+    }
+    classified = {
+        "shopping_mall_supplier": [],
+        "local_procurement_company": [local_row],
+        "policy_company": [policy_row],
+        "innovation_product": [],
+        "priority_purchase_product": [],
+    }
+
+    rendered = format_candidate_tables(
+        classified,
+        "번역용역 4천만원에서 부산업체 우대 조건을 계약방식과 평가항목 관점에서 검토해줘",
+    )
+
+    assert "부산번역센터" in rendered
+    assert "부산통번역협동조합" in rendered
+    assert "2인 이상 견적 검토" in rendered
+    assert "사회적협동조합" in rendered
