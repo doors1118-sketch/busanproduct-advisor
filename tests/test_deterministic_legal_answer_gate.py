@@ -65,6 +65,14 @@ def test_policy_company_products_count_as_sme_purchase_performance():
     assert "여성기업제품" in result.answer
     assert "장애인기업제품" in result.answer
     assert "구분" in result.answer
+    assert "여성기업지원에 관한 법률」 제2조 및 제9조" in result.answer
+    assert "장애인기업활동 촉진법」 제2조 및 제9조의2" in result.answer
+    assert "집합관계" in result.answer
+    assert "사업자번호" in result.answer
+    assert "중복을 제거" in result.answer
+    assert "SMPP" in result.answer
+    assert "직접생산확인증명서" in result.answer
+    assert "| 실적 항목 | 반영 방식 | 주의점 |" in result.answer
 
 
 def test_sole_contract_goods_amount_case_goes_to_db_llm_flow():
