@@ -69,6 +69,23 @@ def get_numeric_display(parameter_ref: str) -> str | None:
     return format_money(value) if isinstance(value, int) else str(value)
 
 
+def get_rule_source_titles(rule_id: str, *, include_related: bool = True, limit: int = 5) -> list[str]:
+    """Return verified source titles mapped to a purchase-support rule."""
+    rule = (_load_source_map() or {}).get(rule_id) or {}
+    titles: list[str] = []
+    detail_keys = ["primary_source_details"]
+    if include_related:
+        detail_keys.append("related_source_details")
+    for key in detail_keys:
+        for source in rule.get(key) or []:
+            title = source.get("title") or source.get("name")
+            if title and title not in titles:
+                titles.append(str(title))
+            if len(titles) >= limit:
+                return titles
+    return titles
+
+
 def find_unresolved_numeric_parameters(parameter_refs: list[str]) -> list[str]:
     """Return refs that are missing, unresolved, or still manual-review gated."""
     return [ref for ref in parameter_refs if get_numeric_value(ref) is None]

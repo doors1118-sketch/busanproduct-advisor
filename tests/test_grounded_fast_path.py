@@ -191,6 +191,30 @@ def test_practice_fast_answer_handles_split_procurement_risk():
     assert "물품" in answer
 
 
+def test_practice_fast_answer_handles_construction_material_direct_purchase_split_risk():
+    answer, cards = _build_practice_manual_fast_answer(
+        "공사에 포함된 관급자재를 물품으로 따로 발주하려고 하는데 분리발주, 쪼개기 발주, 직접구매 기준을 같이 검토해줘",
+        "local_government",
+    )
+
+    assert answer
+    assert "공사용자재 직접구매·분리발주·쪼개기 구분" in answer
+    assert "공사용자재 직접구매" in answer
+    assert "정당한 분리발주·관급자재" in answer
+    assert "쪼개기 발주 위험" in answer
+    assert "직접구매 기준 확인 순서" in answer
+    assert "최신 법령·고시 기준값 확인 필요" in answer
+    assert "확인값이 없거나 수동 검증 대상이면 숫자를 단정하지 않습니다" in answer
+    assert "중소기업자간 경쟁제품 및 공사용자재 직접구매 대상 품목 지정 내역" in answer
+    assert "수의계약 등 한시적 특례" not in answer
+    assert "목적 동일성" in answer
+    assert "금액 기준 회피 여부" in answer
+    assert "부산업체" in answer
+    assert "40억원" not in answer
+    assert "40억 원" not in answer
+    assert "4천만원" not in answer
+
+
 def test_practice_fast_answer_handles_design_print_mixed_contract():
     answer, cards = _build_practice_manual_fast_answer(
         "홍보물 디자인과 인쇄가 같이 있는 사업은 용역과 물품 중 어떻게 판단하고 발주해야 해?",

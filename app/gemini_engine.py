@@ -1528,13 +1528,69 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
             "- 답변이나 공고문에는 `부산업체라서 가능`이 아니라 `제도 요건, 품목 적합성, 조달등록, 인증·지정 상태, 경쟁성`을 근거로 남기는 방식이 안전합니다.",
         ])
     elif is_construction_material_question:
+        try:
+            from policies.numeric_basis_policy import get_numeric_display, get_rule_source_titles
+        except Exception:  # pragma: no cover - package import fallback
+            from importlib import import_module
+            _numeric_basis_policy = import_module("app.policies.numeric_basis_policy")
+            get_numeric_display = _numeric_basis_policy.get_numeric_display
+            get_rule_source_titles = _numeric_basis_policy.get_rule_source_titles
+
+        direct_purchase_general = get_numeric_display(
+            "P_CONSTRUCTION_MATERIAL_DIRECT_PURCHASE_GENERAL_CONSTRUCTION_THRESHOLD"
+        ) or "최신 법령·고시 기준값 확인 필요"
+        direct_purchase_specialty = get_numeric_display(
+            "P_CONSTRUCTION_MATERIAL_DIRECT_PURCHASE_SPECIALTY_CONSTRUCTION_THRESHOLD"
+        ) or "최신 법령·고시 기준값 확인 필요"
+        direct_purchase_material = get_numeric_display(
+            "P_CONSTRUCTION_MATERIAL_DIRECT_PURCHASE_ITEM_THRESHOLD"
+        ) or "최신 법령·고시 기준값 확인 필요"
+        direct_purchase_sources = get_rule_source_titles("R_EXPLICIT_ITEM_ELIGIBILITY", limit=3)
+        split_risk_sources = [
+            source
+            for source in get_rule_source_titles("R_DIRECT_GENERAL_SMALL_AMOUNT", limit=4)
+            if "한시적 특례" not in source
+        ][:3]
+        direct_purchase_basis = ", ".join(direct_purchase_sources) or "중소기업제품 구매촉진 및 판로지원 관련 법령·고시"
+        split_risk_basis = ", ".join(split_risk_sources) or "적용 기관의 계약법령과 분할계약 금지 기준"
         sections.extend([
             "",
-            "### 2. 공사용자재 직접구매·관급자재 검토",
-            "- 공사에 포함되는 자재라도 일정 품목은 **공사용자재 직접구매** 또는 관급자재 구매로 따로 검토해야 할 수 있습니다.",
-            "- 먼저 공종과 자재의 세부품명, 직접구매 대상 여부, 중소기업자간 경쟁제품 해당 여부, 직접생산확인 필요 여부를 확인합니다.",
-            "- 관급자재로 분리할 경우 공사 시공범위, 납품·설치 책임, 하자책임, 공정 지연 위험, 검사·검수 주체를 공사계약 조건과 맞춰야 합니다.",
-            "- 정보통신공사·전기공사·소방공사처럼 면허와 자재가 함께 얽히는 사안은 공사계약, 물품구매, 직접구매 대상 품목을 동시에 비교해야 합니다.",
+            "### 2. 공사용자재 직접구매·분리발주·쪼개기 구분",
+            "- 공사 안의 자재를 물품으로 따로 발주하는 행위가 모두 문제인 것은 아닙니다. 핵심은 **법정 직접구매 의무 이행인지**, **공사와 물품의 책임을 명확히 나눈 정당한 분리발주인지**, 아니면 **금액 기준·경쟁절차 회피를 위한 쪼개기인지**를 구분하는 것입니다.",
+            "",
+            "| 구분 | 공사용자재 직접구매 | 정당한 분리발주·관급자재 | 쪼개기 발주 위험 |",
+            "|---|---|---|---|",
+            "| 성격 | 중소기업 제품 보호를 위한 법정 구매 검토 축 | 공사와 물품의 조달·검수·하자책임을 분리하는 집행 방식 | 수의계약·소액경쟁 한도를 맞추기 위해 하나의 수요를 인위적으로 나누는 행위 |",
+            "| 판단 기준 | 직접구매 대상 품목, 공사 종류·규모, 자재 추정가격, 직접생산확인 여부 | 공정상 분리 가능성, 납품·설치 책임, 공사 지연 리스크, 검수 주체 | 같은 목적·예산·시기·현장·기능의 동일성, 분할 사유의 객관성 |",
+            f"| 주된 근거 | {direct_purchase_basis} | 적용 기관의 계약법령, 조달사업법, 공사계약 일반조건·특수조건 | {split_risk_basis}, 감사 기준 |",
+            "| 실무 결론 | 요건이 맞으면 쪼개기가 아니라 법정 의무 이행으로 문서화 | 설계서·시방서·물품 규격서에서 책임 경계를 명확히 해야 안전 | 금액 기준 회피 목적이면 물품 발주 형식을 취해도 감사 리스크가 큼 |",
+            "",
+            "### 3. 직접구매 기준 확인 순서",
+            "| 순서 | 확인 대상 | 확인 자료 | 기준값 적용 |",
+            "|---|---|---|---|",
+            "| 1 | 적용 법체계 | 국가기관은 국가계약법, 지방자치단체는 지방계약법, 공기업·준정부기관은 계약사무규칙·자체규정 | 기관 유형에 따라 분할발주·수의계약 판단 근거가 달라짐 |",
+            f"| 2 | 자재 세부품명 | 물품분류번호, 설계내역서, 규격서 | {direct_purchase_basis}에서 확인 |",
+            f"| 3 | 종합공사 기준 | 관련 법령·고시의 공사용자재 직접구매 기준 | {direct_purchase_general} |",
+            f"| 4 | 전문·전기·정보통신·소방 등 공사 기준 | 관련 법령·고시의 공사용자재 직접구매 기준 | {direct_purchase_specialty} |",
+            f"| 5 | 해당 자재 추정가격 기준 | 관련 법령·고시의 자재별 직접구매 기준 | {direct_purchase_material} |",
+            "| 6 | 업체 자격 | SMPP, 직접생산확인증명서, 조달등록·종합쇼핑몰 등록 상태 | 직접구매 대상이면 세부품명과 직접생산확인 범위 일치가 핵심 |",
+            "",
+            "※ 위 기준금액은 최신 법령·고시 확인값이 있는 경우에만 표시합니다. 확인값이 없거나 수동 검증 대상이면 숫자를 단정하지 않습니다.",
+            "",
+            "### 4. 쪼개기 발주 리스크 판정 로직",
+            "| 판정 요소 | 확인 질문 | 문서화 포인트 |",
+            "|---|---|---|",
+            "| 목적 동일성 | 공사와 물품 발주의 목적이 사실상 하나인가? | 설계서·기본계획에서 자재 분리 사유를 별도 기재 |",
+            "| 시기·예산 동일성 | 같은 예산, 같은 시기, 같은 사업에서 나뉘었는가? | 수요 취합 자료와 추정가격 산정 근거 보관 |",
+            "| 기능적 분리 가능성 | 자재만 따로 납품해도 공사 책임과 충돌하지 않는가? | 납품 시점, 보관 책임, 설치 책임, 하자 책임 구분 |",
+            "| 금액 기준 회피 여부 | 수의계약·2인견적·지역제한 기준에 맞추려고 금액을 나누었는가? | 분리 전후 금액표와 법정 직접구매 검토표 작성 |",
+            "| 법정 의무 여부 | 직접구매 대상 품목이라 분리한 것인가? | 직접구매 대상 고시, 직접생산확인, 검토결재를 첨부 |",
+            "",
+            "### 5. 실무 대응 전략",
+            "- **직접구매 대상이면** 설계 단계에서 관급자재 목록을 분리하고, 공사 내역서와 물품 규격서에 자재 범위·납품장소·검수 기준을 따로 씁니다.",
+            "- **직접구매 대상이 아니면** 왜 물품으로 따로 발주해야 하는지 공정·품질·조달 효율성 기준으로 설명해야 하며, 단순히 소액수의 한도에 맞추기 위한 분리는 피해야 합니다.",
+            "- 공사 시방서에는 관급자재의 인수, 보관, 설치, 훼손, 공정 지연 시 책임을 넣고, 물품 규격서에는 납품, 설치지원, 하자보증, 성능시험 범위를 넣습니다.",
+            "- 부산업체 지원은 `부산업체라서 분리`가 아니라 직접구매 대상 품목, 직접생산확인, 조달등록, 납기·A/S·현장대응 가능성으로 연결해야 안전합니다.",
         ])
     elif is_split_procurement_question:
         sections.extend([
