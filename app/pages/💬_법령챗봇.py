@@ -34,7 +34,7 @@ CHATBOT_API_URL = os.getenv("CHATBOT_API_URL", "http://127.0.0.1:8001/chat")
 REQUEST_TIMEOUT_SECONDS = int(os.getenv("CHAT_REQUEST_TIMEOUT", "120"))
 
 APP_NAME = "지역상품 구매확대 지원 챗봇"
-SAMPLE_QUESTION = "컴퓨터 1,800만 원어치를 부산 업체에서 1인 수의계약으로 구매할 수 있나요?"
+SAMPLE_QUESTION = "예산이 4천만원인데, 컴퓨터 구매하고 싶어"
 
 AGENCY_TYPES: dict[str, str | None] = {
     "기관 유형 선택": None,
