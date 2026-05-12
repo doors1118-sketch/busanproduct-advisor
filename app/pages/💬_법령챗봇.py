@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import base64
+import html
 import os
 import re
+from urllib.parse import urlencode
 from pathlib import Path
 from typing import Any
 
@@ -124,6 +126,7 @@ def _init_state() -> None:
         "chat_started": False,
         "pending_question": None,
         "pending_original_question": None,
+        "query_question_processed": None,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -136,6 +139,8 @@ def _reset_chat() -> None:
     st.session_state.chat_started = False
     st.session_state.pending_question = None
     st.session_state.pending_original_question = None
+    st.session_state.query_question_processed = None
+    _clear_route_params()
 
 
 def _agency_label(value: str | None) -> str:
@@ -146,6 +151,56 @@ def _agency_label(value: str | None) -> str:
 
 def _set_agency(value: str | None) -> None:
     st.session_state.agency_value = value
+
+
+def _get_query_param(name: str) -> str | None:
+    try:
+        value = st.query_params.get(name)
+    except Exception:
+        value = st.experimental_get_query_params().get(name)
+    if isinstance(value, list):
+        return str(value[0]) if value else None
+    if value is None:
+        return None
+    return str(value)
+
+
+def _clear_route_params() -> None:
+    try:
+        st.query_params.clear()
+    except Exception:
+        try:
+            st.experimental_set_query_params()
+        except Exception:
+            return
+
+
+def _chat_route_url(question: str | None = None) -> str:
+    params: dict[str, str] = {"mode": "chat"}
+    if question:
+        params["question"] = question
+    if st.session_state.get("agency_value"):
+        params["agency"] = st.session_state.agency_value
+    return f"?{urlencode(params)}"
+
+
+def _sync_route_from_query() -> None:
+    mode = _get_query_param("mode")
+    if mode != "chat":
+        return
+
+    st.session_state.chat_started = True
+    agency = _get_query_param("agency")
+    if agency in AGENCY_LABEL_BY_VALUE:
+        st.session_state.agency_value = agency
+
+    question = _get_query_param("question")
+    if question and st.session_state.query_question_processed != question:
+        st.session_state.messages = []
+        st.session_state.chat_history = []
+        st.session_state.pending_original_question = None
+        st.session_state.pending_question = question
+        st.session_state.query_question_processed = question
 
 
 def _append_message(role: str, content: str, **extra: Any) -> None:
@@ -335,6 +390,48 @@ def _render_css() -> None:
             font-size: 0.86rem;
             line-height: 1.45;
             margin-bottom: 0.75rem;
+        }
+
+        .sample-link {
+            align-items: center;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            color: var(--ink);
+            display: flex;
+            font-size: 0.96rem;
+            font-weight: 650;
+            justify-content: center;
+            line-height: 1.45;
+            margin-top: 0.55rem;
+            min-height: 2.55rem;
+            padding: 0.55rem 0.85rem;
+            text-align: center;
+            text-decoration: none !important;
+            transition: background 160ms ease, border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+            width: 100%;
+        }
+
+        .sample-link:hover {
+            border-color: #b8c3d3;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+            color: var(--ink);
+            transform: translateY(-1px);
+        }
+
+        .sample-link-primary {
+            background: #ff464b;
+            border-color: #ff464b;
+            color: #ffffff !important;
+        }
+
+        .sample-link-primary:hover {
+            background: #ef3f45;
+            border-color: #ef3f45;
+            color: #ffffff !important;
+        }
+
+        .sample-link-secondary {
+            background: #ffffff;
         }
 
         .landing-hero {
@@ -721,11 +818,11 @@ def _render_starter() -> None:
         unsafe_allow_html=True,
     )
     for index, question in enumerate(SAMPLE_QUESTIONS):
-        button_type = "primary" if index == 0 else "secondary"
-        if st.button(question, key=f"sample-question-{index}", use_container_width=True, type=button_type):
-            st.session_state.chat_started = True
-            st.session_state.pending_question = question
-            st.rerun()
+        link_class = "sample-link-primary" if index == 0 else "sample-link-secondary"
+        st.markdown(
+            f'<a class="sample-link {link_class}" href="{html.escape(_chat_route_url(question), quote=True)}" target="_blank" rel="noopener noreferrer">{html.escape(question)}</a>',
+            unsafe_allow_html=True,
+        )
 
 
 def _render_agency_notice() -> None:
@@ -924,6 +1021,7 @@ def _process_input(user_input: str) -> None:
 
 def main() -> None:
     _init_state()
+    _sync_route_from_query()
     _render_css()
     _render_sidebar()
 
