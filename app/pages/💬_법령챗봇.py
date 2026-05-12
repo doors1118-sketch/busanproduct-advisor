@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -39,7 +40,7 @@ SAMPLE_QUESTION = "예산이 4천만원인데, 컴퓨터 구매하고 싶어"
 AGENCY_TYPES: dict[str, str | None] = {
     "기관 유형 선택": None,
     "지방자치단체": "지방자치단체",
-    "출자·출연기관": "출자출연기관",
+    "지방 공사공단 및 출자출연기관": "출자출연기관",
     "국가기관": "국가기관",
     "공기업·준정부기관": "공기업/준정부기관",
 }
@@ -187,6 +188,33 @@ def _render_css() -> None:
             font-family: "Pretendard", "Noto Sans KR", "Segoe UI", "Malgun Gothic", sans-serif;
         }
 
+        [data-testid="stHeader"] {
+            background: rgba(246,248,251,0.96);
+            border-bottom: 1px solid rgba(216,222,232,0.72);
+        }
+
+        [data-testid="stToolbar"] {
+            right: 0.75rem;
+        }
+
+        [data-testid="stBottomBlockContainer"] {
+            background: #f6f8fb;
+            border-top: 1px solid #d8dee8;
+            box-shadow: 0 -12px 28px rgba(23, 32, 51, 0.06);
+            padding-top: 0.8rem;
+        }
+
+        [data-testid="stChatInput"] {
+            background: transparent;
+        }
+
+        [data-testid="stChatInput"] > div {
+            background: #ffffff;
+            border: 1px solid #d8dee8;
+            border-radius: 12px;
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
+        }
+
         html, body, button, input, textarea, select {
             font-family: "Pretendard", "Noto Sans KR", "Segoe UI", "Malgun Gothic", sans-serif;
             letter-spacing: 0;
@@ -206,16 +234,21 @@ def _render_css() -> None:
         .topbar {
             align-items: center;
             border-bottom: 1px solid var(--line);
-            display: flex;
+            display: grid;
             gap: 1rem;
-            justify-content: space-between;
+            grid-template-columns: minmax(10rem, 1fr) auto minmax(10rem, 1fr);
             margin-bottom: 1rem;
             padding-bottom: 1rem;
         }
 
+        .title-block {
+            grid-column: 2;
+            text-align: center;
+        }
+
         .title-block h1 {
             color: var(--ink);
-            font-size: 1.65rem;
+            font-size: 1.72rem;
             font-weight: 780;
             letter-spacing: 0;
             line-height: 1.25;
@@ -232,6 +265,7 @@ def _render_css() -> None:
             display: flex;
             flex-wrap: wrap;
             gap: 0.45rem;
+            grid-column: 3;
             justify-content: flex-end;
         }
 
@@ -383,11 +417,12 @@ def _render_css() -> None:
 
         @media (max-width: 800px) {
             .topbar {
-                align-items: flex-start;
+                display: flex;
                 flex-direction: column;
             }
             .status-strip {
-                justify-content: flex-start;
+                justify-content: center;
+                width: 100%;
             }
             .title-block h1 {
                 font-size: 1.38rem;
@@ -499,7 +534,7 @@ def _render_agency_notice() -> None:
     st.markdown(
         """
         <div class="notice">
-        기관 유형이 아직 선택되지 않았습니다. 왼쪽 패널에서 선택하거나 채팅창에 1 지방자치단체, 2 출자·출연기관, 3 국가기관, 4 공기업·준정부기관 중 하나를 입력해 주세요.
+        기관 유형이 아직 선택되지 않았습니다. 왼쪽 패널에서 선택하거나 채팅창에 1 지방자치단체, 2 지방 공사공단 및 출자출연기관, 3 국가기관, 4 공기업·준정부기관 중 하나를 입력해 주세요.
         </div>
         """,
         unsafe_allow_html=True,
@@ -584,11 +619,42 @@ def _render_messages() -> None:
                     _render_debug(message["debug"])
 
 
+def _agency_number_from_input(user_input: str) -> str | None:
+    compact = re.sub(r"\s+", "", user_input or "")
+    if not compact:
+        return None
+
+    direct = compact.replace("번", "").replace("호", "")
+    if direct in AGENCY_NUMBER_MAP:
+        return direct
+
+    normalized = compact
+    for token in (
+        "대화입력창",
+        "대화입력",
+        "입력창",
+        "기관유형",
+        "기관",
+        "유형",
+        "선택",
+        "번호",
+        "번",
+        "호",
+        ":",
+        "：",
+    ):
+        normalized = normalized.replace(token, "")
+
+    if normalized in AGENCY_NUMBER_MAP:
+        return normalized
+    return None
+
+
 def _handle_agency_number_input(user_input: str) -> bool:
-    stripped = user_input.strip().replace("번", "").replace("호", "")
-    if stripped not in AGENCY_NUMBER_MAP:
+    agency_number = _agency_number_from_input(user_input)
+    if agency_number not in AGENCY_NUMBER_MAP:
         return False
-    selected = AGENCY_NUMBER_MAP[stripped]
+    selected = AGENCY_NUMBER_MAP[agency_number]
     _set_agency(selected)
     _append_message("assistant", f"{_agency_label(selected)} 기준으로 설정했습니다. 이어서 질문을 처리하겠습니다.")
     if st.session_state.get("pending_original_question"):
@@ -603,7 +669,7 @@ def _request_agency_before_answer(question: str) -> None:
 | 번호 | 기관 유형 | 주로 적용되는 계약 체계 |
 |:---:|---|---|
 | 1 | 지방자치단체 | 지방계약법 |
-| 2 | 출자·출연기관 | 자체 규정 및 지방계약법 준용 |
+| 2 | 지방 공사공단 및 출자출연기관 | 자체 규정 및 지방계약법 준용 여부 확인 |
 | 3 | 국가기관 | 국가계약법 |
 | 4 | 공기업·준정부기관 | 공기업·준정부기관 계약사무규칙 |
 

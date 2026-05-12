@@ -84,3 +84,11 @@ def test_normalization_agency_type_conflict():
 
     assert norm.buyer_type == "mixed"
     assert "agency_type_conflict" in norm.issue_tags
+
+
+def test_normalization_landscape_construction_as_specific_construction_item():
+    norm = normalize_query_intent("조경공사를 부산업체 중심으로 발주하려면 지역제한과 면허요건을 어떻게 설계해야 해?")
+
+    assert norm.item_name == "조경공사"
+    assert norm.contract_object == "construction"
+    assert norm.local_support_requested is True

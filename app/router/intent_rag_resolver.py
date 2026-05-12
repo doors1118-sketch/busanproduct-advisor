@@ -633,7 +633,11 @@ def resolve_intent_context(query: str) -> IntentRagDecision:
     has_specific_item = bool(item_name)
     company_search_required = explicit_company_lookup
     company_search_blocked = False
-    if local_support and not explicit_company_lookup:
+    if local_support and has_specific_item and not norm.company_lookup_blocked:
+        company_search_required = True
+        company_search_blocked = False
+        reasons.append("local_support_specific_item_prefetch_candidate")
+    elif local_support and not explicit_company_lookup:
         company_search_blocked = True
         labels = [label for label in labels if label != "company_search"]
         reasons.append("local_support_strategy_without_candidate_lookup")

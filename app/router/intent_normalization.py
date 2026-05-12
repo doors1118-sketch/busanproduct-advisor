@@ -131,7 +131,7 @@ _SERVICE_OBJECT_TERMS = (
 
 _CONSTRUCTION_OBJECT_TERMS = (
     "공사", "시공", "전기공사", "소방공사", "정보통신공사", "건설",
-    "철거", "리모델링", "설치공사",
+    "철거", "리모델링", "설치공사", "조경공사", "조경식재공사", "조경시설물공사",
 )
 
 _MIXED_OBJECT_PHRASES = (

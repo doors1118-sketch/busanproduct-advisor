@@ -44,6 +44,72 @@ def _amount_over(amount_value: int | None, parameter_ref: str) -> bool | None:
     return amount_value > threshold
 
 
+def _amount_at_or_below(amount_value: int | None, parameter_ref: str) -> bool | None:
+    threshold = get_numeric_value(parameter_ref)
+    if amount_value is None or threshold is None:
+        return None
+    return amount_value <= threshold
+
+
+def _it_equipment_core_summary_lines(
+    contract_object: str | None,
+    item_label: str,
+    amount_label: str,
+    amount_value: int | None,
+) -> list[str]:
+    if (contract_object or "goods").lower() != "goods" or not _is_it_equipment_item(item_label):
+        return []
+
+    general_one_quote = _num("P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD")
+    policy_one_quote = _num("P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD")
+    mas_general = _num("P_MAS_SECOND_STAGE_GENERAL_PRODUCT_THRESHOLD")
+    mas_sme = _num("P_MAS_SECOND_STAGE_SME_COMPETITION_THRESHOLD")
+
+    general_over = _amount_over(amount_value, "P_LOCAL_DIRECT_ONE_QUOTE_GENERAL_THRESHOLD")
+    policy_ok = _amount_at_or_below(amount_value, "P_LOCAL_DIRECT_ONE_QUOTE_POLICY_COMPANY_THRESHOLD")
+
+    if general_over is True:
+        conclusion = (
+            f"**{amount_label}은 일반 업체 대상 1인 견적 수의계약 기준({general_one_quote})을 초과합니다.** "
+            "따라서 일반 1인 수의계약부터 보지 말고, 종합쇼핑몰/MAS와 정책기업 특례, 부산 지역제한 2인 이상 견적을 순서대로 비교하는 것이 좋습니다."
+        )
+    elif general_over is False:
+        conclusion = (
+            f"**{amount_label}은 일반 1인 견적 기준({general_one_quote}) 이내일 수 있습니다.** "
+            "다만 전산장비는 종합쇼핑몰 등록, 중소기업자간 경쟁제품, 직접생산확인 여부를 함께 확인해야 합니다."
+        )
+    else:
+        conclusion = (
+            f"**{amount_label} 기준으로 {item_label} 구매 경로를 비교해야 합니다.** "
+            "전산장비는 종합쇼핑몰 등록 가능성과 직접생산확인 여부가 먼저 갈림길이 됩니다."
+        )
+
+    policy_judgment = (
+        f"가능: 부산 소재 여성·장애인·사회적기업 등 정책기업이면 {policy_one_quote} 이하 1인 견적 검토"
+        if policy_ok is not False
+        else f"제한: 질문 금액이 정책기업 1인 견적 기준({policy_one_quote})을 초과하므로 우선순위 낮음"
+    )
+
+    return [
+        "### 핵심 요약 (결론)",
+        conclusion,
+        "",
+        f"- **가장 추천**: 나라장터 종합쇼핑몰/MAS에서 `{item_label}` 세부품명과 부산 소재 공급업체를 먼저 확인합니다. 2단계경쟁 기준(일반 물품 {mas_general}, 중기경쟁제품 {mas_sme}) 미만이면 직접 납품요구 가능성을 우선 검토할 수 있습니다.",
+        f"- **정책 활용**: {policy_judgment}.",
+        "- **차선책**: 쇼핑몰 구매가 맞지 않거나 특정 정책기업 사유가 없으면 G2B 2인 이상 견적 공고를 내고 부산 지역제한 가능성을 검토합니다.",
+        "- **제외 경로**: 일반 업체와의 1인 견적 수의계약은 일반 기준을 넘으면 곤란합니다.",
+        "",
+        "### 1. 법적 근거에 따른 구매 경로 비교",
+        "| 구분 | 경로 | 적용 가능 여부 | 실무적 이점 또는 주의점 |",
+        "|---|---|---|---|",
+        f"| 추천 1 | 종합쇼핑몰/MAS 직접구매 | 최우선 검토 | {item_label}는 쇼핑몰 등록 가능성이 높은 물품입니다. 세부품명, 직접생산확인, 계약상태가 맞으면 부산 업체 제품을 먼저 비교할 수 있습니다. |",
+        f"| 추천 2 | 정책기업 1인 견적 | {'적극 검토' if policy_ok is not False else '기준 초과 시 제한'} | 여성기업·장애인기업·사회적기업 등 법정 특례 업체는 {policy_one_quote} 이하에서 1인 견적을 검토할 수 있습니다. |",
+        "| 대안 | 부산 지역제한 2인 이상 견적 | 차선책 | 특정 업체 지정이 어렵거나 쇼핑몰 구매가 부적절할 때 부산 업체 간 경쟁으로 투명성을 확보합니다. |",
+        f"| 제한 | 일반 1인 견적 수의계약 | {'불가 또는 제한' if general_over is not False else '가능성 있음'} | 일반 기준은 {general_one_quote}입니다. 기준 초과 시 일반 업체 1곳만 지정하는 방식은 감사 리스크가 큽니다. |",
+        "",
+    ]
+
+
 def _immediate_execution_priority_lines(
     contract_object: str | None,
     item_label: str,
@@ -203,19 +269,23 @@ def build_multi_route_practical_answer_parts(
     parts: list[str] = [
         f"### {amount_label} 규모 {item_label} 구매 실무 가이드",
         (
-            f"현재 조건은 **{amount_label} 규모의 {item_label} {object_label} 검토**입니다. "
-            "일반 수의계약 여부만 단정하기보다, 금액 기준·품목 특성·조달 경로·지역업체 활용 가능성을 함께 보는 방식이 안전합니다."
+            f"예산 **{amount_label} 규모의 {item_label} {object_label}** 구매 시, "
+            "관련 법령을 지키면서 부산 지역업체를 실질적으로 활용할 수 있는 구매 경로를 정리합니다."
         ),
         "",
     ]
-    parts.extend(_immediate_execution_priority_lines(contract_object, item_label, amount_label, amount_value))
+    core_summary = _it_equipment_core_summary_lines(contract_object, item_label, amount_label, amount_value)
+    if core_summary:
+        parts.extend(core_summary)
+    else:
+        parts.extend(_immediate_execution_priority_lines(contract_object, item_label, amount_label, amount_value))
     parts.extend(
         [
-            "### 1. 계약방법 및 구매 경로 검토",
+            "### 2. 계약방법 및 구매 경로 세부 검토" if core_summary else "### 1. 계약방법 및 구매 경로 검토",
             _clean_part(route_guidance)
             or "- 금액 기준, 품목 특성, 조달등록·종합쇼핑몰 등록 여부를 관련 법령·행정규칙 근거와 함께 확인하세요.",
             "",
-            "### 2. 부산 지역업체 구매 확대 전략",
+            "### 3. 부산 지역업체 구매 확대 전략" if core_summary else "### 2. 부산 지역업체 구매 확대 전략",
         ]
     )
     parts.extend(_local_purchase_strategy_lines(contract_object, item_label, amount_label))
@@ -225,7 +295,7 @@ def build_multi_route_practical_answer_parts(
         parts.extend(["", catalog])
 
     candidate = _clean_part(candidate_table_text)
-    parts.extend(["", "### 3. 검토 대상 부산 지역업체 후보"])
+    parts.extend(["", "### 4. 검토 대상 부산 지역업체 후보" if core_summary else "### 3. 검토 대상 부산 지역업체 후보"])
     if candidate:
         parts.append(candidate)
         if policy_company_sections_skipped:
@@ -242,7 +312,7 @@ def build_multi_route_practical_answer_parts(
     parts.extend(
         [
             "",
-            "### 4. 실무자 필수 체크포인트",
+            "### 5. 실무자 필수 체크포인트" if core_summary else "### 4. 실무자 필수 체크포인트",
             "- **세부품명 일치**: 후보 업체의 등록상품명·인증제품명·직접생산확인 범위가 실제 구매품목과 맞는지 확인하세요.",
             "- **계약방식 적정성**: 금액 기준, 1인 견적 가능 여부, 2인 이상 견적 필요 여부, MAS 2단계 경쟁 여부를 분리해서 확인하세요.",
             "- **분할발주 주의**: 금액 기준을 맞추기 위한 임의 분할은 감사 지적 위험이 있으므로 통합 발주 원칙에서 검토하세요.",
@@ -254,7 +324,7 @@ def build_multi_route_practical_answer_parts(
     references = [_clean_part(practice_manual_text), _clean_part(pps_qa_text)]
     references = [text for text in references if text]
     if references:
-        parts.extend(["", "### 5. 참고 근거"])
+        parts.extend(["", "### 6. 참고 근거" if core_summary else "### 5. 참고 근거"])
         parts.extend(_demote_markdown_headings(text) for text in references)
 
     parts.append("")

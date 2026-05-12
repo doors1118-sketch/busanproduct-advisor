@@ -96,6 +96,21 @@ def test_intent_rag_short_budget_laptop_local_purchase_prefetch():
     assert "contract_review" in decision.intent_labels
 
 
+def test_intent_rag_landscape_local_support_prefetches_candidates_without_recommend_word():
+    decision = resolve_intent_context("조경공사를 부산업체 중심으로 발주하려면 지역제한과 면허요건을 어떻게 설계해야 해?")
+    merged = augment_keyword_route(
+        keyword_pre_route("조경공사를 부산업체 중심으로 발주하려면 지역제한과 면허요건을 어떻게 설계해야 해?"),
+        decision,
+    )
+
+    assert decision.item_name == "조경공사"
+    assert decision.contract_object == "construction"
+    assert decision.company_search_required is True
+    assert decision.company_search_blocked is False
+    assert "company_search" in decision.intent_labels
+    assert "company_search" in merged.matched_categories
+
+
 def test_intent_rag_candidate_only_negates_procedure():
     decision = resolve_intent_context("CCTV 구매 절차 말고 업체 후보만 보고 싶어")
 
