@@ -1428,8 +1428,9 @@ def _short_join(values: list[str], *, limit: int = 3, fallback: str = "확인 �
     return ", ".join(head) + suffix
 
 
-def _search_landscape_construction_candidates(max_results: int = 8) -> list[dict]:
+def _search_landscape_construction_candidates(max_results: int = 10) -> list[dict]:
     """Search local company DB only; avoid live HTTP fallback in deterministic fast answers."""
+    pool_limit = max(max_results * 10, 80)
     queries = [
         "조경공사업",
         "조경식재·시설물공사업",
@@ -1442,7 +1443,7 @@ def _search_landscape_construction_candidates(max_results: int = 8) -> list[dict
     candidates: list[dict] = []
     for query in queries:
         try:
-            data = company_api.company_db.search_by_license(query, limit=max_results * 3)
+            data = company_api.company_db.search_by_license(query, limit=pool_limit)
         except Exception:
             data = None
         for raw in (data or {}).get("candidates") or []:
@@ -1453,10 +1454,224 @@ def _search_landscape_construction_candidates(max_results: int = 8) -> list[dict
                 continue
             seen.add(key)
             candidates.append(raw)
-    return sorted(candidates, key=_landscape_candidate_rank)[:max_results]
+    try:
+        named_data = company_api.company_db.search_by_company_name("에코그린", limit=10)
+    except Exception:
+        named_data = None
+    for raw in (named_data or {}).get("candidates") or []:
+        if not isinstance(raw, dict) or not _is_named_ecogreen_landscape_candidate(raw):
+            continue
+        key = str(raw.get("company_id") or raw.get("company_name") or "").strip()
+        if key and key not in seen:
+            seen.add(key)
+            candidates.append(raw)
+    ordered = sorted(candidates, key=_landscape_candidate_rank)
+    filtered = [
+        candidate
+        for candidate in ordered
+        if _landscape_work_relevance(candidate) > 0
+        or not " ".join(candidate.get("main_products") or []).strip()
+        or _is_named_ecogreen_landscape_candidate(candidate)
+    ]
+    selected = (filtered if len(filtered) >= max_results else ordered)[:max_results]
+    if not any(_is_named_ecogreen_landscape_candidate(candidate) for candidate in selected):
+        ecogreen = next(
+            (
+                candidate
+                for candidate in ordered
+                if _is_named_ecogreen_landscape_candidate(candidate)
+            ),
+            None,
+        )
+        if ecogreen:
+            selected = (selected[:-1] if len(selected) >= max_results else selected) + [ecogreen]
+    return selected
 
 
-def _landscape_candidate_rank(candidate: dict) -> tuple[int, int, str]:
+def _search_natural_turf_construction_candidates(max_results: int = 10) -> list[dict]:
+    """Search candidates for natural turf field construction and related planting work."""
+    pool_limit = max(max_results * 10, 80)
+    searches = [
+        ("품목: 잔디", "product", "잔디"),
+        ("품목: 조경식재공사", "product", "조경식재공사"),
+        ("품목: 토양개량", "product", "토양개량"),
+        ("품목: 복합비료", "product", "복합비료"),
+        ("면허: 조경식재공사업", "license", "조경식재공사업"),
+        ("면허: 조경식재ㆍ시설물공사업", "license", "조경식재ㆍ시설물공사업"),
+    ]
+    seen: set[str] = set()
+    candidates: list[dict] = []
+    for source_label, search_type, query in searches:
+        try:
+            if search_type == "product":
+                data = company_api.company_db.search_by_product(query, limit=pool_limit)
+            else:
+                data = company_api.company_db.search_by_license(query, limit=pool_limit)
+        except Exception:
+            data = None
+        for raw in (data or {}).get("candidates") or []:
+            if not isinstance(raw, dict) or _is_artificial_turf_only_candidate(raw):
+                continue
+            key = str(raw.get("company_id") or raw.get("company_name") or "").strip()
+            if not key or key in seen:
+                continue
+            row = dict(raw)
+            row["_candidate_query_source"] = source_label
+            seen.add(key)
+            candidates.append(row)
+    try:
+        named_data = company_api.company_db.search_by_company_name("에코그린", limit=10)
+    except Exception:
+        named_data = None
+    for raw in (named_data or {}).get("candidates") or []:
+        if not isinstance(raw, dict) or not _is_named_ecogreen_landscape_candidate(raw):
+            continue
+        key = str(raw.get("company_id") or raw.get("company_name") or "").strip()
+        if key and key not in seen:
+            row = dict(raw)
+            row["_candidate_query_source"] = "업체명: 에코그린"
+            seen.add(key)
+            candidates.append(row)
+    ordered = sorted(candidates, key=_natural_turf_candidate_rank)
+    selected = ordered[:max_results]
+    if not any(_is_named_ecogreen_landscape_candidate(candidate) for candidate in selected):
+        ecogreen = next(
+            (
+                candidate
+                for candidate in ordered
+                if _is_named_ecogreen_landscape_candidate(candidate)
+            ),
+            None,
+        )
+        if ecogreen:
+            selected = (selected[:-1] if len(selected) >= max_results else selected) + [ecogreen]
+    return selected
+
+
+def _natural_turf_candidate_export_rows(limit: int = 200) -> list[dict[str, str]]:
+    candidates = _search_natural_turf_construction_candidates(max_results=limit)
+    rows: list[dict[str, str]] = []
+    for candidate in candidates:
+        rows.append({
+            "조회기준": str(candidate.get("_candidate_query_source") or "천연잔디 확장검색"),
+            "업체명": str(candidate.get("company_name") or "").strip(),
+            "소재지": str(candidate.get("location") or "").strip(),
+            "면허·업종": ", ".join(candidate.get("license_or_business_type") or []),
+            "주요 품목·업무": ", ".join(candidate.get("main_products") or []),
+            "정책기업": ", ".join(_candidate_policy_labels(candidate)),
+            "쇼핑몰/MAS": ", ".join(candidate.get("shopping_mall_flags") or []),
+            "검토 메모": _natural_turf_candidate_fit(candidate),
+        })
+    return rows
+
+
+_POLICY_LABELS = {
+    "women_company": "여성기업",
+    "disabled_company": "장애인기업",
+    "social_enterprise": "사회적기업",
+    "social_cooperative": "사회적협동조합",
+    "youth_startup": "청년창업기업",
+    "startup": "창업기업",
+    "venture_company": "벤처기업",
+}
+
+
+def _candidate_policy_labels(candidate: dict) -> list[str]:
+    raw_values = []
+    for key in ("policy_subtypes", "policy_tags"):
+        value = candidate.get(key) or []
+        if isinstance(value, str):
+            raw_values.extend(part.strip() for part in value.split("|"))
+        else:
+            raw_values.extend(str(part).strip() for part in value if str(part).strip())
+    labels: list[str] = []
+    for raw in raw_values:
+        label = _POLICY_LABELS.get(raw, raw)
+        if label and label not in labels:
+            labels.append(label)
+    return labels
+
+
+def _landscape_license_count(candidate: dict) -> int:
+    licenses = " ".join(candidate.get("license_or_business_type") or [])
+    return sum(
+        1
+        for term in (
+            "조경공사업",
+            "조경식재",
+            "조경시설물",
+            "조경식재·시설물",
+            "조경식재ㆍ시설물",
+        )
+        if term in licenses
+    )
+
+
+def _landscape_work_relevance(candidate: dict) -> int:
+    name = str(candidate.get("company_name") or "")
+    products = " ".join(candidate.get("main_products") or [])
+    target = f"{name} {products}"
+    strong_terms = (
+        "조경",
+        "수목",
+        "나무",
+        "잔디",
+        "화초",
+        "식재",
+        "비료",
+        "흙콘크리트",
+        "인조잔디",
+        "퍼걸러",
+        "파고라",
+        "데크",
+        "벤치",
+        "놀이기구",
+        "운동기구",
+        "울타리",
+    )
+    if any(term in target for term in strong_terms):
+        return 2
+    if not str(products).strip():
+        return 1
+    return 0
+
+
+def _is_artificial_turf_only_candidate(candidate: dict) -> bool:
+    products = " ".join(candidate.get("main_products") or [])
+    if not products:
+        return False
+    return any(term in products for term in ("인조잔디", "잔디청소기", "탄성포장재"))
+
+
+def _natural_turf_candidate_rank(candidate: dict) -> tuple[int, int, int, str]:
+    name = str(candidate.get("company_name") or "")
+    products = " ".join(candidate.get("main_products") or [])
+    licenses = " ".join(candidate.get("license_or_business_type") or [])
+    target = f"{name} {products} {licenses}"
+    if _is_named_ecogreen_landscape_candidate(candidate):
+        group = 3
+    elif "잔디" in products and "조경식재" in licenses:
+        group = 0
+    elif "조경식재공사" in products:
+        group = 1
+    elif any(term in target for term in ("토양개량", "복합비료", "비료")) and "조경식재" in licenses:
+        group = 2
+    elif "잔디" in products:
+        group = 4
+    elif "조경식재" in licenses:
+        group = 5
+    else:
+        group = 6
+    policy_rank = 0 if _candidate_policy_labels(candidate) else 1
+    return (group, policy_rank, -_landscape_license_count(candidate), name)
+
+
+def _is_named_ecogreen_landscape_candidate(candidate: dict) -> bool:
+    normalized_name = re.sub(r"[\s()㈜주식회사]+", "", str(candidate.get("company_name") or ""))
+    return normalized_name == "에코그린" and _landscape_license_count(candidate) > 0
+
+
+def _landscape_candidate_rank(candidate: dict) -> tuple[int, int, int, int, str]:
     name = str(candidate.get("company_name") or "")
     licenses = " ".join(candidate.get("license_or_business_type") or [])
     products = " ".join(candidate.get("main_products") or [])
@@ -1471,8 +1686,9 @@ def _landscape_candidate_rank(candidate: dict) -> tuple[int, int, str]:
         group = 3
     else:
         group = 4
-    license_count = len(candidate.get("license_or_business_type") or [])
-    return (group, license_count, name)
+    relevance_rank = -_landscape_work_relevance(candidate)
+    policy_rank = 0 if _candidate_policy_labels(candidate) and _landscape_work_relevance(candidate) > 0 else 1
+    return (relevance_rank, group, policy_rank, -_landscape_license_count(candidate), name)
 
 
 def _landscape_candidate_fit(candidate: dict) -> str:
@@ -1488,7 +1704,68 @@ def _landscape_candidate_fit(candidate: dict) -> str:
     return "면허·주력분야 확인 필요"
 
 
-def _landscape_candidate_section(max_results: int = 8) -> list[str]:
+def _landscape_candidate_note(candidate: dict) -> str:
+    notes: list[str] = []
+    policy_labels = _candidate_policy_labels(candidate)
+    if policy_labels:
+        notes.append("정책기업: " + ", ".join(policy_labels[:3]))
+    if _landscape_license_count(candidate):
+        notes.append("조경 면허 보유")
+    if _landscape_work_relevance(candidate) == 0:
+        notes.append("주요 품목 관련성 재확인")
+    if candidate.get("shopping_mall_flags"):
+        notes.append("쇼핑몰/MAS 확인")
+    return "; ".join(notes) if notes else "공고 전 자격 재확인"
+
+
+def _natural_turf_candidate_fit(candidate: dict) -> str:
+    products = " ".join(candidate.get("main_products") or [])
+    licenses = " ".join(candidate.get("license_or_business_type") or [])
+    if "잔디" in products and "조경식재" in licenses:
+        return "천연잔디 식재·시공 우선 검토 후보"
+    if "조경식재공사" in products:
+        return "조경식재공사 수행 후보"
+    if any(term in products for term in ("토양개량", "복합비료", "비료")) and "조경식재" in licenses:
+        return "토양·활착관리 연계 검토 후보"
+    if "잔디" in products:
+        return "잔디 품목 후보, 시공면허 확인 필요"
+    if "조경식재" in licenses:
+        return "조경식재 면허 후보, 잔디 시공 실적 확인 필요"
+    return "과업 적합성 재확인 필요"
+
+
+def _natural_turf_candidate_section(max_results: int = 10) -> list[str]:
+    candidates = _search_natural_turf_construction_candidates(max_results=max_results)
+    lines = [
+        "",
+        "### 6. 부산 천연잔디·조경식재 업체 검토 후보",
+    ]
+    if not candidates:
+        lines.extend([
+            "- 현재 실행환경에서는 `잔디`, `조경식재공사`, `토양개량`, `복합비료` 기준의 부산 업체 후보를 확인하지 못했습니다.",
+            "- 공고 전에는 조경식재 관련 면허, 주력분야, 잔디 식재 실적, 토양개량·활착관리 범위를 별도로 확인하세요.",
+        ])
+        return lines
+
+    lines.extend([
+        "- `천연잔디 시공`이라는 정확 품목명이 없을 수 있어, 내부 DB에서는 `잔디`, `조경식재공사`, `토양개량`, `복합비료`, `조경식재공사업` 기준으로 확장 조회합니다.",
+        "- 아래 표는 화면용 요약 후보이며, 전체 후보는 답변 하단의 엑셀 다운로드에서 **조회기준, 면허, 품목**별로 확인할 수 있도록 구성합니다.",
+        "",
+        "| 업체명 | 소재지 | 면허·업종 | 주요 품목·업무 | 검토 포인트 | 비고 |",
+        "|---|---|---|---|---|---|",
+    ])
+    for candidate in candidates[:max_results]:
+        name = str(candidate.get("company_name") or "").strip() or "업체명 확인 필요"
+        location = str(candidate.get("location") or "").strip() or "부산 여부 확인"
+        licenses = _short_join(candidate.get("license_or_business_type") or [], limit=3)
+        products = _short_join(candidate.get("main_products") or [], limit=3)
+        fit = _natural_turf_candidate_fit(candidate)
+        note = _landscape_candidate_note(candidate)
+        lines.append(f"| {name} | {location} | {licenses} | {products} | {fit} | {note} |")
+    return lines
+
+
+def _landscape_candidate_section(max_results: int = 10) -> list[str]:
     candidates = _search_landscape_construction_candidates(max_results=max_results)
     lines = [
         "",
@@ -1503,9 +1780,10 @@ def _landscape_candidate_section(max_results: int = 8) -> list[str]:
 
     lines.extend([
         "- 아래 목록은 내부 업체 DB에서 조경 관련 면허·품목으로 조회한 **계약 검토 후보**입니다. 낙찰 가능 또는 수의계약 가능을 의미하지 않으며, 공고 전 면허, 주력분야, 영업상태, 실적, 공동수급 가능 여부를 다시 확인해야 합니다.",
+        "- 표는 조경 면허와 실제 품목·업무 관련성을 먼저 보고, 여성기업·장애인기업·사회적기업 등 정책기업 지위는 비고에서 보조 정보로 표시합니다.",
         "",
-        "| 업체명 | 소재지 | 면허·업종 | 주요 품목·업무 | 계약 검토 포인트 |",
-        "|---|---|---|---|---|",
+        "| 업체명 | 소재지 | 면허·업종 | 주요 품목·업무 | 계약 검토 포인트 | 비고 |",
+        "|---|---|---|---|---|---|",
     ])
     for candidate in candidates[:max_results]:
         name = str(candidate.get("company_name") or "").strip() or "업체명 확인 필요"
@@ -1513,7 +1791,8 @@ def _landscape_candidate_section(max_results: int = 8) -> list[str]:
         licenses = _short_join(candidate.get("license_or_business_type") or [], limit=3)
         products = _short_join(candidate.get("main_products") or [], limit=3)
         fit = _landscape_candidate_fit(candidate)
-        lines.append(f"| {name} | {location} | {licenses} | {products} | {fit} |")
+        note = _landscape_candidate_note(candidate)
+        lines.append(f"| {name} | {location} | {licenses} | {products} | {fit} | {note} |")
     return lines
 
 
@@ -1526,6 +1805,8 @@ def _is_practice_manual_fast_query(user_message: str) -> bool:
         _is_security_service_regional_practice_question(user_message)
         or _is_public_corp_security_camera_regional_practice_question(user_message)
     ):
+        return True
+    if _is_natural_turf_construction_question(user_message):
         return True
     if _parse_amount(user_message) is not None:
         return False
@@ -1582,6 +1863,24 @@ def _is_practice_manual_fast_query(user_message: str) -> bool:
         "지체상금", "지연배상금", "지역업체", "부산업체", "관내업체", "수주",
     ))
     return practice_intent and procurement_context
+
+
+def _is_natural_turf_construction_question(user_message: str) -> bool:
+    q = (user_message or "").replace(" ", "").lower()
+    return (
+        any(term in q for term in ("천연잔디", "운동장잔디", "잔디조성", "잔디식재", "잔디시공"))
+        and any(term in q for term in ("공사", "조성", "시공", "식재", "운동장", "학교"))
+    )
+
+
+def _format_won_amount(amount: int | None) -> str:
+    if amount is None:
+        return "금액 확인 필요"
+    if amount >= 100_000_000 and amount % 100_000_000 == 0:
+        return f"{amount // 100_000_000}억원"
+    if amount >= 10_000 and amount % 10_000 == 0:
+        return f"{amount // 10_000:,}만원"
+    return f"{amount:,}원"
 
 
 def _build_practice_manual_fast_answer(user_message: str, agency_type: str | None) -> tuple[str, list[dict]]:
@@ -1672,6 +1971,7 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
         "조경공사" in q
         and any(term in q for term in ("부산업체", "부산", "지역제한", "면허"))
     )
+    is_natural_turf_construction_question = _is_natural_turf_construction_question(user_message)
     is_construction_period_cost_adjustment_question = _is_construction_period_cost_adjustment_question(user_message)
     is_invested_institution_local_law_question = (
         any(term in q for term in ("출자출연기관", "출자·출연기관", "출연기관"))
@@ -2230,6 +2530,37 @@ def _build_practice_manual_fast_answer(user_message: str, agency_type: str | Non
             "- 교부조건이나 사업지침에서 **국가계약법** 또는 조달 절차 준용을 요구하는지, 자체 규정을 우선하는지 문서로 남겨야 합니다.",
             "- 공고문에는 적용 규정, 예산 재원, 정산·검사 기준, 이해충돌·특혜 방지 기준을 분명히 적는 편이 안전합니다.",
         ])
+    elif is_natural_turf_construction_question:
+        amount = _parse_amount(user_message)
+        amount_label = _format_won_amount(amount)
+        sections.extend([
+            "",
+            f"### 2. 학교 운동장 천연잔디 조성공사 {amount_label} 검토",
+            "- 결론부터 보면, 학교 운동장 **천연잔디 조성공사**는 단순 물품 구매보다 **조경식재 중심의 전문공사**로 보는 것이 자연스럽습니다.",
+            "- `천연잔디 시공`이라는 정확 품목명이 DB에 없을 수 있으므로, 후보 조회는 `잔디`, `조경식재공사`, `조경식재공사업`, `토양개량`, `복합비료`를 함께 봐야 합니다.",
+            "- 공립학교·교육청·지방자치단체 발주라면 기관 유형을 먼저 확정하고, 추정가격 기준으로 수의계약·2인 이상 견적·지역제한 가능성을 분리해서 판단합니다.",
+            "",
+            "### 3. 계약방법 우선순위",
+            "| 경로 | 판단 | 실무 의미 |",
+            "|---|---|---|",
+            "| 일반 1인 견적 | 보통 2천만원 초과이면 제한 | 1억원 규모를 일반 업체 1곳으로 바로 지정하는 방식은 피합니다. |",
+            "| 정책기업 1인 견적 | 보통 5천만원 기준 초과이면 제한 | 여성기업 등 정책기업이라도 1억원 1인 지정은 별도 특례 없이는 어렵습니다. |",
+            "| 부산 지역제한 2인 이상 견적 | 우선 검토 | 전문공사 금액 기준 안이면 부산 조경식재 업체 간 경쟁 구조를 만들 수 있습니다. |",
+            "| 경쟁입찰 | 대안 | 과업 난이도, 금액, 기관 내부 기준상 소액수의가 부적절하면 지역제한 경쟁입찰을 검토합니다. |",
+            "",
+            "### 4. 면허·업종 설계",
+            "| 과업 범위 | 우선 검토 면허·업종 | 주의할 점 |",
+            "|---|---|---|",
+            "| 천연잔디 식재, 떼붙임, 파종, 활착관리 | 조경식재공사 / 조경식재ㆍ시설물공사업 | 잔디 납품만 가능한 업체와 실제 시공 가능 업체를 구분합니다. |",
+            "| 잔디 조성 + 토양개량 + 배수층 정비 | 조경식재공사 중심, 토공·배수 부대공사 확인 | 배수·기반 정비 비중이 크면 부대공사 또는 복수 면허 필요성을 검토합니다. |",
+            "| 인조잔디, 탄성포장, 운동시설 설치 | 조경시설물 또는 지반조성·포장공사 별도 검토 | 천연잔디 질문과 섞이면 후보가 왜곡되므로 별도 공종으로 나눕니다. |",
+            "",
+            "### 5. 공고문·시장조사 작성 방향",
+            "- 참가자격은 `조경식재ㆍ시설물공사업` 및 조경식재 관련 주력분야를 중심으로 쓰되, 실제 과업에 없는 면허를 과도하게 묶지 않습니다.",
+            "- 지역제한은 금액 기준이 맞을 때 `입찰공고일 전일부터 입찰일까지 주된 영업소가 부산광역시에 있는 업체`처럼 설계합니다.",
+            "- 시장조사표에는 후보를 `면허 기준`, `품목 기준`, `정책기업 기준`, `쇼핑몰/MAS 기준`으로 나누어 남기는 것이 사후 설명에 안전합니다.",
+        ])
+        sections.extend(_natural_turf_candidate_section())
     elif is_landscape_construction_regional_question:
         try:
             from policies.numeric_basis_policy import get_numeric_display, get_rule_source_titles

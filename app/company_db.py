@@ -303,6 +303,11 @@ def search_by_policy(policy_subtype: str, *, limit: int = 20) -> dict[str, Any] 
     return _run_search(where, [f"%{mapped}%"], limit=limit, query={"policy_subtype": mapped, "limit": limit}, source="local_view_policy")
 
 
+def search_by_company_name(company_keyword: str, *, limit: int = 20) -> dict[str, Any] | None:
+    where, params = _like_where(["company_name"], _terms(company_keyword, "supplier"))
+    return _run_search(where, params, limit=limit, query={"company_keyword": company_keyword, "limit": limit}, source="local_view_company_name")
+
+
 def search_shopping_mall_product(product_name: str, *, limit: int = 20) -> dict[str, Any] | None:
     terms = _terms(product_name, "shopping_mall")
     where, params = _like_where(["shopping_mall_product_summary_raw", "mas_product_summary_raw", "main_products"], terms)

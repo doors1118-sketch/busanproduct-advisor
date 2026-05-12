@@ -655,6 +655,7 @@ def test_practice_fast_answer_handles_landscape_construction_question(monkeypatc
                 "location": "부산광역시",
                 "license_or_business_type": ["조경식재·시설물공사업"],
                 "main_products": ["조경식재공사", "조경시설물설치"],
+                "policy_subtypes": ["women_company"],
                 "business_status": "active",
             }
         ],
@@ -678,8 +679,223 @@ def test_practice_fast_answer_handles_landscape_construction_question(monkeypatc
     assert "부산 조경공사 업체 검토 후보" in answer
     assert "부산조경테스트" in answer
     assert "조경식재·시설물공사업" in answer
+    assert "비고" in answer
+    assert "정책기업: 여성기업" in answer
     assert "계약 검토 후보" in answer
     assert "source map" not in answer
+
+
+def test_landscape_candidate_rank_prioritizes_policy_company_with_license():
+    general_candidate = {
+        "company_name": "일반조경",
+        "license_or_business_type": ["조경식재ㆍ시설물공사업"],
+        "main_products": ["조경식재공사"],
+        "policy_subtypes": [],
+    }
+    policy_candidate = {
+        "company_name": "정책조경",
+        "license_or_business_type": ["조경시설물설치공사업", "조경식재ㆍ시설물공사업", "조경식재공사업"],
+        "main_products": ["복합비료"],
+        "policy_subtypes": ["women_company"],
+    }
+
+    ordered = sorted(
+        [general_candidate, policy_candidate],
+        key=gemini_engine._landscape_candidate_rank,
+    )
+
+    assert ordered[0]["company_name"] == "정책조경"
+    assert "여성기업" in gemini_engine._landscape_candidate_note(policy_candidate)
+
+
+def test_landscape_candidate_search_keeps_ecogreen_when_present(monkeypatch):
+    def fake_search_by_license(query, limit=80):
+        candidates = [
+            {
+                "company_id": f"general-{idx}",
+                "company_name": f"가나다조경{idx}",
+                "license_or_business_type": ["조경식재ㆍ시설물공사업"],
+                "main_products": ["조경식재공사"],
+                "policy_subtypes": ["women_company"],
+            }
+            for idx in range(12)
+        ]
+        candidates.append(
+            {
+                "company_id": "eco-green",
+                "company_name": "주식회사     에코그린",
+                "license_or_business_type": [
+                    "조경시설물설치공사업",
+                    "조경식재ㆍ시설물공사업",
+                    "조경식재공사업",
+                ],
+                "main_products": ["복합비료"],
+                "policy_subtypes": ["women_company"],
+            }
+        )
+        return {"candidates": candidates}
+
+    monkeypatch.setattr(
+        gemini_engine.company_api.company_db,
+        "search_by_license",
+        fake_search_by_license,
+    )
+
+    candidates = gemini_engine._search_landscape_construction_candidates(max_results=8)
+
+    assert len(candidates) == 8
+    assert any(candidate["company_name"] == "주식회사     에코그린" for candidate in candidates)
+
+
+def test_landscape_candidate_search_fetches_ecogreen_by_name_and_filters_weak_products(monkeypatch):
+    def fake_search_by_license(query, limit=80):
+        relevant = [
+            {
+                "company_id": f"relevant-{idx}",
+                "company_name": f"관련조경{idx}",
+                "license_or_business_type": ["조경식재ㆍ시설물공사업"],
+                "main_products": ["조경용수목"],
+                "policy_subtypes": [],
+            }
+            for idx in range(8)
+        ]
+        weak = {
+            "company_id": "weak-policy",
+            "company_name": "약한품목정책기업",
+            "license_or_business_type": ["조경식재ㆍ시설물공사업"],
+            "main_products": ["모자이크타일"],
+            "policy_subtypes": ["social_enterprise"],
+        }
+        return {"candidates": [weak, *relevant]}
+
+    def fake_search_by_company_name(company_keyword, limit=10):
+        return {
+            "candidates": [
+                {
+                    "company_id": "eco-green",
+                    "company_name": "주식회사     에코그린",
+                    "license_or_business_type": [
+                        "조경시설물설치공사업",
+                        "조경식재ㆍ시설물공사업",
+                        "조경식재공사업",
+                    ],
+                    "main_products": ["복합비료"],
+                    "policy_subtypes": ["women_company"],
+                }
+            ]
+        }
+
+    monkeypatch.setattr(
+        gemini_engine.company_api.company_db,
+        "search_by_license",
+        fake_search_by_license,
+    )
+    monkeypatch.setattr(
+        gemini_engine.company_api.company_db,
+        "search_by_company_name",
+        fake_search_by_company_name,
+    )
+
+    candidates = gemini_engine._search_landscape_construction_candidates(max_results=8)
+    names = [candidate["company_name"] for candidate in candidates]
+
+    assert "주식회사     에코그린" in names
+    assert "약한품목정책기업" not in names
+
+
+def test_natural_turf_construction_question_uses_expanded_candidate_terms(monkeypatch):
+    monkeypatch.setattr(
+        gemini_engine,
+        "_search_natural_turf_construction_candidates",
+        lambda max_results=8: [
+            {
+                "company_id": "turf-1",
+                "company_name": "(주)카람",
+                "location": "부산광역시",
+                "license_or_business_type": ["조경식재ㆍ시설물공사업"],
+                "main_products": ["잔디"],
+                "policy_subtypes": [],
+            },
+            {
+                "company_id": "eco-green",
+                "company_name": "주식회사     에코그린",
+                "location": "부산광역시",
+                "license_or_business_type": ["조경식재공사업", "조경식재ㆍ시설물공사업"],
+                "main_products": ["복합비료"],
+                "policy_subtypes": ["women_company"],
+            },
+        ],
+    )
+
+    answer, cards = _build_practice_manual_fast_answer(
+        "1억원으로 학교 운동장 천연잔디 조성공사를 하려고 하는데 계약방법, 면허요건, 부산업체 후보를 알려줘",
+        "local_government",
+    )
+
+    assert answer
+    assert "천연잔디 조성공사" in answer
+    assert "조경식재" in answer
+    assert "부산 천연잔디·조경식재 업체 검토 후보" in answer
+    assert "(주)카람" in answer
+    assert "에코그린" in answer
+    assert "잔디" in answer
+    assert "복합비료" in answer
+
+
+def test_natural_turf_candidate_search_keeps_ecogreen_when_many_turf_candidates(monkeypatch):
+    def fake_search_by_product(term, limit=80):
+        if term == "잔디":
+            return {
+                "candidates": [
+                    {
+                        "company_id": f"turf-{idx}",
+                        "company_name": f"잔디전문{idx}",
+                        "license_or_business_type": ["조경식재ㆍ시설물공사업"],
+                        "main_products": ["잔디"],
+                        "policy_subtypes": [],
+                    }
+                    for idx in range(12)
+                ]
+            }
+        return {"candidates": []}
+
+    def fake_search_by_company_name(company_keyword, limit=10):
+        return {
+            "candidates": [
+                {
+                    "company_id": "eco-green",
+                    "company_name": "주식회사     에코그린",
+                    "license_or_business_type": [
+                        "조경시설물설치공사업",
+                        "조경식재ㆍ시설물공사업",
+                        "조경식재공사업",
+                    ],
+                    "main_products": ["복합비료"],
+                    "policy_subtypes": ["women_company"],
+                }
+            ]
+        }
+
+    monkeypatch.setattr(
+        gemini_engine.company_api.company_db,
+        "search_by_product",
+        fake_search_by_product,
+    )
+    monkeypatch.setattr(
+        gemini_engine.company_api.company_db,
+        "search_by_license",
+        lambda query, limit=80: {"candidates": []},
+    )
+    monkeypatch.setattr(
+        gemini_engine.company_api.company_db,
+        "search_by_company_name",
+        fake_search_by_company_name,
+    )
+
+    candidates = gemini_engine._search_natural_turf_construction_candidates(max_results=8)
+
+    assert len(candidates) == 8
+    assert any(candidate["company_name"] == "주식회사     에코그린" for candidate in candidates)
 
 
 def test_practice_fast_answer_handles_invested_institution_local_law_question():

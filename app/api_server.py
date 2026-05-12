@@ -11,6 +11,7 @@ import traceback
 import json
 import queue
 import threading
+from io import BytesIO
 from datetime import datetime
 
 # app 디렉터리를 Python 경로에 추가
@@ -104,6 +105,7 @@ class ChatResponse(BaseModel):
     history: list = []
     qa_log_id: str = ""
     candidate_table_source: str = "not_exposed_yet"
+    candidate_export_available: bool = False
     legal_conclusion_allowed: bool = False
     contract_possible_auto_promoted: bool = False
     forbidden_patterns_remaining_after_rewrite: list = []
@@ -333,6 +335,172 @@ def _admin_health_authorized(request: Request) -> bool:
     auth = request.headers.get("Authorization", "").strip()
     bearer = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
     return secrets.compare_digest(header_token, token) or secrets.compare_digest(bearer, token)
+
+
+def _candidate_export_requested(question: str) -> bool:
+    q = (question or "").replace(" ", "").lower()
+    return any(term in q for term in ("업체", "후보", "추천", "공급사", "부산업체", "지역업체"))
+
+
+def _candidate_policy_labels(candidate: dict) -> list[str]:
+    label_map = {
+        "women_company": "여성기업",
+        "disabled_company": "장애인기업",
+        "social_enterprise": "사회적기업",
+        "social_cooperative": "사회적협동조합",
+        "youth_startup": "청년창업기업",
+        "startup": "창업기업",
+        "venture_company": "벤처기업",
+    }
+    raw_values = []
+    for key in ("policy_subtypes", "policy_tags"):
+        value = candidate.get(key) or []
+        if isinstance(value, str):
+            raw_values.extend(part.strip() for part in value.split("|"))
+        else:
+            raw_values.extend(str(part).strip() for part in value if str(part).strip())
+    labels: list[str] = []
+    for raw in raw_values:
+        label = label_map.get(raw, raw)
+        if label and label not in labels:
+            labels.append(label)
+    return labels
+
+
+def _candidate_rows_from_results(results: list[tuple[str, list[dict]]]) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for source_label, candidates in results:
+        for candidate in candidates:
+            key = str(candidate.get("company_id") or candidate.get("company_name") or "").strip()
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            rows.append({
+                "조회기준": source_label,
+                "업체명": str(candidate.get("company_name") or "").strip(),
+                "소재지": str(candidate.get("location") or "").strip(),
+                "면허·업종": ", ".join(candidate.get("license_or_business_type") or []),
+                "주요 품목·업무": ", ".join(candidate.get("main_products") or []),
+                "정책기업": ", ".join(_candidate_policy_labels(candidate)),
+                "쇼핑몰/MAS": ", ".join(candidate.get("shopping_mall_flags") or []),
+                "검토 메모": "면허·품목·영업상태·직접수행 여부 재확인 필요",
+            })
+    return rows
+
+
+def _generic_candidate_export_rows(question: str, *, limit: int = 200) -> list[dict[str, str]]:
+    try:
+        import company_db
+    except Exception:
+        return []
+
+    q = question or ""
+    searches: list[tuple[str, str, str]] = []
+    if any(term in q for term in ("천연잔디", "잔디 조성", "잔디조성", "잔디 식재", "잔디시공", "운동장 잔디", "운동장잔디")):
+        searches.extend([
+            ("품목: 잔디", "product", "잔디"),
+            ("품목: 조경식재공사", "product", "조경식재공사"),
+            ("품목: 토양개량", "product", "토양개량"),
+            ("품목: 복합비료", "product", "복합비료"),
+            ("면허: 조경식재공사업", "license", "조경식재공사업"),
+            ("면허: 조경식재ㆍ시설물공사업", "license", "조경식재ㆍ시설물공사업"),
+            ("업체명: 에코그린", "company_name", "에코그린"),
+        ])
+    elif "조경" in q:
+        searches.extend([
+            ("면허: 조경공사업", "license", "조경공사업"),
+            ("면허: 조경식재공사업", "license", "조경식재공사업"),
+            ("면허: 조경식재ㆍ시설물공사업", "license", "조경식재ㆍ시설물공사업"),
+            ("면허: 조경시설물설치공사업", "license", "조경시설물설치공사업"),
+            ("품목: 조경식재공사", "product", "조경식재공사"),
+            ("품목: 기타조경시설물", "product", "기타조경시설물"),
+            ("업체명: 에코그린", "company_name", "에코그린"),
+        ])
+    else:
+        product_terms = [
+            "컴퓨터", "노트북", "서버", "데스크톱", "프린터", "보안용카메라", "CCTV",
+            "소프트웨어", "번역", "청소", "경비", "냉난방기", "에어컨",
+        ]
+        for term in product_terms:
+            if term.lower() in q.lower():
+                searches.append((f"품목: {term}", "product", term))
+                searches.append((f"면허/업종: {term}", "license", term))
+
+    results: list[tuple[str, list[dict]]] = []
+    for source_label, search_type, term in searches:
+        try:
+            if search_type == "product":
+                data = company_db.search_by_product(term, limit=limit)
+            elif search_type == "license":
+                data = company_db.search_by_license(term, limit=limit)
+            else:
+                data = company_db.search_by_company_name(term, limit=limit)
+        except Exception:
+            data = None
+        candidates = (data or {}).get("candidates") or []
+        if candidates:
+            results.append((source_label, candidates))
+    return _candidate_rows_from_results(results)
+
+
+def _build_candidate_export_xlsx(question: str) -> bytes | None:
+    rows = _generic_candidate_export_rows(question)
+    if not rows:
+        return None
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "업체후보"
+    headers = ["조회기준", "업체명", "소재지", "면허·업종", "주요 품목·업무", "정책기업", "쇼핑몰/MAS", "검토 메모"]
+    ws.append(headers)
+    for row in rows:
+        ws.append([row.get(header, "") for header in headers])
+    for cell in ws[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="1F4E78")
+        cell.alignment = Alignment(horizontal="center")
+    for idx, width in enumerate([18, 28, 18, 46, 34, 20, 22, 36], 1):
+        ws.column_dimensions[get_column_letter(idx)].width = width
+    for row in ws.iter_rows(min_row=2):
+        for cell in row:
+            cell.alignment = Alignment(wrap_text=True, vertical="top")
+    ws.freeze_panes = "A2"
+
+    summary = wb.create_sheet("안내")
+    summary.append(["항목", "내용"])
+    summary.append(["원 질문", question])
+    summary.append(["주의", "이 엑셀은 내부 DB 조회 후보 목록입니다. 낙찰 가능, 수의계약 가능, 면허 적격을 확정하지 않습니다. 공고 전 면허·주력분야·영업상태·실적·직접수행 여부를 다시 확인하세요."])
+    for cell in summary[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="1F4E78")
+    summary.column_dimensions["A"].width = 18
+    summary.column_dimensions["B"].width = 120
+    summary["B3"].alignment = Alignment(wrap_text=True, vertical="top")
+
+    output = BytesIO()
+    wb.save(output)
+    return output.getvalue()
+
+
+def _find_qa_log_by_id(qa_log_id: str) -> dict | None:
+    log_dir = Path(APP_DIR) / "data" / "qa_test_logs"
+    if not qa_log_id or not log_dir.exists():
+        return None
+    for path in sorted(log_dir.glob("qa_log_*.jsonl"), reverse=True):
+        try:
+            for line in path.read_text(encoding="utf-8").splitlines():
+                if not line.strip():
+                    continue
+                record = json.loads(line)
+                if record.get("qa_log_id") == qa_log_id:
+                    return record
+        except Exception:
+            continue
+    return None
 
 
 def _json_file_status(relative_path: str, *, max_count_bytes: int = 8_000_000) -> dict:
@@ -913,6 +1081,7 @@ def _chat_orchestrator(req: ChatRequest, start: float):
             # answer builder
             answer_builder_used=runtime_resp.router_result.routing_decision,
             candidate_table_source="orchestrator_structured" if runtime_resp.answer_output.candidate_table_section else "none",
+            candidate_export_available=_candidate_export_requested(req.message),
         )
 
         try:
@@ -1142,6 +1311,7 @@ def _chat_legacy(req: ChatRequest, start: float, progress_callback=None):
             natural_language_writer_suffix_chars=meta.get("natural_language_writer_suffix_chars", 0),
             natural_language_writer_output_chars=meta.get("natural_language_writer_output_chars", 0),
             natural_language_writer_table_preserved=meta.get("natural_language_writer_table_preserved", False),
+            candidate_export_available=_candidate_export_requested(req.message),
         )
 
         # ── QA 테스트 로그 자동 저장 ──
@@ -1244,6 +1414,24 @@ def get_qa_logs_endpoint(date: str = None, limit: int = 100):
         )
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
+
+
+@app.get("/qa-logs/{qa_log_id}/candidate-export.xlsx")
+def get_candidate_export_endpoint(qa_log_id: str):
+    """Download candidate companies used for follow-up verification as XLSX."""
+    record = _find_qa_log_by_id(qa_log_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="qa_log_id not found")
+    question = str(record.get("question") or "")
+    content = _build_candidate_export_xlsx(question)
+    if not content:
+        raise HTTPException(status_code=404, detail="candidate export not available")
+    filename = f"busan_candidate_export_{qa_log_id}.xlsx"
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.get("/qa-summary")
