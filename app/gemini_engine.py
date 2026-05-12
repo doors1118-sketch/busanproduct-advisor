@@ -779,6 +779,8 @@ def _should_prefetch_company_routes(user_message: str, router_result=None, inten
         if company_mode in ("candidates_only", "route_relevant_candidates"):
             return True, query, f"route_plan_company_prefetch:{company_mode}"
         if company_mode == "none" and not _is_explicit_company_lookup(user_message):
+            if _is_route_relevant_item_purchase_question(user_message):
+                return True, query, "specific_item_purchase_procedure_prefetch"
             return False, query, "route_plan_no_company_lookup"
 
     if intent_rag_decision is not None:
@@ -884,12 +886,20 @@ def _is_route_relevant_item_purchase_question(user_message: str) -> bool:
         "수의계약", "1인견적", "2인견적", "견적", "입찰", "지역제한",
         "공동수급", "공동도급", "가점", "평가항목", "협상계약",
     ))
+    has_specific_item_procedure = (
+        any(term in compact for term in ("절차", "방법", "경로", "순서", "뭐부터", "먼저", "안내"))
+        and any(term in compact for term in (
+            "컴퓨터", "데스크톱", "서버", "노트북", "프린터", "모니터",
+            "냉난방기", "공기청정기", "정수기", "복합기", "전자칠판",
+            "빔프로젝터", "cctv", "보안용카메라",
+        ))
+    )
     has_local_signal = local_support or any(term in compact for term in (
         "부산", "지역업체", "부산업체", "관내업체", "지역상품", "부산상품",
         "지역제품", "부산제품", "지역구매", "지역업체고려",
     ))
 
-    return bool(has_purchase_action and (has_local_signal or has_procurement_route))
+    return bool(has_purchase_action and (has_local_signal or has_procurement_route or has_specific_item_procedure))
 
 
 def _route_plan_needs(route_plan, *needs: str) -> bool:
@@ -7104,6 +7114,7 @@ def _chat_v144(
     if (
         'mcp_context' in locals()
         and mandatory_mcp_executed
+        and not _is_route_relevant_item_purchase_question(user_message)
         and _should_use_grounded_single_pass_llm(
             user_message,
             query_tier,

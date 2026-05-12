@@ -842,7 +842,7 @@ def _render_agency_notice() -> None:
     st.markdown(
         """
         <div class="notice">
-        기관 유형이 아직 선택되지 않았습니다. 왼쪽 패널에서 선택하거나 채팅창에 1 지방자치단체, 2 지방 공사공단 및 출자출연기관, 3 국가기관, 4 공기업·준정부기관 중 하나를 입력해 주세요.
+        정확한 기준 적용을 위해 왼쪽 패널에서 소속 기관 유형을 먼저 선택해 주세요.
         </div>
         """,
         unsafe_allow_html=True,
@@ -972,16 +972,7 @@ def _handle_agency_number_input(user_input: str) -> bool:
 
 def _request_agency_before_answer(question: str) -> None:
     st.session_state.pending_original_question = question
-    guide = """정확한 기준 적용을 위해 기관 유형을 먼저 선택해 주세요.
-
-| 번호 | 기관 유형 | 주로 적용되는 계약 체계 |
-|:---:|---|---|
-| 1 | 지방자치단체 | 지방계약법 |
-| 2 | 지방 공사공단 및 출자출연기관 | 자체 규정 및 지방계약법 준용 여부 확인 |
-| 3 | 국가기관 | 국가계약법 |
-| 4 | 공기업·준정부기관 | 공기업·준정부기관 계약사무규칙 |
-
-왼쪽 패널에서 선택하거나 번호를 입력하면 이어서 답변하겠습니다."""
+    guide = "정확한 기준 적용을 위해 왼쪽 패널에서 소속 기관 유형을 먼저 선택해 주세요. 선택 후 이어서 답변하겠습니다."
     _append_message("assistant", guide)
 
 

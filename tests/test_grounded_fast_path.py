@@ -14,6 +14,7 @@ from gemini_engine import (
     _build_simple_amount_contract_answer,
     _display_amount_for_answer,
     _is_explicit_company_lookup,
+    _is_route_relevant_item_purchase_question,
     _parse_amount,
     _should_prefetch_company_routes,
     _should_skip_gemini_intent_router,
@@ -114,6 +115,18 @@ def test_company_prefetch_route_plan_handles_purchase_route_question_as_purchase
     assert route_plan.company_search_mode == "route_relevant_candidates"
     assert _is_explicit_company_lookup("CCTV 부산업체 후보만 보여줘") is True
     assert _is_explicit_company_lookup("업체 후보는 빼고 CCTV 구매 절차만 알려줘") is False
+
+    procedure_question = "예산이 4천만원인데, 컴퓨터 구매 절차 알려줘"
+    procedure_plan = resolve_route_plan(build_intent_frame(procedure_question))
+    should_prefetch, query, reason = _should_prefetch_company_routes(
+        procedure_question,
+        route_plan=procedure_plan,
+    )
+
+    assert should_prefetch is True
+    assert query == "컴퓨터"
+    assert reason == "route_plan_company_prefetch:route_relevant_candidates"
+    assert procedure_plan.company_search_mode == "route_relevant_candidates"
 
 
 def test_practice_fast_answer_names_fire_facility_construction_terms():
@@ -233,6 +246,33 @@ def test_timeout_fallback_for_40m_computer_purchase_procedure_uses_route_answer(
     assert "지역제한 2인 이상 견적" in answer
     assert answer.index("종합쇼핑몰/MAS 직접구매") < answer.index("정책기업 1인 견적")
     assert "내부 DB 근거 기준으로는 바로 단정하기 어렵습니다" not in answer
+
+
+def test_computer_purchase_procedure_is_route_relevant_for_candidate_prefetch():
+    from router.intent_rag_resolver import resolve_intent_context
+    from router.route_resolver import build_intent_frame, resolve_route_plan
+
+    question = "예산이 4천만원인데, 컴퓨터 구매 절차 알려줘"
+    intent_rag = resolve_intent_context(question)
+    route_plan = resolve_route_plan(
+        build_intent_frame(
+            question,
+            intent_rag_decision=intent_rag,
+            intent_labels=list(intent_rag.intent_labels),
+        )
+    )
+    should_prefetch, query, reason = _should_prefetch_company_routes(
+        question,
+        intent_rag_decision=intent_rag,
+        route_plan=route_plan,
+    )
+
+    assert _is_route_relevant_item_purchase_question(
+        question
+    )
+    assert should_prefetch is True
+    assert query == "컴퓨터"
+    assert reason == "specific_item_purchase_procedure_prefetch"
 
 
 def test_timeout_fallback_does_not_put_policy_company_first_under_general_one_quote_limit():
