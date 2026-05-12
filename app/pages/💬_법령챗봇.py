@@ -315,7 +315,7 @@ def _render_css() -> None:
             background: rgba(255,255,255,0.76);
             border: 1px solid var(--line);
             border-radius: 8px;
-            margin-top: 0.75rem;
+            margin-top: 0.25rem;
             padding: 1rem;
         }
 
@@ -824,7 +824,6 @@ def main() -> None:
     _render_css()
     _render_sidebar()
     _render_header()
-    _render_agency_notice()
     _render_starter()
     _render_messages()
 
