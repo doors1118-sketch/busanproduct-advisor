@@ -726,7 +726,7 @@ def _render_header() -> None:
         <div class="topbar">
             <div class="title-block">
                 <h1>{APP_NAME}</h1>
-                <p>기관 구매 및 계약 담당자를 위한 지능형 업무 메뉴얼</p>
+                <p>기관 구매 및 계약 담당자를 위한 지역상품 구매 지원 지능형 업무 메뉴얼</p>
             </div>
             <div class="status-strip">
                 <span class="chip">기관 유형 <strong>{_agency_label(st.session_state.agency_value)}</strong></span>
@@ -744,7 +744,7 @@ def _render_landing() -> None:
         <section class="landing-hero">
             <div class="landing-kicker">계약·조달 판단 지원 콘솔</div>
             <h1>{APP_NAME}</h1>
-            <p>기관 구매 및 계약 담당자를 위한 지능형 업무 매뉴얼입니다. 기관 유형을 선택하고 예시 질문을 누르거나, 하단 입력창에 실제 검토 사안을 입력하세요.</p>
+            <p>기관 구매 및 계약 담당자를 위한 지역상품 구매 지원을 위한 지능형 업무 메뉴얼입니다. 기관 유형을 선택하고 예시 질문을 누르거나, 하단 입력창에 실제 검토 사안을 입력하세요.</p>
             <div class="landing-meta">
                 <span>수의계약·입찰 경로 검토</span>
                 <span>부산업체 후보 탐색</span>
