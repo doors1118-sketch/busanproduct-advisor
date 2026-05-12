@@ -741,15 +741,13 @@ def main() -> None:
     _render_sidebar()
     _render_header()
     _render_agency_notice()
+    _render_starter()
     _render_messages()
 
     if st.session_state.agency_value and st.session_state.get("pending_original_question"):
         pending_original_question = st.session_state.pop("pending_original_question")
         _answer_question(pending_original_question)
         st.rerun()
-
-    if not st.session_state.messages:
-        _render_starter()
 
     pending_question = st.session_state.pop("pending_question", None)
     if pending_question:
