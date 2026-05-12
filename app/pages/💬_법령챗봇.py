@@ -222,7 +222,7 @@ def _render_css() -> None:
 
         .block-container {
             max-width: 1120px;
-            padding-top: 2.35rem !important;
+            padding-top: 1.45rem !important;
             padding-bottom: 2.5rem;
         }
 
@@ -238,7 +238,7 @@ def _render_css() -> None:
             gap: 1rem;
             grid-template-columns: minmax(10rem, 1fr) auto minmax(10rem, 1fr);
             margin-bottom: 1rem;
-            margin-top: 0.25rem;
+            margin-top: 0;
             overflow: visible;
             padding-bottom: 1rem;
             padding-top: 0.15rem;
@@ -448,7 +448,7 @@ def _render_header() -> None:
         <div class="topbar">
             <div class="title-block">
                 <h1>{APP_NAME}</h1>
-                <p>구매담당자를 위한 계약·조달 판단 보조 화면</p>
+                <p>기관 구매 및 계약 담당자를 위한 지능형 업무 메뉴얼</p>
             </div>
             <div class="status-strip">
                 <span class="chip">기관 유형 <strong>{_agency_label(st.session_state.agency_value)}</strong></span>
