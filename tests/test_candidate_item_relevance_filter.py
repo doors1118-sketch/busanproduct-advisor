@@ -166,3 +166,52 @@ def test_translation_service_question_keeps_query_specific_company_candidates():
     assert "부산통번역협동조합" in rendered
     assert "2인 이상 견적 검토" in rendered
     assert "사회적협동조합" in rendered
+
+
+def test_event_service_question_matches_event_planning_candidates():
+    event_row = {
+        "company_id": "event-1",
+        "company_name": "부산행사기획",
+        "location": "부산광역시",
+        "main_products": ["기타행사기획및대행서비스"],
+        "candidate_types": ["local_procurement_company"],
+        "primary_candidate_type": "local_procurement_company",
+        "purchase_routes": ["지역제한 입찰 검토", "협상계약 검토"],
+    }
+    exhibit_row = {
+        "company_id": "event-2",
+        "company_name": "부산전시이벤트",
+        "location": "부산광역시",
+        "main_products": ["전시회기획및대행서비스"],
+        "candidate_types": ["local_procurement_company"],
+        "primary_candidate_type": "local_procurement_company",
+        "purchase_routes": ["지역제한 입찰 검토", "협상계약 검토"],
+    }
+    cleaning_row = {
+        "company_id": "clean-1",
+        "company_name": "부산청소",
+        "location": "부산광역시",
+        "main_products": ["건물청소서비스"],
+        "candidate_types": ["local_procurement_company"],
+        "primary_candidate_type": "local_procurement_company",
+    }
+    question = "발대식 행사 용역 예산 2억원으로 사업 추진하고 싶어. 계약 방법 안내해줘."
+
+    rows = filter_candidate_rows_by_user_item([event_row, exhibit_row, cleaning_row], question)
+    rendered = format_candidate_tables(
+        {
+            "shopping_mall_supplier": [],
+            "local_procurement_company": [event_row, exhibit_row, cleaning_row],
+            "policy_company": [],
+            "innovation_product": [],
+            "priority_purchase_product": [],
+        },
+        question,
+    )
+
+    assert event_row in rows
+    assert exhibit_row in rows
+    assert cleaning_row not in rows
+    assert "부산행사기획" in rendered
+    assert "부산전시이벤트" in rendered
+    assert "부산청소" not in rendered

@@ -8150,6 +8150,17 @@ def _chat_v144(
                     ])
                 else:
                     futures.append(executor.submit(run_mock_tool, "search_local_company_by_license", query))
+                    if contract_object_for_prefetch == "service" and any(
+                        term in user_message
+                        for term in ("행사용역", "행사 용역", "발대식", "기념식", "행사기획", "행사대행", "이벤트")
+                    ):
+                        for event_query in (
+                            "행사",
+                            "기타행사기획및대행서비스",
+                            "공연기획및대행서비스",
+                            "전시회기획및대행서비스",
+                        ):
+                            futures.append(executor.submit(run_mock_tool, "search_local_company_by_product", event_query))
 
                 futures.extend([
                     executor.submit(run_mock_tool, "search_company_by_policy", "여성기업"),

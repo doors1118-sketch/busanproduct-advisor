@@ -92,6 +92,20 @@ ITEM_ALIAS_TOKENS = {
     "led": ["led", "조명", "등기구"],
     "조명": ["조명", "등기구", "led"],
     "소프트웨어": ["소프트웨어", "시스템", "프로그램"],
+    "행사": [
+        "행사",
+        "행사용역",
+        "행사기획",
+        "행사대행",
+        "기타행사기획및대행서비스",
+        "이벤트",
+        "발대식",
+        "기념식",
+        "개회식",
+        "공연",
+        "전시",
+        "홍보",
+    ],
     "번역": ["번역", "번역용역", "통번역", "통역", "외국어", "언어"],
 }
 
@@ -359,6 +373,11 @@ def _is_translation_service_question(user_message: str) -> bool:
     return any(term in compact for term in ("번역", "번역용역", "통번역", "통역"))
 
 
+def _is_event_service_question(user_message: str) -> bool:
+    compact = (user_message or "").replace(" ", "").lower()
+    return any(term in compact for term in ("행사용역", "행사", "발대식", "기념식", "이벤트", "행사기획", "행사대행"))
+
+
 def _restore_query_specific_service_candidates(
     relevant_rows_by_type: dict,
     classified: dict,
@@ -367,11 +386,11 @@ def _restore_query_specific_service_candidates(
     """Keep service-company search results when item fields are sparse.
 
     Service DB rows often describe 업종/면허/기업 유형 instead of a clean
-    대표품목 string. For translation-service questions the upstream search has
+    대표품목 string. For translation/event-service questions the upstream search has
     already used the translation term, so an empty visible-item match should not
     erase every 부산 조달등록/정책기업 candidate.
     """
-    if not _is_translation_service_question(user_message):
+    if not (_is_translation_service_question(user_message) or _is_event_service_question(user_message)):
         return
     for candidate_type in ("policy_company", "local_procurement_company"):
         if relevant_rows_by_type.get(candidate_type):

@@ -339,7 +339,10 @@ def _admin_health_authorized(request: Request) -> bool:
 
 def _candidate_export_requested(question: str) -> bool:
     q = (question or "").replace(" ", "").lower()
-    return any(term in q for term in ("업체", "후보", "추천", "공급사", "부산업체", "지역업체"))
+    return any(term in q for term in (
+        "업체", "후보", "추천", "공급사", "부산업체", "지역업체",
+        "행사용역", "행사", "발대식", "기념식", "행사기획", "행사대행",
+    ))
 
 
 def _candidate_policy_labels(candidate: dict) -> list[str]:
@@ -416,6 +419,15 @@ def _generic_candidate_export_rows(question: str, *, limit: int = 200) -> list[d
             ("품목: 조경식재공사", "product", "조경식재공사"),
             ("품목: 기타조경시설물", "product", "기타조경시설물"),
             ("업체명: 에코그린", "company_name", "에코그린"),
+        ])
+    elif any(term in q for term in ("행사용역", "행사 용역", "발대식", "기념식", "행사기획", "행사대행", "이벤트")):
+        searches.extend([
+            ("품목: 행사", "product", "행사"),
+            ("품목: 기타행사기획및대행서비스", "product", "기타행사기획및대행서비스"),
+            ("품목: 공연기획및대행서비스", "product", "공연기획및대행서비스"),
+            ("품목: 전시회기획및대행서비스", "product", "전시회기획및대행서비스"),
+            ("면허/업종: 행사", "license", "행사"),
+            ("면허/업종: 이벤트", "license", "이벤트"),
         ])
     elif any(term in q for term in ("청사 경비", "청사경비", "경비용역", "시설경비", "무인경비", "기계경비", "특수경비")):
         searches.extend([

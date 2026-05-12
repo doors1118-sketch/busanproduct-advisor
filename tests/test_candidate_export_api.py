@@ -93,3 +93,38 @@ def test_candidate_export_xlsx_contains_security_service_license_rows(monkeypatc
     rows = api_server._generic_candidate_export_rows("청사 경비용역 부산업체 후보")
     assert any(row["업체명"] == "부산보안테스트" and row["조회기준"] == "면허: 시설경비업무" for row in rows)
     assert any("여성기업" in row["정책기업"] for row in rows)
+
+
+def test_candidate_export_xlsx_contains_event_service_product_rows(monkeypatch):
+    def search_by_product(term, limit=200):
+        if term == "기타행사기획및대행서비스":
+            return {
+                "candidates": [
+                    {
+                        "company_id": "event-1",
+                        "company_name": "부산행사기획",
+                        "location": "부산광역시",
+                        "license_or_business_type": [],
+                        "main_products": ["기타행사기획및대행서비스"],
+                        "policy_subtypes": ["social_enterprise"],
+                        "shopping_mall_flags": [],
+                    }
+                ]
+            }
+        return {"candidates": []}
+
+    fake_company_db = SimpleNamespace(
+        search_by_product=search_by_product,
+        search_by_license=lambda term, limit=200: {"candidates": []},
+        search_by_company_name=lambda term, limit=200: {"candidates": []},
+    )
+    monkeypatch.setitem(sys.modules, "company_db", fake_company_db)
+
+    assert api_server._candidate_export_requested("발대식 행사 용역 예산 2억원으로 계약 방법 안내")
+    content = api_server._build_candidate_export_xlsx("발대식 행사 용역 예산 2억원으로 계약 방법 안내")
+
+    assert content
+    assert b"PK" in content[:4]
+    rows = api_server._generic_candidate_export_rows("발대식 행사 용역 예산 2억원으로 계약 방법 안내")
+    assert any(row["업체명"] == "부산행사기획" and row["조회기준"] == "품목: 기타행사기획및대행서비스" for row in rows)
+    assert any("사회적기업" in row["정책기업"] for row in rows)
