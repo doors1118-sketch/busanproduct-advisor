@@ -209,16 +209,30 @@ def test_timeout_fallback_for_45m_notebook_uses_regional_purchase_order():
         "노트북 4천5백만원 구매는 1인 견적, 2인 견적, 종합쇼핑몰 중 뭐부터 봐야 해?"
     )
 
-    assert "여성·장애인·사회적기업" in answer
+    assert "종합쇼핑몰/MAS 직접구매" in answer
+    assert "여성기업·장애인기업·사회적기업" in answer
     assert "지역제한 2인 이상 견적" in answer
-    assert "종합쇼핑몰/MAS 지역업체 필터" in answer
-    assert answer.index("여성·장애인·사회적기업") < answer.index("지역제한 2인 이상 견적")
-    assert answer.index("지역제한 2인 이상 견적") < answer.index("종합쇼핑몰/MAS 지역업체 필터")
+    assert answer.index("종합쇼핑몰/MAS 직접구매") < answer.index("여성기업·장애인기업·사회적기업")
+    assert answer.index("여성기업·장애인기업·사회적기업") < answer.index("지역제한 2인 이상 견적")
     assert "2천만원" in answer
     assert "5천만원" in answer
     assert "1억원" in answer
     assert "내부 DB" not in answer
     assert "지연" not in answer
+
+
+def test_timeout_fallback_for_40m_computer_purchase_procedure_uses_route_answer():
+    answer = _build_grounded_case_timeout_fallback(
+        "예산이 4천만원인데, 컴퓨터 구매 절차 알려줘"
+    )
+
+    assert "4천만원" in answer
+    assert "컴퓨터" in answer
+    assert "종합쇼핑몰/MAS 직접구매" in answer
+    assert "정책기업 1인 견적" in answer
+    assert "지역제한 2인 이상 견적" in answer
+    assert answer.index("종합쇼핑몰/MAS 직접구매") < answer.index("정책기업 1인 견적")
+    assert "내부 DB 근거 기준으로는 바로 단정하기 어렵습니다" not in answer
 
 
 def test_timeout_fallback_does_not_put_policy_company_first_under_general_one_quote_limit():

@@ -5971,10 +5971,17 @@ def _build_grounded_case_timeout_fallback(user_message: str, mcp_context: str = 
                 "지역상품 구매 지원 관점에서는 부산 업체를 특정해 바로 수의계약으로 단정하기보다, 지역제한경쟁입찰, 2인 이상 견적, MAS/종합쇼핑몰, 직접생산ㆍ인증제품 활용 가능성을 함께 검토하는 방향이 안전합니다.",
                 "근거: 「지방계약법 시행령」 제25조ㆍ제30조 및 확인된 법령·행정규칙 자료",
             ])
-    if (
+    is_goods_purchase_route_question = (
         any(term in q for term in ("구매", "물품", "노트북", "컴퓨터", "냉난방기", "보안용카메라", "cctv"))
-        and any(term in q for term in ("1인견적", "2인견적", "견적", "종합쇼핑몰", "mas", "다수공급자"))
-    ):
+        and (
+            any(term in q for term in ("1인견적", "2인견적", "견적", "종합쇼핑몰", "mas", "다수공급자"))
+            or (
+                any(term in q for term in ("절차", "방법", "경로", "순서", "뭐부터", "먼저", "안내"))
+                and any(term in q for term in ("노트북", "컴퓨터", "서버", "데스크톱", "냉난방기", "보안용카메라", "cctv"))
+            )
+        )
+    )
+    if is_goods_purchase_route_question:
         from policies.numeric_basis_policy import get_numeric_display, get_numeric_value
 
         amount = _parse_amount(user_message)
@@ -6009,39 +6016,51 @@ def _build_grounded_case_timeout_fallback(user_message: str, mcp_context: str = 
                 mas_amount_note = "2단계 경쟁 대상 여부를 먼저 확인해야 하는 금액대입니다."
 
         general_section = [
-            "### 1. 최우선 검토: 일반 1인 견적 소액수의",
+            "### 일반 1인 견적 소액수의",
             f"- **판단 근거**: 「지방계약법 시행령」 제25조제1항제5호 및 제30조의 견적 제출 기준을 함께 봅니다.",
             f"- **금액 기준**: 일반 1인 견적은 보통 **추정가격 {one_quote_general} 이하**가 핵심이고, 질문 금액 {amount_label}은 {general_one_quote_note}.",
             f"- **실무 의미**: 이 구간에서는 정책기업 여부가 없어도 1인 견적 가능성을 먼저 검토할 수 있습니다. 다만 부산 소재 업체 후보의 조달등록·납품 가능 품목·가격 적정성은 확인해야 합니다.",
         ]
         policy_section_primary = [
-            "### 1. 최우선 검토: 여성·장애인·사회적기업 등 정책기업 1인 견적",
+            "### 정책기업 1인 견적",
             f"- **판단 근거**: 「지방계약법 시행령」 제25조제1항제5호 및 제30조의 견적 제출 기준을 함께 봅니다.",
             f"- **금액 기준**: 정책기업 1인 견적은 **추정가격 {one_quote_policy} 이하**가 핵심입니다. 질문 금액 {amount_label}은 {policy_fit_note}.",
             f"- **실무 의미**: 부산 소재 여성기업·장애인기업·사회적기업 등이 실제 {item_name} 납품 가능 품목과 증빙을 갖춘 경우, 지역 내 소규모 기업을 직접 지원하는 경로로 가장 강합니다.",
         ]
         policy_section_secondary = [
-            "### 2. 함께 검토: 여성·장애인·사회적기업 등 정책기업",
+            "### 정책기업 후보 우선 고려",
             f"- **금액 기준**: 질문 금액 {amount_label}은 일반 1인 견적 기준 안에 들어오면 정책기업 요건이 최우선 경로는 아닙니다.",
             f"- **실무 의미**: 그래도 부산 소재 정책기업이면 지역상품 구매와 사회적 가치 측면에서 후보 선별 기준으로 함께 볼 수 있습니다.",
         ]
         two_quote_section = [
-            "### 2. 차선 검토: 지역제한 2인 이상 견적 수의계약",
+            "### 지역제한 2인 이상 견적 수의계약",
             f"- **판단 근거**: 「지방계약법 시행령」 제25조제1항제5호 및 「지방자치단체 입찰 및 계약집행기준」의 수의계약 운영 기준을 확인합니다.",
             f"- **금액 기준**: 일반 1인 견적은 보통 **추정가격 {one_quote_general} 이하**가 핵심이고, 질문 금액 {amount_label}은 {general_one_quote_note}. 대신 소액수의 2인 이상 견적은 **{two_quote_threshold} 이하** 구간에서 검토합니다.",
             "- **방법**: 나라장터(G2B) 견적 제출 공고에서 부산광역시 지역제한을 설정할 수 있는지 확인합니다.",
             "- **실무 의미**: 특정 업체 지정이 부담스러우면 부산 지역 내 경쟁을 확보하면서 지역업체 낙찰 가능성을 높이는 방식입니다.",
         ]
         mas_section = [
-            "### 3. 상시 검토: 나라장터 종합쇼핑몰/MAS 지역업체 필터",
+            "### 나라장터 종합쇼핑몰/MAS 직접구매",
             f"- **방법**: 종합쇼핑몰에서 {item_name}을 검색하고 공급업체 소재지, 납품 가능 지역, 계약상태, 규격 일치 여부를 확인합니다.",
             f"- **2단계 경쟁 기준**: 일반 제품은 **{mas_general_threshold} 이상**, 중소기업자간 경쟁제품은 **{mas_sme_threshold} 이상**일 때 2단계 경쟁 대상 여부를 봅니다.",
             f"- **실무 의미**: {item_name}이 중소기업자간 경쟁제품 세부품명에 해당하는지 먼저 확인합니다. {mas_amount_note}",
             "- **주의**: 제조사는 대기업이어도 부산 소재 공급업체·대리점이 납품대상 업체인지 확인하면 지역 매출 기여도를 높일 수 있습니다.",
         ]
+        it_mas_direct_preferred = (
+            amount is not None
+            and isinstance(mas_sme_value, (int, float))
+            and amount < mas_sme_value
+            and any(term in item_name for term in ("노트북", "컴퓨터", "서버", "데스크톱"))
+        )
         if amount is not None and isinstance(one_quote_general_value, (int, float)) and amount <= one_quote_general_value:
             route_sections = [general_section, policy_section_secondary, mas_section]
             summary_order = "일반 1인 견적 → 정책기업 후보 우선 고려 → 종합쇼핑몰/MAS 지역업체 필터"
+        elif it_mas_direct_preferred and amount is not None and isinstance(one_quote_policy_value, (int, float)) and amount <= one_quote_policy_value:
+            route_sections = [mas_section, policy_section_primary, two_quote_section]
+            summary_order = "종합쇼핑몰/MAS 직접구매 → 정책기업 1인 견적 → 부산 지역제한 2인 이상 견적"
+        elif it_mas_direct_preferred:
+            route_sections = [mas_section, two_quote_section]
+            summary_order = "종합쇼핑몰/MAS 직접구매 → 부산 지역제한 2인 이상 견적"
         elif amount is not None and isinstance(one_quote_policy_value, (int, float)) and amount <= one_quote_policy_value:
             route_sections = [policy_section_primary, two_quote_section, mas_section]
             summary_order = "정책기업 1인 견적 → 부산 지역제한 2인 이상 견적 → 종합쇼핑몰/MAS 지역업체 필터"
