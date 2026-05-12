@@ -419,18 +419,6 @@ def _render_css() -> None:
             transform: translateY(-1px);
         }
 
-        .sample-link-primary {
-            background: #ff464b;
-            border-color: #ff464b;
-            color: #ffffff !important;
-        }
-
-        .sample-link-primary:hover {
-            background: #ef3f45;
-            border-color: #ef3f45;
-            color: #ffffff !important;
-        }
-
         .sample-link-secondary {
             background: #ffffff;
         }
@@ -651,6 +639,25 @@ def _render_css() -> None:
             color: var(--ink) !important;
         }
 
+        .stDownloadButton > button {
+            background: #ffffff !important;
+            border: 1px solid #b8c3d3 !important;
+            color: #1f2937 !important;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+            justify-content: center;
+            text-align: center;
+        }
+
+        .stDownloadButton > button:hover {
+            background: #f8fafc !important;
+            border-color: #3182f6 !important;
+            color: #0f4fbf !important;
+        }
+
+        .stDownloadButton > button p {
+            color: inherit !important;
+        }
+
         [data-testid="stSidebar"] .stButton > button {
             background: #2f303b !important;
             border-color: #2f303b !important;
@@ -818,8 +825,8 @@ def _render_starter() -> None:
         """,
         unsafe_allow_html=True,
     )
-    for index, question in enumerate(SAMPLE_QUESTIONS):
-        link_class = "sample-link-primary" if index == 0 else "sample-link-secondary"
+    for question in SAMPLE_QUESTIONS:
+        link_class = "sample-link-secondary"
         st.markdown(
             f'<a class="sample-link {link_class}" href="{html.escape(_chat_route_url(question), quote=True)}" target="_blank" rel="noopener noreferrer">{html.escape(question)}</a>',
             unsafe_allow_html=True,
