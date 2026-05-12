@@ -35,7 +35,10 @@ CHATBOT_API_URL = os.getenv("CHATBOT_API_URL", "http://127.0.0.1:8001/chat")
 REQUEST_TIMEOUT_SECONDS = int(os.getenv("CHAT_REQUEST_TIMEOUT", "120"))
 
 APP_NAME = "지역상품 구매확대 지원 챗봇"
-SAMPLE_QUESTION = "예산이 4천만원인데, 컴퓨터 구매하고 싶어"
+SAMPLE_QUESTIONS = [
+    "예산이 4천만원인데, 컴퓨터 구매하고 싶어",
+    "조경공사를 부산업체 중심으로 발주하려면 지역제한, 면허요건, 업체 추천을 어떻게 설계해야 해?",
+]
 
 AGENCY_TYPES: dict[str, str | None] = {
     "기관 유형 선택": None,
@@ -527,14 +530,16 @@ def _render_starter() -> None:
         """
         <div class="starter">
             <div class="starter-title">예시 질문</div>
-            <div class="starter-caption">예시는 하나만 두고, 실제 업무 질문은 자유롭게 입력하세요.</div>
+            <div class="starter-caption">업무 유형별 예시를 선택하거나, 실제 업무 질문을 자유롭게 입력하세요.</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    if st.button(SAMPLE_QUESTION, key="sample-question", use_container_width=True, type="primary"):
-        st.session_state.pending_question = SAMPLE_QUESTION
-        st.rerun()
+    for index, question in enumerate(SAMPLE_QUESTIONS):
+        button_type = "primary" if index == 0 else "secondary"
+        if st.button(question, key=f"sample-question-{index}", use_container_width=True, type=button_type):
+            st.session_state.pending_question = question
+            st.rerun()
 
 
 def _render_agency_notice() -> None:
