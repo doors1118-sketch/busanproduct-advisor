@@ -12,6 +12,7 @@ from typing import Any
 
 import requests
 import streamlit as st
+import streamlit.components.v1 as components
 from dotenv import load_dotenv
 
 
@@ -131,6 +132,8 @@ def _init_state() -> None:
         "pending_question": None,
         "pending_original_question": None,
         "query_question_processed": None,
+        "message_seq": 0,
+        "scroll_to_anchor": None,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -144,6 +147,8 @@ def _reset_chat() -> None:
     st.session_state.pending_question = None
     st.session_state.pending_original_question = None
     st.session_state.query_question_processed = None
+    st.session_state.message_seq = 0
+    st.session_state.scroll_to_anchor = None
     _clear_route_params()
 
 
@@ -207,8 +212,13 @@ def _sync_route_from_query() -> None:
         st.session_state.query_question_processed = question
 
 
-def _append_message(role: str, content: str, **extra: Any) -> None:
-    st.session_state.messages.append({"role": role, "content": content, **extra})
+def _append_message(role: str, content: str, **extra: Any) -> dict[str, Any]:
+    st.session_state.message_seq = int(st.session_state.get("message_seq", 0)) + 1
+    message = {"id": st.session_state.message_seq, "role": role, "content": content, **extra}
+    st.session_state.messages.append(message)
+    if role == "assistant":
+        st.session_state.scroll_to_anchor = f"message-start-{message['id']}"
+    return message
 
 
 def _remember_history(question: str, answer: str, updated_history: list[dict[str, Any]] | None) -> None:
@@ -916,6 +926,12 @@ def _render_debug(data: dict[str, Any]) -> None:
 def _render_messages() -> None:
     for message in st.session_state.messages:
         role = message["role"]
+        message_id = message.get("id") or st.session_state.messages.index(message)
+        anchor_id = f"message-start-{message_id}"
+        st.markdown(
+            f'<div id="{html.escape(anchor_id, quote=True)}" class="message-scroll-anchor"></div>',
+            unsafe_allow_html=True,
+        )
         with st.chat_message(role):
             st.markdown(message["content"])
             qa_log_id = message.get("qa_log_id")
@@ -925,6 +941,30 @@ def _render_messages() -> None:
                 _render_feedback(qa_log_id)
                 if message.get("debug"):
                     _render_debug(message["debug"])
+    _scroll_to_pending_anchor()
+
+
+def _scroll_to_pending_anchor() -> None:
+    anchor_id = st.session_state.get("scroll_to_anchor")
+    if not anchor_id:
+        return
+    components.html(
+        f"""
+        <script>
+        const anchorId = {anchor_id!r};
+        const parentDocument = window.parent.document;
+        const target = parentDocument.getElementById(anchorId);
+        if (target) {{
+          setTimeout(() => {{
+            target.scrollIntoView({{ behavior: "smooth", block: "start" }});
+          }}, 120);
+        }}
+        </script>
+        """,
+        height=0,
+        scrolling=False,
+    )
+    st.session_state.scroll_to_anchor = None
 
 
 def _agency_number_from_input(user_input: str) -> str | None:
