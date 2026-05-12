@@ -354,13 +354,49 @@ def _render_css() -> None:
             line-height: 1.45;
         }
 
+        @keyframes message-in {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         div[data-testid="stChatMessage"] {
             background: rgba(255,255,255,0.86);
             border: 1px solid #e2e8f0;
             border-radius: 8px;
             box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
             margin-bottom: 0.75rem;
+            max-width: 92%;
             padding: 0.1rem;
+            animation: message-in 180ms ease-out both;
+        }
+
+        div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]),
+        div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]),
+        div[data-testid="stChatMessage"]:has([aria-label="assistant avatar"]) {
+            background: #eaf4ff;
+            border-color: #b8d9ff;
+            box-shadow: 0 12px 26px rgba(36, 95, 199, 0.08);
+            margin-right: auto;
+        }
+
+        div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]),
+        div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]),
+        div[data-testid="stChatMessage"]:has([aria-label="user avatar"]) {
+            background: #eaf8ef;
+            border-color: #b9e3c7;
+            box-shadow: 0 12px 26px rgba(8, 127, 122, 0.08);
+            margin-left: auto;
+            max-width: 78%;
+        }
+
+        div[data-testid="stChatMessage"] [data-testid*="Avatar"] {
+            flex-shrink: 0;
         }
 
         div[data-testid="stChatMessage"] div[data-testid="stMarkdownContainer"] {
@@ -457,9 +493,14 @@ def _render_css() -> None:
         }
 
         @media (max-width: 800px) {
+            .block-container {
+                padding-left: 0.85rem;
+                padding-right: 0.85rem;
+            }
             .topbar {
                 display: flex;
                 flex-direction: column;
+                gap: 0.65rem;
             }
             .status-strip {
                 justify-content: center;
@@ -467,6 +508,20 @@ def _render_css() -> None:
             }
             .title-block h1 {
                 font-size: 1.38rem;
+            }
+            .notice,
+            .starter,
+            div[data-testid="stChatMessage"] {
+                max-width: 100%;
+            }
+            div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]),
+            div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]),
+            div[data-testid="stChatMessage"]:has([aria-label="user avatar"]) {
+                max-width: 100%;
+            }
+            [data-testid="stBottomBlockContainer"] {
+                padding-left: 0.55rem;
+                padding-right: 0.55rem;
             }
         }
         </style>
