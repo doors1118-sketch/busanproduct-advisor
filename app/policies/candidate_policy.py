@@ -438,7 +438,14 @@ def classify_candidates(tool_results: list, user_message: str = "") -> dict:
                         if not candidate_matches_user_item(cand, user_message):
                             continue
                         cand = filter_candidate_display_products_by_user_item(cand, user_message)
-                        c_types = cand.get("candidate_types", [])
+                        c_types = list(_as_list(cand.get("candidate_types", [])))
+                        if (
+                            _as_list(cand.get("policy_subtypes") or cand.get("policy_tags"))
+                            and "policy_company" not in c_types
+                        ):
+                            cand = dict(cand)
+                            c_types.append("policy_company")
+                            cand["candidate_types"] = c_types
                         key = cand.get("company_name", cand.get("product_name", ""))
                         if key:
                             for p_type in c_types:

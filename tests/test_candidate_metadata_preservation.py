@@ -100,6 +100,38 @@ def test_shopping_mall_candidate_preserves_mas_policy_and_cert_metadata():
     assert "priority_purchase_product" not in table
 
 
+def test_shopping_mall_policy_tagged_candidate_also_appears_in_policy_table():
+    raw_candidate = {
+        "company_id": "policy-mall-1",
+        "company_name": "Policy Mall PC",
+        "location": "Busan",
+        "main_products": ["Desktop computer"],
+        "candidate_types": ["shopping_mall_supplier"],
+        "primary_candidate_type": "shopping_mall_supplier",
+        "shopping_mall_flags": ["mas_registered", "shopping_mall_registered"],
+        "policy_subtypes": ["women_company"],
+    }
+    tool_results = [
+        {
+            "tool_name": "search_shopping_mall",
+            "status": "success",
+            "result": json.dumps({"candidates": [raw_candidate]}, ensure_ascii=False),
+            "raw_result": {"candidates": [raw_candidate]},
+        }
+    ]
+
+    classified = classify_candidates(tool_results, "computer purchase")
+    table = format_candidate_tables(
+        classified,
+        "computer purchase",
+        preferred_order=["shopping_mall_supplier", "policy_company"],
+    )
+
+    assert classified["shopping_mall_supplier"]
+    assert classified["policy_company"]
+    assert table.count("Policy Mall PC") >= 2
+
+
 def test_candidate_only_cctv_answer_suppresses_contract_routes_and_groups_strengths():
     classified = {
         "shopping_mall_supplier": [

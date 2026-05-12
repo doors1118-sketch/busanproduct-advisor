@@ -810,7 +810,10 @@ def format_candidate_tables(
         if ct in hidden and not _has_explicit_candidate_intent(ct, user_message):
             continue
         meta = CANDIDATE_TYPES[ct]
-        rows = _dedupe_rows_for_display(relevant_rows_by_type.get(ct, []), seen_entities)
+        if ct == "policy_company":
+            rows = _dedupe_rows_for_display(relevant_rows_by_type.get(ct, []), set())
+        else:
+            rows = _dedupe_rows_for_display(relevant_rows_by_type.get(ct, []), seen_entities)
 
         ds = get_data_source_status(ct)
         can_display = meta["display_enabled"] or (is_staging and ds.get("staging_display_only", False))
