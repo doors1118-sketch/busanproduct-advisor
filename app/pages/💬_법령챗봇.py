@@ -121,7 +121,9 @@ def _init_state() -> None:
         "messages": [],
         "chat_history": [],
         "agency_value": None,
+        "chat_started": False,
         "pending_question": None,
+        "pending_original_question": None,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -131,7 +133,9 @@ def _init_state() -> None:
 def _reset_chat() -> None:
     st.session_state.messages = []
     st.session_state.chat_history = []
+    st.session_state.chat_started = False
     st.session_state.pending_question = None
+    st.session_state.pending_original_question = None
 
 
 def _agency_label(value: str | None) -> str:
@@ -333,6 +337,77 @@ def _render_css() -> None:
             margin-bottom: 0.75rem;
         }
 
+        .landing-hero {
+            background:
+                linear-gradient(135deg, rgba(7, 13, 27, 0.96), rgba(18, 32, 56, 0.94)),
+                repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 72px);
+            border: 1px solid rgba(118, 145, 184, 0.34);
+            border-radius: 12px;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+            color: #ffffff;
+            margin: 0.35rem 0 1rem;
+            min-height: 19rem;
+            overflow: hidden;
+            padding: 3.2rem 2rem 2.35rem;
+            position: relative;
+            text-align: center;
+        }
+
+        .landing-hero::after {
+            background: linear-gradient(90deg, transparent, rgba(78, 132, 255, 0.24), transparent);
+            content: "";
+            height: 1px;
+            left: 8%;
+            position: absolute;
+            right: 8%;
+            top: 1.4rem;
+        }
+
+        .landing-kicker {
+            background: rgba(31, 122, 110, 0.18);
+            border: 1px solid rgba(99, 210, 190, 0.32);
+            border-radius: 999px;
+            color: #b9f5e9;
+            display: inline-flex;
+            font-size: 0.78rem;
+            font-weight: 650;
+            margin-bottom: 1rem;
+            padding: 0.34rem 0.72rem;
+        }
+
+        .landing-hero h1 {
+            color: #ffffff;
+            font-size: 2.72rem;
+            font-weight: 820;
+            letter-spacing: 0;
+            line-height: 1.18;
+            margin: 0;
+        }
+
+        .landing-hero p {
+            color: #c8d3e4;
+            font-size: 1rem;
+            line-height: 1.65;
+            margin: 1rem auto 1.35rem;
+            max-width: 42rem;
+        }
+
+        .landing-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        .landing-meta span {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 999px;
+            color: #eef5ff;
+            font-size: 0.82rem;
+            padding: 0.42rem 0.76rem;
+        }
+
         .sidebar-title {
             color: var(--ink);
             font-size: 1.04rem;
@@ -509,6 +584,13 @@ def _render_css() -> None:
             .title-block h1 {
                 font-size: 1.38rem;
             }
+            .landing-hero {
+                min-height: auto;
+                padding: 2.2rem 1rem 1.55rem;
+            }
+            .landing-hero h1 {
+                font-size: 1.86rem;
+            }
             .notice,
             .starter,
             div[data-testid="stChatMessage"] {
@@ -546,6 +628,25 @@ def _render_header() -> None:
         """,
         unsafe_allow_html=True,
     )
+
+
+def _render_landing() -> None:
+    st.markdown(
+        f"""
+        <section class="landing-hero">
+            <div class="landing-kicker">계약·조달 판단 지원 콘솔</div>
+            <h1>{APP_NAME}</h1>
+            <p>기관 구매 및 계약 담당자를 위한 지능형 업무 매뉴얼입니다. 기관 유형을 선택하고 예시 질문을 누르거나, 하단 입력창에 실제 검토 사안을 입력하세요.</p>
+            <div class="landing-meta">
+                <span>수의계약·입찰 경로 검토</span>
+                <span>부산업체 후보 탐색</span>
+                <span>면허·지역제한 체크</span>
+            </div>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+    _render_starter()
 
 
 def _render_sidebar() -> None:
@@ -622,6 +723,7 @@ def _render_starter() -> None:
     for index, question in enumerate(SAMPLE_QUESTIONS):
         button_type = "primary" if index == 0 else "secondary"
         if st.button(question, key=f"sample-question-{index}", use_container_width=True, type=button_type):
+            st.session_state.chat_started = True
             st.session_state.pending_question = question
             st.rerun()
 
@@ -808,6 +910,7 @@ def _answer_question(question: str) -> None:
 
 
 def _process_input(user_input: str) -> None:
+    st.session_state.chat_started = True
     if not st.session_state.agency_value and _handle_agency_number_input(user_input):
         return
     _append_message("user", user_input)
@@ -823,19 +926,23 @@ def main() -> None:
     _init_state()
     _render_css()
     _render_sidebar()
-    _render_header()
-    _render_starter()
-    _render_messages()
-
-    if st.session_state.agency_value and st.session_state.get("pending_original_question"):
-        pending_original_question = st.session_state.pop("pending_original_question")
-        _answer_question(pending_original_question)
-        st.rerun()
 
     pending_question = st.session_state.pop("pending_question", None)
     if pending_question:
         _process_input(pending_question)
         st.rerun()
+
+    if st.session_state.agency_value and st.session_state.get("pending_original_question"):
+        st.session_state.chat_started = True
+        pending_original_question = st.session_state.pop("pending_original_question")
+        _answer_question(pending_original_question)
+        st.rerun()
+
+    if st.session_state.chat_started or st.session_state.messages:
+        _render_header()
+        _render_messages()
+    else:
+        _render_landing()
 
     user_input = st.chat_input("계약·조달 검토 질문을 입력하세요")
     if user_input:
