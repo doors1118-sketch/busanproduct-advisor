@@ -1626,7 +1626,21 @@ def test_practice_fast_answer_handles_service_regional_restriction():
     assert "부산업체" in answer
 
 
-def test_practice_fast_answer_handles_security_service_regional_license():
+def test_practice_fast_answer_handles_security_service_regional_license(monkeypatch):
+    monkeypatch.setattr(
+        gemini_engine,
+        "_search_security_service_candidates",
+        lambda max_results=10: [
+            {
+                "company_id": "security-1",
+                "company_name": "부산보안테스트",
+                "location": "부산광역시",
+                "license_or_business_type": ["시설경비업무", "기계경비업무"],
+                "main_products": ["시설물경비서비스"],
+                "policy_subtypes": ["women_company"],
+            }
+        ],
+    )
     answer, cards = _build_practice_manual_fast_answer(
         "청사 경비용역을 부산업체 중심으로 검토하려면 지역제한과 면허를 어떻게 봐야 해?",
         "local_government",
@@ -1644,6 +1658,11 @@ def test_practice_fast_answer_handles_security_service_regional_license():
     assert "협상에 의한 계약" in answer
     assert "정보통신공사업" in answer
     assert "기술ㆍ학술용역 기준을 경비용역에 그대로 가져오면 안 됩니다" in answer
+    assert "부산 경비용역 업체 검토 후보" in answer
+    assert "부산보안테스트" in answer
+    assert "시설물경비서비스" in answer
+    assert "정책기업: 여성기업" in answer
+    assert "시장조사용 후보" in answer
     assert "행사용역" not in answer
 
 

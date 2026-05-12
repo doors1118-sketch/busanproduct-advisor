@@ -57,3 +57,39 @@ def test_candidate_export_xlsx_contains_query_basis_and_company_rows(monkeypatch
     rows = api_server._generic_candidate_export_rows("학교 운동장 천연잔디 조성공사 부산업체 후보")
     assert any(row["업체명"] == "(주)카람" and row["조회기준"] == "품목: 잔디" for row in rows)
     assert any(row["업체명"] == "주식회사     에코그린" and "여성기업" in row["정책기업"] for row in rows)
+
+
+def test_candidate_export_xlsx_contains_security_service_license_rows(monkeypatch):
+    def search_by_license(term, limit=200):
+        if term == "시설경비업무":
+            return {
+                "candidates": [
+                    {
+                        "company_id": "security-1",
+                        "company_name": "부산보안테스트",
+                        "location": "부산광역시",
+                        "license_or_business_type": ["시설경비업무", "기계경비업무"],
+                        "main_products": ["시설물경비서비스"],
+                        "policy_subtypes": ["women_company"],
+                        "shopping_mall_flags": [],
+                    }
+                ]
+            }
+        return {"candidates": []}
+
+    fake_company_db = SimpleNamespace(
+        search_by_product=lambda term, limit=200: {"candidates": []},
+        search_by_license=search_by_license,
+        search_by_company_name=lambda term, limit=200: {"candidates": []},
+    )
+    monkeypatch.setitem(sys.modules, "company_db", fake_company_db)
+
+    content = api_server._build_candidate_export_xlsx(
+        "청사 경비용역을 부산업체 중심으로 검토하려면 지역제한과 면허를 어떻게 봐야 해?"
+    )
+
+    assert content
+    assert b"PK" in content[:4]
+    rows = api_server._generic_candidate_export_rows("청사 경비용역 부산업체 후보")
+    assert any(row["업체명"] == "부산보안테스트" and row["조회기준"] == "면허: 시설경비업무" for row in rows)
+    assert any("여성기업" in row["정책기업"] for row in rows)

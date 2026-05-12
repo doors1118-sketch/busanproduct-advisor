@@ -417,6 +417,18 @@ def _generic_candidate_export_rows(question: str, *, limit: int = 200) -> list[d
             ("품목: 기타조경시설물", "product", "기타조경시설물"),
             ("업체명: 에코그린", "company_name", "에코그린"),
         ])
+    elif any(term in q for term in ("청사 경비", "청사경비", "경비용역", "시설경비", "무인경비", "기계경비", "특수경비")):
+        searches.extend([
+            ("면허: 시설경비업무", "license", "시설경비업무"),
+            ("면허: 시설경비업", "license", "시설경비업"),
+            ("면허: 기계경비업무", "license", "기계경비업무"),
+            ("면허: 기계경비업", "license", "기계경비업"),
+            ("면허: 특수경비업무", "license", "특수경비업무"),
+            ("면허: 특수경비업", "license", "특수경비업"),
+            ("면허: 경비용역", "license", "경비용역"),
+            ("품목: 시설물경비서비스", "product", "시설물경비서비스"),
+            ("품목: 경비", "product", "경비"),
+        ])
     else:
         product_terms = [
             "컴퓨터", "노트북", "서버", "데스크톱", "프린터", "보안용카메라", "CCTV",

@@ -1355,7 +1355,7 @@ def _security_service_regional_lines() -> list[str]:
         "| `공고일 현재 부산 내 대체인력 50명 보유` | `착수 전까지 결원 대체인력 운영계획과 비상 투입체계 제출`로 바꿉니다. |",
         "| `CCTV 관제 장비 설치까지 경비업체 단독 수행` | 장비 설치ㆍ통신공사는 별도 발주 또는 정보통신공사업체와 분담이행으로 나눕니다. |",
         "| `주차ㆍ미화ㆍ시설관리까지 경비원 업무에 포함` | 주된 목적을 정하고, 경비업 허가 범위 밖 업무는 별도 용역 또는 별도 인력 기준으로 분리합니다. |",
-        "",
+        *_security_service_candidate_section(),
         "정리하면, 청사 경비용역은 **시설경비업 허가를 입찰참가자격의 출발점**으로 두고, 금액이 맞으면 부산 지역제한을 우선 검토합니다. 금액이 크거나 복합 과업이면 공동수급ㆍ분담이행ㆍ협상계약 평가항목으로 부산업체의 현장 대응 강점을 반영하는 방식이 안전합니다.",
     ]
 
@@ -1600,6 +1600,183 @@ def _candidate_policy_labels(candidate: dict) -> list[str]:
         if label and label not in labels:
             labels.append(label)
     return labels
+
+
+def _search_security_service_candidates(max_results: int = 10) -> list[dict]:
+    """Search Busan security-service candidates from local DB for practice answers."""
+    pool_limit = max(max_results * 10, 80)
+    searches = [
+        ("면허: 시설경비업무", "license", "시설경비업무"),
+        ("면허: 시설경비업", "license", "시설경비업"),
+        ("면허: 기계경비업무", "license", "기계경비업무"),
+        ("면허: 기계경비업", "license", "기계경비업"),
+        ("면허: 특수경비업무", "license", "특수경비업무"),
+        ("면허: 특수경비업", "license", "특수경비업"),
+        ("면허: 경비용역", "license", "경비용역"),
+        ("품목: 시설물경비서비스", "product", "시설물경비서비스"),
+        ("품목: 경비", "product", "경비"),
+    ]
+    seen: set[str] = set()
+    candidates: list[dict] = []
+    for source_label, search_type, query in searches:
+        try:
+            if search_type == "product":
+                data = company_api.company_db.search_by_product(query, limit=pool_limit)
+            else:
+                data = company_api.company_db.search_by_license(query, limit=pool_limit)
+        except Exception:
+            data = None
+        for raw in (data or {}).get("candidates") or []:
+            if not isinstance(raw, dict):
+                continue
+            key = str(raw.get("company_id") or raw.get("company_name") or "").strip()
+            if not key or key in seen:
+                continue
+            row = dict(raw)
+            row["_candidate_query_source"] = source_label
+            seen.add(key)
+            candidates.append(row)
+    ordered = sorted(candidates, key=_security_service_candidate_rank)
+    filtered = [
+        candidate
+        for candidate in ordered
+        if _security_service_relevance(candidate) > 0
+    ]
+    return (filtered if len(filtered) >= max_results else ordered)[:max_results]
+
+
+def _security_service_license_count(candidate: dict) -> int:
+    licenses = " ".join(candidate.get("license_or_business_type") or [])
+    return sum(
+        1
+        for term in (
+            "시설경비",
+            "기계경비",
+            "특수경비",
+            "신변보호",
+            "혼잡",
+            "교통유도경비",
+            "경비용역",
+            "경비업무",
+        )
+        if term in licenses
+    )
+
+
+def _security_service_relevance(candidate: dict) -> int:
+    name = str(candidate.get("company_name") or "")
+    licenses = " ".join(candidate.get("license_or_business_type") or [])
+    products = " ".join(candidate.get("main_products") or [])
+    target = f"{name} {licenses} {products}"
+    strong_terms = (
+        "시설경비",
+        "시설물경비서비스",
+        "경비용역",
+        "기계경비",
+        "특수경비",
+        "신변보호",
+        "혼잡",
+        "교통유도경비",
+        "순찰",
+        "보안",
+    )
+    support_terms = ("영상감시장치", "CCTV", "출입통제", "정보통신공사업")
+    if any(term in target for term in strong_terms):
+        return 2
+    if any(term in target for term in support_terms):
+        return 1
+    return 0
+
+
+def _security_service_candidate_rank(candidate: dict) -> tuple[int, int, int, str]:
+    licenses = " ".join(candidate.get("license_or_business_type") or [])
+    products = " ".join(candidate.get("main_products") or [])
+    target = f"{licenses} {products}"
+    if "시설경비" in target and "시설물경비서비스" in target:
+        group = 0
+    elif "시설경비" in target:
+        group = 1
+    elif "기계경비" in target:
+        group = 2
+    elif "특수경비" in target:
+        group = 3
+    elif "경비" in target:
+        group = 4
+    else:
+        group = 5
+    policy_rank = 0 if _candidate_policy_labels(candidate) and _security_service_relevance(candidate) > 0 else 1
+    name = str(candidate.get("company_name") or "")
+    return (group, policy_rank, -_security_service_license_count(candidate), name)
+
+
+def _security_service_candidate_fit(candidate: dict) -> str:
+    licenses = " ".join(candidate.get("license_or_business_type") or [])
+    products = " ".join(candidate.get("main_products") or [])
+    target = f"{licenses} {products}"
+    if "시설경비" in target and "시설물경비서비스" in target:
+        return "청사 시설경비 우선 검토 후보"
+    if "시설경비" in target:
+        return "시설경비업 허가 검토 후보"
+    if "기계경비" in target:
+        return "무인경비ㆍ출동대응 연계 후보"
+    if "특수경비" in target:
+        return "국가중요시설 등 특수경비 검토 후보"
+    if "경비" in target:
+        return "경비용역 수행 가능성 확인 후보"
+    return "과업 적합성 재확인 필요"
+
+
+def _security_service_candidate_note(candidate: dict) -> str:
+    notes: list[str] = []
+    policy_labels = _candidate_policy_labels(candidate)
+    if policy_labels:
+        notes.append("정책기업: " + ", ".join(policy_labels[:3]))
+    licenses = " ".join(candidate.get("license_or_business_type") or [])
+    if "시설경비" in licenses:
+        notes.append("시설경비업 허가 확인")
+    if "기계경비" in licenses:
+        notes.append("기계경비업 허가 확인")
+    if "특수경비" in licenses:
+        notes.append("특수경비업 허가 확인")
+    if "정보통신공사업" in licenses:
+        notes.append("정보통신공사업 보유")
+    if _security_service_relevance(candidate) == 0:
+        notes.append("주요 품목 관련성 재확인")
+    return "; ".join(notes) if notes else "공고 전 허가ㆍ영업상태 재확인"
+
+
+def _security_service_candidate_section(max_results: int = 10) -> list[str]:
+    candidates = _search_security_service_candidates(max_results=max_results)
+    lines = [
+        "",
+        "### 8. 부산 경비용역 업체 검토 후보",
+    ]
+    if not candidates:
+        lines.extend([
+            "- 현재 실행환경에서는 내부 업체 DB에서 경비용역 후보를 확인하지 못했습니다.",
+            "- 서버 DB가 연결된 환경에서는 `시설경비업무`, `기계경비업무`, `특수경비업무`, `시설물경비서비스` 기준으로 부산 소재 후보를 조회합니다.",
+            "- 후보가 없다고 단정하지 말고 나라장터 입찰참가자격, 경비업 허가증, 영업상태, 수행실적을 다시 확인해야 합니다.",
+            "",
+        ])
+        return lines
+
+    lines.extend([
+        "- 아래 목록은 내부 업체 DB에서 경비업 허가ㆍ경비서비스 품목 기준으로 조회한 **시장조사용 후보**입니다. 낙찰 가능 또는 수의계약 가능을 의미하지 않으며, 공고 전 허가증, 나라장터 업종코드, 영업상태, 경비원 교육, 직접수행 인력, 유사실적을 다시 확인해야 합니다.",
+        "- 표는 청사 경비에 직접 연결되는 시설경비업 후보를 우선 배치하고, 무인경비ㆍ특수경비ㆍ정보통신공사업 보유 여부는 비고에서 보조 정보로 표시합니다.",
+        "",
+        "| 업체명 | 소재지 | 면허·업종 | 주요 품목·업무 | 계약 검토 포인트 | 비고 |",
+        "|---|---|---|---|---|---|",
+    ])
+    for candidate in candidates[:max_results]:
+        name = str(candidate.get("company_name") or "").strip() or "업체명 확인 필요"
+        location = str(candidate.get("location") or "").strip() or "부산 여부 확인"
+        licenses = _short_join(candidate.get("license_or_business_type") or [], limit=3)
+        products = _short_join(candidate.get("main_products") or [], limit=3)
+        fit = _security_service_candidate_fit(candidate)
+        note = _security_service_candidate_note(candidate)
+        lines.append(f"| {name} | {location} | {licenses} | {products} | {fit} | {note} |")
+    lines.append("")
+    return lines
 
 
 def _landscape_license_count(candidate: dict) -> int:
