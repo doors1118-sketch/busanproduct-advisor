@@ -742,7 +742,7 @@ def _render_landing() -> None:
     st.markdown(
         f"""
         <section class="landing-hero">
-            <div class="landing-kicker">계약·조달 판단 지원 콘솔</div>
+            <div class="landing-kicker">지역상품 계약·조달 판단 지원 콘솔</div>
             <h1>{APP_NAME}</h1>
             <p>기관 구매 및 계약 담당자를 위한 지역상품 구매 지원용 지능형 업무 메뉴얼입니다. 소속 기관 유형을 선택하고 예시 질문을 누르거나, 하단 입력창에 실제 검토 필요사항을 입력하세요.</p>
             <div class="landing-meta">
