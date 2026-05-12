@@ -841,7 +841,7 @@ def _render_starter() -> None:
     for question in SAMPLE_QUESTIONS:
         link_class = "sample-link-secondary"
         st.markdown(
-            f'<a class="sample-link {link_class}" href="{html.escape(_chat_route_url(question), quote=True)}" target="_blank" rel="noopener noreferrer">{html.escape(question)}</a>',
+            f'<a class="sample-link {link_class}" href="{html.escape(_chat_route_url(question), quote=True)}" target="_self">{html.escape(question)}</a>',
             unsafe_allow_html=True,
         )
 
