@@ -415,10 +415,39 @@ def _render_css() -> None:
         }
 
         .stButton > button {
+            background: #ffffff !important;
+            border: 1px solid var(--line) !important;
             border-radius: 7px;
+            color: var(--ink) !important;
             min-height: 2.35rem;
             text-align: left;
             white-space: normal;
+        }
+
+        .stButton > button p {
+            color: inherit !important;
+        }
+
+        .stButton > button[kind="primary"] {
+            background: #ff464b !important;
+            border-color: #ff464b !important;
+            color: #ffffff !important;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .stButton > button[kind="secondary"]:hover {
+            background: #f8fafc !important;
+            border-color: #b8c3d3 !important;
+            color: var(--ink) !important;
+        }
+
+        [data-testid="stSidebar"] .stButton > button {
+            background: #2f303b !important;
+            border-color: #2f303b !important;
+            color: #ffffff !important;
+            justify-content: center;
+            text-align: center;
         }
 
         .stTextArea textarea,
