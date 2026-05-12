@@ -222,7 +222,7 @@ def _render_css() -> None:
 
         .block-container {
             max-width: 1120px;
-            padding-top: 1.15rem;
+            padding-top: 2.35rem !important;
             padding-bottom: 2.5rem;
         }
 
@@ -238,7 +238,10 @@ def _render_css() -> None:
             gap: 1rem;
             grid-template-columns: minmax(10rem, 1fr) auto minmax(10rem, 1fr);
             margin-bottom: 1rem;
+            margin-top: 0.25rem;
+            overflow: visible;
             padding-bottom: 1rem;
+            padding-top: 0.15rem;
         }
 
         .title-block {
@@ -248,11 +251,16 @@ def _render_css() -> None:
 
         .title-block h1 {
             color: var(--ink);
+            align-items: center;
+            display: flex;
             font-size: 1.72rem;
             font-weight: 780;
+            justify-content: center;
             letter-spacing: 0;
-            line-height: 1.25;
+            line-height: 1.38;
             margin: 0;
+            min-height: 2.55rem;
+            padding-top: 0.05rem;
         }
 
         .title-block p {
