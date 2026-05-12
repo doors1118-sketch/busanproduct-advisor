@@ -189,12 +189,13 @@ def _render_css() -> None:
         }
 
         [data-testid="stHeader"] {
-            background: rgba(246,248,251,0.96);
-            border-bottom: 1px solid rgba(216,222,232,0.72);
+            display: none;
+            height: 0;
         }
 
-        [data-testid="stToolbar"] {
-            right: 0.75rem;
+        [data-testid="stToolbar"],
+        [data-testid="stDecoration"] {
+            display: none;
         }
 
         [data-testid="stBottomBlockContainer"] {
@@ -222,7 +223,7 @@ def _render_css() -> None:
 
         .block-container {
             max-width: 1120px;
-            padding-top: 1.45rem !important;
+            padding-top: 1.05rem !important;
             padding-bottom: 2.5rem;
         }
 
