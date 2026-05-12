@@ -32,11 +32,11 @@ def test_multi_route_practical_answer_template_keeps_quality_structure():
     assert "| 제한 | 일반 1인 견적 수의계약 |" in rendered
     assert "정책기업 1인 견적" in rendered
     assert "금액상 우선 제외" in rendered
-    assert "### 2. 계약방법 및 구매 경로 세부 검토" in rendered
-    assert "### 3. 부산 지역업체 구매 확대 전략" in rendered
-    assert "### 4. 검토 대상 부산 지역업체 후보" in rendered
-    assert "### 5. 실무자 필수 체크포인트" in rendered
-    assert "### 6. 참고 근거" in rendered
+    assert "### 2. 부산 지역업체 후보군 (실무 검토용)" in rendered
+    assert "### 3. 실무자 필수 체크포인트" in rendered
+    assert "### 4. 참고 근거" in rendered
+    assert "### 2. 계약방법 및 구매 경로 세부 검토" not in rendered
+    assert "### 3. 부산 지역업체 구매 확대 전략" not in rendered
     assert "#### 실무 매뉴얼 보조 체크포인트" in rendered
     assert "요건이 충족되면" not in rendered
     assert "원천 차단" not in rendered

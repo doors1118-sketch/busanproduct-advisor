@@ -85,9 +85,9 @@ def _it_equipment_core_summary_lines(
         )
 
     policy_judgment = (
-        f"가능: 부산 소재 여성·장애인·사회적기업 등 정책기업이면 {policy_one_quote} 이하 1인 견적 검토"
+        f"부산 소재 여성·장애인·사회적기업 등 정책기업이면 {policy_one_quote} 이하 1인 견적을 검토할 수 있습니다"
         if policy_ok is not False
-        else f"제한: 질문 금액이 정책기업 1인 견적 기준({policy_one_quote})을 초과하므로 우선순위 낮음"
+        else f"질문 금액이 정책기업 1인 견적 기준({policy_one_quote})을 초과하므로 우선순위가 낮습니다"
     )
 
     return [
@@ -102,7 +102,7 @@ def _it_equipment_core_summary_lines(
         "### 1. 법적 근거에 따른 구매 경로 비교",
         "| 구분 | 경로 | 적용 가능 여부 | 실무적 이점 또는 주의점 |",
         "|---|---|---|---|",
-        f"| 추천 1 | 종합쇼핑몰/MAS 직접구매 | 최우선 검토 | {item_label}는 쇼핑몰 등록 가능성이 높은 물품입니다. 세부품명, 직접생산확인, 계약상태가 맞으면 부산 업체 제품을 먼저 비교할 수 있습니다. |",
+        f"| 추천 1 | 종합쇼핑몰/MAS 직접구매 | 최우선 검토 | `{item_label}` 품목은 쇼핑몰 등록 가능성이 높은 물품입니다. 세부품명, 직접생산확인, 계약상태가 맞으면 부산 업체 제품을 먼저 비교할 수 있습니다. |",
         f"| 추천 2 | 정책기업 1인 견적 | {'적극 검토' if policy_ok is not False else '기준 초과 시 제한'} | 여성기업·장애인기업·사회적기업 등 법정 특례 업체는 {policy_one_quote} 이하에서 1인 견적을 검토할 수 있습니다. |",
         "| 대안 | 부산 지역제한 2인 이상 견적 | 차선책 | 특정 업체 지정이 어렵거나 쇼핑몰 구매가 부적절할 때 부산 업체 간 경쟁으로 투명성을 확보합니다. |",
         f"| 제한 | 일반 1인 견적 수의계약 | {'불가 또는 제한' if general_over is not False else '가능성 있음'} | 일반 기준은 {general_one_quote}입니다. 기준 초과 시 일반 업체 1곳만 지정하는 방식은 감사 리스크가 큽니다. |",
@@ -279,6 +279,43 @@ def build_multi_route_practical_answer_parts(
         parts.extend(core_summary)
     else:
         parts.extend(_immediate_execution_priority_lines(contract_object, item_label, amount_label, amount_value))
+
+    candidate = _clean_part(candidate_table_text)
+    use_compact_goods_candidate_flow = bool(core_summary and candidate and (contract_object or "goods").lower() == "goods")
+    if use_compact_goods_candidate_flow:
+        parts.extend(["", "### 2. 부산 지역업체 후보군 (실무 검토용)"])
+        parts.append("- 조달청 나라장터, 종합쇼핑몰, 조달등록 자료에서 확인된 부산 소재 후보를 구매 경로별로 먼저 대조하세요.")
+        parts.append(candidate)
+        if policy_company_sections_skipped:
+            parts.append(
+                "- 정책기업 1인 견적 경로는 금액상 우선 제외됩니다. 여성기업ㆍ장애인기업ㆍ사회적기업 여부는 후보 업체의 추가 확인사항으로만 보세요."
+            )
+        if candidate_export_row_count:
+            parts.append(
+                f"- 화면에는 주요 후보만 표시했습니다. 전체 후보 {candidate_export_row_count}건은 답변 하단의 엑셀 다운로드로 확인하세요."
+            )
+        parts.extend(
+            [
+                "",
+                "### 3. 실무자 필수 체크포인트",
+                "- **세부품명 일치**: 후보 업체의 등록상품명·인증제품명·직접생산확인 범위가 실제 구매품목과 맞는지 확인하세요.",
+                "- **계약방식 적정성**: 금액 기준, 1인 견적 가능 여부, 2인 이상 견적 필요 여부, MAS 2단계 경쟁 여부를 분리해서 확인하세요.",
+                "- **분할발주 주의**: 금액 기준을 맞추기 위한 임의 분할은 감사 지적 위험이 있으므로 통합 발주 원칙에서 검토하세요.",
+                "- **기관 내부 지침 확인**: 지역상품 구매 촉진 지침, 예산집행 기준, 조달 관련 내부 절차를 함께 확인하세요.",
+            ]
+        )
+        parts.extend(_item_trait_checkpoints(item_label, contract_object))
+
+        references = [_clean_part(practice_manual_text), _clean_part(pps_qa_text)]
+        references = [text for text in references if text]
+        if references:
+            parts.extend(["", "### 4. 참고 근거"])
+            parts.extend(_demote_markdown_headings(text) for text in references)
+
+        parts.append("")
+        parts.append("- 이 답변은 확인된 법령·행정규칙 자료와 업체 후보 자료를 조합한 실무 검토용 안내입니다. 실제 계약 전에는 최신 법령·행정규칙과 기관 내부 기준을 확인하세요.")
+        return parts
+
     parts.extend(
         [
             "### 2. 계약방법 및 구매 경로 세부 검토" if core_summary else "### 1. 계약방법 및 구매 경로 검토",
@@ -294,7 +331,6 @@ def build_multi_route_practical_answer_parts(
     if catalog:
         parts.extend(["", catalog])
 
-    candidate = _clean_part(candidate_table_text)
     parts.extend(["", "### 4. 검토 대상 부산 지역업체 후보" if core_summary else "### 3. 검토 대상 부산 지역업체 후보"])
     if candidate:
         parts.append(candidate)
