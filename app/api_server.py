@@ -11,7 +11,9 @@ import traceback
 import json
 import queue
 import threading
-from io import BytesIO
+import csv
+import zipfile
+from io import BytesIO, StringIO
 from datetime import datetime
 
 # app 디렉터리를 Python 경로에 추가
@@ -87,6 +89,11 @@ def root():
         "service": "busanproduct-advisor-api",
         "ui": "/ui",
         "health": "/health",
+        "vendors": {
+            "search_json": "/vendors/search?q=computer&region=busan&limit=10",
+            "search_csv": "/vendors/query.csv?q=computer&region=busan&limit=10",
+            "download_zip": "/vendors/download.zip",
+        },
         "production_deployment": PRODUCTION_DEPLOYMENT
     }
 
@@ -510,6 +517,241 @@ def _build_candidate_export_xlsx(question: str) -> bytes | None:
     return output.getvalue()
 
 
+VENDOR_CSV_FIELDS = [
+    "company_id",
+    "company_name",
+    "location",
+    "detail_address",
+    "business_status",
+    "display_status",
+    "license_or_business_type",
+    "main_products",
+    "candidate_types",
+    "primary_candidate_type",
+    "policy_subtypes",
+    "certified_product_types",
+    "is_sme_competition_product",
+    "shopping_mall_flags",
+    "has_shopping_mall",
+    "has_mas",
+    "certified_product_summary",
+    "shopping_mall_product_summary",
+    "mas_product_summary",
+    "direct_production_summary",
+    "direct_production_flags",
+    "procurement_attributes",
+    "general_certifications",
+    "manufacturer_type",
+    "business_status_freshness",
+    "source_refreshed_at",
+]
+
+
+def _vendor_import_company_db():
+    try:
+        import company_db
+        return company_db
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"company DB module unavailable: {exc}") from exc
+
+
+def _vendor_join(value) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        return "|".join(f"{k}:{v}" for k, v in value.items())
+    if isinstance(value, list):
+        parts: list[str] = []
+        for item in value:
+            if isinstance(item, dict):
+                name = item.get("product_name") or item.get("name") or item.get("type") or ""
+                code = item.get("detail_product_code") or ""
+                typ = item.get("type") or ""
+                status = item.get("status") or ""
+                compact = " / ".join(str(x) for x in (name, code, typ, status) if str(x))
+                if compact:
+                    parts.append(compact)
+            elif item is not None:
+                parts.append(str(item))
+        return "|".join(parts)
+    return str(value)
+
+
+def _vendor_pipe_has(raw, token: str) -> bool:
+    return token.lower() in str(raw or "").lower()
+
+
+def _vendor_row_from_candidate(candidate: dict) -> dict[str, str]:
+    shopping_flags = candidate.get("shopping_mall_flags") or []
+    mas_summary = candidate.get("mas_product_summary") or []
+    return {
+        "company_id": _vendor_join(candidate.get("company_id")),
+        "company_name": _vendor_join(candidate.get("company_name")),
+        "location": _vendor_join(candidate.get("location")),
+        "detail_address": _vendor_join(candidate.get("detail_address")),
+        "business_status": _vendor_join(candidate.get("business_status")),
+        "display_status": _vendor_join(candidate.get("display_status")),
+        "license_or_business_type": _vendor_join(candidate.get("license_or_business_type")),
+        "main_products": _vendor_join(candidate.get("main_products")),
+        "candidate_types": _vendor_join(candidate.get("candidate_types")),
+        "primary_candidate_type": _vendor_join(candidate.get("primary_candidate_type")),
+        "policy_subtypes": _vendor_join(candidate.get("policy_subtypes")),
+        "certified_product_types": _vendor_join(candidate.get("certified_product_types")),
+        "is_sme_competition_product": "true" if candidate.get("sme_competition_product") else "false",
+        "shopping_mall_flags": _vendor_join(shopping_flags),
+        "has_shopping_mall": "true" if shopping_flags else "false",
+        "has_mas": "true" if mas_summary else "false",
+        "certified_product_summary": _vendor_join(candidate.get("certified_product_summary")),
+        "shopping_mall_product_summary": _vendor_join(candidate.get("shopping_mall_product_summary")),
+        "mas_product_summary": _vendor_join(mas_summary),
+        "direct_production_summary": _vendor_join(candidate.get("direct_production_summary")),
+        "direct_production_flags": _vendor_join(candidate.get("direct_production_flags")),
+        "procurement_attributes": _vendor_join(candidate.get("procurement_attributes")),
+        "general_certifications": _vendor_join(candidate.get("general_certifications")),
+        "manufacturer_type": _vendor_join(candidate.get("manufacturer_type")),
+        "business_status_freshness": _vendor_join(candidate.get("business_status_freshness")),
+        "source_refreshed_at": _vendor_join(candidate.get("source_refreshed_at")),
+    }
+
+
+def _vendor_row_from_db(row: dict) -> dict[str, str]:
+    shopping_raw = row.get("shopping_mall_flags_raw")
+    mas_raw = row.get("mas_product_summary_raw")
+    return {
+        "company_id": _vendor_join(row.get("company_id")),
+        "company_name": _vendor_join(row.get("company_name")),
+        "location": _vendor_join(row.get("location")),
+        "detail_address": _vendor_join(row.get("detail_address")),
+        "business_status": _vendor_join(row.get("business_status")),
+        "display_status": _vendor_join(row.get("display_status")),
+        "license_or_business_type": _vendor_join(row.get("license_or_business_type")),
+        "main_products": _vendor_join(row.get("main_products")),
+        "candidate_types": _vendor_join(row.get("candidate_types")),
+        "primary_candidate_type": _vendor_join(row.get("primary_candidate_type")),
+        "policy_subtypes": _vendor_join(row.get("policy_subtypes_raw")),
+        "certified_product_types": _vendor_join(row.get("certified_product_types_raw")),
+        "is_sme_competition_product": "true" if row.get("is_sme_competition_product") else "false",
+        "shopping_mall_flags": _vendor_join(shopping_raw),
+        "has_shopping_mall": "true" if str(shopping_raw or "").strip() else "false",
+        "has_mas": "true" if str(mas_raw or "").strip() or _vendor_pipe_has(shopping_raw, "mas") else "false",
+        "certified_product_summary": _vendor_join(row.get("certified_product_summary_raw")),
+        "shopping_mall_product_summary": _vendor_join(row.get("shopping_mall_product_summary_raw")),
+        "mas_product_summary": _vendor_join(mas_raw),
+        "direct_production_summary": _vendor_join(row.get("direct_production_summary_raw")),
+        "direct_production_flags": _vendor_join(row.get("direct_production_flags_raw")),
+        "procurement_attributes": _vendor_join(row.get("procurement_attributes_raw")),
+        "general_certifications": _vendor_join(row.get("general_certifications_raw")),
+        "manufacturer_type": _vendor_join(row.get("manufacturer_type")),
+        "business_status_freshness": _vendor_join(row.get("business_status_freshness")),
+        "source_refreshed_at": _vendor_join(row.get("source_refreshed_at")),
+    }
+
+
+def _vendor_region_matches(row: dict[str, str], region: str) -> bool:
+    region = (region or "").strip()
+    if not region:
+        return True
+    normalized = {"busan": "부산", "BUSAN": "부산"}.get(region, region)
+    haystack = f"{row.get('location', '')} {row.get('detail_address', '')}"
+    return normalized in haystack
+
+
+def _vendor_search_rows(q: str, *, region: str = "부산", limit: int = 50) -> list[dict[str, str]]:
+    q = " ".join(str(q or "").split())
+    if not q:
+        raise HTTPException(status_code=400, detail="q query parameter is required")
+    limit = max(1, min(int(limit or 50), 500))
+    company_db = _vendor_import_company_db()
+    search_calls = [
+        ("product", getattr(company_db, "search_by_product", None)),
+        ("license", getattr(company_db, "search_by_license", None)),
+        ("company_name", getattr(company_db, "search_by_company_name", None)),
+        ("shopping_mall_product", getattr(company_db, "search_shopping_mall_product", None)),
+        ("certified_product", getattr(company_db, "search_certified_product", None)),
+        ("innovation_product", getattr(company_db, "search_innovation_product", None)),
+        ("excellent_procurement_product", getattr(company_db, "search_excellent_procurement_product", None)),
+    ]
+    rows: list[dict[str, str]] = []
+    seen: set[str] = set()
+    per_call_limit = max(limit, 20)
+    for source, func in search_calls:
+        if not callable(func):
+            continue
+        try:
+            data = func(q, limit=per_call_limit) or {}
+        except Exception:
+            continue
+        for candidate in data.get("candidates") or []:
+            row = _vendor_row_from_candidate(candidate)
+            row["matched_source"] = source
+            key = row.get("company_id") or row.get("company_name")
+            if not key or key in seen:
+                continue
+            if not _vendor_region_matches(row, region):
+                continue
+            seen.add(key)
+            rows.append(row)
+            if len(rows) >= limit:
+                return rows
+    return rows
+
+
+def _vendor_download_rows(*, active_only: bool = True, limit: int = 0) -> list[dict[str, str]]:
+    company_db = _vendor_import_company_db()
+    connect = getattr(company_db, "_connect", None)
+    if not callable(connect):
+        raise HTTPException(status_code=503, detail="company DB connection unavailable")
+    conn = connect()
+    if conn is None:
+        raise HTTPException(status_code=503, detail="company DB file not found or disabled")
+    try:
+        where = "WHERE business_status = 'active'" if active_only else ""
+        limit_sql = "LIMIT ?" if int(limit or 0) > 0 else ""
+        params = [int(limit)] if int(limit or 0) > 0 else []
+        sql = f"""
+            SELECT *
+            FROM chatbot_company_candidate_view
+            {where}
+            ORDER BY company_name
+            {limit_sql}
+        """
+        db_rows = conn.execute(sql, params).fetchall()
+        return [_vendor_row_from_db(dict(row)) for row in db_rows]
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"vendor export query failed: {exc}") from exc
+    finally:
+        conn.close()
+
+
+def _vendor_rows_to_csv_bytes(rows: list[dict[str, str]]) -> bytes:
+    output = StringIO(newline="")
+    fields = [*VENDOR_CSV_FIELDS]
+    if any("matched_source" in row for row in rows):
+        fields.append("matched_source")
+    writer = csv.DictWriter(output, fieldnames=fields, extrasaction="ignore")
+    writer.writeheader()
+    for row in rows:
+        writer.writerow({field: row.get(field, "") for field in fields})
+    return output.getvalue().encode("utf-8-sig")
+
+
+def _vendor_zip_bytes(csv_name: str, rows: list[dict[str, str]]) -> bytes:
+    payload = BytesIO()
+    readme = (
+        "Busan vendor candidate export\n"
+        "This file is exported from the internal chatbot_company_candidate_view.\n"
+        "It is a candidate list for review, not a legal eligibility confirmation.\n"
+    )
+    with zipfile.ZipFile(payload, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr(csv_name, _vendor_rows_to_csv_bytes(rows))
+        zf.writestr("README.txt", readme.encode("utf-8"))
+    return payload.getvalue()
+
+
 def _find_qa_log_by_id(qa_log_id: str) -> dict | None:
     log_dir = Path(APP_DIR) / "data" / "qa_test_logs"
     if not qa_log_id or not log_dir.exists():
@@ -886,6 +1128,66 @@ def version():
 @app.get("/rag/status")
 def rag_status():
     return _get_rag_status()
+
+
+@app.get("/vendors/search")
+def vendor_search(q: str, region: str = "부산", limit: int = 50):
+    rows = _vendor_search_rows(q, region=region, limit=limit)
+    return JSONResponse(
+        content={
+            "query": q,
+            "region": region,
+            "limit": max(1, min(int(limit or 50), 500)),
+            "count": len(rows),
+            "columns": VENDOR_CSV_FIELDS,
+            "rows": rows,
+            "limitations": [
+                "candidate list only; contract eligibility is not confirmed",
+                "business status, licenses, direct production, and product validity must be rechecked before notice or contract",
+            ],
+        },
+        media_type="application/json; charset=utf-8",
+    )
+
+
+@app.get("/vendors/query.csv")
+def vendor_query_csv(q: str, region: str = "부산", limit: int = 50):
+    rows = _vendor_search_rows(q, region=region, limit=limit)
+    return Response(
+        content=_vendor_rows_to_csv_bytes(rows),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="busan_vendor_query.csv"'},
+    )
+
+
+@app.get("/vendors/search.csv")
+def vendor_search_csv(q: str, region: str = "부산", limit: int = 50):
+    return vendor_query_csv(q=q, region=region, limit=limit)
+
+
+@app.get("/vendors/download.csv")
+def vendor_download_csv(active_only: bool = True, limit: int = 0):
+    rows = _vendor_download_rows(active_only=active_only, limit=limit)
+    return Response(
+        content=_vendor_rows_to_csv_bytes(rows),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="busan_vendor_candidates.csv"'},
+    )
+
+
+@app.get("/vendors/download.zip")
+def vendor_download_zip(active_only: bool = True, limit: int = 0):
+    rows = _vendor_download_rows(active_only=active_only, limit=limit)
+    return Response(
+        content=_vendor_zip_bytes("busan_vendor_candidates.csv", rows),
+        media_type="application/zip",
+        headers={"Content-Disposition": 'attachment; filename="busan_vendor_candidates.zip"'},
+    )
+
+
+@app.get("/vendors/download-file.zip")
+def vendor_download_file_zip(active_only: bool = True, limit: int = 0):
+    return vendor_download_zip(active_only=active_only, limit=limit)
 
 
 @app.get("/admin/health/routing")

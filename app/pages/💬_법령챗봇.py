@@ -83,6 +83,18 @@ def _routing_health_api_url() -> str:
     return f"{_api_base_url()}/admin/health/routing"
 
 
+def _vendor_search_api_url() -> str:
+    return f"{_api_base_url()}/vendors/search"
+
+
+def _vendor_query_csv_api_url() -> str:
+    return f"{_api_base_url()}/vendors/query.csv"
+
+
+def _vendor_download_zip_api_url() -> str:
+    return f"{_api_base_url()}/vendors/download.zip"
+
+
 def _api_headers(include_json: bool = False) -> dict[str, str]:
     headers: dict[str, str] = {}
     if include_json:
@@ -108,6 +120,40 @@ def _load_routing_health() -> dict[str, Any] | None:
         return response.json()
     except Exception:
         return None
+
+
+def _load_vendor_search(query: str, limit: int) -> dict[str, Any]:
+    response = requests.get(
+        _vendor_search_api_url(),
+        params={"q": query, "region": "busan", "limit": limit},
+        headers=_api_headers(),
+        timeout=15,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def _download_vendor_query_csv(query: str, limit: int) -> bytes:
+    response = requests.get(
+        _vendor_query_csv_api_url(),
+        params={"q": query, "region": "busan", "limit": limit},
+        headers=_api_headers(),
+        timeout=30,
+    )
+    response.raise_for_status()
+    return response.content
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def _download_vendor_all_zip(active_only: bool = True) -> bytes:
+    response = requests.get(
+        _vendor_download_zip_api_url(),
+        params={"active_only": str(active_only).lower()},
+        headers=_api_headers(),
+        timeout=60,
+    )
+    response.raise_for_status()
+    return response.content
 
 
 def _submit_feedback(qa_log_id: str, rating: int, satisfied: bool, issue_tags: list[str], comment: str) -> None:
@@ -818,6 +864,8 @@ def _render_sidebar() -> None:
                     f"타임아웃 {recent.get('llm_adjudicator_timeout_count', 0)}"
                 )
 
+        _render_vendor_search_panel()
+
         st.markdown(
             """
             <div class="small-muted">
@@ -826,6 +874,80 @@ def _render_sidebar() -> None:
             """,
             unsafe_allow_html=True,
         )
+
+
+def _render_vendor_search_panel() -> None:
+    with st.expander("업체 검색·다운로드", expanded=True):
+        st.caption("품목, 면허/업종, 업체명으로 내부 업체 DB를 조회합니다.")
+        with st.form("vendor_search_form"):
+            query = st.text_input("검색어", value=st.session_state.get("vendor_query", "LED"), placeholder="예: LED, CCTV, 행사, 경비")
+            limit = st.number_input("표시 건수", min_value=1, max_value=100, value=int(st.session_state.get("vendor_limit", 10)), step=1)
+            submitted = st.form_submit_button("업체 검색", use_container_width=True)
+
+        if submitted:
+            st.session_state.vendor_query = query.strip()
+            st.session_state.vendor_limit = int(limit)
+            if not st.session_state.vendor_query:
+                st.warning("검색어를 입력하세요.")
+            else:
+                try:
+                    st.session_state.vendor_result = _load_vendor_search(st.session_state.vendor_query, st.session_state.vendor_limit)
+                except Exception as exc:
+                    st.session_state.vendor_result = {"error": str(exc), "rows": [], "count": 0}
+
+        result = st.session_state.get("vendor_result")
+        if result:
+            if result.get("error"):
+                st.error(f"업체 검색 오류: {result['error']}")
+            else:
+                rows = result.get("rows") or []
+                st.caption(f"검색 결과 {result.get('count', len(rows))}건")
+                if rows:
+                    preview_columns = [
+                        "company_name",
+                        "location",
+                        "license_or_business_type",
+                        "main_products",
+                        "has_shopping_mall",
+                        "has_mas",
+                        "direct_production_summary",
+                    ]
+                    preview_rows = [
+                        {column: row.get(column, "") for column in preview_columns}
+                        for row in rows[:10]
+                    ]
+                    st.dataframe(preview_rows, use_container_width=True, hide_index=True)
+                else:
+                    st.info("검색 결과가 없습니다. 예: LED, CCTV처럼 DB에 있는 품목명으로 다시 시도하세요.")
+
+        query_for_download = st.session_state.get("vendor_query", query).strip()
+        limit_for_download = int(st.session_state.get("vendor_limit", limit))
+        col_csv, col_zip = st.columns(2)
+        with col_csv:
+            if query_for_download:
+                try:
+                    csv_data = _download_vendor_query_csv(query_for_download, limit_for_download)
+                    st.download_button(
+                        "검색 CSV",
+                        data=csv_data,
+                        file_name=f"부산업체_검색_{query_for_download}.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                    )
+                except Exception:
+                    st.caption("검색 CSV 준비 실패")
+        with col_zip:
+            try:
+                zip_data = _download_vendor_all_zip(active_only=True)
+                st.download_button(
+                    "전체 ZIP",
+                    data=zip_data,
+                    file_name="부산업체_전체.zip",
+                    mime="application/zip",
+                    use_container_width=True,
+                )
+            except Exception:
+                st.caption("전체 ZIP 준비 실패")
 
 
 def _render_starter() -> None:
