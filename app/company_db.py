@@ -153,6 +153,52 @@ def _parse_summary(raw: Any) -> list[dict[str, Any]]:
     return rows
 
 
+def _parse_construction_capacity_summary(raw: Any) -> list[dict[str, Any]]:
+    rows = []
+    for part in str(raw or "").split("|||"):
+        if not part.strip():
+            continue
+        fields = part.split("^^")
+        rows.append({
+            "license_name": fields[0].strip() if len(fields) > 0 else "",
+            "construction_capacity_amount": fields[1].strip() if len(fields) > 1 else "",
+            "source": fields[2].strip() if len(fields) > 2 else "",
+        })
+    return rows
+
+
+def _parse_venture_nara_product_summary(raw: Any) -> list[dict[str, Any]]:
+    rows = []
+    for part in str(raw or "").split("|||"):
+        if not part.strip():
+            continue
+        fields = part.split("^^")
+        rows.append({
+            "product_name": fields[0].strip() if len(fields) > 0 else "",
+            "category_name": fields[1].strip() if len(fields) > 1 else "",
+            "valid_until": fields[2].strip() if len(fields) > 2 else "",
+            "venture_company_marked": fields[3].strip() if len(fields) > 3 else "",
+            "source": fields[4].strip() if len(fields) > 4 else "",
+        })
+    return rows
+
+
+def _parse_venture_nara_order_summary(raw: Any) -> list[dict[str, Any]]:
+    rows = []
+    for part in str(raw or "").split("|||"):
+        if not part.strip():
+            continue
+        fields = part.split("^^")
+        rows.append({
+            "detail_product_name": fields[0].strip() if len(fields) > 0 else "",
+            "order_count": fields[1].strip() if len(fields) > 1 else "",
+            "total_amount": fields[2].strip() if len(fields) > 2 else "",
+            "last_order_date": fields[3].strip() if len(fields) > 3 else "",
+            "source": fields[4].strip() if len(fields) > 4 else "",
+        })
+    return rows
+
+
 def _parse_shopping_flags(raw: Any) -> list[str]:
     flags = set()
     for group in str(raw or "").split(","):
@@ -168,6 +214,9 @@ def _row_to_candidate(row: sqlite3.Row, *, validity_filter: str = "valid_only") 
     policy_tags, policy_summary = _parse_policy(d.get("policy_subtypes_raw"), validity_filter)
     certified_types = _parse_certified_types(d.get("certified_product_types_raw"), validity_filter)
     shopping_flags = _parse_shopping_flags(d.get("shopping_mall_flags_raw"))
+    construction_capacity = _parse_construction_capacity_summary(d.get("construction_capacity_summary_raw"))
+    venture_nara_products = _parse_venture_nara_product_summary(d.get("venture_nara_product_summary_raw"))
+    venture_nara_orders = _parse_venture_nara_order_summary(d.get("venture_nara_order_summary_raw"))
     candidate_types = _json_or_list(d.get("candidate_types"), ["local_procurement_company"])
     if policy_tags and "policy_company" not in candidate_types:
         candidate_types.append("policy_company")
@@ -175,6 +224,12 @@ def _row_to_candidate(row: sqlite3.Row, *, validity_filter: str = "valid_only") 
         candidate_types.append("shopping_mall_supplier")
     if certified_types and "certified_product" not in candidate_types:
         candidate_types.append("certified_product")
+    if construction_capacity and "construction_capacity_verified" not in candidate_types:
+        candidate_types.append("construction_capacity_verified")
+    if venture_nara_products and "venture_nara_supplier" not in candidate_types:
+        candidate_types.append("venture_nara_supplier")
+    if venture_nara_orders and "venture_nara_order_history" not in candidate_types:
+        candidate_types.append("venture_nara_order_history")
 
     return {
         "company_id": d.get("company_id", "unknown"),
@@ -195,6 +250,9 @@ def _row_to_candidate(row: sqlite3.Row, *, validity_filter: str = "valid_only") 
         "shopping_mall_product_summary": _parse_summary(d.get("shopping_mall_product_summary_raw")),
         "mas_product_summary": _parse_summary(d.get("mas_product_summary_raw")),
         "direct_production_summary": _parse_summary(d.get("direct_production_summary_raw")),
+        "construction_capacity_summary": construction_capacity,
+        "venture_nara_product_summary": venture_nara_products,
+        "venture_nara_order_summary": venture_nara_orders,
         "direct_production_flags": _split_pipe(d.get("direct_production_flags_raw")),
         "procurement_attributes": _split_pipe(d.get("procurement_attributes_raw")),
         "general_certifications": _split_pipe(d.get("general_certifications_raw")),
@@ -286,13 +344,173 @@ def _run_search(where: str, params: list[Any], *, limit: int = 20, validity_filt
         conn.close()
 
 
+def _object_exists(conn: sqlite3.Connection, name: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE name = ? AND type IN ('table', 'view') LIMIT 1",
+        (name,),
+    ).fetchone()
+    return row is not None
+
+
+def _columns(conn: sqlite3.Connection, name: str) -> set[str]:
+    return {str(row[1]) for row in conn.execute(f"PRAGMA table_info({name})").fetchall()}
+
+
+def _select_expr(column: str, available: set[str]) -> str:
+    if column in available:
+        return column
+    return f"NULL AS {column}"
+
+
+_PRODUCT_POLICY_COLUMNS = [
+    "detail_product_code",
+    "detail_product_name",
+    "is_sme_competition_product",
+    "is_construction_material_direct_purchase",
+    "required_special_note",
+    "construction_material_note",
+    "eligible_coop_count",
+    "busan_eligible_coop_count",
+    "busan_eligible_coops",
+    "coop_joint_product_count",
+    "busan_coop_joint_product_count",
+    "busan_coop_joint_product_coops",
+    "mas_active_supplier_count",
+    "shopping_mall_active_supplier_count",
+    "busan_company_product_count",
+    "direct_production_valid_supplier_count",
+    "source_refs",
+    "generated_at",
+]
+
+
+def search_product_policy(keyword: str, *, limit: int = 5) -> dict[str, Any] | None:
+    """Read product policy facts from product_policy_summary only.
+
+    This is intentionally limited to the fixed product_policy_summary table/view.
+    It returns None when the DB, object, or required columns are unavailable so
+    callers can decide whether to use a fallback API.
+    """
+    text = " ".join(str(keyword or "").split())
+    if not text:
+        return None
+    conn = _connect()
+    if conn is None:
+        return None
+    try:
+        view_name = "product_policy_summary"
+        if not _object_exists(conn, view_name):
+            return None
+        available = _columns(conn, view_name)
+        search_columns = [
+            col
+            for col in ("detail_product_name", "detail_product_code", "required_special_note")
+            if col in available
+        ]
+        if "detail_product_name" not in available or not search_columns:
+            return None
+        terms = _terms(text, "product")
+        where, params = _like_where(search_columns, terms)
+        select_sql = ", ".join(_select_expr(col, available) for col in _PRODUCT_POLICY_COLUMNS)
+        order_parts = [
+            "CASE WHEN IFNULL(detail_product_name, '') = ? THEN 0 WHEN IFNULL(detail_product_name, '') LIKE ? THEN 1 ELSE 2 END",
+        ]
+        order_params: list[Any] = [text, f"{text}%"]
+        if "is_sme_competition_product" in available:
+            order_parts.append("CAST(IFNULL(is_sme_competition_product, 0) AS INTEGER) DESC")
+        if "direct_production_valid_supplier_count" in available:
+            order_parts.append("CAST(IFNULL(direct_production_valid_supplier_count, 0) AS INTEGER) DESC")
+        if "busan_company_product_count" in available:
+            order_parts.append("CAST(IFNULL(busan_company_product_count, 0) AS INTEGER) DESC")
+        order_parts.append("detail_product_name")
+        sql = f"""
+            SELECT {select_sql}
+            FROM {view_name}
+            WHERE {where}
+            ORDER BY {', '.join(order_parts)}
+            LIMIT ?
+        """
+        rows = conn.execute(sql, [*params, *order_params, max(1, min(int(limit or 5), 20))]).fetchall()
+        return {
+            "meta": {
+                "keyword": text,
+                "limit": max(1, min(int(limit or 5), 20)),
+                "source": view_name,
+                "cache_mode": "local_view_db",
+            },
+            "candidates": [dict(row) for row in rows],
+            "company_cache_used": True,
+            "company_cache_mode": "local_view_db",
+            "company_search_status": "success",
+        }
+    except Exception:
+        return None
+    finally:
+        conn.close()
+
+
 def search_by_product(query: str, *, limit: int = 20) -> dict[str, Any] | None:
     terms = _terms(query, "product")
     where, params = _like_where(
-        ["main_products", "shopping_mall_product_summary_raw", "mas_product_summary_raw", "certified_product_summary_raw"],
+        [
+            "main_products",
+            "shopping_mall_product_summary_raw",
+            "mas_product_summary_raw",
+            "certified_product_summary_raw",
+            "venture_nara_product_summary_raw",
+            "venture_nara_order_summary_raw",
+        ],
         terms,
     )
     return _run_search(where, params, limit=limit, query={"product_name": query, "limit": limit}, source="local_view_product")
+
+
+def search_by_direct_production(query: str, *, limit: int = 20) -> dict[str, Any] | None:
+    terms = _terms(query, "product")
+    conn = _connect()
+    if conn is None:
+        return None
+    try:
+        if not (
+            _object_exists(conn, "direct_production_certificate")
+            and _object_exists(conn, "company_identity")
+            and _object_exists(conn, "chatbot_company_candidate_view")
+        ):
+            return None
+        where, params = _like_where(["d.detail_product_name"], terms)
+        sql = f"""
+            SELECT
+                v.*,
+                GROUP_CONCAT(
+                    d.detail_product_name || '^^' ||
+                    IFNULL(d.detail_product_code, '') || '^^direct_production^^' ||
+                    IFNULL(d.validity_status, '') || '^^' ||
+                    IFNULL(d.valid_to, '') || '^^' ||
+                    IFNULL(d.source_name, ''),
+                    '|||'
+                ) AS direct_production_summary_raw
+            FROM direct_production_certificate d
+            JOIN company_identity ci
+              ON ci.company_internal_id = d.company_internal_id
+            JOIN chatbot_company_candidate_view v
+              ON v.company_id = ci.company_id
+            WHERE ({where})
+              AND IFNULL(d.validity_status, '') IN ('valid', 'unknown', '')
+              AND COALESCE(NULLIF(TRIM(LOWER(v.business_status)), ''), 'unknown')
+                  NOT IN ('inactive', 'closed', 'suspended', '폐업', '휴업', '종료', 'cancelled', 'canceled')
+            GROUP BY v.company_id
+            ORDER BY
+                CASE WHEN v.business_status = 'active' THEN 0 ELSE 1 END,
+                COUNT(*) DESC,
+                v.company_name
+            LIMIT ?
+        """
+        rows = conn.execute(sql, [*params, int(limit)]).fetchall()
+        return _response(rows, query={"product_name": query, "limit": limit}, source="local_view_direct_production")
+    except Exception:
+        return None
+    finally:
+        conn.close()
 
 
 def search_by_license(query: str, *, limit: int = 20) -> dict[str, Any] | None:

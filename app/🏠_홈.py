@@ -1,5 +1,7 @@
 """지역상품 구매확대 지원 챗봇 홈."""
 
+from pathlib import Path
+
 import streamlit as st
 
 
@@ -162,8 +164,10 @@ with st.sidebar:
     )
     st.divider()
     st.page_link("🏠_홈.py", label="홈")
-    st.page_link("pages/💬_법령챗봇.py", label="챗봇")
-    st.page_link("pages/📖_메뉴얼.py", label="메뉴얼")
+    st.page_link("pages/vendor_search.py", label="업체추천")
+    st.page_link("pages/💬_법령챗봇.py", label="계약검토")
+    if (Path(__file__).parent / "pages" / "📖_메뉴얼.py").exists():
+        st.page_link("pages/📖_메뉴얼.py", label="메뉴얼")
     st.divider()
     st.link_button("나라장터", "https://www.g2b.go.kr", use_container_width=True)
     st.link_button("법제처 국가법령정보센터", "https://www.law.go.kr", use_container_width=True)
@@ -203,12 +207,16 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-col_chat, col_manual = st.columns(2)
+col_vendor, col_chat, col_manual = st.columns(3)
+with col_vendor:
+    if st.button("업체추천", type="primary", use_container_width=True):
+        st.switch_page("pages/vendor_search.py")
 with col_chat:
-    if st.button("챗봇 시작", type="primary", use_container_width=True):
+    if st.button("계약검토", use_container_width=True):
         st.switch_page("pages/💬_법령챗봇.py")
 with col_manual:
-    if st.button("메뉴얼 보기", use_container_width=True):
+    manual_page = Path(__file__).parent / "pages" / "📖_메뉴얼.py"
+    if st.button("메뉴얼 보기", use_container_width=True, disabled=not manual_page.exists()):
         st.switch_page("pages/📖_메뉴얼.py")
 
 st.markdown(

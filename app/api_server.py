@@ -13,6 +13,8 @@ import queue
 import threading
 import csv
 import zipfile
+import requests
+import re
 from io import BytesIO, StringIO
 from datetime import datetime
 
@@ -23,6 +25,11 @@ sys.path.insert(0, APP_DIR)
 
 from dotenv import load_dotenv
 load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
+
+try:
+    from policies.item_normalization_policy import normalize_item_query
+except Exception:
+    normalize_item_query = None
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -538,6 +545,9 @@ VENDOR_CSV_FIELDS = [
     "shopping_mall_product_summary",
     "mas_product_summary",
     "direct_production_summary",
+    "construction_capacity_summary",
+    "venture_nara_product_summary",
+    "venture_nara_order_summary",
     "direct_production_flags",
     "procurement_attributes",
     "general_certifications",
@@ -545,6 +555,68 @@ VENDOR_CSV_FIELDS = [
     "business_status_freshness",
     "source_refreshed_at",
 ]
+
+VENDOR_RECOMMENDATION_COLUMNS = [
+    "company_name",
+    "location",
+    "contract_review_types",
+    "budget_review_hint",
+    "license_status_label",
+    "license_or_business_type",
+    "main_products",
+    "shopping_mall_status_label",
+    "shopping_mall_product_summary",
+    "mas_status_label",
+    "mas_product_summary",
+    "direct_production_certificate_status",
+    "direct_production_certificate_products",
+    "construction_capacity_status_label",
+    "construction_capacity_summary",
+    "venture_nara_status_label",
+    "venture_nara_product_summary",
+    "venture_nara_order_summary",
+    "certified_product_labels",
+    "certified_product_summary",
+    "policy_company_labels",
+    "sme_competition_product_label",
+    "cooperative_purchase_route_label",
+    "business_status",
+    "business_status_label",
+    "business_status_freshness",
+    "business_status_freshness_label",
+    "recommended_checks",
+    "matched_query_label",
+    "review_score",
+]
+
+_VENDOR_POLICY_LABELS = {
+    "women_company": "여성기업",
+    "disabled_company": "장애인기업",
+    "social_enterprise": "사회적기업",
+    "social_cooperative": "사회적협동조합",
+    "self_support_company": "자활기업",
+    "village_company": "마을기업",
+    "sme": "중소기업",
+    "small_business": "소상공인",
+    "startup": "창업기업",
+    "youth_startup": "청년창업기업",
+    "venture_company": "벤처기업",
+}
+
+_VENDOR_CERT_LABELS = {
+    "nep_product": "NEP(신제품)",
+    "net_certified_product": "NET(신기술)",
+    "performance_certification": "성능인증",
+    "green_technology_product": "녹색기술",
+    "gs_certified_product": "GS인증",
+    "innovation_product": "혁신제품",
+    "innovation_prototype_product": "혁신시제품",
+    "excellent_procurement_product": "우수조달물품",
+    "quality_assured_procurement_product": "품질보증조달물품",
+    "excellent_invention_product": "우수발명품",
+    "disaster_safety_certified_product": "재난안전제품",
+    "priority_purchase_product": "기술개발제품",
+}
 
 
 def _vendor_import_company_db():
@@ -566,10 +638,42 @@ def _vendor_join(value) -> str:
         parts: list[str] = []
         for item in value:
             if isinstance(item, dict):
-                name = item.get("product_name") or item.get("name") or item.get("type") or ""
-                code = item.get("detail_product_code") or ""
+                name = (
+                    item.get("product_name")
+                    or item.get("detail_product_name")
+                    or item.get("license_name")
+                    or item.get("name")
+                    or item.get("type")
+                    or ""
+                )
+                if item.get("order_count") is not None or item.get("total_amount") is not None:
+                    order_count = item.get("order_count")
+                    total_amount = item.get("total_amount")
+                    order_label = f"{order_count}건" if str(order_count or "").strip() else ""
+                    try:
+                        amount_label = f"{int(str(total_amount).replace(',', '')):,}원" if str(total_amount or "").strip() else ""
+                    except ValueError:
+                        amount_label = str(total_amount or "")
+                    compact = " / ".join(
+                        str(x)
+                        for x in (name, order_label, amount_label, item.get("last_order_date") or "")
+                        if str(x)
+                    )
+                    if compact:
+                        parts.append(compact)
+                    continue
+                if item.get("category_name") is not None or item.get("venture_company_marked") is not None:
+                    compact = " / ".join(
+                        str(x)
+                        for x in (name, item.get("category_name") or "", item.get("valid_until") or "")
+                        if str(x)
+                    )
+                    if compact:
+                        parts.append(compact)
+                    continue
+                code = item.get("detail_product_code") or item.get("construction_capacity_amount") or ""
                 typ = item.get("type") or ""
-                status = item.get("status") or ""
+                status = item.get("status") or item.get("valid_until") or item.get("last_order_date") or ""
                 compact = " / ".join(str(x) for x in (name, code, typ, status) if str(x))
                 if compact:
                     parts.append(compact)
@@ -607,6 +711,9 @@ def _vendor_row_from_candidate(candidate: dict) -> dict[str, str]:
         "shopping_mall_product_summary": _vendor_join(candidate.get("shopping_mall_product_summary")),
         "mas_product_summary": _vendor_join(mas_summary),
         "direct_production_summary": _vendor_join(candidate.get("direct_production_summary")),
+        "construction_capacity_summary": _vendor_join(candidate.get("construction_capacity_summary")),
+        "venture_nara_product_summary": _vendor_join(candidate.get("venture_nara_product_summary")),
+        "venture_nara_order_summary": _vendor_join(candidate.get("venture_nara_order_summary")),
         "direct_production_flags": _vendor_join(candidate.get("direct_production_flags")),
         "procurement_attributes": _vendor_join(candidate.get("procurement_attributes")),
         "general_certifications": _vendor_join(candidate.get("general_certifications")),
@@ -640,6 +747,9 @@ def _vendor_row_from_db(row: dict) -> dict[str, str]:
         "shopping_mall_product_summary": _vendor_join(row.get("shopping_mall_product_summary_raw")),
         "mas_product_summary": _vendor_join(mas_raw),
         "direct_production_summary": _vendor_join(row.get("direct_production_summary_raw")),
+        "construction_capacity_summary": _vendor_join(row.get("construction_capacity_summary_raw")),
+        "venture_nara_product_summary": _vendor_join(row.get("venture_nara_product_summary_raw")),
+        "venture_nara_order_summary": _vendor_join(row.get("venture_nara_order_summary_raw")),
         "direct_production_flags": _vendor_join(row.get("direct_production_flags_raw")),
         "procurement_attributes": _vendor_join(row.get("procurement_attributes_raw")),
         "general_certifications": _vendor_join(row.get("general_certifications_raw")),
@@ -658,44 +768,668 @@ def _vendor_region_matches(row: dict[str, str], region: str) -> bool:
     return normalized in haystack
 
 
-def _vendor_search_rows(q: str, *, region: str = "부산", limit: int = 50) -> list[dict[str, str]]:
-    q = " ".join(str(q or "").split())
-    if not q:
-        raise HTTPException(status_code=400, detail="q query parameter is required")
-    limit = max(1, min(int(limit or 50), 500))
-    company_db = _vendor_import_company_db()
-    search_calls = [
-        ("product", getattr(company_db, "search_by_product", None)),
-        ("license", getattr(company_db, "search_by_license", None)),
-        ("company_name", getattr(company_db, "search_by_company_name", None)),
-        ("shopping_mall_product", getattr(company_db, "search_shopping_mall_product", None)),
-        ("certified_product", getattr(company_db, "search_certified_product", None)),
-        ("innovation_product", getattr(company_db, "search_innovation_product", None)),
-        ("excellent_procurement_product", getattr(company_db, "search_excellent_procurement_product", None)),
+_VENDOR_QUERY_STOPWORDS = {
+    "예산",
+    "계약",
+    "방법",
+    "방안",
+    "근거",
+    "중심",
+    "안내",
+    "구매",
+    "확대",
+    "부산",
+    "업체",
+    "지역",
+    "지역업체",
+    "물품",
+    "용역",
+    "공사",
+    "검토",
+    "가능",
+    "후보",
+    "나라장터",
+    "종합쇼핑몰",
+    "조달",
+    "수의계약",
+    "견적",
+}
+
+_VENDOR_ALIAS_TOKENS = {
+    "컴퓨터": ["컴퓨터", "데스크톱", "데스크탑", "노트북", "일체형컴퓨터", "개인용컴퓨터", "컴퓨터서버", "서버"],
+    "노트북": ["노트북", "컴퓨터", "개인용컴퓨터"],
+    "서버": ["서버", "컴퓨터서버"],
+    "cctv": ["CCTV", "씨씨티비", "카메라", "감시카메라", "보안카메라", "보안용카메라", "영상감시장치", "영상감시"],
+    "카메라": ["카메라", "CCTV", "영상감시장치"],
+    "led": ["LED", "LED조명", "LED실내조명등", "LED램프", "조명", "등기구"],
+    "조명": ["조명", "등기구", "LED"],
+    "소프트웨어": [
+        "소프트웨어", "시스템", "프로그램", "SW", "상용소프트웨어", "패키지소프트웨어",
+        "보안소프트웨어", "보안SW", "백신", "백신프로그램", "안티바이러스", "정보보호", "방화벽",
+    ],
+    "인쇄": ["인쇄", "인쇄물", "홍보물", "리플릿", "책자", "브로슈어", "포스터", "카탈로그", "현수막"],
+    "통역": ["통역", "통번역", "번역", "번역용역", "외국어", "언어"],
+    "공기청정기": ["공기청정기", "공기청정", "청정기"],
+    "캐비닛": ["캐비닛", "보관함", "수납장", "가구"],
+    "주방기기": ["주방기기", "주방", "급식실", "급식", "조리기기"],
+    "레미콘": ["레미콘", "ready mixed concrete"],
+    "아스콘": ["아스콘", "아스팔트콘크리트", "아스팔트"],
+    "탄성포장재": ["탄성포장재", "체육시설탄성포장재", "운동장포장", "운동장 탄성포장"],
+    "포장공사": ["포장공사", "도로포장", "지반조성포장", "지반조성ㆍ포장공사업", "포장"],
+    "행사": ["행사", "행사용역", "행사기획", "행사대행", "기타행사기획및대행서비스", "이벤트", "발대식", "기념식", "개회식", "공연", "전시", "홍보"],
+    "번역": ["번역", "번역용역", "통번역", "통역", "외국어", "언어"],
+    "경비": ["경비", "경비용역", "시설경비", "시설경비업무", "기계경비", "특수경비", "시설물경비서비스"],
+    "조경": ["조경", "조경공사업", "조경식재공사업", "조경식재공사", "조경시설물설치공사업", "잔디", "수목"],
+}
+
+
+def _vendor_compact(value: str) -> str:
+    return re.sub(r"\s+", "", str(value or "")).lower()
+
+
+def _vendor_intent_text(q: str) -> str:
+    text = str(q or "")
+    context_patterns = (
+        r"(?:문화행사|행사)\s*담당\s*부서\s*(?:에서|가|는)?",
+        r"(?:시설관리|청사관리)\s*부서\s*(?:에서|가|는)?",
+        r"(?:구청|학교|복지관|공공기관|공기업|부산시\s*산하기관)\s*(?:발주|구매|계약)?\s*담당자\s*(?:가|에서|는)?",
+    )
+    for pattern in context_patterns:
+        text = re.sub(pattern, " ", text)
+    return " ".join(text.split())
+
+
+def _vendor_normalized_item_terms(q: str) -> tuple[str, list[str]]:
+    if normalize_item_query is None:
+        return "", []
+    try:
+        normalized = normalize_item_query(_vendor_intent_text(q))
+    except Exception:
+        return "", []
+    if not getattr(normalized, "found", False):
+        return "", []
+    terms = [
+        getattr(normalized, "primary_search_term", ""),
+        *list(getattr(normalized, "search_terms", []) or []),
     ]
-    rows: list[dict[str, str]] = []
-    seen: set[str] = set()
-    per_call_limit = max(limit, 20)
-    for source, func in search_calls:
-        if not callable(func):
+    cleaned: list[str] = []
+    for term in terms:
+        value = " ".join(str(term or "").split())
+        if value and value not in cleaned:
+            cleaned.append(value)
+    return str(getattr(normalized, "canonical_name", "") or ""), cleaned
+
+
+def _vendor_term_should_search_license(term: str) -> bool:
+    compact = _vendor_compact(term)
+    if any(token in compact for token in ("광고대행", "옥외광고", "홍보마케팅")):
+        return True
+    return any(token in compact for token in (
+        "공사업",
+        "공사",
+        "시설업",
+        "업무",
+        "용역",
+        "경비",
+        "청소",
+        "시설관리",
+        "행사",
+        "번역",
+        "통신",
+        "소방",
+        "전기",
+        "조경",
+        "포장",
+        "기계설비",
+        "실내건축",
+        "건축사",
+        "사무소",
+        "디자인전문회사",
+        "제작업",
+        "옥외광고",
+        "소프트웨어사업자",
+        "소독업",
+        "폐기물",
+        "측량",
+        "엔지니어링",
+        "원가계산",
+        "원가검토",
+        "법무",
+        "여행업",
+        "여객자동차",
+        "전세버스",
+        "승강기",
+        "초경량비행장치",
+    ))
+
+
+def _vendor_query_tokens(q: str) -> list[str]:
+    text = str(q or "")
+    compact = _vendor_compact(text)
+    tokens: list[str] = []
+    if any(term in compact for term in ("통역", "번역", "통번역", "외국어")):
+        tokens.extend(["통역", "번역", "통번역", "외국어", "언어"])
+        return list(dict.fromkeys(tokens))
+    if any(term in compact for term in ("인쇄", "인쇄물", "홍보물", "리플릿", "책자", "브로슈어", "포스터", "카탈로그", "현수막")):
+        tokens.extend(["인쇄", "인쇄물", "홍보물", "리플릿", "책자", "브로슈어", "포스터", "카탈로그", "현수막"])
+        return list(dict.fromkeys(tokens))
+    _, normalized_terms = _vendor_normalized_item_terms(text)
+    tokens.extend(str(term).lower() for term in normalized_terms)
+    for key, aliases in _VENDOR_ALIAS_TOKENS.items():
+        if key.lower() in compact or any(_vendor_compact(alias) in compact for alias in aliases):
+            tokens.extend(str(alias).lower() for alias in aliases)
+    if tokens:
+        return list(dict.fromkeys(tokens))
+    for raw in re.findall(r"[가-힣A-Za-z0-9]{2,}", text):
+        token = raw.lower()
+        if token in _VENDOR_QUERY_STOPWORDS:
             continue
-        try:
-            data = func(q, limit=per_call_limit) or {}
-        except Exception:
+        if token.isdigit() or re.fullmatch(r"\d+만원|\d+천만원|\d+억원", token):
             continue
-        for candidate in data.get("candidates") or []:
-            row = _vendor_row_from_candidate(candidate)
-            row["matched_source"] = source
+        tokens.append(token)
+    return list(dict.fromkeys(tokens[:5]))
+
+
+def _vendor_add_plan(plan: list[dict[str, str]], seen: set[tuple[str, str]], search_type: str, term: str, label: str = "") -> None:
+    term = " ".join(str(term or "").split())
+    if not term:
+        return
+    key = (search_type, term)
+    if key in seen:
+        return
+    seen.add(key)
+    plan.append({"search_type": search_type, "term": term, "label": label or f"{search_type}: {term}"})
+
+
+def _vendor_query_plan(q: str) -> list[dict[str, str]]:
+    raw_text = str(q or "")
+    text = _vendor_intent_text(raw_text) or raw_text
+    compact = _vendor_compact(text)
+    plan: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+
+    canonical_name, normalized_terms = _vendor_normalized_item_terms(text)
+    direct_or_sme_query = any(marker in compact for marker in ("직접생산", "직생", "중기간경쟁", "중소기업자간경쟁"))
+
+    if any(term in compact for term in ("인쇄", "인쇄물", "홍보물", "리플릿", "책자", "브로슈어", "포스터", "카탈로그", "현수막")):
+        if any(marker in compact for marker in ("직접생산", "직생", "중기간경쟁", "중소기업자간경쟁")):
+            direct_print_terms = ["인쇄물", "기타인쇄물", "현수막", "종이인쇄물제작서비스"]
+            direct_print_terms.sort(key=lambda term: 0 if _vendor_compact(term) in compact else 1)
+            for term in direct_print_terms:
+                _vendor_add_plan(plan, seen, "direct_production", term, f"직접생산: {term}")
+        print_terms = ["인쇄물", "기타인쇄물", "상업인쇄물", "홍보물", "현수막"]
+        if "현수막" in compact:
+            print_terms.sort(key=lambda term: 0 if term == "현수막" else 1)
+        for term in print_terms:
+            _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
+        for term in ("인쇄", "인쇄사"):
+            _vendor_add_plan(plan, seen, "license", term, f"면허/업종: {term}")
+    elif any(term in compact for term in ("법률자문", "법률", "변호사", "법률사무소", "법무법인")):
+        for term in ("법률", "변호", "법률사무소", "변호사사무소"):
+            _vendor_add_plan(plan, seen, "company_name", term, f"업체명: {term}")
+        for term in ("변호사사무소", "법무법인", "법무서비스", "법무사업(사무소)"):
+            _vendor_add_plan(plan, seen, "license", term, f"면허/업종: {term}")
+        for term in ("법무서비스", "법률"):
+            _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
+    elif (
+        any(term in compact for term in ("보안소프트웨어", "보안sw", "안티바이러스", "정보보호", "방화벽"))
+        or ("백신" in compact and any(term in compact for term in ("프로그램", "소프트웨어", "sw", "보안")))
+    ):
+        if "방화벽" in compact:
+            for term in ("방화벽장치", "보안소프트웨어"):
+                _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
+        else:
+            for term in ("보안소프트웨어", "패키지소프트웨어개발및도입서비스", "소프트웨어"):
+                _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
+        for term in ("소프트웨어사업자(패키지소프트웨어개발.공급사업)", "소프트웨어사업자(컴퓨터관련서비스사업)"):
+            _vendor_add_plan(plan, seen, "license", term, f"면허/업종: {term}")
+    elif any(term in compact for term in ("통역", "번역", "통번역", "외국어")):
+        if "번역" in compact and "통역" not in compact:
+            translation_terms = ("번역", "번역서비스", "통번역", "통역")
+        elif "통역" in compact and "번역" not in compact:
+            translation_terms = ("통역", "통번역", "번역", "번역서비스")
+        else:
+            translation_terms = ("통번역", "통역", "번역", "번역서비스")
+        for term in translation_terms:
+            _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
+        for term in ("통역", "번역"):
+            _vendor_add_plan(plan, seen, "license", term, f"면허/업종: {term}")
+    elif any(term in compact for term in ("아스콘", "아스팔트콘크리트", "아스팔트")):
+        for term in ("아스팔트콘크리트", "아스콘", "순환상온아스팔트콘크리트"):
+            _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
+    elif any(term in compact for term in ("탄성포장", "체육시설탄성포장", "운동장탄성포장")):
+        for term in ("탄성포장재", "체육시설탄성포장재", "운동장포장"):
+            _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
+        for term in ("조경시설물설치공사업", "지반조성ㆍ포장공사업", "포장공사업"):
+            _vendor_add_plan(plan, seen, "license", term, f"면허: {term}")
+    elif any(term in compact for term in ("도로포장", "포장공사", "지반조성포장", "포장업체")):
+        for term in ("도로포장공사", "포장공사", "아스팔트콘크리트"):
+            _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
+        for term in ("지반조성ㆍ포장공사업", "포장공사업", "토공사업"):
+            _vendor_add_plan(plan, seen, "license", term, f"면허: {term}")
+    elif any(term in compact for term in ("천연잔디", "잔디조성", "잔디식재", "잔디시공", "운동장잔디")):
+        for term in ("잔디", "조경식재공사", "토양개량", "복합비료"):
+            _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
+        for term in ("조경식재공사업", "조경식재ㆍ시설물공사업"):
+            _vendor_add_plan(plan, seen, "license", term, f"면허: {term}")
+        _vendor_add_plan(plan, seen, "company_name", "에코그린", "업체명: 에코그린")
+    elif "조경" in compact:
+        for term in ("조경공사업", "조경식재공사업", "조경식재ㆍ시설물공사업", "조경시설물설치공사업"):
+            _vendor_add_plan(plan, seen, "license", term, f"면허: {term}")
+        for term in ("조경식재공사", "기타조경시설물"):
+            _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
+        _vendor_add_plan(plan, seen, "company_name", "에코그린", "업체명: 에코그린")
+
+    if canonical_name not in {"", "행사용역", "시설관리용역"}:
+        if direct_or_sme_query:
+            direct_terms = [*normalized_terms]
+            direct_terms.sort(key=lambda term: 0 if _vendor_compact(term) in compact else 1)
+            for term in direct_terms:
+                label_prefix = f"품목정규화({canonical_name})" if canonical_name else "품목정규화"
+                _vendor_add_plan(plan, seen, "direct_production", term, f"{label_prefix}/직접생산: {term}")
+        product_terms = [*normalized_terms]
+        product_terms.sort(key=lambda term: 0 if _vendor_compact(term) in compact else 1)
+        for term in product_terms:
+            label_prefix = f"품목정규화({canonical_name})" if canonical_name else "품목정규화"
+            _vendor_add_plan(plan, seen, "product", term, f"{label_prefix}: {term}")
+            if _vendor_term_should_search_license(term):
+                _vendor_add_plan(plan, seen, "license", term, f"{label_prefix}/면허: {term}")
+
+    elif any(term in compact for term in ("행사용역", "행사", "발대식", "기념식", "행사기획", "행사대행", "이벤트")):
+        for term in ("행사", "기타행사기획및대행서비스", "공연기획및대행서비스", "전시회기획및대행서비스"):
+            _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
+        for term in ("행사", "이벤트"):
+            _vendor_add_plan(plan, seen, "license", term, f"면허/업종: {term}")
+    elif any(term in compact for term in ("청사경비", "경비용역", "시설경비", "무인경비", "기계경비", "특수경비")):
+        for term in ("시설경비업무", "시설경비업", "기계경비업무", "기계경비업", "특수경비업무", "특수경비업", "경비용역"):
+            _vendor_add_plan(plan, seen, "license", term, f"면허: {term}")
+        for term in ("시설물경비서비스", "경비"):
+            _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
+    elif any(term in compact for term in ("청사관리", "건물관리", "시설관리", "청사유지관리")):
+        for term in ("건물(시설)관리용역", "시설관리", "건물관리", "시설물관리를 전문으로 하는 자"):
+            _vendor_add_plan(plan, seen, "license", term, f"면허/업종: {term}")
+        for term in ("시설관리용역", "건물관리", "시설관리", "청소", "경비"):
+            _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
+        for term in ("청소용역", "시설경비업무"):
+            _vendor_add_plan(plan, seen, "license", term, f"면허/업종: {term}")
+    elif any(term in compact for term in ("빔프로젝트", "빔프로젝터", "프로젝터", "비디오프로젝터")):
+        for term in ("비디오프로젝터", "프로젝터"):
+            _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
+
+    default_terms = [
+        "컴퓨터", "노트북", "서버", "데스크톱", "프린터", "복합기",
+        "보안용카메라", "CCTV", "소프트웨어", "번역", "통역",
+        "보안소프트웨어", "보안SW", "안티바이러스", "정보보호", "방화벽",
+        "청소", "경비", "냉난방기", "에어컨", "공기청정기",
+        "LED", "조명", "책상", "의자", "가구", "캐비닛", "보관함",
+        "주방기기", "급식", "레미콘", "아스콘", "아스팔트콘크리트",
+        "탄성포장재", "포장공사", "도로포장", "방수공사",
+    ]
+    for term in default_terms:
+        if term.lower() in text.lower() or _vendor_compact(term) in compact:
+            _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
+            if _vendor_term_should_search_license(text) or _vendor_term_should_search_license(term):
+                _vendor_add_plan(plan, seen, "license", term, f"면허/업종: {term}")
+
+    if not plan:
+        _vendor_add_plan(plan, seen, "product", text, f"품목: {text}")
+        _vendor_add_plan(plan, seen, "license", text, f"면허/업종: {text}")
+        _vendor_add_plan(plan, seen, "company_name", text, f"업체명: {text}")
+    return plan
+
+
+def _vendor_row_relevance_score(row: dict[str, str], q: str) -> int:
+    tokens = _vendor_query_tokens(q)
+    if not tokens:
+        return 1
+    product_text = " ".join(str(row.get(field) or "") for field in (
+        "main_products",
+        "shopping_mall_product_summary",
+        "mas_product_summary",
+        "certified_product_summary",
+        "direct_production_summary",
+    )).lower()
+    license_text = str(row.get("license_or_business_type") or "").lower()
+    company_text = str(row.get("company_name") or "").lower()
+    score = 0
+    for token in tokens:
+        token_l = str(token).lower()
+        if not token_l:
+            continue
+        if token_l in product_text:
+            score += 4
+        if token_l in license_text:
+            score += 2
+        if token_l in company_text:
+            score += 1
+    return score
+
+
+def _vendor_match_rank_score(row: dict[str, str], q: str) -> int:
+    compact_q = _vendor_compact(q)
+    label = str(row.get("matched_query_label") or "")
+    matched_query = str(row.get("matched_query") or "")
+    product_text = _vendor_compact(" ".join(str(row.get(field) or "") for field in (
+        "main_products",
+        "shopping_mall_product_summary",
+        "mas_product_summary",
+        "certified_product_summary",
+        "direct_production_summary",
+        "venture_nara_product_summary",
+        "venture_nara_order_summary",
+    )))
+    license_text = _vendor_compact(str(row.get("license_or_business_type") or ""))
+    company_text = _vendor_compact(str(row.get("company_name") or ""))
+    score = _vendor_row_relevance_score(row, q)
+    policy_text = " ".join(str(row.get(field) or "") for field in (
+        "policy_company_labels",
+        "policy_subtypes",
+        "candidate_types",
+        "procurement_attributes",
+    )).lower()
+
+    if "품목정규화" in label:
+        score += 12
+    if "preferred" in label.lower():
+        score += 4
+    if matched_query and _vendor_compact(matched_query) in product_text:
+        score += 14
+    if matched_query and _vendor_compact(matched_query) in license_text:
+        score += 8
+    if matched_query and _vendor_compact(matched_query) in company_text:
+        score += 10
+
+    exact_groups: list[tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]]] = [
+        (("음향", "조명", "임대"), ("영상음향및조명장치임대서비스", "음향장비", "조명장비"), ("led", "다운라이트", "경관조명", "교통신호")),
+        (("빔프로젝터", "프로젝터"), ("비디오프로젝터", "프로젝터"), ("화이트보드", "전자칠판")),
+        (("토너",), ("토너", "재제조토너", "정품토너"), ("복사용지", "프린트및복사용지", "3d프린터", "3차원프린터")),
+        (("드론",), ("드론", "초경량비행장치"), ("정보시스템개발서비스", "소프트웨어")),
+        (("사무용가구", "중기간경쟁제품"), ("책상", "의자", "사무용가구", "보조책상"), ("기타미분류가구",)),
+        (("방화벽",), ("방화벽", "방화벽장치", "보안소프트웨어"), ("소프트웨어사업자",)),
+        (("탄성포장", "탄성포장재"), ("탄성포장재", "체육시설탄성포장재", "운동장포장"), ("조경시설물설치공사업",)),
+        (("현수막",), ("현수막",), ("인쇄물", "기타인쇄물", "상업인쇄물")),
+        (("pc", "데스크톱", "데스크탑"), ("데스크톱컴퓨터", "노트북컴퓨터", "컴퓨터서버"), ("컴퓨터책상",)),
+        (("노트북", "랩톱", "랩탑"), ("노트북컴퓨터", "휴대용컴퓨터"), ("컴퓨터책상",)),
+    ]
+    for query_terms, positive_terms, negative_terms in exact_groups:
+        if not any(_vendor_compact(term) in compact_q for term in query_terms):
+            continue
+        if any(_vendor_compact(term) in product_text or _vendor_compact(term) in license_text for term in positive_terms):
+            score += 35
+        if any(_vendor_compact(term) in product_text for term in negative_terms):
+            score -= 25
+
+    if any(term in compact_q for term in ("소독방역", "방역용역", "방역서비스", "소독용역")):
+        if any(term in product_text or term in license_text for term in ("방역서비스", "소독업")):
+            score += 35
+        if any(term in product_text for term in ("손소독제", "살균제")) and "소독업" not in license_text:
+            score -= 30
+
+    if "책상" in compact_q:
+        if "책상" in product_text or "책상" in license_text:
+            score += 45
+        if "의자" in product_text and "책상" not in product_text:
+            score -= 35
+    if "의자" in compact_q:
+        if "의자" in product_text or "의자" in license_text:
+            score += 45
+        if "책상" in product_text and "의자" not in product_text:
+            score -= 20
+
+    if any(term in compact_q for term in ("예방접종", "접종백신", "의약품백신")):
+        if any(term in product_text for term in ("소프트웨어", "보안소프트웨어", "패키지소프트웨어")):
+            score -= 80
+
+    if any(term in compact_q for term in ("법률자문", "법률", "변호사", "법률사무소", "법무법인")):
+        if any(term in company_text or term in license_text for term in ("변호사", "법률사무소", "법무법인")):
+            score += 45
+        elif any(term in company_text or term in license_text for term in ("법무사", "법무사업")):
+            score += 10
+
+    if any(term in compact_q for term in ("벤처나라", "거래실적", "구매실적", "납품실적", "주문거래")):
+        if _vendor_compact(str(row.get("venture_nara_order_summary") or "")):
+            score += 55
+        elif _vendor_compact(str(row.get("venture_nara_product_summary") or "")):
+            score += 30
+        else:
+            score -= 10
+
+    if any(term in compact_q for term in ("종합쇼핑몰", "쇼핑몰", "mas", "다수공급자")):
+        if _vendor_compact(str(row.get("shopping_mall_product_summary") or "")):
+            score += 25
+        if _vendor_compact(str(row.get("mas_product_summary") or "")):
+            score += 25
+
+    if "토너" in compact_q:
+        office_vendor_terms = ("전산", "사무", "문구", "잉크", "oa", "디지털", "정보", "프린터", "복사기")
+        food_license_terms = ("식육", "축산", "식품", "급식소", "농산", "수산")
+        has_procurement_evidence = any(
+            _vendor_compact(str(row.get(field) or ""))
+            for field in (
+                "shopping_mall_product_summary",
+                "mas_product_summary",
+                "certified_product_summary",
+                "direct_production_summary",
+            )
+        )
+        if any(term in company_text or term in license_text for term in office_vendor_terms):
+            score += 18
+        if any(term in license_text for term in food_license_terms) and not has_procurement_evidence:
+            score -= 35
+
+    for item in _vendor_requested_policy_preferences(q):
+        rule = next((rule for rule in _VENDOR_POLICY_PREFERENCE_RULES if rule[0] == item["key"]), None)
+        if rule and any(str(token).lower() in policy_text for token in rule[2]):
+            score += 45
+
+    return score
+
+
+def _vendor_query_has_any(q: str, terms: tuple[str, ...]) -> bool:
+    compact = _vendor_compact(q)
+    return any(_vendor_compact(term) in compact for term in terms)
+
+
+def _vendor_is_medical_vaccine_query(q: str) -> bool:
+    compact = _vendor_compact(q)
+    return "백신" in compact and any(term in compact for term in ("예방접종", "접종", "의약품", "의료용", "병원"))
+
+
+def _vendor_forbidden_row_terms(q: str) -> tuple[str, ...]:
+    if _vendor_query_has_any(q, ("행사용역", "행사", "발대식", "기념식", "행사기획", "행사대행", "이벤트")):
+        return ("건물청소서비스", "청소서비스", "청소용역", "시설물경비서비스", "경비용역")
+    if _vendor_query_has_any(q, ("번역", "번역용역", "통번역", "통역")):
+        return ("청소서비스", "행사기획", "행사대행", "조명장치", "경비용역")
+    if _vendor_query_has_any(q, ("청사경비", "경비용역", "시설경비", "무인경비", "기계경비", "특수경비")):
+        return ("행사기획", "행사대행", "번역서비스", "조명장치")
+    if _vendor_query_has_any(q, ("청소용역", "건물청소", "환경미화", "청소")):
+        return ("시설물경비서비스", "경비용역", "행사기획", "행사대행", "번역서비스")
+    return ()
+
+
+def _vendor_product_matches_query(row: dict[str, str], q: str) -> bool:
+    tokens = _vendor_query_tokens(q)
+    if not tokens:
+        return False
+    product_text = _vendor_compact(" ".join(str(row.get(field) or "") for field in (
+        "main_products",
+        "shopping_mall_product_summary",
+        "mas_product_summary",
+        "certified_product_summary",
+        "direct_production_summary",
+    )))
+    return any(_vendor_compact(token) and _vendor_compact(token) in product_text for token in tokens)
+
+
+def _vendor_has_forbidden_terms(row: dict[str, str], q: str) -> bool:
+    forbidden = _vendor_forbidden_row_terms(q)
+    if not forbidden:
+        return False
+    if _vendor_product_matches_query(row, q):
+        return False
+    haystack = " ".join(str(row.get(field) or "") for field in (
+        "company_name",
+        "license_or_business_type",
+        "main_products",
+        "shopping_mall_product_summary",
+        "mas_product_summary",
+        "certified_product_summary",
+        "direct_production_summary",
+    ))
+    return any(term in haystack for term in forbidden)
+
+
+def _vendor_filter_relevant_rows(rows: list[dict[str, str]], q: str) -> list[dict[str, str]]:
+    if not rows:
+        return rows
+    scored = [(row, _vendor_match_rank_score(row, q)) for row in rows]
+    relevant = [(row, score) for row, score in scored if score > 0]
+    if relevant:
+        filtered = [(row, score) for row, score in relevant if not _vendor_has_forbidden_terms(row, q)]
+        return [row for row, _ in sorted(filtered or relevant, key=lambda item: item[1], reverse=True)]
+    return rows
+
+
+def _vendor_available_columns(conn) -> set[str]:
+    try:
+        return {str(row[1]) for row in conn.execute("PRAGMA table_info(chatbot_company_candidate_view)").fetchall()}
+    except Exception:
+        return set()
+
+
+def _vendor_basic_search_rows(company_db, q: str, *, region: str = "부산", limit: int = 50) -> list[dict[str, str]]:
+    connect = getattr(company_db, "_connect", None)
+    if not callable(connect):
+        return []
+    conn = connect()
+    if conn is None:
+        return []
+    try:
+        columns = _vendor_available_columns(conn)
+        searchable_columns = [
+            col
+            for col in (
+                "company_name",
+                "license_or_business_type",
+                "main_products",
+                "candidate_types",
+                "policy_subtypes_raw",
+                "manufacturer_type",
+                "location",
+            )
+            if col in columns
+        ]
+        if not searchable_columns:
+            return []
+        terms = [q, *_vendor_query_tokens(q)]
+        clauses: list[str] = []
+        params: list[str] = []
+        for term in terms:
+            if not term:
+                continue
+            sub = []
+            for col in searchable_columns:
+                sub.append(f"COALESCE({col}, '') LIKE ?")
+                params.append(f"%{term}%")
+            clauses.append("(" + " OR ".join(sub) + ")")
+        if not clauses:
+            return []
+        order_parts = ["CASE WHEN business_status = 'active' THEN 0 ELSE 1 END"] if "business_status" in columns else []
+        if "shopping_mall_flags_raw" in columns:
+            order_parts.append("CASE WHEN shopping_mall_flags_raw IS NOT NULL AND shopping_mall_flags_raw != '' THEN 0 ELSE 1 END")
+        order_parts.append("company_name")
+        sql = f"""
+            SELECT *
+            FROM chatbot_company_candidate_view
+            WHERE {' OR '.join(clauses)}
+            ORDER BY {', '.join(order_parts)}
+            LIMIT ?
+        """
+        rows: list[dict[str, str]] = []
+        seen: set[str] = set()
+        for db_row in conn.execute(sql, [*params, max(limit * 2, limit)]).fetchall():
+            row = _vendor_row_from_db(dict(db_row))
+            row["matched_source"] = "local_view_basic"
+            row["matched_query"] = q
+            row["matched_query_label"] = f"기본검색: {q}"
             key = row.get("company_id") or row.get("company_name")
             if not key or key in seen:
+                continue
+            if _vendor_is_closed_or_suspended(row):
                 continue
             if not _vendor_region_matches(row, region):
                 continue
             seen.add(key)
             rows.append(row)
             if len(rows) >= limit:
-                return rows
-    return rows
+                break
+        return rows
+    except Exception:
+        return []
+    finally:
+        conn.close()
+
+
+def _vendor_search_rows(q: str, *, region: str = "부산", limit: int = 50) -> list[dict[str, str]]:
+    q = " ".join(str(q or "").split())
+    if not q:
+        raise HTTPException(status_code=400, detail="q query parameter is required")
+    limit = max(1, min(int(limit or 50), 500))
+    company_db = _vendor_import_company_db()
+    calls_by_type = {
+        "product": [
+            ("product", getattr(company_db, "search_by_product", None)),
+            ("shopping_mall_product", getattr(company_db, "search_shopping_mall_product", None)),
+            ("certified_product", getattr(company_db, "search_certified_product", None)),
+            ("innovation_product", getattr(company_db, "search_innovation_product", None)),
+            ("excellent_procurement_product", getattr(company_db, "search_excellent_procurement_product", None)),
+        ],
+        "license": [("license", getattr(company_db, "search_by_license", None))],
+        "company_name": [("company_name", getattr(company_db, "search_by_company_name", None))],
+        "direct_production": [("direct_production", getattr(company_db, "search_by_direct_production", None))],
+    }
+    rows: list[dict[str, str]] = []
+    seen: set[str] = set()
+    per_call_limit = max(limit, 20)
+    result_target = limit
+    if _vendor_query_has_any(q, ("번역", "번역용역", "통번역", "통역", "외국어")):
+        result_target = min(result_target, 10)
+        per_call_limit = min(per_call_limit, 10)
+    for plan_item in _vendor_query_plan(q):
+        term = plan_item["term"]
+        label = plan_item.get("label") or term
+        for source, func in calls_by_type.get(plan_item["search_type"], []):
+            if not callable(func):
+                continue
+            try:
+                data = func(term, limit=per_call_limit) or {}
+            except Exception:
+                continue
+            for candidate in data.get("candidates") or []:
+                row = _vendor_row_from_candidate(candidate)
+                row["matched_source"] = source
+                row["matched_query"] = term
+                row["matched_query_label"] = label
+                key = row.get("company_id") or row.get("company_name")
+                if not key or key in seen:
+                    continue
+                if _vendor_is_closed_or_suspended(row):
+                    continue
+                if not _vendor_region_matches(row, region):
+                    continue
+                seen.add(key)
+                rows.append(row)
+                if len(rows) >= result_target:
+                    break
+            if len(rows) >= result_target:
+                break
+        if len(rows) >= result_target:
+            break
+    if not rows:
+        if _vendor_is_medical_vaccine_query(q):
+            return []
+        rows = _vendor_basic_search_rows(company_db, q, region=region, limit=limit)
+    return _vendor_filter_relevant_rows(rows, q)[:limit]
 
 
 def _vendor_download_rows(*, active_only: bool = True, limit: int = 0) -> list[dict[str, str]]:
@@ -707,7 +1441,14 @@ def _vendor_download_rows(*, active_only: bool = True, limit: int = 0) -> list[d
     if conn is None:
         raise HTTPException(status_code=503, detail="company DB file not found or disabled")
     try:
-        where = "WHERE business_status = 'active'" if active_only else ""
+        where = (
+            """
+            WHERE COALESCE(NULLIF(TRIM(LOWER(business_status)), ''), 'unknown')
+                  NOT IN ('inactive', 'closed', '폐업', '휴업', '종료', 'cancelled', 'canceled')
+            """
+            if active_only
+            else ""
+        )
         limit_sql = "LIMIT ?" if int(limit or 0) > 0 else ""
         params = [int(limit)] if int(limit or 0) > 0 else []
         sql = f"""
@@ -730,8 +1471,9 @@ def _vendor_download_rows(*, active_only: bool = True, limit: int = 0) -> list[d
 def _vendor_rows_to_csv_bytes(rows: list[dict[str, str]]) -> bytes:
     output = StringIO(newline="")
     fields = [*VENDOR_CSV_FIELDS]
-    if any("matched_source" in row for row in rows):
-        fields.append("matched_source")
+    for extra_field in ("matched_source", "matched_query", "matched_query_label"):
+        if any(extra_field in row for row in rows):
+            fields.append(extra_field)
     writer = csv.DictWriter(output, fieldnames=fields, extrasaction="ignore")
     writer.writeheader()
     for row in rows:
@@ -750,6 +1492,707 @@ def _vendor_zip_bytes(csv_name: str, rows: list[dict[str, str]]) -> bytes:
         zf.writestr(csv_name, _vendor_rows_to_csv_bytes(rows))
         zf.writestr("README.txt", readme.encode("utf-8"))
     return payload.getvalue()
+
+
+def _vendor_is_truthy(value) -> bool:
+    if value is True:
+        return True
+    if value is False or value is None:
+        return False
+    text = str(value).strip().lower()
+    return text not in {"", "false", "0", "none", "unknown", "[]"}
+
+
+def _vendor_split_values(value) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    text = str(value).strip()
+    if not text or text == "[]":
+        return []
+    if text.startswith("[") and text.endswith("]"):
+        try:
+            parsed = json.loads(text)
+            if isinstance(parsed, list):
+                return [str(item).strip() for item in parsed if str(item).strip()]
+        except Exception:
+            pass
+    parts = re.split(r"[|,]", text)
+    return [part.strip() for part in parts if part.strip()]
+
+
+def _vendor_label_values(value, label_map: dict[str, str]) -> str:
+    labels: list[str] = []
+    for raw in _vendor_split_values(value):
+        key, status = (raw.split(":", 1) + [""])[:2] if ":" in raw else (raw, "")
+        key = key.strip()
+        label = label_map.get(key, key)
+        if status.strip():
+            label = f"{label}({status.strip()})"
+        if label and label not in labels:
+            labels.append(label)
+    return " | ".join(labels)
+
+
+def _vendor_data_status(value, *, positive_label: str, empty_label: str = "DB 등록정보 없음") -> str:
+    return positive_label if _vendor_is_truthy(value) else empty_label
+
+
+def _vendor_business_status_label(row: dict[str, str]) -> str:
+    status = str(row.get("business_status") or "").strip().lower()
+    labels = {
+        "active": "정상 영업",
+        "closed": "폐업",
+        "suspended": "휴업",
+        "inactive": "비활성",
+        "unknown": "영업상태 미확인",
+        "not_checked": "영업상태 미확인",
+    }
+    return labels.get(status, row.get("business_status") or "영업상태 미확인")
+
+
+def _vendor_business_freshness_label(row: dict[str, str]) -> str:
+    freshness = str(row.get("business_status_freshness") or "").strip().lower()
+    labels = {
+        "fresh": "최신 검증",
+        "stale": "재검증 필요",
+        "not_checked": "미검증",
+        "unknown": "검증상태 미확인",
+    }
+    return labels.get(freshness, row.get("business_status_freshness") or "검증상태 미확인")
+
+
+def _vendor_is_closed_or_suspended(row: dict[str, str]) -> bool:
+    status = str(row.get("business_status") or "").strip().lower()
+    return status in {"closed", "suspended", "inactive", "폐업", "휴업", "종료", "cancelled", "canceled"}
+
+
+def _vendor_sme_competition_row_label(row: dict[str, str]) -> str:
+    if row.get("is_sme_competition_product") == "true" or _vendor_contains_any(row, ["procurement_attributes"], ("sme", "competition", "중소기업자간")):
+        return "해당 가능"
+    return "DB 등록정보 없음"
+
+
+def _vendor_cooperative_purchase_row_label(row: dict[str, str]) -> str:
+    if _vendor_contains_any(
+        row,
+        ["procurement_attributes", "policy_subtypes", "candidate_types"],
+        ("coop", "cooperative", "협동조합", "조합추천", "소기업공동", "small_business_collective"),
+    ):
+        return "조합추천/소기업 공동사업제품 경로 검토 가능성"
+    return "품목검토 필요"
+
+
+def _vendor_contains_any(row: dict[str, str], fields: list[str], needles: tuple[str, ...]) -> bool:
+    haystack = " ".join(str(row.get(field) or "") for field in fields).lower()
+    return any(needle.lower() in haystack for needle in needles)
+
+
+def _vendor_contract_review_types(row: dict[str, str]) -> list[str]:
+    review_types: list[str] = []
+    if _vendor_is_truthy(row.get("license_or_business_type")):
+        review_types.append("면허/업종 검토")
+    if _vendor_is_truthy(row.get("main_products")):
+        review_types.append("품목 후보")
+    if _vendor_is_truthy(row.get("has_shopping_mall")):
+        review_types.append("종합쇼핑몰 등록")
+    if _vendor_is_truthy(row.get("has_mas")):
+        review_types.append("MAS 검토")
+    if _vendor_is_truthy(row.get("direct_production_summary")) or _vendor_is_truthy(row.get("direct_production_flags")):
+        review_types.append("직접생산증명서 확인")
+    if _vendor_is_truthy(row.get("construction_capacity_summary")):
+        review_types.append("시공능력평가금액 확인")
+    if _vendor_is_truthy(row.get("venture_nara_product_summary")) or _vendor_is_truthy(row.get("venture_nara_order_summary")):
+        review_types.append("벤처나라 등록/거래실적")
+    if _vendor_is_truthy(row.get("certified_product_types")) or _vendor_is_truthy(row.get("certified_product_summary")):
+        review_types.append("인증/기술개발제품")
+    if _vendor_is_truthy(row.get("policy_subtypes")):
+        review_types.append("정책기업")
+    if row.get("is_sme_competition_product") == "true" or _vendor_contains_any(row, ["procurement_attributes"], ("sme", "competition", "중소기업자간")):
+        review_types.append("중기간경쟁제품 검토")
+    return review_types
+
+
+def _vendor_recommended_checks(row: dict[str, str]) -> list[str]:
+    checks = ["영업상태 최신 여부"]
+    if str(row.get("business_status") or "").lower() != "active":
+        checks.append("국세청 영업상태 원장 재확인")
+    if _vendor_is_truthy(row.get("license_or_business_type")):
+        checks.append("공고 면허·업종 적합성")
+    if _vendor_is_truthy(row.get("direct_production_summary")) or _vendor_is_truthy(row.get("direct_production_flags")):
+        checks.append("직접생산증명서 세부품명·유효기간")
+    if _vendor_is_truthy(row.get("construction_capacity_summary")):
+        checks.append("시공능력평가금액 기준연도·면허명 일치 여부")
+    if _vendor_is_truthy(row.get("venture_nara_product_summary")) or _vendor_is_truthy(row.get("venture_nara_order_summary")):
+        checks.append("벤처나라 상품 유효기간·거래실적 원장 확인")
+    if _vendor_is_truthy(row.get("has_mas")) or _vendor_is_truthy(row.get("has_shopping_mall")):
+        checks.append("MAS/쇼핑몰 계약상태·납품조건")
+    if _vendor_is_truthy(row.get("certified_product_types")):
+        checks.append("인증제품 지정상태·적용 품명")
+    if _vendor_is_truthy(row.get("policy_subtypes")):
+        checks.append("정책기업 지위 유효성")
+    if row.get("is_sme_competition_product") == "true":
+        checks.append("중소기업자간 경쟁제품 해당 여부")
+    return checks
+
+
+def _vendor_review_score(row: dict[str, str]) -> int:
+    score = 0
+    status = str(row.get("business_status") or "").lower()
+    if status in {"active", "정상", "계속사업자"}:
+        score += 20
+    elif _vendor_is_closed_or_suspended(row):
+        score -= 100
+    if "부산" in f"{row.get('location', '')} {row.get('detail_address', '')}":
+        score += 20
+    for review_type in _vendor_contract_review_types(row):
+        if review_type in {"면허/업종 검토", "품목 후보"}:
+            score += 10
+        elif review_type in {"MAS 검토", "종합쇼핑몰 등록", "직접생산증명서 확인"}:
+            score += 8
+        else:
+            score += 5
+    return score
+
+
+def _normalize_budget_krw(value) -> int | None:
+    if value is None or value == "":
+        return None
+    try:
+        budget = int(str(value).replace(",", "").replace("_", "").strip())
+    except (TypeError, ValueError):
+        return None
+    return budget if budget > 0 else None
+
+
+def _format_krw_short(value: int | None) -> str:
+    if not value:
+        return "미입력"
+    eok = value // 100_000_000
+    man = (value % 100_000_000) // 10_000
+    if eok and man:
+        return f"{eok}억 {man:,}만원"
+    if eok:
+        return f"{eok}억원"
+    return f"{man:,}만원"
+
+
+def _vendor_budget_review_hint(row: dict[str, str], budget_krw: int | None) -> str:
+    if not budget_krw:
+        return "예산 미입력: 업체 속성 중심 후보입니다."
+    hints = [f"예산 {_format_krw_short(budget_krw)} 입력됨"]
+    if _vendor_is_truthy(row.get("has_mas")) or _vendor_is_truthy(row.get("has_shopping_mall")):
+        hints.append("MAS/종합쇼핑몰 경로 우선 검토")
+    if _vendor_is_truthy(row.get("direct_production_summary")) or _vendor_is_truthy(row.get("direct_production_flags")):
+        hints.append("직접생산증명서 세부품명·유효기간 확인")
+    if _vendor_is_truthy(row.get("construction_capacity_summary")):
+        hints.append("공사·기술용역이면 시공능력평가금액과 면허 범위 확인")
+    if _vendor_is_truthy(row.get("venture_nara_product_summary")) or _vendor_is_truthy(row.get("venture_nara_order_summary")):
+        hints.append("벤처나라 등록상품·거래실적은 참고자료로 확인")
+    if row.get("is_sme_competition_product") == "true" or _vendor_contains_any(row, ["procurement_attributes"], ("sme", "competition", "중소기업자간")):
+        hints.append("중기간경쟁제품 여부 확인")
+    if _vendor_is_truthy(row.get("certified_product_types")):
+        hints.append("인증제품/기술개발제품 예외 가능성 별도 검토")
+    if _vendor_is_truthy(row.get("policy_subtypes")):
+        hints.append("정책기업 수의계약 가능성은 금액·기관유형 기준 별도 검토")
+    hints.append("계약방법 확정은 계약검토 서비스로 분리")
+    return " | ".join(hints)
+
+
+def _vendor_recommendation_row(row: dict[str, str], *, budget_krw: int | None = None) -> dict[str, str | int]:
+    review_types = _vendor_contract_review_types(row)
+    checks = _vendor_recommended_checks(row)
+    rec = dict(row)
+    rec["contract_review_types"] = " | ".join(review_types)
+    rec["license_status_label"] = _vendor_data_status(row.get("license_or_business_type"), positive_label="보유 정보 있음")
+    rec["shopping_mall_status_label"] = _vendor_data_status(row.get("has_shopping_mall"), positive_label="종합쇼핑몰 등록정보 있음")
+    rec["mas_status_label"] = _vendor_data_status(row.get("has_mas"), positive_label="MAS 등록정보 있음")
+    direct_summary = row.get("direct_production_summary") or row.get("direct_production_flags") or ""
+    rec["direct_production_certificate_status"] = _vendor_data_status(
+        direct_summary,
+        positive_label="직접생산증명서 정보 있음",
+    )
+    rec["direct_production_certificate_products"] = direct_summary
+    rec["construction_capacity_status_label"] = _vendor_data_status(
+        row.get("construction_capacity_summary"),
+        positive_label="시공능력평가금액 정보 있음",
+    )
+    rec["venture_nara_status_label"] = _vendor_data_status(
+        row.get("venture_nara_product_summary") or row.get("venture_nara_order_summary"),
+        positive_label="벤처나라 정보 있음",
+    )
+    rec["certified_product_labels"] = _vendor_label_values(row.get("certified_product_types"), _VENDOR_CERT_LABELS)
+    rec["policy_company_labels"] = _vendor_label_values(row.get("policy_subtypes"), _VENDOR_POLICY_LABELS)
+    rec["sme_competition_product_label"] = _vendor_sme_competition_row_label(row)
+    rec["cooperative_purchase_route_label"] = _vendor_cooperative_purchase_row_label(row)
+    rec["business_status_label"] = _vendor_business_status_label(row)
+    rec["business_status_freshness_label"] = _vendor_business_freshness_label(row)
+    rec["budget_krw"] = budget_krw or ""
+    rec["budget_review_hint"] = _vendor_budget_review_hint(row, budget_krw)
+    rec["recommended_checks"] = " | ".join(checks)
+    rec["review_score"] = _vendor_review_score(row)
+    return rec
+
+
+def _monitoring_company_api_base_url() -> str:
+    return os.getenv("MONITORING_COMPANY_API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+
+
+_MONITORING_API_FALLBACK_DISABLED_UNTIL = 0.0
+
+
+def _monitoring_api_get(endpoint: str, params: dict[str, object], *, timeout: float = 2.0) -> dict | None:
+    global _MONITORING_API_FALLBACK_DISABLED_UNTIL
+    now = time.monotonic()
+    if now < _MONITORING_API_FALLBACK_DISABLED_UNTIL:
+        return None
+    try:
+        response = requests.get(f"{_monitoring_company_api_base_url()}{endpoint}", params=params, timeout=timeout)
+        response.raise_for_status()
+        data = response.json()
+        _MONITORING_API_FALLBACK_DISABLED_UNTIL = 0.0
+        return data if isinstance(data, dict) else {"items": data}
+    except Exception:
+        cooldown = float(os.getenv("MONITORING_COMPANY_API_FALLBACK_COOLDOWN_SEC", "60"))
+        if cooldown > 0:
+            _MONITORING_API_FALLBACK_DISABLED_UNTIL = now + cooldown
+        return None
+
+
+def _vendor_item_bool(value) -> bool | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text in {"true", "1", "yes", "y", "해당", "대상"}:
+        return True
+    if text in {"false", "0", "no", "n", "미해당", "비대상"}:
+        return False
+    return None
+
+
+def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, str]], *, requested: bool) -> dict[str, object]:
+    if not requested:
+        return {
+            "status": "not_requested",
+            "query": q,
+            "message": "제품정책 검토를 실행하지 않았습니다.",
+            "sme_competition_product": "확인 필요",
+            "direct_production_certificate": "확인 필요",
+            "cooperative_purchase_route": "확인 필요",
+            "matched_products": [],
+        }
+    if not product_policy_checks:
+        return {
+            "status": "not_found_or_unavailable",
+            "query": q,
+            "message": "제품정책 DB/API에서 품목 매칭을 확인하지 못했습니다.",
+            "sme_competition_product": "확인 필요",
+            "direct_production_certificate": "확인 필요",
+            "cooperative_purchase_route": "확인 필요",
+            "matched_products": [],
+        }
+
+    matched_products: list[dict[str, str]] = []
+    sme_values: list[bool] = []
+    direct_supplier_counts: list[int] = []
+    for item in product_policy_checks:
+        sme_flag = _vendor_item_bool(item.get("is_sme_competition_product"))
+        if sme_flag is not None:
+            sme_values.append(sme_flag)
+        try:
+            direct_supplier_counts.append(int(str(item.get("direct_production_valid_supplier_count") or "0").replace(",", "")))
+        except ValueError:
+            pass
+        matched_products.append({
+            "detail_product_code": _vendor_join(item.get("detail_product_code")),
+            "detail_product_name": _vendor_join(item.get("detail_product_name")),
+            "sme_competition_product": "해당" if sme_flag is True else "미해당" if sme_flag is False else "확인 필요",
+            "direct_production_valid_supplier_count": _vendor_join(item.get("direct_production_valid_supplier_count")),
+            "mas_active_supplier_count": _vendor_join(item.get("mas_active_supplier_count")),
+            "busan_company_product_count": _vendor_join(item.get("busan_company_product_count")),
+            "required_special_note": _vendor_join(item.get("required_special_note")),
+        })
+
+    is_sme = any(sme_values)
+    direct_count = max(direct_supplier_counts) if direct_supplier_counts else 0
+    if is_sme:
+        direct_label = "직접생산증명서 세부품명·유효기간 확인 필요"
+        cooperative_label = "조합추천/소기업 공동사업제품 수의계약 경로 검토 가능"
+        message = "검색 품목이 중소기업자간 경쟁제품으로 매칭되었습니다. 직접생산증명서와 예외 구매경로를 별도 확인해야 합니다."
+    else:
+        direct_label = "품목 매칭상 직접생산증명서 의무 여부 추가 확인"
+        cooperative_label = "중소기업자간 경쟁제품 해당 시 검토"
+        message = "검색 품목의 중소기업자간 경쟁제품 매칭은 확인되지 않았습니다. 세부품명 기준 재확인이 필요합니다."
+    if direct_count:
+        direct_label = f"{direct_label} / 유효 공급업체 수: {direct_count}"
+
+    return {
+        "status": "matched",
+        "query": q,
+        "message": message,
+        "sme_competition_product": "해당 가능" if is_sme else "미매칭 또는 확인 필요",
+        "direct_production_certificate": direct_label,
+        "cooperative_purchase_route": cooperative_label,
+        "matched_products": matched_products,
+    }
+
+
+_VENDOR_POLICY_PREFERENCE_RULES = [
+    ("disabled_company", "장애인기업", ("장애인기업", "장애인 표준사업장", "장애인표준사업장", "중증장애인생산품", "disabled")),
+    ("women_company", "여성기업", ("여성기업", "여성 업체", "women")),
+    ("social_enterprise", "사회적기업", ("사회적기업", "사회적 기업", "social")),
+    ("social_cooperative", "사회적협동조합", ("사회적협동조합", "사회적 협동조합", "social_cooperative")),
+    ("self_support_company", "자활기업", ("자활기업", "자활 업체", "self_support")),
+    ("village_company", "마을기업", ("마을기업", "마을 업체", "village_company")),
+    ("small_business", "소상공인", ("소상공인", "소상공 업체", "소기업", "small_business")),
+    ("startup", "창업기업", ("창업기업", "창업 업체", "스타트업", "startup")),
+    ("youth_startup", "청년창업기업", ("청년창업기업", "청년 창업기업", "청년 창업", "youth_startup")),
+    ("venture_company", "벤처기업", ("벤처기업", "벤처 업체", "venture")),
+]
+
+_VENDOR_POLICY_COMPANY_CACHE: list[dict[str, object]] | None = None
+
+
+def _vendor_requested_policy_preferences(q: str) -> list[dict[str, str]]:
+    requested: list[dict[str, str]] = []
+    compact = _vendor_compact(q)
+    for key, label, triggers in _VENDOR_POLICY_PREFERENCE_RULES:
+        if any(_vendor_compact(trigger) in compact for trigger in triggers[:3]):
+            requested.append({"key": key, "label": label})
+    return requested
+
+
+def _vendor_policy_company_entries() -> list[dict[str, object]]:
+    global _VENDOR_POLICY_COMPANY_CACHE
+    if _VENDOR_POLICY_COMPANY_CACHE is not None:
+        return _VENDOR_POLICY_COMPANY_CACHE
+
+    path = Path(APP_DIR) / "policy_companies.json"
+    entries: list[dict[str, object]] = []
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        _VENDOR_POLICY_COMPANY_CACHE = []
+        return _VENDOR_POLICY_COMPANY_CACHE
+
+    if isinstance(raw, dict):
+        iterator = raw.values()
+    elif isinstance(raw, list):
+        iterator = raw
+    else:
+        iterator = []
+    for item in iterator:
+        if not isinstance(item, dict):
+            continue
+        tags = [str(tag) for tag in item.get("tags") or [] if str(tag).strip()]
+        entries.append({
+            "company_name": _vendor_join(item.get("name")),
+            "location": _vendor_join(item.get("location")),
+            "business_type": _vendor_join(item.get("biz_type")),
+            "industry": _vendor_join(item.get("industry")),
+            "representative_product": _vendor_join(item.get("product")),
+            "manufacturer": _vendor_join(item.get("manufacturer")),
+            "registered_at": _vendor_join(item.get("registered")),
+            "policy_labels": tags,
+            "source": "policy_companies_json",
+        })
+    _VENDOR_POLICY_COMPANY_CACHE = entries
+    return _VENDOR_POLICY_COMPANY_CACHE
+
+
+def _vendor_policy_company_search_terms(q: str) -> list[str]:
+    terms: list[str] = []
+    requested_labels = {item["label"] for item in _vendor_requested_policy_preferences(q)}
+    for item in _vendor_query_plan(q):
+        if item.get("search_type") not in {"product", "license"}:
+            continue
+        term = " ".join(str(item.get("term") or "").split())
+        if not term or term in requested_labels:
+            continue
+        if term not in terms:
+            terms.append(term)
+    for token in _vendor_query_tokens(q):
+        token = " ".join(str(token or "").split())
+        if token and token not in requested_labels and token not in terms:
+            terms.append(token)
+    return terms[:12]
+
+
+def _vendor_policy_company_alternatives(
+    q: str,
+    requested: list[dict[str, str]],
+    *,
+    region: str = "부산",
+    limit: int = 10,
+) -> list[dict[str, object]]:
+    if not requested:
+        return []
+
+    requested_labels = {item["label"] for item in requested}
+    terms = _vendor_policy_company_search_terms(q)
+    region_text = "부산" if str(region).lower() == "busan" else str(region or "")
+    scored: list[tuple[int, dict[str, object]]] = []
+    seen: set[tuple[str, str]] = set()
+    for entry in _vendor_policy_company_entries():
+        labels = {str(label) for label in entry.get("policy_labels") or []}
+        if not labels.intersection(requested_labels):
+            continue
+        location = str(entry.get("location") or "")
+        if region_text and region_text not in location:
+            continue
+        haystack = " ".join(str(entry.get(field) or "") for field in (
+            "company_name",
+            "location",
+            "business_type",
+            "industry",
+            "representative_product",
+        ))
+        compact_haystack = _vendor_compact(haystack)
+        matched_terms: list[str] = []
+        score = 0
+        for term in terms:
+            compact_term = _vendor_compact(term)
+            if not compact_term or compact_term not in compact_haystack:
+                continue
+            matched_terms.append(term)
+            if compact_term in _vendor_compact(str(entry.get("representative_product") or "")):
+                score += 5
+            elif compact_term in _vendor_compact(str(entry.get("industry") or "")):
+                score += 4
+            else:
+                score += 2
+        if terms and not matched_terms:
+            continue
+        name = str(entry.get("company_name") or "")
+        key = (name, location)
+        if not name or key in seen:
+            continue
+        seen.add(key)
+        scored.append((score, {**entry, "matched_terms": matched_terms}))
+
+    scored.sort(key=lambda item: (-item[0], str(item[1].get("company_name") or "")))
+    return [entry for _, entry in scored[:max(1, min(int(limit or 10), 30))]]
+
+
+def _vendor_policy_preference_summary(q: str, rows: list[dict[str, str | int]], *, region: str = "부산") -> dict[str, object]:
+    requested = _vendor_requested_policy_preferences(q)
+    if not requested:
+        return {
+            "status": "not_requested",
+            "requested": [],
+            "matched_count": 0,
+            "alternative_count": 0,
+            "alternatives": [],
+            "message": "",
+        }
+
+    matched_rows: list[dict[str, str]] = []
+    for row in rows:
+        haystack = " ".join(str(row.get(field) or "") for field in (
+            "policy_company_labels",
+            "policy_subtypes",
+            "candidate_types",
+            "procurement_attributes",
+        )).lower()
+        for item in requested:
+            rule = next((rule for rule in _VENDOR_POLICY_PREFERENCE_RULES if rule[0] == item["key"]), None)
+            if rule and any(str(token).lower() in haystack for token in rule[2]):
+                matched_rows.append({
+                    "company_name": str(row.get("company_name") or ""),
+                    "matched_policy": item["label"],
+                })
+                break
+
+    requested_labels = ", ".join(item["label"] for item in requested)
+    if matched_rows:
+        message = f"{requested_labels} 조건과 일치하는 후보가 {len(matched_rows)}건 확인됩니다. 해당 지위의 유효기간과 증빙은 공고 전 재확인해야 합니다."
+        status = "matched"
+        alternatives: list[dict[str, object]] = []
+    else:
+        alternatives = _vendor_policy_company_alternatives(q, requested, region=region, limit=10)
+        if alternatives:
+            message = f"{requested_labels} 조건은 일반 후보 목록에서는 확인되지 않았지만, 정책기업 보조 DB에서 {len(alternatives)}건의 별도 확인 후보가 검색되었습니다."
+        else:
+            message = f"{requested_labels} 조건을 포함한 질문입니다. 현재 후보 목록과 정책기업 보조 DB에서 해당 조건 후보를 확인하지 못했습니다."
+        status = "not_found_in_candidates"
+    return {
+        "status": status,
+        "requested": requested,
+        "matched_count": len(matched_rows),
+        "matched_companies": matched_rows[:10],
+        "alternative_count": len(alternatives),
+        "alternatives": alternatives[:10],
+        "message": message,
+    }
+
+
+def _vendor_product_policy_checks(q: str, *, limit: int = 5) -> list[dict[str, str]]:
+    timeout = float(os.getenv("VENDOR_PRODUCT_POLICY_TIMEOUT_SEC", "0.8"))
+    checks: list[dict[str, str]] = []
+    seen_codes: set[str] = set()
+    terms: list[str] = []
+    for item in _vendor_query_plan(q):
+        if item.get("search_type") == "product":
+            term = " ".join(str(item.get("term") or "").split())
+            if term and term not in terms:
+                terms.append(term)
+    if not terms:
+        terms = [q]
+    for term in terms[:8]:
+        data = None
+        used_db_policy = False
+        try:
+            company_db = _vendor_import_company_db()
+            search_product_policy = getattr(company_db, "search_product_policy", None)
+            if callable(search_product_policy):
+                data = search_product_policy(term, limit=max(1, min(int(limit or 5), 20)))
+                used_db_policy = bool(data and (data.get("candidates") or data.get("items") or data.get("data")))
+        except Exception:
+            data = None
+        if not (data and (data.get("candidates") or data.get("items") or data.get("data"))):
+            data = _monitoring_api_get(
+                "/api/chatbot/product-policy/search",
+                {"keyword": term, "limit": max(1, min(int(limit or 5), 20))},
+                timeout=timeout,
+            )
+            used_db_policy = False
+        if not data:
+            continue
+        policy_source = str((data.get("meta") or {}).get("source") or "product_policy_summary") if used_db_policy else "monitoring_api"
+        raw_items = data.get("candidates") or data.get("items") or data.get("data") or []
+        for item in raw_items:
+            if not isinstance(item, dict):
+                continue
+            code = _vendor_join(item.get("detail_product_code"))
+            name = _vendor_join(item.get("detail_product_name"))
+            key = code or name
+            if key and key in seen_codes:
+                continue
+            if key:
+                seen_codes.add(key)
+            checks.append({
+                "detail_product_code": code,
+                "detail_product_name": name,
+                "matched_policy_keyword": term,
+                "matched_policy_source": policy_source,
+                "is_sme_competition_product": _vendor_join(item.get("is_sme_competition_product")),
+                "is_construction_material_direct_purchase": _vendor_join(item.get("is_construction_material_direct_purchase")),
+                "direct_production_valid_supplier_count": _vendor_join(item.get("direct_production_valid_supplier_count")),
+                "mas_active_supplier_count": _vendor_join(item.get("mas_active_supplier_count")),
+                "busan_company_product_count": _vendor_join(item.get("busan_company_product_count")),
+                "required_special_note": _vendor_join(item.get("required_special_note")),
+            })
+            if len(checks) >= max(1, min(int(limit or 5), 20)):
+                return _vendor_sort_product_policy_checks(q, checks)
+    return _vendor_sort_product_policy_checks(q, checks)
+
+
+def _vendor_sort_product_policy_checks(q: str, checks: list[dict[str, str]]) -> list[dict[str, str]]:
+    compact_q = _vendor_compact(q)
+
+    def rank(item: dict[str, str]) -> tuple[int, int, str]:
+        name = _vendor_compact(item.get("detail_product_name") or "")
+        keyword = _vendor_compact(item.get("matched_policy_keyword") or "")
+        score = 0
+        if keyword and keyword in name:
+            score += 20
+        if any(term in compact_q for term in ("pc", "데스크톱", "데스크탑")):
+            if any(term in name for term in ("데스크톱컴퓨터", "노트북컴퓨터", "컴퓨터서버")):
+                score += 40
+            if "컴퓨터책상" in name:
+                score -= 50
+        if any(term in compact_q for term in ("노트북", "랩톱", "랩탑")):
+            if "노트북컴퓨터" in name:
+                score += 50
+            if "컴퓨터책상" in name:
+                score -= 50
+        if "토너" in compact_q:
+            if "토너" in name:
+                score += 50
+            if any(term in name for term in ("프린터", "복사용지")):
+                score -= 20
+        if any(term in compact_q for term in ("빔프로젝터", "프로젝터")):
+            if "비디오프로젝터" in name or "프로젝터" in name:
+                score += 50
+        if "드론" in compact_q and "드론" in name:
+            score += 50
+        if "사무용가구" in compact_q:
+            if any(term in name for term in ("책상", "의자", "사무용가구")):
+                score += 35
+            if "기타미분류가구" in name:
+                score -= 20
+        try:
+            direct_count = int(str(item.get("direct_production_valid_supplier_count") or "0").replace(",", ""))
+        except ValueError:
+            direct_count = 0
+        return (score, direct_count, str(item.get("detail_product_name") or ""))
+
+    return sorted(checks, key=rank, reverse=True)
+
+
+def _vendor_should_check_product_policy(q: str) -> bool:
+    compact = _vendor_compact(q)
+    product_markers = (
+        "구매",
+        "납품",
+        "물품",
+        "제품",
+        "장치",
+        "기기",
+        "자재",
+        "소모품",
+        "컴퓨터",
+        "노트북",
+        "led",
+        "cctv",
+        "토너",
+        "드론",
+        "가구",
+        "분전반",
+    )
+    service_markers = (
+        "용역",
+        "공사",
+        "경비",
+        "청소",
+        "번역",
+        "통역",
+        "행사",
+        "시설관리",
+        "방역",
+        "소독",
+        "설계",
+        "측량",
+        "폐기물",
+        "원가계산",
+        "법무",
+        "유지보수",
+    )
+    if any(marker in compact for marker in product_markers):
+        return True
+    if any(marker in compact for marker in service_markers):
+        return False
+    return True
+
+
+def _vendor_recommendation_rows(q: str, *, region: str = "부산", limit: int = 30, budget_krw: int | None = None) -> list[dict[str, str | int]]:
+    requested_limit = max(1, min(int(limit or 30), 100))
+    pool_limit = max(requested_limit, min(max(requested_limit + 10, 30), 100))
+    raw_rows = _vendor_search_rows(q, region=region, limit=pool_limit)
+    rows = [_vendor_recommendation_row(row, budget_krw=budget_krw) for row in raw_rows]
+    for row in rows:
+        row["match_rank_score"] = _vendor_match_rank_score(row, q)
+    rows.sort(
+        key=lambda row: (
+            int(row.get("match_rank_score") or 0),
+            int(row.get("review_score") or 0),
+        ),
+        reverse=True,
+    )
+    return rows[:requested_limit]
 
 
 def _find_qa_log_by_id(qa_log_id: str) -> dict | None:
@@ -1144,6 +2587,49 @@ def vendor_search(q: str, region: str = "부산", limit: int = 50):
             "limitations": [
                 "candidate list only; contract eligibility is not confirmed",
                 "business status, licenses, direct production, and product validity must be rechecked before notice or contract",
+            ],
+        },
+        media_type="application/json; charset=utf-8",
+    )
+
+
+@app.get("/vendor-recommendations/search")
+def vendor_recommendation_search(
+    q: str,
+    region: str = "부산",
+    limit: int = 30,
+    budget_krw: int | None = None,
+    include_product_policy: bool = True,
+):
+    normalized_budget = _normalize_budget_krw(budget_krw)
+    rows = _vendor_recommendation_rows(q, region=region, limit=limit, budget_krw=normalized_budget)
+    product_policy_requested = bool(include_product_policy and _vendor_should_check_product_policy(q))
+    product_policy_checks = _vendor_product_policy_checks(q, limit=5) if product_policy_requested else []
+    item_policy_summary = _vendor_item_policy_summary(q, product_policy_checks, requested=product_policy_requested)
+    policy_preference_summary = _vendor_policy_preference_summary(q, rows, region=region)
+    policy_company_alternatives = policy_preference_summary.get("alternatives") or []
+    return JSONResponse(
+        content={
+            "query": q,
+            "region": region,
+            "budget_krw": normalized_budget,
+            "budget_label": _format_krw_short(normalized_budget),
+            "limit": max(1, min(int(limit or 30), 100)),
+            "count": len(rows),
+            "columns": VENDOR_RECOMMENDATION_COLUMNS,
+            "rows": rows,
+            "search_plan": _vendor_query_plan(q),
+            "item_policy_summary": item_policy_summary,
+            "policy_preference_summary": policy_preference_summary,
+            "policy_company_alternative_count": len(policy_company_alternatives),
+            "policy_company_alternatives": policy_company_alternatives,
+            "product_policy_checks": product_policy_checks,
+            "mode": "vendor_recommendation_only",
+            "llm_used": False,
+            "limitations": [
+                "계약 가능 확정이 아니라 계약 검토 후보 목록입니다.",
+                "공고 전 면허·직접생산·MAS/쇼핑몰 계약상태·영업상태·인증 유효성을 원천 자료로 재확인해야 합니다.",
+                "법령 해석이나 계약방법 판단은 별도 계약검토 서비스에서 처리합니다.",
             ],
         },
         media_type="application/json; charset=utf-8",
