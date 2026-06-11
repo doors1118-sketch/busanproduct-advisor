@@ -2065,7 +2065,7 @@ def _vendor_apply_construction_evidence(
 def _vendor_evidence_search_terms(q: str, product_policy_checks: list[dict[str, str]] | None = None) -> list[str]:
     terms: list[str] = []
     for item in _vendor_query_plan(q):
-        if item.get("search_type") not in {"product", "direct_production", "shopping_mall_product"}:
+        if item.get("search_type") not in {"product", "direct_production", "shopping_mall_product", "license"}:
             continue
         term = " ".join(str(item.get("term") or "").split())
         if term and len(term) <= 80 and term not in terms:

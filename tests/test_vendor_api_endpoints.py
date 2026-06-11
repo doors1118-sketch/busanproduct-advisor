@@ -245,6 +245,13 @@ def test_vendor_apply_construction_evidence_prioritizes_capacity_match():
     assert updated[1]["construction_capacity_amount"] == ""
 
 
+def test_vendor_evidence_terms_include_license_for_mixed_conditions():
+    terms = api_server._vendor_evidence_search_terms("복층유리와 상하수도설비공사 둘 다 가능한 업체")
+
+    assert "복층유리" in terms
+    assert "상하수도설비공사업" in terms
+
+
 def test_vendor_join_formats_venture_order_summary_with_count_and_amount():
     summary = api_server._vendor_join([
         {
