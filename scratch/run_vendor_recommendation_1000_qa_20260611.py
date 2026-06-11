@@ -212,6 +212,8 @@ def http_get_json(base_url: str, path: str, params: dict[str, Any], timeout: flo
 def text_blob(row: dict[str, Any]) -> str:
     fields = [
         "company_name",
+        "matched_query_label",
+        "matched_query",
         "license_or_business_type",
         "main_products",
         "certified_product_summary",
@@ -226,6 +228,9 @@ def text_blob(row: dict[str, Any]) -> str:
         "construction_license_match",
         "construction_capacity_match",
         "construction_capacity_amount",
+        "condition_match_type",
+        "condition_match_summary",
+        "requested_item_evidence_summary",
         "venture_nara_product_summary",
         "venture_nara_order_summary",
         "policy_company_labels",
