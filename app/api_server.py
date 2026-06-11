@@ -75,6 +75,10 @@ app.add_middleware(
 PRODUCTION_DEPLOYMENT = "HOLD"
 SERVER_STARTED_AT = time.time()
 
+VENDOR_FRONTEND_DIR = os.path.join(PROJECT_ROOT, "frontend", "vendor")
+if os.path.isdir(VENDOR_FRONTEND_DIR):
+    app.mount("/vendor-ui", StaticFiles(directory=VENDOR_FRONTEND_DIR, html=True), name="vendor-ui")
+
 # ─────────────────────────────────────────────
 # Pilot Basic Auth Middleware (DISABLED)
 # ─────────────────────────────────────────────
