@@ -142,6 +142,30 @@ _ITEM_SYNONYM_GROUPS: list[dict] = [
         "aliases": ["아스콘", "아스팔트콘크리트", "아스팔트 콘크리트", "아스팔트"],
     },
     {
+        "canonical_name": "스텐밴드",
+        "primary_search_term": "스텐밴드",
+        "search_terms": ["스텐밴드", "스테인리스밴드", "스테인리스 밴드"],
+        "aliases": ["스텐밴드", "스텐 밴드", "스텐레스밴드", "스테인리스밴드", "스테인리스 밴드"],
+    },
+    {
+        "canonical_name": "각재",
+        "primary_search_term": "각재",
+        "search_terms": ["각재", "목재각재", "목재 각재"],
+        "aliases": ["각재", "목재각재", "목재 각재", "방부각재", "방부 각재"],
+    },
+    {
+        "canonical_name": "복층유리",
+        "primary_search_term": "복층유리",
+        "search_terms": ["복층유리", "복층 유리", "단열복층유리"],
+        "aliases": ["복층유리", "복층 유리", "단열복층유리", "단열 복층유리", "페어글라스"],
+    },
+    {
+        "canonical_name": "소화전",
+        "primary_search_term": "소화전",
+        "search_terms": ["소화전", "옥내소화전", "옥외소화전"],
+        "aliases": ["소화전", "옥내소화전", "옥내 소화전", "옥외소화전", "옥외 소화전"],
+    },
+    {
         "canonical_name": "도서",
         "primary_search_term": "서적",
         "search_terms": ["서적", "도서", "책", "교재"],
@@ -480,6 +504,24 @@ def _alias_matches(alias: str, text: str, compact_text: str) -> bool:
     return compact_alias in compact_text
 
 
+def _is_context_only_alias(group: dict, alias: str, text: str, compact_text: str) -> bool:
+    compact_alias = _compact(alias)
+    if group.get("canonical_name") == "도서" and compact_alias == "도서" and "도서관" in compact_text:
+        explicit_book_terms = (
+            "도서구매",
+            "도서구입",
+            "도서납품",
+            "도서업체",
+            "도서계약",
+            "서적",
+            "교재",
+            "책구매",
+            "책구입",
+        )
+        return not any(term in compact_text for term in explicit_book_terms)
+    return False
+
+
 def normalize_item_query(user_message: str, router_item: str | None = None) -> NormalizedItem:
     """사용자 질문/라우터 슬롯에서 표준 품목명을 찾는다."""
     original = (router_item or user_message or "").strip()
@@ -506,6 +548,8 @@ def normalize_item_query(user_message: str, router_item: str | None = None) -> N
         aliases = list(group["aliases"]) + list(group["search_terms"])
         for alias in sorted(aliases, key=len, reverse=True):
             if _alias_matches(alias, text, compact_text):
+                if _is_context_only_alias(group, alias, text, compact_text):
+                    continue
                 return NormalizedItem(
                     original=original,
                     canonical_name=group["canonical_name"],

@@ -186,6 +186,65 @@ def test_vendor_recommendation_search_endpoint(monkeypatch):
     assert body["product_policy_checks"][0]["detail_product_code"] == "123"
 
 
+def test_vendor_query_plan_adds_construction_license_terms():
+    cases = [
+        ("금속창호공사 업체 추천", "금속창호공사업"),
+        ("금속창호공사 업체 추천", "금속창호ㆍ지붕건축물조립공사업"),
+        ("상하수도설비공사 부산업체", "상하수도설비공사업"),
+        ("실내건축공사 가능한 업체", "실내건축공사업"),
+        ("전기공사 가능한 부산업체", "전기공사업"),
+        ("정보통신공사 면허 업체", "정보통신공사업"),
+        ("소방시설공사 시공능력 업체", "전문소방시설공사업"),
+        ("기계설비공사 지역업체", "기계설비공사업"),
+        ("방수공사 가능한 업체", "도장ㆍ습식ㆍ방수ㆍ석공사업"),
+    ]
+    for query, expected in cases:
+        plan = api_server._vendor_query_plan(query)
+        assert any(item["search_type"] == "license" and item["term"] == expected for item in plan)
+
+
+def test_vendor_query_plan_adds_service_license_terms():
+    cases = [
+        ("건축설계 용역 업체 추천", "건축사사무소"),
+        ("토목 실시설계 기술용역 업체", "엔지니어링사업자"),
+        ("공공측량 용역 가능한 업체", "공공측량업"),
+        ("폐기물 수집 운반 용역 업체", "폐기물수집운반업"),
+        ("소독방역 용역 업체", "소독업"),
+        ("청사 청소용역 업체", "건물위생관리업"),
+        ("정보시스템 유지보수 업체", "소프트웨어사업자(컴퓨터관련서비스사업)"),
+    ]
+    for query, expected in cases:
+        plan = api_server._vendor_query_plan(query)
+        assert any(item["search_type"] == "license" and item["term"] == expected for item in plan)
+
+
+def test_vendor_apply_construction_evidence_prioritizes_capacity_match():
+    rows = [
+        {
+            "company_id": "a",
+            "company_name": "Capacity Vendor",
+            "license_or_business_type": "실내건축공사업",
+            "construction_capacity_summary": "실내건축공사업^^1534663000^^busan_hq_license_snapshot_file",
+            "review_score": 50,
+        },
+        {
+            "company_id": "b",
+            "company_name": "License Only Vendor",
+            "license_or_business_type": "실내건축공사업",
+            "construction_capacity_summary": "",
+            "review_score": 50,
+        },
+    ]
+
+    updated = api_server._vendor_apply_construction_evidence(rows, "실내건축공사 업체 추천")
+
+    assert updated[0]["company_name"] == "Capacity Vendor"
+    assert updated[0]["construction_capacity_amount"] == 1534663000
+    assert "시공능력 확인" in updated[0]["construction_capacity_match"]
+    assert "요청 면허 일치" in updated[0]["construction_license_match"]
+    assert updated[1]["construction_capacity_amount"] == ""
+
+
 def test_vendor_join_formats_venture_order_summary_with_count_and_amount():
     summary = api_server._vendor_join([
         {
@@ -371,6 +430,14 @@ def test_vendor_query_plan_expands_common_product_and_license_terms():
         assert expected in terms
 
 
+def test_vendor_query_plan_does_not_treat_library_context_as_book_purchase():
+    plan = api_server._vendor_query_plan("도서관 담당자가 정품토너 부산 지역업체 찾아줘")
+    terms = {(item["search_type"], item["term"]) for item in plan}
+
+    assert ("product", "서적") not in terms
+    assert ("product", "토너") in terms
+
+
 def test_vendor_query_plan_prefers_specific_terms_over_broad_aliases():
     cases = [
         ("홍보 마케팅 용역 업체", ("product", "홍보및마케팅서비스")),
@@ -463,13 +530,13 @@ def test_vendor_recommendation_rows_uses_bounded_candidate_pool(monkeypatch):
 
     rows = api_server._vendor_recommendation_rows("LED", region="busan", limit=2)
 
-    assert calls == [30]
+    assert calls == [15]
     assert len(rows) == 2
 
     calls.clear()
     rows = api_server._vendor_recommendation_rows("LED", region="busan", limit=30)
 
-    assert calls == [40]
+    assert calls == [38]
     assert len(rows) == 30
 
 
@@ -731,6 +798,44 @@ def test_vendor_product_policy_checks_sort_specific_pc_and_toner_matches_first()
 
     assert api_server._vendor_sort_product_policy_checks("PC 구매 업체", pc_checks)[0]["detail_product_name"] == "데스크톱컴퓨터"
     assert api_server._vendor_sort_product_policy_checks("정품토너 구매 업체", toner_checks)[0]["detail_product_name"] == "재제조토너"
+
+
+def test_vendor_product_policy_checks_reorders_pc_abbreviation_before_lookup(monkeypatch):
+    calls = []
+
+    def fake_search_product_policy(keyword, limit=5):
+        calls.append(keyword)
+        if keyword == "PC":
+            return {
+                "meta": {"source": "product_policy_summary"},
+                "candidates": [{
+                    "detail_product_code": "3115999201",
+                    "detail_product_name": "PC강선",
+                    "is_sme_competition_product": "0",
+                }],
+            }
+        if keyword == "데스크톱컴퓨터":
+            return {
+                "meta": {"source": "product_policy_summary"},
+                "candidates": [{
+                    "detail_product_code": "4321150701",
+                    "detail_product_name": "데스크톱컴퓨터",
+                    "is_sme_competition_product": "1",
+                }],
+            }
+        return {"meta": {"source": "product_policy_summary"}, "candidates": []}
+
+    monkeypatch.setattr(
+        api_server,
+        "_vendor_import_company_db",
+        lambda: SimpleNamespace(search_product_policy=fake_search_product_policy),
+    )
+
+    checks = api_server._vendor_product_policy_checks("PC 업체 후보 중기간경쟁 해당 여부 포함해서", limit=5)
+
+    assert calls[0] == "데스크톱컴퓨터"
+    assert "PC" not in calls
+    assert checks[0]["detail_product_name"] == "데스크톱컴퓨터"
 
 
 def test_vendor_product_policy_check_gate_skips_service_queries():

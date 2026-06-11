@@ -127,6 +127,38 @@ def replace_current(cache_root: Path, new_dir: Path) -> None:
         os.replace(tmp_prev, previous)
 
 
+def cleanup_archives(cache_root: Path, *, keep_archives: int) -> list[str]:
+    archive_root = cache_root / "archive"
+    if keep_archives <= 0 or not archive_root.exists():
+        return []
+    protected: set[Path] = set()
+    for link_name in ("cache_current", "cache_previous"):
+        link = cache_root / link_name
+        try:
+            protected.add(link.resolve(strict=True))
+        except Exception:
+            continue
+
+    archives = sorted(
+        (path for path in archive_root.iterdir() if path.is_dir()),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    keep: set[Path] = set(path.resolve() for path in archives[:keep_archives])
+    keep.update(protected)
+
+    removed: list[str] = []
+    for path in archives:
+        resolved = path.resolve()
+        if resolved in keep:
+            continue
+        if archive_root.resolve() not in resolved.parents:
+            continue
+        shutil.rmtree(resolved)
+        removed.append(str(resolved))
+    return removed
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Sync chatbot_company.db into advisor local company cache.")
     parser.add_argument("--source", default=os.getenv("SOURCE_CHATBOT_COMPANY_DB", "/opt/busan/chatbot_company.db"))
@@ -135,6 +167,7 @@ def main() -> None:
     parser.add_argument("--min-company", type=int, default=46_000)
     parser.add_argument("--min-policy", type=int, default=4_000)
     parser.add_argument("--min-direct-production", type=int, default=11_000)
+    parser.add_argument("--keep-archives", type=int, default=int(os.getenv("COMPANY_CACHE_KEEP_ARCHIVES", "3")))
     args = parser.parse_args()
 
     source = Path(args.source)
@@ -183,6 +216,7 @@ def main() -> None:
     (archive / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
 
     replace_current(cache_root, archive.resolve())
+    removed_archives = cleanup_archives(cache_root, keep_archives=args.keep_archives)
     history = cache_root / "manifest_history.jsonl"
     with history.open("a", encoding="utf-8") as f:
         f.write(json.dumps(manifest, ensure_ascii=False) + "\n")
@@ -191,6 +225,7 @@ def main() -> None:
         "status": "ok",
         "cache_dir": str(archive),
         "cache_current": str(cache_root / "cache_current"),
+        "removed_archives": removed_archives,
         "validation": target_validation,
     }, ensure_ascii=False, indent=2))
 

@@ -241,11 +241,17 @@ def row_text(row: dict[str, Any]) -> str:
         "license_or_business_type",
         "matched_query_label",
         "shopping_mall_product_summary",
+        "shopping_mall_match",
         "mas_product_summary",
+        "mas_match",
         "direct_production_certificate_products",
         "direct_production_summary",
+        "direct_production_match",
         "certified_product_summary",
         "construction_capacity_summary",
+        "construction_license_match",
+        "construction_capacity_match",
+        "construction_capacity_amount",
         "venture_nara_product_summary",
         "venture_nara_order_summary",
     )
@@ -255,17 +261,47 @@ def row_text(row: dict[str, Any]) -> str:
 def convenience_ok(rows: list[dict[str, Any]], name: str, top_n: int = 5) -> bool:
     sample = rows[:top_n]
     if name == "shopping_or_mas":
-        return any(is_positive(row.get("shopping_mall_status_label")) or is_positive(row.get("mas_status_label")) for row in sample)
+        return any(
+            is_positive(row.get("shopping_mall_status_label"))
+            or is_positive(row.get("mas_status_label"))
+            or is_positive(row.get("shopping_mall_match"))
+            or is_positive(row.get("mas_match"))
+            or is_positive(row.get("shopping_mall_product_summary"))
+            or is_positive(row.get("mas_product_summary"))
+            for row in sample
+        )
     if name == "shopping":
-        return any(is_positive(row.get("shopping_mall_status_label")) for row in sample)
+        return any(
+            is_positive(row.get("shopping_mall_status_label"))
+            or is_positive(row.get("shopping_mall_match"))
+            or is_positive(row.get("shopping_mall_product_summary"))
+            for row in sample
+        )
     if name == "mas":
-        return any(is_positive(row.get("mas_status_label")) for row in sample)
+        return any(
+            is_positive(row.get("mas_status_label"))
+            or is_positive(row.get("mas_match"))
+            or is_positive(row.get("mas_product_summary"))
+            for row in sample
+        )
     if name == "direct_production":
-        return any(is_positive(row.get("direct_production_certificate_status")) or is_positive(row.get("direct_production_certificate_products")) for row in sample)
+        return any(
+            is_positive(row.get("direct_production_certificate_status"))
+            or is_positive(row.get("direct_production_match"))
+            or is_positive(row.get("direct_production_certificate_products"))
+            or is_positive(row.get("direct_production_summary"))
+            for row in sample
+        )
     if name == "sme_competition":
         return any(is_positive(row.get("sme_competition_product_label")) for row in sample)
     if name == "capacity":
-        return any(is_positive(row.get("construction_capacity_summary")) for row in sample)
+        return any(
+            is_positive(row.get("construction_capacity_summary"))
+            or is_positive(row.get("construction_license_match"))
+            or is_positive(row.get("construction_capacity_match"))
+            or is_positive(row.get("construction_capacity_amount"))
+            for row in sample
+        )
     if name == "venture_order":
         return any(is_positive(row.get("venture_nara_order_summary")) for row in sample)
     return True
@@ -374,10 +410,16 @@ def evaluate(base_url: str, c: dict[str, Any], timeout_sec: float, max_latency_m
                 "business_status_label": row.get("business_status_label"),
                 "policy_company_labels": row.get("policy_company_labels"),
                 "shopping_mall_status_label": row.get("shopping_mall_status_label"),
+                "shopping_mall_match": row.get("shopping_mall_match"),
                 "mas_status_label": row.get("mas_status_label"),
+                "mas_match": row.get("mas_match"),
                 "direct_production_certificate_status": row.get("direct_production_certificate_status"),
+                "direct_production_match": row.get("direct_production_match"),
                 "direct_production_certificate_products": row.get("direct_production_certificate_products"),
                 "sme_competition_product_label": row.get("sme_competition_product_label"),
+                "construction_license_match": row.get("construction_license_match"),
+                "construction_capacity_match": row.get("construction_capacity_match"),
+                "construction_capacity_amount": row.get("construction_capacity_amount"),
                 "construction_capacity_summary": row.get("construction_capacity_summary"),
                 "venture_nara_order_summary": row.get("venture_nara_order_summary"),
                 "review_score": row.get("review_score"),

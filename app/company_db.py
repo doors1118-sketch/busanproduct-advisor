@@ -69,7 +69,7 @@ def _connect() -> sqlite3.Connection | None:
     path = get_db_path()
     if not path:
         return None
-    conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=1.0)
+    conn = sqlite3.connect(f"file:{path}?mode=ro&immutable=1", uri=True, timeout=1.0)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -384,6 +384,262 @@ _PRODUCT_POLICY_COLUMNS = [
 ]
 
 
+def search_facility_material_policy(keyword: str, *, limit: int = 5) -> dict[str, Any] | None:
+    """Read facility material price dictionary facts.
+
+    This table is a product/purchase-suitability signal, not a company
+    candidate source. It helps the API explain that the item appears in the
+    G2B facility material price-info file when product_policy_summary has no
+    exact policy row.
+    """
+    text = " ".join(str(keyword or "").split())
+    if not text:
+        return None
+    conn = _connect()
+    if conn is None:
+        return None
+    try:
+        table_name = "facility_material_item_dictionary"
+        if not _object_exists(conn, table_name):
+            return None
+        available = _columns(conn, table_name)
+        search_columns = [
+            col
+            for col in (
+                "search_text",
+                "korean_product_name",
+                "product_classification_name",
+                "product_classification_no",
+                "product_identifier_no",
+            )
+            if col in available
+        ]
+        if "korean_product_name" not in available or not search_columns:
+            return None
+        terms = _terms(text, "product")
+        where, params = _like_where(search_columns, terms)
+        select_sql = """
+            product_classification_no AS detail_product_code,
+            korean_product_name AS detail_product_name,
+            product_identifier_no AS product_identifier_no,
+            product_classification_name AS product_classification_name,
+            portal_price_business_types AS facility_material_categories,
+            units AS facility_material_units,
+            active_price_count AS facility_material_active_price_count,
+            historical_row_count AS facility_material_historical_row_count,
+            latest_posted_date AS facility_material_latest_posted_date,
+            min_active_price_amount AS facility_material_min_price_amount,
+            max_active_price_amount AS facility_material_max_price_amount,
+            'facility_material_price_file' AS matched_policy_source,
+            1 AS is_facility_material_price_item,
+            '시설공통자재 가격정보 파일에 등록된 품목입니다. 현재 가격 유효 여부와 조달 구매수단은 공고 또는 계약 전 별도 확인이 필요합니다.' AS required_special_note
+        """
+        sql = f"""
+            SELECT {select_sql}
+            FROM {table_name}
+            WHERE {where}
+            ORDER BY
+                CASE
+                    WHEN IFNULL(korean_product_name, '') = ? THEN 0
+                    WHEN IFNULL(korean_product_name, '') LIKE ? THEN 1
+                    ELSE 2
+                END,
+                CAST(IFNULL(active_price_count, 0) AS INTEGER) DESC,
+                IFNULL(latest_posted_date, '') DESC,
+                korean_product_name
+            LIMIT ?
+        """
+        rows = conn.execute(sql, [*params, text, f"{text}%", max(1, min(int(limit or 5), 20))]).fetchall()
+        return {
+            "meta": {
+                "keyword": text,
+                "limit": max(1, min(int(limit or 5), 20)),
+                "source": table_name,
+                "cache_mode": "local_view_db",
+            },
+            "candidates": [dict(row) for row in rows],
+            "company_cache_used": True,
+            "company_cache_mode": "local_view_db",
+            "company_search_status": "success",
+        }
+    except Exception:
+        return None
+    finally:
+        conn.close()
+
+
+def _company_item_evidence_terms(terms: list[str]) -> list[str]:
+    cleaned: list[str] = []
+    for term in terms or []:
+        text = " ".join(str(term or "").split())
+        if not text:
+            continue
+        if len(text) > 80:
+            continue
+        if text not in cleaned:
+            cleaned.append(text)
+    return cleaned[:20]
+
+
+def _company_item_evidence_where(columns: list[str], terms: list[str]) -> tuple[str, list[Any]]:
+    parts: list[str] = []
+    params: list[Any] = []
+    for term in terms:
+        like = f"%{term}%"
+        term_parts: list[str] = []
+        for col in columns:
+            term_parts.append(f"IFNULL({col}, '') LIKE ?")
+            params.append(like)
+        parts.append("(" + " OR ".join(term_parts) + ")")
+    if not parts:
+        return "1=0", []
+    return "(" + " OR ".join(parts) + ")", params
+
+
+def search_company_item_evidence(
+    company_ids: list[str],
+    terms: list[str],
+    *,
+    limit_per_company: int = 5,
+) -> dict[str, dict[str, list[dict[str, Any]]]] | None:
+    """Return row-level procurement evidence for requested companies/items.
+
+    Candidate rows come from chatbot_company_candidate_view, but direct
+    production certificates are stored in a separate table and MAS/shopping
+    rows have richer per-item fields than the view summaries. This helper joins
+    those source tables back by company_id and requested item terms.
+    """
+    ids = [str(company_id).strip() for company_id in company_ids or [] if str(company_id).strip()]
+    ids = list(dict.fromkeys(ids))[:100]
+    search_terms = _company_item_evidence_terms(terms)
+    if not ids or not search_terms:
+        return {}
+    conn = _connect()
+    if conn is None:
+        return None
+    result: dict[str, dict[str, list[dict[str, Any]]]] = {
+        company_id: {"direct_production": [], "shopping_mall": [], "mas": []}
+        for company_id in ids
+    }
+    try:
+        id_placeholders = ",".join("?" for _ in ids)
+
+        def add_rows(source_key: str, sql: str, params: list[Any]) -> None:
+            per_company_counts: dict[str, int] = {}
+            for row in conn.execute(sql, params):
+                item = dict(row)
+                company_id = str(item.pop("company_id", "") or "")
+                if not company_id or company_id not in result:
+                    continue
+                count = per_company_counts.get(company_id, 0)
+                if count >= max(1, min(int(limit_per_company or 5), 20)):
+                    continue
+                per_company_counts[company_id] = count + 1
+                result[company_id][source_key].append(item)
+
+        if _object_exists(conn, "company_identity") and _object_exists(conn, "direct_production_certificate"):
+            where, where_params = _company_item_evidence_where(
+                ["d.detail_product_name", "d.detail_product_name_normalized", "d.detail_product_code"],
+                search_terms,
+            )
+            sql = f"""
+                SELECT
+                    ci.company_id,
+                    d.detail_product_name AS product_name,
+                    d.detail_product_code AS detail_product_code,
+                    d.validity_status AS status,
+                    d.valid_from AS valid_from,
+                    d.valid_to AS valid_to,
+                    d.source_name AS source,
+                    d.source_refreshed_at AS source_refreshed_at
+                FROM direct_production_certificate d
+                JOIN company_identity ci ON ci.company_internal_id = d.company_internal_id
+                WHERE ci.company_id IN ({id_placeholders})
+                  AND ({where})
+                  AND IFNULL(d.validity_status, '') IN ('valid', 'unknown', '')
+                ORDER BY
+                    ci.company_id,
+                    CASE WHEN IFNULL(d.validity_status, '') = 'valid' THEN 0 ELSE 1 END,
+                    IFNULL(d.valid_to, '') DESC,
+                    d.detail_product_name
+            """
+            add_rows("direct_production", sql, [*ids, *where_params])
+
+        if _object_exists(conn, "company_identity") and _object_exists(conn, "shopping_mall_product"):
+            where, where_params = _company_item_evidence_where(
+                ["s.product_name", "s.product_name_normalized", "s.detail_product_name", "s.product_code", "s.detail_product_code"],
+                search_terms,
+            )
+            sql = f"""
+                SELECT
+                    ci.company_id,
+                    s.product_name AS product_name,
+                    s.detail_product_name AS detail_product_name,
+                    s.product_code AS product_code,
+                    s.detail_product_code AS detail_product_code,
+                    s.shopping_mall_contract_type AS contract_type,
+                    s.contract_status AS status,
+                    s.contract_start_date AS contract_start_date,
+                    s.contract_end_date AS contract_end_date,
+                    s.order_path_available AS order_path_available,
+                    s.price_amount AS price_amount,
+                    s.price_unit AS price_unit,
+                    s.source_name AS source,
+                    s.source_refreshed_at AS source_refreshed_at
+                FROM shopping_mall_product s
+                JOIN company_identity ci ON ci.company_internal_id = s.company_internal_id
+                WHERE ci.company_id IN ({id_placeholders})
+                  AND ({where})
+                  AND IFNULL(s.contract_status, '') IN ('active', 'unknown', '')
+                ORDER BY
+                    ci.company_id,
+                    CASE WHEN IFNULL(s.contract_status, '') = 'active' THEN 0 ELSE 1 END,
+                    IFNULL(s.contract_end_date, '') DESC,
+                    s.detail_product_name,
+                    s.product_name
+            """
+            add_rows("shopping_mall", sql, [*ids, *where_params])
+
+        if _object_exists(conn, "company_identity") and _object_exists(conn, "mas_product"):
+            where, where_params = _company_item_evidence_where(
+                ["m.product_name", "m.product_name_normalized", "m.detail_product_name", "m.product_code", "m.detail_product_code"],
+                search_terms,
+            )
+            sql = f"""
+                SELECT
+                    ci.company_id,
+                    m.product_name AS product_name,
+                    m.detail_product_name AS detail_product_name,
+                    m.product_code AS product_code,
+                    m.detail_product_code AS detail_product_code,
+                    m.contract_status AS status,
+                    m.contract_start_date AS contract_start_date,
+                    m.contract_end_date AS contract_end_date,
+                    m.price_amount AS price_amount,
+                    m.price_unit AS price_unit,
+                    m.source_name AS source,
+                    m.source_refreshed_at AS source_refreshed_at
+                FROM mas_product m
+                JOIN company_identity ci ON ci.company_internal_id = m.company_internal_id
+                WHERE ci.company_id IN ({id_placeholders})
+                  AND ({where})
+                  AND IFNULL(m.contract_status, '') IN ('active', 'unknown', '')
+                ORDER BY
+                    ci.company_id,
+                    CASE WHEN IFNULL(m.contract_status, '') = 'active' THEN 0 ELSE 1 END,
+                    IFNULL(m.contract_end_date, '') DESC,
+                    m.detail_product_name,
+                    m.product_name
+            """
+            add_rows("mas", sql, [*ids, *where_params])
+
+        return result
+    except Exception:
+        return None
+    finally:
+        conn.close()
+
+
 def search_product_policy(keyword: str, *, limit: int = 5) -> dict[str, Any] | None:
     """Read product policy facts from product_policy_summary only.
 
@@ -515,7 +771,7 @@ def search_by_direct_production(query: str, *, limit: int = 20) -> dict[str, Any
 
 def search_by_license(query: str, *, limit: int = 20) -> dict[str, Any] | None:
     terms = _terms(query, "license")
-    where, params = _like_where(["license_or_business_type", "main_products"], terms)
+    where, params = _like_where(["license_or_business_type", "construction_capacity_summary_raw", "main_products"], terms)
     return _run_search(where, params, limit=limit, query={"license_name": query, "limit": limit}, source="local_view_license")
 
 
