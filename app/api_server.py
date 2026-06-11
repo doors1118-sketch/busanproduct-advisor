@@ -1693,6 +1693,182 @@ def _vendor_rows_to_csv_bytes(rows: list[dict[str, str]]) -> bytes:
     return output.getvalue().encode("utf-8-sig")
 
 
+def _vendor_recommendation_payload(
+    q: str,
+    *,
+    region: str = "부산",
+    limit: int = 30,
+    budget_krw: int | None = None,
+    include_product_policy: bool = True,
+) -> dict:
+    normalized_budget = _normalize_budget_krw(budget_krw)
+    requested_limit = max(1, min(int(limit or 30), 100))
+    rows = _vendor_recommendation_rows(q, region=region, limit=requested_limit, budget_krw=normalized_budget)
+    product_policy_requested = bool(include_product_policy and _vendor_should_check_product_policy(q))
+    product_policy_checks = _vendor_product_policy_checks(q, limit=5) if product_policy_requested else []
+    rows = _vendor_apply_item_evidence(rows, q, product_policy_checks)
+    rows = _vendor_apply_construction_evidence(rows, q)
+    item_policy_summary = _vendor_item_policy_summary(q, product_policy_checks, requested=product_policy_requested)
+    policy_preference_summary = _vendor_policy_preference_summary(q, rows, region=region)
+    policy_company_alternatives = policy_preference_summary.get("alternatives") or []
+    return {
+        "query": q,
+        "region": region,
+        "budget_krw": normalized_budget,
+        "budget_label": _format_krw_short(normalized_budget),
+        "limit": requested_limit,
+        "count": len(rows),
+        "columns": VENDOR_RECOMMENDATION_COLUMNS,
+        "rows": rows,
+        "search_plan": _vendor_query_plan(q),
+        "item_policy_summary": item_policy_summary,
+        "policy_preference_summary": policy_preference_summary,
+        "policy_company_alternative_count": len(policy_company_alternatives),
+        "policy_company_alternatives": policy_company_alternatives,
+        "product_policy_checks": product_policy_checks,
+        "mode": "vendor_recommendation_only",
+        "llm_used": False,
+        "limitations": [
+            "계약 가능 확정이 아니라 계약 검토 후보 목록입니다.",
+            "공고 전 면허·직접생산·MAS/쇼핑몰 계약상태·영업상태·인증 유효성을 원천 자료로 재확인해야 합니다.",
+            "법령 해석이나 계약방법 판단은 별도 계약검토 서비스에서 처리합니다.",
+        ],
+    }
+
+
+def _xlsx_cell_value(value, *, max_len: int = 32000) -> str | int | float:
+    if value is None:
+        return ""
+    if isinstance(value, (int, float)):
+        return value
+    text_value = str(value)
+    return text_value if len(text_value) <= max_len else text_value[: max_len - 1] + "…"
+
+
+def _vendor_recommendation_xlsx_bytes(payload: dict) -> bytes:
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "후보업체"
+    columns = [
+        ("company_name", "업체명", 28),
+        ("location", "지역", 14),
+        ("detail_address", "상세주소", 42),
+        ("business_status_label", "영업상태", 14),
+        ("matched_query_label", "후보분류", 28),
+        ("condition_match_type", "조건충족유형", 18),
+        ("condition_match_summary", "조건충족요약", 44),
+        ("requested_item_evidence_summary", "검색어-품목 근거", 58),
+        ("license_or_business_type", "면허·업종", 45),
+        ("main_products", "주요품목", 36),
+        ("direct_production_match", "직접생산 근거", 44),
+        ("mas_match", "MAS 근거", 42),
+        ("shopping_mall_match", "종합쇼핑몰 근거", 46),
+        ("construction_license_match", "공사면허 근거", 34),
+        ("construction_capacity_match", "시공능력 근거", 34),
+        ("construction_capacity_summary", "시공능력 요약", 34),
+        ("policy_company_labels", "정책기업", 22),
+        ("certified_product_labels", "인증제품", 26),
+        ("sme_competition_product_label", "중기간경쟁제품", 18),
+        ("cooperative_purchase_route_label", "조합추천/공동사업", 22),
+        ("venture_nara_status_label", "벤처나라", 18),
+        ("recommended_checks", "확인 필요 항목", 56),
+        ("review_score", "검토점수", 12),
+        ("match_rank_score", "매칭점수", 12),
+        ("source_refreshed_at", "DB기준일", 20),
+    ]
+    ws.append([label for _, label, _ in columns])
+    for row in payload.get("rows") or []:
+        ws.append([_xlsx_cell_value(row.get(key, "")) for key, _, _ in columns])
+
+    header_fill = PatternFill("solid", fgColor="12372F")
+    header_font = Font(bold=True, color="FFFFFF")
+    for cell in ws[1]:
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    for idx, (_, _, width) in enumerate(columns, 1):
+        ws.column_dimensions[get_column_letter(idx)].width = width
+    for row in ws.iter_rows(min_row=2):
+        for cell in row:
+            cell.alignment = Alignment(wrap_text=True, vertical="top")
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = ws.dimensions
+
+    policy_ws = wb.create_sheet("품목정책")
+    policy_headers = [
+        "세부품명번호",
+        "세부품명",
+        "매칭키워드",
+        "정책소스",
+        "중기간경쟁제품",
+        "공사용자재직접구매",
+        "직생 유효 공급업체",
+        "MAS 활성 공급업체",
+        "부산 업체 품목 수",
+        "필수특이사항",
+    ]
+    policy_ws.append(policy_headers)
+    for item in payload.get("product_policy_checks") or []:
+        policy_ws.append([
+            _xlsx_cell_value(item.get("detail_product_code", "")),
+            _xlsx_cell_value(item.get("detail_product_name", "")),
+            _xlsx_cell_value(item.get("matched_policy_keyword", "")),
+            _xlsx_cell_value(item.get("matched_policy_source", "")),
+            _xlsx_cell_value(item.get("is_sme_competition_product", "")),
+            _xlsx_cell_value(item.get("is_construction_material_direct_purchase", "")),
+            _xlsx_cell_value(item.get("direct_production_valid_supplier_count", "")),
+            _xlsx_cell_value(item.get("mas_active_supplier_count", "")),
+            _xlsx_cell_value(item.get("busan_company_product_count", "")),
+            _xlsx_cell_value(item.get("required_special_note", "")),
+        ])
+    for cell in policy_ws[1]:
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    for idx, width in enumerate([16, 28, 18, 24, 18, 20, 18, 18, 18, 44], 1):
+        policy_ws.column_dimensions[get_column_letter(idx)].width = width
+    for row in policy_ws.iter_rows(min_row=2):
+        for cell in row:
+            cell.alignment = Alignment(wrap_text=True, vertical="top")
+    policy_ws.freeze_panes = "A2"
+    policy_ws.auto_filter.ref = policy_ws.dimensions
+
+    guide_ws = wb.create_sheet("안내")
+    item_policy = payload.get("item_policy_summary") or {}
+    guide_rows = [
+        ("검색어", payload.get("query", "")),
+        ("지역", payload.get("region", "")),
+        ("예산", payload.get("budget_label", "")),
+        ("후보 수", payload.get("count", "")),
+        ("품목정책 상태", item_policy.get("status", "")),
+        ("품목정책 메시지", item_policy.get("message", "")),
+        ("중기간경쟁제품", item_policy.get("sme_competition_product", "")),
+        ("직접생산 확인", item_policy.get("direct_production_certificate", "")),
+        ("조합추천/공동사업", item_policy.get("cooperative_purchase_route", "")),
+        ("주의", "\n".join(payload.get("limitations") or [])),
+    ]
+    guide_ws.append(["항목", "내용"])
+    for key, value in guide_rows:
+        guide_ws.append([key, _xlsx_cell_value(value)])
+    for cell in guide_ws[1]:
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+    guide_ws.column_dimensions["A"].width = 22
+    guide_ws.column_dimensions["B"].width = 120
+    for row in guide_ws.iter_rows(min_row=2):
+        for cell in row:
+            cell.alignment = Alignment(wrap_text=True, vertical="top")
+
+    output = BytesIO()
+    wb.save(output)
+    return output.getvalue()
+
+
 def _vendor_zip_bytes(csv_name: str, rows: list[dict[str, str]]) -> bytes:
     payload = BytesIO()
     readme = (
@@ -3213,40 +3389,39 @@ def vendor_recommendation_search(
     budget_krw: int | None = None,
     include_product_policy: bool = True,
 ):
-    normalized_budget = _normalize_budget_krw(budget_krw)
-    rows = _vendor_recommendation_rows(q, region=region, limit=limit, budget_krw=normalized_budget)
-    product_policy_requested = bool(include_product_policy and _vendor_should_check_product_policy(q))
-    product_policy_checks = _vendor_product_policy_checks(q, limit=5) if product_policy_requested else []
-    rows = _vendor_apply_item_evidence(rows, q, product_policy_checks)
-    rows = _vendor_apply_construction_evidence(rows, q)
-    item_policy_summary = _vendor_item_policy_summary(q, product_policy_checks, requested=product_policy_requested)
-    policy_preference_summary = _vendor_policy_preference_summary(q, rows, region=region)
-    policy_company_alternatives = policy_preference_summary.get("alternatives") or []
+    payload = _vendor_recommendation_payload(
+        q,
+        region=region,
+        limit=limit,
+        budget_krw=budget_krw,
+        include_product_policy=include_product_policy,
+    )
     return JSONResponse(
-        content={
-            "query": q,
-            "region": region,
-            "budget_krw": normalized_budget,
-            "budget_label": _format_krw_short(normalized_budget),
-            "limit": max(1, min(int(limit or 30), 100)),
-            "count": len(rows),
-            "columns": VENDOR_RECOMMENDATION_COLUMNS,
-            "rows": rows,
-            "search_plan": _vendor_query_plan(q),
-            "item_policy_summary": item_policy_summary,
-            "policy_preference_summary": policy_preference_summary,
-            "policy_company_alternative_count": len(policy_company_alternatives),
-            "policy_company_alternatives": policy_company_alternatives,
-            "product_policy_checks": product_policy_checks,
-            "mode": "vendor_recommendation_only",
-            "llm_used": False,
-            "limitations": [
-                "계약 가능 확정이 아니라 계약 검토 후보 목록입니다.",
-                "공고 전 면허·직접생산·MAS/쇼핑몰 계약상태·영업상태·인증 유효성을 원천 자료로 재확인해야 합니다.",
-                "법령 해석이나 계약방법 판단은 별도 계약검토 서비스에서 처리합니다.",
-            ],
-        },
+        content=payload,
         media_type="application/json; charset=utf-8",
+    )
+
+
+@app.get("/vendor-recommendations/search.xlsx")
+def vendor_recommendation_search_xlsx(
+    q: str,
+    region: str = "부산",
+    limit: int = 100,
+    budget_krw: int | None = None,
+    include_product_policy: bool = True,
+):
+    payload = _vendor_recommendation_payload(
+        q,
+        region=region,
+        limit=limit,
+        budget_krw=budget_krw,
+        include_product_policy=include_product_policy,
+    )
+    content = _vendor_recommendation_xlsx_bytes(payload)
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="busan_vendor_recommendations.xlsx"'},
     )
 
 

@@ -281,37 +281,21 @@ function updateDownloadState(enabled, detail = "") {
   els.downloadLink.classList.toggle("disabled", !enabled);
   els.downloadLink.setAttribute("aria-disabled", enabled ? "false" : "true");
   if (els.downloadDetail) {
-    els.downloadDetail.textContent = detail || (enabled ? "현재 검색조건 기준 최대 100건 상세 근거" : "검색 후 다운로드 가능");
+    els.downloadDetail.textContent = detail || (enabled ? "현재 검색조건 기준 최대 100건 XLSX" : "검색 후 다운로드 가능");
   }
 }
 
-async function downloadRecommendationCsv() {
+function downloadRecommendationXlsx() {
   if (lastSearchIsFallback || !lastSearchQuery) return;
-  updateDownloadState(true, "CSV 생성 중");
-  let rows = lastSearchRows;
-  try {
-    const url = `${API_BASE_URL}/vendor-recommendations/search?q=${encodeURIComponent(lastSearchQuery)}&region=${encodeURIComponent("부산")}&limit=100&include_product_policy=true`;
-    const response = await fetch(url, { cache: "no-store" });
-    if (response.ok) {
-      const data = await response.json();
-      rows = data.rows || rows;
-    }
-  } catch {
-    rows = lastSearchRows;
-  }
-
-  const csv = `\ufeff${rowsToCsv(rows)}`;
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
+  updateDownloadState(true, "XLSX 생성 요청");
+  const url = `${API_BASE_URL}/vendor-recommendations/search.xlsx?q=${encodeURIComponent(lastSearchQuery)}&region=${encodeURIComponent("부산")}&limit=100&include_product_policy=true`;
   const a = document.createElement("a");
-  const stamp = new Date().toISOString().slice(0, 10).replaceAll("-", "");
   a.href = url;
-  a.download = `busan_vendor_recommendations_${stamp}.csv`;
+  a.download = "busan_vendor_recommendations.xlsx";
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(url);
-  updateDownloadState(true, `상세 근거 ${rows.length.toLocaleString("ko-KR")}건 CSV`);
+  updateDownloadState(true, `상세 근거 최대 100건 XLSX`);
 }
 
 function hasPositive(value) {
@@ -719,7 +703,7 @@ function renderRows(rows, query, totalCount, isFallback = false, responseData = 
   els.dataDate.textContent = date ? `DB 기준일 ${date}` : "DB 기준일 확인 필요";
 
   els.downloadLink.href = "#";
-  updateDownloadState(!isFallback && rows.length > 0, rows.length > 0 ? "현재 검색조건 기준 최대 100건 상세 근거" : "다운로드할 후보 없음");
+  updateDownloadState(!isFallback && rows.length > 0, rows.length > 0 ? "현재 검색조건 기준 최대 100건 XLSX" : "다운로드할 후보 없음");
 }
 
 async function checkHealth() {
@@ -768,7 +752,7 @@ document.querySelectorAll(".sample-chip").forEach((chip) => {
 els.downloadLink.addEventListener("click", (event) => {
   event.preventDefault();
   if (els.downloadLink.classList.contains("disabled")) return;
-  downloadRecommendationCsv();
+  downloadRecommendationXlsx();
 });
 
 els.form.addEventListener("submit", (event) => {
