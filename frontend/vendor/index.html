@@ -29,9 +29,20 @@
           <a href="#compare-section">비교표</a>
         </nav>
 
-        <section class="rail-card">
-          <p class="kicker">모니터링 지표</p>
-          <strong id="metric-overall">연결 중</strong>
+        <section class="rail-card monitoring-card">
+          <p class="kicker">종합 수주율</p>
+          <div class="monitoring-line">
+            <span>총 계약액</span>
+            <strong id="metric-total-amount">연결 중</strong>
+          </div>
+          <div class="monitoring-line">
+            <span>지역업체 수주액 (수주율)</span>
+            <strong>
+              <span id="metric-local-amount">-</span>
+              <em id="metric-overall">-</em>
+            </strong>
+          </div>
+          <p id="metric-sector-mix" class="sector-mix">분야별 비중 확인 중</p>
           <span id="metric-generated">수주율 API 확인 중</span>
         </section>
 

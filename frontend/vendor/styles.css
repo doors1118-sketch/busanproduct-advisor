@@ -170,11 +170,47 @@ a {
 .rail-card strong {
   color: #5eead4;
   font-size: 32px;
+  line-height: 1.08;
 }
 
 .rail-card span {
   color: #bfd5ce;
   font-size: 12px;
+}
+
+.monitoring-card {
+  background:
+    linear-gradient(180deg, rgba(28, 44, 113, 0.72), rgba(15, 31, 78, 0.88));
+  border-color: rgba(125, 154, 255, 0.25);
+  gap: 14px;
+}
+
+.monitoring-line {
+  display: grid;
+  gap: 4px;
+}
+
+.monitoring-line strong {
+  color: #fff;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.monitoring-line em {
+  color: #5eead4;
+  font-size: 22px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.sector-mix {
+  color: #a9c6ff;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.5;
+  margin: 0;
 }
 
 .rail-card.compact {

@@ -15,7 +15,10 @@ const els = {
   clear: document.querySelector("#clear-button"),
   apiState: document.querySelector("#api-state"),
   dataDate: document.querySelector("#data-date"),
+  metricTotalAmount: document.querySelector("#metric-total-amount"),
+  metricLocalAmount: document.querySelector("#metric-local-amount"),
   metricOverall: document.querySelector("#metric-overall"),
+  metricSectorMix: document.querySelector("#metric-sector-mix"),
   metricGenerated: document.querySelector("#metric-generated"),
   metricBusanGroup: document.querySelector("#metric-busan-group"),
   metricNationalGroup: document.querySelector("#metric-national-group"),
@@ -198,6 +201,14 @@ function formatRate(value) {
   const numeric = Number(String(value).replace("%", ""));
   if (!Number.isFinite(numeric)) return valueText(value, "");
   return `${numeric.toFixed(1)}%`;
+}
+
+function formatWonCompact(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "";
+  if (Math.abs(numeric) >= 1000000000000) return `${(numeric / 1000000000000).toFixed(1)}조`;
+  if (Math.abs(numeric) >= 100000000) return `${Math.round(numeric / 100000000).toLocaleString("ko-KR")}억`;
+  return `${Math.round(numeric).toLocaleString("ko-KR")}원`;
 }
 
 function sourceDate(rows) {
@@ -426,6 +437,23 @@ function findRateValue(obj) {
   return "";
 }
 
+function findValueByKeys(obj, keys) {
+  if (!obj || typeof obj !== "object") return "";
+  for (const key of keys) {
+    if (obj[key] !== undefined && obj[key] !== null && obj[key] !== "") return obj[key];
+  }
+  return "";
+}
+
+function findNestedObject(data, paths) {
+  for (const path of paths) {
+    let current = data;
+    for (const key of path) current = current && current[key];
+    if (current && typeof current === "object") return current;
+  }
+  return null;
+}
+
 function findNestedRate(data, paths) {
   for (const path of paths) {
     let current = data;
@@ -436,20 +464,44 @@ function findNestedRate(data, paths) {
   return "";
 }
 
+function buildSectorMix(data, totalAmount) {
+  const bySector = data?.["2_분야별"];
+  const total = Number(totalAmount);
+  if (!bySector || typeof bySector !== "object" || !Number.isFinite(total) || total <= 0) return "";
+  return ["공사", "용역", "물품", "쇼핑몰"]
+    .map((label) => {
+      const amount = Number(findValueByKeys(bySector[label], ["발주액", "total_amount", "contract_amount"]));
+      if (!Number.isFinite(amount)) return "";
+      return `${label} ${((amount / total) * 100).toFixed(1)}%`;
+    })
+    .filter(Boolean)
+    .join(" · ");
+}
+
 async function loadMonitoringSummary() {
   try {
     const response = await fetch(`${MONITORING_API_BASE_URL}/api/summary`, { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
-    const overall = findNestedRate(data, [["1_전체"], ["summary"], ["overall"], ["전체"]]);
+    const overallObject = findNestedObject(data, [["1_전체"], ["summary"], ["overall"], ["전체"]]);
+    const overall = findRateValue(overallObject);
+    const totalAmount = findValueByKeys(overallObject, ["발주액", "총계약액", "total_amount", "contract_amount"]);
+    const localAmount = findValueByKeys(overallObject, ["수주액", "지역업체 수주액", "local_amount", "award_amount"]);
+    const sectorMix = buildSectorMix(data, totalAmount);
     const busanGroup = findNestedRate(data, [["3_그룹별", "부산광역시 및 소속기관"], ["by_group", "부산광역시 및 소속기관"]]);
     const nationalGroup = findNestedRate(data, [["3_그룹별", "정부 및 국가공공기관"], ["by_group", "정부 및 국가공공기관"]]);
+    if (totalAmount) els.metricTotalAmount.textContent = formatWonCompact(totalAmount);
+    if (localAmount) els.metricLocalAmount.textContent = formatWonCompact(localAmount);
     if (overall) els.metricOverall.textContent = formatRate(overall);
+    if (sectorMix) els.metricSectorMix.textContent = sectorMix;
     if (busanGroup) els.metricBusanGroup.textContent = formatRate(busanGroup);
     if (nationalGroup) els.metricNationalGroup.textContent = formatRate(nationalGroup);
     if (data.generated_at) els.metricGenerated.textContent = `생성 ${data.generated_at}`;
   } catch {
-    els.metricOverall.textContent = "연결 필요";
+    els.metricTotalAmount.textContent = "연결 필요";
+    els.metricLocalAmount.textContent = "-";
+    els.metricOverall.textContent = "-";
+    els.metricSectorMix.textContent = "모니터링 API 확인 필요";
     els.metricGenerated.textContent = "모니터링 API 확인 필요";
   }
 }
