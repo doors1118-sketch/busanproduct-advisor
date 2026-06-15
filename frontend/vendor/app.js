@@ -39,6 +39,7 @@ const els = {
   summaryDesc: document.querySelector("#summary-desc"),
   summaryCondition: document.querySelector("#summary-condition"),
   summaryRoute: document.querySelector("#summary-route"),
+  summaryDownloadCard: document.querySelector("#summary-download-card"),
   summaryDownload: document.querySelector("#summary-download"),
   routeTitle: document.querySelector("#route-title"),
   routeBadges: document.querySelector("#route-badges"),
@@ -331,7 +332,7 @@ function renderSummary(payload, rows) {
           ? `확인 필요 ${needs}개`
           : "-";
   els.summaryRoute.textContent = routeEvidence ? `근거 있음 ${routeEvidence}개` : "확인 필요";
-  els.summaryDownload.textContent = count ? "가능" : "대기";
+  els.summaryDownload.textContent = count ? "XLSX 받기" : "대기";
 }
 
 function renderCandidate(row, index) {
@@ -399,10 +400,14 @@ function setDownloadState(enabled) {
   if (!enabled) {
     els.downloadLink.classList.add("disabled");
     els.downloadLink.setAttribute("aria-disabled", "true");
+    els.summaryDownloadCard.classList.add("disabled");
+    els.summaryDownloadCard.setAttribute("aria-disabled", "true");
     return;
   }
   els.downloadLink.classList.remove("disabled");
   els.downloadLink.setAttribute("aria-disabled", "false");
+  els.summaryDownloadCard.classList.remove("disabled");
+  els.summaryDownloadCard.setAttribute("aria-disabled", "false");
 }
 
 function renderPayload(payload) {
@@ -627,6 +632,18 @@ els.clear.addEventListener("click", () => {
 els.downloadLink.addEventListener("click", (event) => {
   event.preventDefault();
   if (els.downloadLink.classList.contains("disabled")) return;
+  downloadXlsx();
+});
+
+els.summaryDownloadCard.addEventListener("click", () => {
+  if (els.summaryDownloadCard.classList.contains("disabled")) return;
+  downloadXlsx();
+});
+
+els.summaryDownloadCard.addEventListener("keydown", (event) => {
+  if (!["Enter", " "].includes(event.key)) return;
+  event.preventDefault();
+  if (els.summaryDownloadCard.classList.contains("disabled")) return;
   downloadXlsx();
 });
 

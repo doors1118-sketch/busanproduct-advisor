@@ -547,6 +547,47 @@ select:focus {
   margin: 8px 0 0;
 }
 
+.summary-card.download-card {
+  cursor: pointer;
+  position: relative;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.summary-card.download-card::after {
+  background: #0f766e;
+  border-radius: 999px;
+  color: #fff;
+  content: "XLSX";
+  font-size: 11px;
+  font-weight: 900;
+  padding: 5px 8px;
+  position: absolute;
+  right: 16px;
+  top: 16px;
+}
+
+.summary-card.download-card:hover,
+.summary-card.download-card:focus-visible {
+  border-color: #0f766e;
+  box-shadow: 0 12px 28px rgba(15, 118, 110, 0.14);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.summary-card.download-card.disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+  transform: none;
+}
+
+.summary-card.download-card.disabled::after {
+  background: #94a3b8;
+  content: "대기";
+}
+
 .summary-card.strong {
   background: #071411;
   color: #fff;
