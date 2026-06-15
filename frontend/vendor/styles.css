@@ -206,21 +206,30 @@ a {
 }
 
 .hero {
+  background:
+    linear-gradient(135deg, rgba(31, 60, 171, 0.98) 0%, rgba(51, 72, 176, 0.98) 58%, rgba(24, 80, 177, 0.96) 100%);
+  border-color: rgba(191, 219, 254, 0.26);
+  color: #ffffff;
   display: grid;
   gap: 22px;
   grid-template-columns: minmax(0, 1fr) 320px;
   margin-bottom: 18px;
   overflow: hidden;
-  padding: 26px 28px;
+  min-height: 250px;
+  padding: 24px 28px;
   position: relative;
 }
 
 .hero::after {
-  background: linear-gradient(180deg, rgba(15, 118, 110, 0), rgba(15, 118, 110, 0.18));
+  background: linear-gradient(90deg, rgba(45, 212, 191, 0.8), rgba(96, 165, 250, 0.35), rgba(255, 255, 255, 0));
   content: "";
   inset: auto 0 0;
   height: 4px;
   position: absolute;
+}
+
+.hero .kicker {
+  color: #bfdbfe;
 }
 
 .kicker {
@@ -232,6 +241,7 @@ a {
 }
 
 .hero h1 {
+  color: #ffffff;
   font-size: clamp(30px, 3.1vw, 44px);
   letter-spacing: 0;
   line-height: 1.14;
@@ -240,7 +250,7 @@ a {
 }
 
 .hero-copy {
-  color: var(--muted);
+  color: #dbeafe;
   font-size: 15px;
   line-height: 1.7;
   margin: 14px 0 0;
@@ -253,14 +263,15 @@ a {
 }
 
 .hero-metrics div {
-  background: #081c17;
+  background: rgba(17, 34, 100, 0.72);
+  border: 1px solid rgba(191, 219, 254, 0.18);
   border-radius: 8px;
-  color: #d1fae5;
+  color: #dbeafe;
   padding: 15px 16px;
 }
 
 .hero-metrics span {
-  color: #a7f3d0;
+  color: #bfdbfe;
   display: block;
   font-size: 12px;
   font-weight: 800;
