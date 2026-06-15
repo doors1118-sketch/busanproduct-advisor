@@ -248,7 +248,7 @@ function renderRouteGuide(payload) {
   els.routeRequired.textContent = (guide.required_checks || primary.required_checks || ["원천자료 확인"]).join(" · ");
   els.routeRanking.textContent = (guide.ranking_basis || ["조건 일치", "구매 지원 근거", "영업상태", "정책·인증"]).join(" · ");
   els.routeNotice.textContent =
-    guide.legal_notice || "구매수단 안내는 후보 정보입니다. 최종 계약 가능 여부와 법령 해석은 별도 검토가 필요합니다.";
+    guide.legal_notice || "구매방식 안내는 후보 정보입니다. 최종 계약 가능 여부와 법령 해석은 별도 검토가 필요합니다.";
 
   els.routeBadges.innerHTML = "";
   if (badges.length) {
