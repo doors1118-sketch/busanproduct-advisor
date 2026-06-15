@@ -1076,6 +1076,13 @@ def _vendor_requested_construction_terms(q: str) -> list[str]:
             for license_name in licenses:
                 if license_name not in terms:
                     terms.append(license_name)
+    if any(marker in compact for marker in ("상하수도", "상수도설비", "하수도설비")):
+        terms = [
+            term
+            for term in terms
+            if _vendor_construction_compact(term)
+            not in {"기계설비공사업", "기계가스설비공사업", "기계설비공사"}
+        ]
     return terms
 
 
@@ -1246,6 +1253,7 @@ def _vendor_query_plan(q: str) -> list[dict[str, str]]:
         "청소", "경비", "냉난방기", "에어컨", "공기청정기",
         "LED", "조명", "책상", "의자", "가구", "캐비닛", "보관함",
         "주방기기", "급식", "레미콘", "아스콘", "아스팔트콘크리트",
+        "스텐밴드", "스테인리스밴드",
         "탄성포장재", "포장공사", "도로포장", "방수공사",
     ]
     for term in default_terms:
@@ -2292,7 +2300,7 @@ def _vendor_evidence_search_terms(q: str, product_policy_checks: list[dict[str, 
 
 def _vendor_is_multi_condition_query(q: str) -> bool:
     compact = _vendor_compact(q)
-    markers = ("둘다", "둘 다", "모두", "동시", "같이", "함께", "와", "과", "및", "그리고", "+", "&")
+    markers = ("둘다", "둘 다", "모두", "동시", "와", "과", "및", "그리고", "+", "&")
     return any(_vendor_compact(marker) in compact for marker in markers)
 
 
