@@ -1720,11 +1720,13 @@ def _vendor_recommendation_payload(
 ) -> dict:
     normalized_budget = _normalize_budget_krw(budget_krw)
     requested_limit = max(1, min(int(limit or 30), 100))
-    rows = _vendor_recommendation_rows(q, region=region, limit=requested_limit, budget_krw=normalized_budget)
+    evidence_pool_limit = max(requested_limit, min(max(requested_limit + 25, 30), 100))
+    rows = _vendor_recommendation_rows(q, region=region, limit=evidence_pool_limit, budget_krw=normalized_budget)
     product_policy_requested = bool(include_product_policy and _vendor_should_check_product_policy(q))
     product_policy_checks = _vendor_product_policy_checks(q, limit=5) if product_policy_requested else []
     rows = _vendor_apply_item_evidence(rows, q, product_policy_checks)
     rows = _vendor_apply_construction_evidence(rows, q)
+    rows = rows[:requested_limit]
     item_policy_summary = _vendor_item_policy_summary(q, product_policy_checks, requested=product_policy_requested)
     purchase_route_guidance = _vendor_purchase_route_guidance(q, rows, product_policy_checks, item_policy_summary)
     policy_preference_summary = _vendor_policy_preference_summary(q, rows, region=region)
