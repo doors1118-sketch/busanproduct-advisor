@@ -322,11 +322,16 @@ a {
 }
 
 .data-source-items {
-  display: flex;
+  display: grid;
   flex: 1 1 560px;
-  flex-wrap: wrap;
-  gap: 6px 10px;
+  gap: 5px;
   min-width: 0;
+}
+
+.source-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 10px;
 }
 
 .data-source-items strong {
