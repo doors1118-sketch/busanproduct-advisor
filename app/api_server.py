@@ -3060,10 +3060,18 @@ def _vendor_policy_tool_results(rows: list[dict[str, str | int]]) -> list[dict[s
         "shopping_mall_product_summary",
         "has_shopping_mall",
     )
+    third_party_count = 0
+    for row in rows:
+        mall_text = _vendor_join(row.get("shopping_mall_product_summary"))
+        flags_text = _vendor_join(row.get("shopping_mall_flags"))
+        combined = f"{mall_text} {flags_text}".lower()
+        if any(term in combined for term in ("third_party_unit_price", "third party", "제3자", "3자단가", "제3자를 위한 단가")):
+            third_party_count += 1
     policy_count = _vendor_route_candidate_count(rows, "policy_company_labels", "policy_subtypes")
     certified_count = _vendor_route_candidate_count(rows, "certified_product_labels", "certified_product_summary")
 
     return [
+        result("search_third_party_unit_price", third_party_count),
         result("search_shopping_mall", shopping_count),
         result("search_local_company_by_product", len(rows)),
         result("search_company_by_policy", policy_count),
@@ -3126,6 +3134,7 @@ def _vendor_priority_route_cards(
 
     priority_order = {"primary": 0, "secondary": 1, "reference": 2, "excluded": 3}
     route_order = {
+        "third_party_unit_price": -1,
         "shopping_mall_mas": 0,
         "two_quote_small_value": 1,
         "policy_company_one_quote": 2,
@@ -3320,6 +3329,7 @@ def _vendor_purchase_route_guidance(
         "excluded": 3,
     }
     route_order = {
+        "third_party_unit_price": -1,
         "shopping_mall_mas": 0,
         "mas": 0,
         "shopping_mall": 1,

@@ -282,6 +282,29 @@ def test_vendor_purchase_route_guidance_uses_budget_for_desktop_mas_priority():
     assert "예산 6,000만원 기준" in guidance["primary_route"]["practical_note"]
 
 
+def test_vendor_purchase_route_guidance_promotes_confirmed_third_party_unit_price():
+    rows = [
+        api_server._vendor_recommendation_row({
+            **_sample_vendor_row(),
+            "shopping_mall_product_summary": "전자복사기 / 제3자단가계약 / active",
+            "shopping_mall_flags": "third_party_unit_price_registered",
+            "has_shopping_mall": "true",
+        })
+    ]
+
+    guidance = api_server._vendor_purchase_route_guidance(
+        "전자복사기",
+        rows,
+        [],
+        {"status": "matched"},
+        budget_krw=30_000_000,
+    )
+
+    assert guidance["primary_route"]["route_id"] == "third_party_unit_price"
+    assert "제3자단가계약" in guidance["primary_route"]["label"]
+    assert "계약유형=제3자단가계약" in guidance["primary_route"]["required_checks"]
+
+
 def test_vendor_purchase_route_guidance_prioritizes_construction_intent_over_mas_rows():
     rows = [
         api_server._vendor_recommendation_row({

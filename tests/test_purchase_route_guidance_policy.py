@@ -76,6 +76,39 @@ def test_route_guidance_uses_company_tool_counts_as_candidates():
     assert by_id["innovation_product"].user_label == "후보 미확인"
 
 
+def test_third_party_unit_price_route_requires_confirmed_contract_type():
+    cards = build_purchase_route_cards(
+        amount=30_000_000,
+        item_name="우편물류 장비",
+        contract_object="goods",
+        agency_type="local_government",
+        tool_results=[_tool("search_third_party_unit_price", "부산 지역업체 검색 결과: 총 2건")],
+    )
+    by_id = {card.route_id: card for card in cards}
+
+    assert by_id["third_party_unit_price"].status == "candidate_found"
+    assert by_id["third_party_unit_price"].route_priority == "primary"
+    assert "제3자단가계약으로 확인" in by_id["third_party_unit_price"].practical_meaning
+    assert "지방자치단체와 교육기관" in by_id["third_party_unit_price"].practical_meaning
+    assert "조달사업에 관한 법률 시행령 제11조" in by_id["third_party_unit_price"].legal_refs
+
+
+def test_third_party_unit_price_route_does_not_overstate_without_source_evidence():
+    cards = build_purchase_route_cards(
+        amount=30_000_000,
+        item_name="데스크톱컴퓨터",
+        contract_object="goods",
+        agency_type="local_government",
+        tool_results=[_tool("search_shopping_mall", "부산 지역업체 검색 결과: 총 2건")],
+    )
+    by_id = {card.route_id: card for card in cards}
+
+    assert by_id["third_party_unit_price"].status == "needs_lookup"
+    assert by_id["third_party_unit_price"].route_priority == "reference"
+    assert "품목명만으로는 제3자단가계약 여부를 확정하지 않습니다" in by_id["third_party_unit_price"].practical_meaning
+    assert by_id["shopping_mall_mas"].route_priority == "primary"
+
+
 def test_45m_notebook_prefers_mas_then_two_quote_and_keeps_policy_as_exception():
     cards = build_purchase_route_cards(
         amount=45_000_000,
