@@ -2450,30 +2450,39 @@ def _vendor_apply_item_evidence(
         if not any((wants_direct, wants_mas, wants_shopping)) and evidence_summary:
             route_score += 10
 
-        row_has_direct = bool(direct_items) or _vendor_is_truthy(row.get("direct_production_summary")) or _vendor_is_truthy(row.get("direct_production_flags"))
-        row_has_mas = bool(mas_items) or _vendor_is_truthy(row.get("has_mas")) or _vendor_is_truthy(row.get("mas_product_summary"))
-        row_has_shopping = bool(shopping_items) or _vendor_is_truthy(row.get("has_shopping_mall")) or _vendor_is_truthy(row.get("shopping_mall_product_summary"))
+        row_has_direct_generic = _vendor_is_truthy(row.get("direct_production_summary")) or _vendor_is_truthy(row.get("direct_production_flags"))
+        row_has_mas_generic = _vendor_is_truthy(row.get("has_mas")) or _vendor_is_truthy(row.get("mas_product_summary"))
+        row_has_shopping_generic = _vendor_is_truthy(row.get("has_shopping_mall")) or _vendor_is_truthy(row.get("shopping_mall_product_summary"))
         route_fit_score = 0
         route_fit_parts: list[str] = []
         if route_requirements["requires_direct_production"]:
-            if row_has_direct:
+            if direct_items:
                 route_fit_score += 35
-                route_fit_parts.append("직접생산 근거 충족")
+                route_fit_parts.append("직접생산 요청품목 근거 충족")
+            elif row_has_direct_generic:
+                route_fit_score += 8
+                route_fit_parts.append("직접생산 보유(요청품목 일치 확인 필요)")
             else:
                 route_fit_score -= 20
                 route_fit_parts.append("직접생산 근거 미확인")
         if route_requirements["has_mas_route"]:
-            if row_has_mas:
+            if mas_items:
                 route_fit_score += 25
-                route_fit_parts.append("MAS 등록 근거 충족")
+                route_fit_parts.append("MAS 요청품목 등록 근거 충족")
+            elif row_has_mas_generic:
+                route_fit_score += 5
+                route_fit_parts.append("MAS 보유(요청품목 일치 확인 필요)")
             else:
                 route_fit_score -= 8
                 route_fit_parts.append("MAS 등록 근거 미확인")
-        elif route_requirements["has_shopping_route"]:
-            if row_has_shopping:
+        if route_requirements["has_shopping_route"]:
+            if shopping_items:
                 route_fit_score += 18
-                route_fit_parts.append("종합쇼핑몰 등록 근거 충족")
-            else:
+                route_fit_parts.append("종합쇼핑몰 요청품목 등록 근거 충족")
+            elif row_has_shopping_generic:
+                route_fit_score += 4
+                route_fit_parts.append("종합쇼핑몰 보유(요청품목 일치 확인 필요)")
+            elif not route_requirements["has_mas_route"]:
                 route_fit_score -= 5
                 route_fit_parts.append("종합쇼핑몰 등록 근거 미확인")
         if route_requirements["has_facility_material_price"]:
