@@ -8,289 +8,268 @@
   </head>
   <body>
     <div class="app-shell">
-      <header class="topbar" aria-label="서비스 헤더">
-        <div class="brand-block">
-          <span class="brand-mark" aria-hidden="true">B</span>
+      <aside class="rail" aria-label="서비스 상태">
+        <div class="brand">
+          <span class="brand-mark">B</span>
           <div>
-            <p class="eyebrow">지능형 지역상생 계약 지원 시스템</p>
-            <h1>지역업체 후보 조회</h1>
+            <p>Busan Procurement</p>
+            <strong>지역업체 후보 조회</strong>
           </div>
         </div>
-        <div class="topbar-meta">
-          <span id="api-state" class="state-pill state-muted">API 확인 전</span>
+
+        <div class="rail-status">
+          <span id="api-state" class="state-pill muted">API 확인 중</span>
           <span id="data-date" class="date-chip">DB 기준일 확인 중</span>
         </div>
-      </header>
 
-      <main class="workspace">
-        <section class="hero-console" aria-label="지역상생 조달 인사이트">
-          <div class="hero-copy">
-            <p class="section-kicker">Local Procurement Intelligence</p>
-            <h2>
-              <span>부산업체 후보군을</span>
-              <span>데이터 근거로</span>
-              <span>빠르게 좁힙니다.</span>
-            </h2>
-            <p>
-              모니터링 시스템의 수주율 흐름과 업체 DB의 조달 근거를 함께 보면서, 특정 업체 지정이 아닌 후보군 검토 방식으로 접근합니다.
-            </p>
-            <div class="hero-actions">
-              <a href="#search-form" class="hero-button">후보 조회 시작</a>
-              <span id="monitoring-state" class="hero-state">모니터링 지표 연결 확인 중</span>
-            </div>
-          </div>
+        <nav class="rail-nav" aria-label="화면 구성">
+          <a href="#search-panel">검색</a>
+          <a href="#route-panel">구매수단</a>
+          <a href="#candidate-section">후보업체</a>
+          <a href="#compare-section">비교표</a>
+        </nav>
 
-          <div class="metric-board" aria-label="모니터링 요약 지표">
-            <div class="metric-card metric-primary">
-              <span class="metric-label">종합 수주율</span>
-              <strong id="metric-overall">59.6%</strong>
-              <span id="metric-generated" class="metric-sub">최근 확인 캐시 기준</span>
-            </div>
-            <div class="metric-card">
-              <span class="metric-label">부산시·구군·소속기관</span>
-              <strong id="metric-busan-group">연결 필요</strong>
-              <span class="metric-sub">통제 가능 기관군</span>
-            </div>
-            <div class="metric-card">
-              <span class="metric-label">정부·국가공공기관</span>
-              <strong id="metric-national-group">연결 필요</strong>
-              <span class="metric-sub">현장판정 핵심 기관군</span>
-            </div>
-            <div class="metric-card">
-              <span class="metric-label">업체 후보 DB</span>
-              <strong id="metric-company-db">46,656</strong>
-              <span class="metric-sub">운영 DB 확인 기준</span>
-            </div>
-
-            <div class="sector-strip" aria-label="분야별 수주율">
-              <div>
-                <span>공사</span>
-                <i style="--value: 68.6%"></i>
-                <b id="sector-construction">68.6%</b>
-              </div>
-              <div>
-                <span>용역</span>
-                <i style="--value: 53.5%"></i>
-                <b id="sector-service">53.5%</b>
-              </div>
-              <div>
-                <span>물품</span>
-                <i style="--value: 45.6%"></i>
-                <b id="sector-goods">45.6%</b>
-              </div>
-              <div>
-                <span>쇼핑몰</span>
-                <i style="--value: 52%"></i>
-                <b id="sector-shopping">52.0%</b>
-              </div>
-            </div>
-          </div>
+        <section class="rail-card">
+          <p class="kicker">모니터링 지표</p>
+          <strong id="metric-overall">연결 중</strong>
+          <span id="metric-generated">수주율 API 확인 중</span>
         </section>
 
-        <section class="search-panel" aria-label="지역업체 후보 검색">
-          <div class="search-copy">
-            <p class="section-kicker">조건 입력</p>
-            <h2>품목·면허·업종 검색</h2>
-            <p class="search-note">품목명, 세부품명, 공사면허, 용역 업종을 한 문장으로 입력합니다.</p>
+        <section class="rail-card compact">
+          <span>부산시 소관</span>
+          <b id="metric-busan-group">-</b>
+          <span>정부·국가공공</span>
+          <b id="metric-national-group">-</b>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <header class="hero">
+          <div>
+            <p class="kicker">Intelligent Local Procurement Support</p>
+            <h1>품목·면허를 입력하면 부산 지역업체 후보와 구매수단 근거를 함께 보여줍니다.</h1>
+            <p class="hero-copy">
+              이 화면은 특정 업체를 확정 추천하지 않습니다. DB 근거가 확인되는 후보군을 비교하고,
+              계약 전 확인해야 할 사항을 정리하는 실무 검토용 화면입니다.
+            </p>
           </div>
+          <div class="hero-metrics">
+            <div>
+              <span>업체 DB</span>
+              <strong id="metric-company-db">46,000+</strong>
+            </div>
+            <div>
+              <span>화면 표시</span>
+              <strong>상위 10개</strong>
+            </div>
+            <div>
+              <span>전체 목록</span>
+              <strong>XLSX</strong>
+            </div>
+          </div>
+        </header>
+
+        <section id="search-panel" class="search-panel">
+          <div class="panel-head">
+            <div>
+              <p class="kicker">검색 조건</p>
+              <h2>품목명, 면허명, 업종명을 자연어로 입력</h2>
+            </div>
+            <span class="panel-note">예: 비디오프로젝터, 도로 포장공사, 보안캠, 책상</span>
+          </div>
+
           <form id="search-form" class="search-form">
-            <label class="sr-only" for="query-input">검색어</label>
+            <label for="query-input">검색어</label>
             <textarea
               id="query-input"
               name="query"
               rows="3"
-              placeholder="예: CCTV, 전기공사업, 드론 납품업체"
+              placeholder="예: 보안캠 업체 후보를 찾아줘. 정책기업 여부까지 같이"
               autocomplete="off"
             ></textarea>
-            <div class="form-footer">
-              <div class="sample-row" aria-label="예시 검색어">
-                <button type="button" class="sample-chip" data-query="CCTV 설치 가능한 부산업체">CCTV</button>
-                <button type="button" class="sample-chip" data-query="전기공사업 면허 보유 부산업체">전기공사업</button>
-                <button type="button" class="sample-chip" data-query="드론 납품 가능한 부산업체">드론</button>
-                <button type="button" class="sample-chip" data-query="PC 데스크톱 납품업체">PC</button>
-                <button type="button" class="sample-chip" data-query="청소용역 부산업체">청소용역</button>
-              </div>
+
+            <div class="input-grid">
+              <label>
+                예산금액
+                <input id="budget-input" type="number" min="0" step="10000" placeholder="예: 45000000" />
+              </label>
+              <label>
+                표시 후보 수
+                <select id="limit-input">
+                  <option value="10">10개</option>
+                  <option value="20">20개</option>
+                  <option value="30" selected>30개 조회</option>
+                  <option value="50">50개 조회</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="sample-row" aria-label="예시 검색어">
+              <button type="button" data-query="비디오프로젝터 구매 가능한 부산업체 후보">비디오프로젝터</button>
+              <button type="button" data-query="보안캠 업체 후보를 찾아줘. 정책기업 여부까지 같이">보안캠</button>
+              <button type="button" data-query="도로 포장공사 업체 추천해줘">도로 포장공사</button>
+              <button type="button" data-query="책상 중기간경쟁제품이면 부산업체 후보를 보여줘">책상</button>
+              <button type="button" data-query="복층유리와 상하수도설비공사 둘 다 가능한 업체 찾아줘">혼합질의</button>
+            </div>
+
+            <div class="form-actions">
               <button id="search-button" class="primary-button" type="submit">후보 조회</button>
+              <button id="clear-button" class="ghost-button" type="button">초기화</button>
             </div>
           </form>
         </section>
 
-        <section class="result-summary" aria-label="조회 요약">
-          <div>
-            <p class="section-kicker">조회 결과</p>
-            <h2 id="summary-title">검색 조건을 입력하면 후보군을 표시합니다.</h2>
-            <p id="summary-desc">
-              화면에는 근거 확인 항목이 많은 후보 일부만 표시하고, 전체 목록은 파일로 내려받을 수 있습니다.
-            </p>
-          </div>
-          <div class="summary-actions">
-            <a id="download-link" class="secondary-button disabled" href="#" aria-disabled="true">전체 후보 XLSX</a>
-            <span id="download-detail" class="download-detail">검색 후 다운로드 가능</span>
-          </div>
+        <section class="summary-grid" aria-label="조회 요약">
+          <article class="summary-card strong">
+            <span>후보 수</span>
+            <strong id="summary-count">조회 전</strong>
+            <p id="summary-desc">검색어를 입력하면 결과 요약이 표시됩니다.</p>
+          </article>
+          <article class="summary-card">
+            <span>조건 충족</span>
+            <strong id="summary-condition">-</strong>
+            <p>모두 충족, 일부 충족, 확인 필요를 구분합니다.</p>
+          </article>
+          <article class="summary-card">
+            <span>구매 편의 근거</span>
+            <strong id="summary-route">-</strong>
+            <p>MAS, 종합쇼핑몰, 직접생산, 정책기업 근거를 집계합니다.</p>
+          </article>
+          <article class="summary-card">
+            <span>다운로드</span>
+            <strong id="summary-download">대기</strong>
+            <p>전체 후보는 XLSX로 내려받아 검토합니다.</p>
+          </article>
         </section>
 
-        <section class="purchase-guide" aria-label="구매수단 적합성 판정">
-          <div>
-            <p class="section-kicker">구매수단 적합성</p>
-            <h2 id="route-title">품목을 조회하면 구매 경로와 필수 확인요건을 표시합니다.</h2>
-            <p id="route-desc">
-              조달청 단가계약, MAS, 중소기업자간 경쟁제품, 직접생산확인 여부를 구분해 후보군 표시 기준을 조정합니다.
-            </p>
-          </div>
-          <div id="route-badges" class="route-badges">
-            <span class="route-badge neutral">조회 전</span>
-          </div>
-          <div class="route-check-grid">
+        <section id="route-panel" class="route-panel">
+          <div class="panel-head">
             <div>
-              <dt>우선 구매 경로</dt>
-              <dd id="route-primary">조회 후 판정</dd>
+              <p class="kicker">구매수단 안내</p>
+              <h2 id="route-title">조회 후 구매수단 후보를 표시합니다.</h2>
             </div>
-            <div>
-              <dt>필수 확인요건</dt>
-              <dd id="route-required">품목정책 DB 및 업체 속성 확인</dd>
-            </div>
-            <div>
-              <dt>후보 표시 기준</dt>
-              <dd id="route-ranking">구매수단 충족도가 높은 업체를 우선 표시</dd>
+            <div id="route-badges" class="badge-row">
+              <span class="tag neutral">대기</span>
             </div>
           </div>
+          <div class="route-grid">
+            <div>
+              <span>우선 검토 경로</span>
+              <strong id="route-primary">-</strong>
+            </div>
+            <div>
+              <span>필수 확인사항</span>
+              <strong id="route-required">-</strong>
+            </div>
+            <div>
+              <span>후보 정렬 기준</span>
+              <strong id="route-ranking">-</strong>
+            </div>
+          </div>
+          <p id="route-notice" class="legal-notice">
+            구매수단 안내는 후보 정보입니다. 최종 계약 가능 여부와 법령 해석은 별도 검토가 필요합니다.
+          </p>
         </section>
 
         <section class="content-grid">
-          <div class="candidate-area">
+          <section id="candidate-section" class="candidate-section">
             <div class="section-head">
               <div>
-                <p class="section-kicker">대표 후보</p>
-                <h2>우선 확인 후보</h2>
+                <p class="kicker">후보업체</p>
+                <h2>근거 충족도가 높은 후보</h2>
               </div>
-              <span id="visible-count" class="count-chip">0개 표시</span>
+              <a id="download-link" class="secondary-button disabled" href="#" aria-disabled="true">전체 XLSX</a>
             </div>
             <div id="candidate-list" class="candidate-list" aria-live="polite">
               <article class="empty-panel">
                 <strong>아직 조회 결과가 없습니다.</strong>
-                <span>품목명, 면허명, 업종명을 입력하면 DB상 관련 부산업체 후보군을 조회합니다.</span>
+                <span>검색어를 입력하면 업체별 충족 근거와 확인 필요사항을 표시합니다.</span>
               </article>
             </div>
-          </div>
+          </section>
 
-          <aside class="evidence-panel" aria-label="표시 기준과 확인사항">
-            <div class="sticky-stack">
-              <section class="side-section leakage-section">
-                <div class="side-title-row">
-                  <div>
-                    <p class="section-kicker">쇼핑몰 유출품목</p>
-                    <h2>지역 전환 검토 품목</h2>
-                  </div>
-                  <span id="leakage-updated" class="mini-chip">확인 중</span>
-                </div>
-                <div id="leakage-list" class="leakage-list" aria-live="polite">
-                  <p class="side-muted">모니터링 API에서 주요 유출품목을 불러오는 중입니다.</p>
-                </div>
-              </section>
-
-              <section class="side-section">
-                <p class="section-kicker">표시 기준</p>
-                <h2>후보군 표시 원칙</h2>
-                <ul class="plain-list">
-                  <li>특정 업체를 단일 추천하지 않습니다.</li>
-                  <li>입력 조건과 DB 근거가 맞는 부산업체 후보군을 표시합니다.</li>
-                  <li>대표 후보는 화면 확인용이며 전체 목록은 CSV로 검토합니다.</li>
-                </ul>
-              </section>
-
-              <section class="side-section">
-                <p class="section-kicker">업체 속성</p>
-                <div class="legend-grid">
-                  <span>부산 본사</span>
-                  <span>정상영업</span>
-                  <span>조달등록</span>
-                  <span>직접생산</span>
-                  <span>MAS</span>
-                  <span>종합쇼핑몰</span>
-                  <span>정책기업</span>
-                  <span>인증제품</span>
-                </div>
-              </section>
-
-              <section class="side-section caution">
-                <p class="section-kicker">확인 필요</p>
-                <p>
-                  이 화면은 후보군 탐색용입니다. 계약 가능 여부, 인증 유효성, 납품 가능성은 공고 전 원천자료로 재확인해야 합니다.
-                </p>
-              </section>
-            </div>
+          <aside class="side-stack">
+            <section class="side-card">
+              <p class="kicker">표시 원칙</p>
+              <h3>특정 업체 확정 추천 아님</h3>
+              <ul>
+                <li>화면에는 상위 후보만 표시합니다.</li>
+                <li>전체 후보는 XLSX로 확인합니다.</li>
+                <li>영업상태, 인증 유효기간, 납품 가능 여부는 공고 전 재확인합니다.</li>
+              </ul>
+            </section>
+            <section class="side-card">
+              <p class="kicker">주요 유출품목</p>
+              <h3>모니터링 연계</h3>
+              <div id="leakage-list" class="leakage-list">
+                <p class="muted">쇼핑몰 유출품목 API 연결을 확인 중입니다.</p>
+              </div>
+              <span id="leakage-updated" class="mini-note">-</span>
+            </section>
           </aside>
+        </section>
+
+        <section id="compare-section" class="compare-section">
+          <div class="section-head">
+            <div>
+              <p class="kicker">비교표</p>
+              <h2>업체별 근거 비교</h2>
+            </div>
+            <span id="visible-count" class="count-chip">0개 표시</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>업체명</th>
+                  <th>조건</th>
+                  <th>구매수단</th>
+                  <th>직접생산</th>
+                  <th>MAS/쇼핑몰</th>
+                  <th>면허·시공능력</th>
+                  <th>확인 필요</th>
+                </tr>
+              </thead>
+              <tbody id="compare-body">
+                <tr>
+                  <td colspan="7">조회 후 비교표가 표시됩니다.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </section>
       </main>
     </div>
 
     <template id="candidate-template">
       <article class="candidate-card">
-        <div class="candidate-main">
-          <div class="candidate-rank"></div>
-          <div class="candidate-body">
-            <div class="candidate-title-row">
+        <div class="rank"></div>
+        <div class="candidate-body">
+          <div class="candidate-title">
+            <div>
               <h3 class="candidate-name"></h3>
-              <div class="candidate-score-stack">
-                <span class="basis-level"></span>
-                <span class="score-pill"></span>
-              </div>
+              <p class="candidate-location"></p>
             </div>
-            <p class="candidate-location"></p>
-            <div class="badge-row"></div>
-            <div class="candidate-profile">
-              <div>
-                <span>후보 업체</span>
-                <strong class="match-label"></strong>
-              </div>
-              <div>
-                <span>조건 충족</span>
-                <strong class="condition-summary"></strong>
-              </div>
-              <div>
-                <span>영업 상태</span>
-                <strong class="business-status"></strong>
-              </div>
+            <div class="score-box">
+              <span class="basis-level"></span>
+              <strong class="score-pill"></strong>
             </div>
-
-            <section class="candidate-section evidence-section">
-              <div class="candidate-section-head">
-                <h4>충족 근거</h4>
-                <span class="requested-evidence"></span>
-              </div>
-              <div class="evidence-list"></div>
-            </section>
-
-            <section class="candidate-section check-section">
-              <div class="candidate-section-head">
-                <h4>확인 필요 항목</h4>
-                <span>공고 전 원천자료 재확인</span>
-              </div>
-              <ul class="check-list"></ul>
-            </section>
-
-            <details class="raw-detail">
-              <summary>업체 속성 원문 보기</summary>
-              <dl class="attribute-grid">
-                <div>
-                  <dt>주요 품목</dt>
-                  <dd class="main-products"></dd>
-                </div>
-                <div>
-                  <dt>면허·업종</dt>
-                  <dd class="licenses"></dd>
-                </div>
-                <div>
-                  <dt>조달 근거</dt>
-                  <dd class="procurement-evidence"></dd>
-                </div>
-                <div>
-                  <dt>확인사항</dt>
-                  <dd class="checks"></dd>
-                </div>
-              </dl>
-            </details>
           </div>
+          <div class="badge-row card-badges"></div>
+          <div class="evidence-grid"></div>
+          <div class="check-panel">
+            <strong>확인 필요사항</strong>
+            <ul class="check-list"></ul>
+          </div>
+          <details>
+            <summary>원문 속성 보기</summary>
+            <dl class="raw-grid">
+              <div><dt>주요 품목</dt><dd class="main-products"></dd></div>
+              <div><dt>면허·업종</dt><dd class="licenses"></dd></div>
+              <div><dt>조달 근거</dt><dd class="procurement-evidence"></dd></div>
+              <div><dt>추천 확인사항</dt><dd class="checks"></dd></div>
+            </dl>
+          </details>
         </div>
       </article>
     </template>

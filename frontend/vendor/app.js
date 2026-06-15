@@ -4,154 +4,103 @@ const API_BASE_URL =
   (window.location.protocol === "file:" || window.location.port === "5177" ? "http://127.0.0.1:8001" : "");
 const MONITORING_API_BASE_URL = (params.get("monitoring") || "https://busanproduct.co.kr").replace(/\/$/, "");
 
-const DISPLAY_LIMIT = 8;
+const DISPLAY_LIMIT = 10;
 
 const els = {
   form: document.querySelector("#search-form"),
   input: document.querySelector("#query-input"),
+  budget: document.querySelector("#budget-input"),
+  limit: document.querySelector("#limit-input"),
   button: document.querySelector("#search-button"),
+  clear: document.querySelector("#clear-button"),
   apiState: document.querySelector("#api-state"),
   dataDate: document.querySelector("#data-date"),
-  summaryTitle: document.querySelector("#summary-title"),
-  summaryDesc: document.querySelector("#summary-desc"),
-  downloadLink: document.querySelector("#download-link"),
-  downloadDetail: document.querySelector("#download-detail"),
-  candidateList: document.querySelector("#candidate-list"),
-  visibleCount: document.querySelector("#visible-count"),
-  template: document.querySelector("#candidate-template"),
-  monitoringState: document.querySelector("#monitoring-state"),
   metricOverall: document.querySelector("#metric-overall"),
   metricGenerated: document.querySelector("#metric-generated"),
   metricBusanGroup: document.querySelector("#metric-busan-group"),
   metricNationalGroup: document.querySelector("#metric-national-group"),
   metricCompanyDb: document.querySelector("#metric-company-db"),
-  sectorConstruction: document.querySelector("#sector-construction"),
-  sectorService: document.querySelector("#sector-service"),
-  sectorGoods: document.querySelector("#sector-goods"),
-  sectorShopping: document.querySelector("#sector-shopping"),
-  leakageList: document.querySelector("#leakage-list"),
-  leakageUpdated: document.querySelector("#leakage-updated"),
+  summaryCount: document.querySelector("#summary-count"),
+  summaryDesc: document.querySelector("#summary-desc"),
+  summaryCondition: document.querySelector("#summary-condition"),
+  summaryRoute: document.querySelector("#summary-route"),
+  summaryDownload: document.querySelector("#summary-download"),
   routeTitle: document.querySelector("#route-title"),
-  routeDesc: document.querySelector("#route-desc"),
   routeBadges: document.querySelector("#route-badges"),
   routePrimary: document.querySelector("#route-primary"),
   routeRequired: document.querySelector("#route-required"),
   routeRanking: document.querySelector("#route-ranking"),
+  routeNotice: document.querySelector("#route-notice"),
+  downloadLink: document.querySelector("#download-link"),
+  candidateList: document.querySelector("#candidate-list"),
+  compareBody: document.querySelector("#compare-body"),
+  visibleCount: document.querySelector("#visible-count"),
+  template: document.querySelector("#candidate-template"),
+  leakageList: document.querySelector("#leakage-list"),
+  leakageUpdated: document.querySelector("#leakage-updated"),
 };
 
-let lastSearchQuery = "";
-let lastSearchRows = [];
-let lastSearchIsFallback = true;
+let lastPayload = null;
+let lastQuery = "";
 
-const sampleRows = [
-  {
-    company_name: "주식회사 예스텍",
-    location: "부산광역시",
-    detail_address: "부산광역시 소재",
-    business_status_label: "정상영업 확인",
-    license_or_business_type: "정보통신공사업 | 소프트웨어사업자",
-    main_products: "CCTV | 영상감시장치 | 보안장비",
-    shopping_mall_status_label: "종합쇼핑몰 등록정보 있음",
-    mas_status_label: "MAS 등록정보 있음",
-    direct_production_certificate_status: "직접생산증명 정보 있음",
-    policy_company_labels: "",
-    certified_product_labels: "기술개발제품",
-    sme_competition_product_label: "중기간경쟁제품 확인 필요",
-    recommended_checks: "직접생산 유효기간 확인 | 쇼핑몰 단가 확인 | 실제 납품 가능지역 확인",
-    source_refreshed_at: "2026-06-10",
-    review_score: 92,
-  },
-  {
-    company_name: "부산정보통신 주식회사",
-    location: "부산광역시",
-    detail_address: "부산광역시 소재",
-    business_status_label: "정상영업 확인",
-    license_or_business_type: "정보통신공사업",
-    main_products: "영상장비 | 네트워크장비 | 통신공사",
-    shopping_mall_status_label: "DB 등록정보 없음",
-    mas_status_label: "DB 등록정보 없음",
-    direct_production_certificate_status: "직접생산증명 정보 있음",
-    policy_company_labels: "여성기업",
-    certified_product_labels: "",
-    sme_competition_product_label: "",
-    recommended_checks: "면허 유효성 확인 | 직접생산 품목 일치 여부 확인",
-    source_refreshed_at: "2026-06-10",
-    review_score: 84,
-  },
-];
-
-function text(value, fallback = "-") {
+function valueText(value, fallback = "-") {
   if (value === null || value === undefined) return fallback;
   const normalized = String(value).trim();
   return normalized || fallback;
 }
 
+function escapeHtml(value) {
+  return valueText(value, "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function truncate(value, max = 140) {
+  const normalized = valueText(value, "");
+  if (normalized.length <= max) return normalized;
+  return `${normalized.slice(0, max - 1)}…`;
+}
+
 function splitValues(value) {
-  return text(value, "")
-    .split(/\s*\|\s*|,\s*|\n+/)
+  return valueText(value, "")
+    .split(/\s*\|\s*|\s*\/\s*|\n+|,\s*/)
     .map((item) => item.trim())
     .filter(Boolean)
-    .filter((item, idx, arr) => arr.indexOf(item) === idx);
+    .filter((item, index, arr) => arr.indexOf(item) === index);
 }
 
-function positiveText(value) {
-  const normalized = text(value, "").trim();
-  if (!normalized) return "";
-  if (
-    /없음|미확인|근거\s*없|정보\s*없|not\s*found|unknown|unavailable|false|^0$/i.test(normalized)
-  ) {
-    return "";
-  }
-  return normalized;
-}
-
-function evidenceTone(value, fallback = "neutral") {
-  const normalized = text(value, "").trim();
-  if (!normalized) return "warn";
-  if (/일부|확인\s*필요|미확인|없음|근거\s*부족|주의|재확인|필요/i.test(normalized)) return "warn";
-  if (/모두\s*충족|충족|등록|보유|확인|유효|대상|있음|match|true|valid/i.test(normalized)) return "good";
-  return fallback;
+function isPositive(value) {
+  const normalized = valueText(value, "").toLowerCase();
+  if (!normalized) return false;
+  return !/(없음|미확인|근거 없음|확인 필요|not found|unknown|unavailable|false|^0$)/i.test(normalized);
 }
 
 function firstPositive(...values) {
   for (const value of values) {
-    const normalized = positiveText(value);
-    if (normalized) return normalized;
+    if (isPositive(value)) return valueText(value, "");
   }
   return "";
 }
 
-function conditionLabel(row) {
-  return firstPositive(row.condition_match_type, evidenceLevel(row));
+function toneFor(value) {
+  const normalized = valueText(value, "");
+  if (!normalized) return "warn";
+  if (/(모두 충족|충족|일치|등록|보유|확인|유효|active|valid|true)/i.test(normalized)) return "good";
+  if (/(일부 충족|확인 필요|미확인|근거 없음|주의|없음|unknown|not found)/i.test(normalized)) return "warn";
+  return "info";
 }
 
-function conditionSummary(row) {
-  const type = conditionLabel(row);
-  const summary = firstPositive(row.condition_match_summary, row.requested_item_evidence_summary);
-  return summary ? `${type} · ${summary}` : type;
+function tag(text, tone = "neutral") {
+  const span = document.createElement("span");
+  span.className = `tag ${tone}`;
+  span.textContent = text;
+  return span;
 }
 
-function matchLabel(row) {
-  return firstPositive(
-    row.matched_query_label,
-    row.primary_candidate_type,
-    row.candidate_types,
-    row.contract_review_types,
-    row.license_status_label,
-    "관련 부산업체",
-  );
-}
-
-function evidenceItem(label, value, tone = null) {
-  const normalized = text(value, "확인 필요");
-  return {
-    label,
-    value: truncate(normalized, 150),
-    tone: tone || evidenceTone(normalized),
-  };
-}
-
-function directProductionEvidence(row) {
+function directEvidence(row) {
   return firstPositive(
     row.direct_production_match,
     row.direct_production_certificate_products,
@@ -169,562 +118,292 @@ function shoppingEvidence(row) {
 }
 
 function constructionEvidence(row) {
-  const capacity = firstPositive(row.construction_capacity_match, row.construction_capacity_summary);
-  const license = firstPositive(row.construction_license_match, row.construction_capacity_status_label);
-  if (capacity && license) return `${license} · ${capacity}`;
-  return capacity || license;
+  return firstPositive(row.construction_capacity_match, row.construction_capacity_summary, row.construction_license_match);
 }
 
 function policyEvidence(row) {
   return firstPositive(
     row.policy_company_labels,
-    row.certified_product_summary,
     row.certified_product_labels,
+    row.certified_product_summary,
     row.sme_competition_product_label,
     row.cooperative_purchase_route_label,
   );
 }
 
-function ventureEvidence(row) {
-  return firstPositive(row.venture_nara_status_label, row.venture_nara_product_summary, row.venture_nara_order_summary);
+function conditionText(row) {
+  const type = valueText(row.condition_match_type, "후보 표시");
+  const summary = valueText(row.condition_match_summary, "");
+  return summary ? `${type} · ${summary}` : type;
 }
 
-function buildEvidenceItems(row) {
-  const items = [
-    evidenceItem("조건 충족도", conditionSummary(row), evidenceTone(row.condition_match_type)),
-    evidenceItem("검색어-품목 근거", firstPositive(row.requested_item_evidence_summary, row.main_products) || "원천 DB 확인 필요"),
-    evidenceItem("직접생산", directProductionEvidence(row) || "DB 등록 근거 없음", directProductionEvidence(row) ? "good" : "warn"),
-    evidenceItem("MAS", masEvidence(row) || "DB 등록 근거 없음", masEvidence(row) ? "good" : "neutral"),
-    evidenceItem("종합쇼핑몰", shoppingEvidence(row) || "DB 등록 근거 없음", shoppingEvidence(row) ? "good" : "neutral"),
-    evidenceItem("면허/시공능력", constructionEvidence(row) || firstPositive(row.license_or_business_type) || "원천 DB 확인 필요"),
-    evidenceItem("정책·인증", policyEvidence(row) || "해당 근거 없음", policyEvidence(row) ? "good" : "neutral"),
-  ];
-  const venture = ventureEvidence(row);
-  if (venture) items.push(evidenceItem("벤처나라", venture, "good"));
-  return items;
-}
-
-function buildCheckItems(row) {
-  const checks = splitValues(row.recommended_checks);
-  const condition = text(row.condition_match_type, "");
-  if (/일부|부족|미확인|확인\s*필요/i.test(condition)) {
-    checks.push("검색 조건 중 미충족 또는 근거 부족 항목 원천자료 확인");
-  }
-  if (!positiveText(row.business_status_label) || /폐업|휴업|미확인/i.test(text(row.business_status_label, ""))) {
-    checks.push("사업자 영업상태 재확인");
-  }
-  if (!directProductionEvidence(row) && rowIsSmeCompetition(row)) {
-    checks.push("중기간경쟁제품이면 직접생산확인증명 보유 여부 확인");
-  }
-  if (!masEvidence(row) && !shoppingEvidence(row)) {
-    checks.push("조달청 쇼핑몰·MAS 등록 여부 별도 확인");
-  }
-  checks.push("공고 전 면허·인증·계약 가능 상태를 원천 사이트에서 재확인");
-  return [...new Set(checks.map((item) => item.trim()).filter(Boolean))].slice(0, 6);
-}
-
-function renderEvidenceList(container, items) {
-  container.innerHTML = "";
-  items.forEach((item) => {
-    const div = document.createElement("div");
-    div.className = `evidence-item ${item.tone}`;
-    div.innerHTML = `<span>${escapeHtml(item.label)}</span><strong>${escapeHtml(item.value)}</strong>`;
-    container.appendChild(div);
-  });
-}
-
-function renderCheckList(container, checks) {
-  container.innerHTML = "";
-  checks.forEach((check) => {
-    const li = document.createElement("li");
-    li.textContent = check;
-    container.appendChild(li);
-  });
-}
-
-function csvCell(value) {
-  const normalized = text(value, "").replace(/\r?\n/g, " ");
-  return `"${normalized.replaceAll('"', '""')}"`;
-}
-
-function rowsToCsv(rows) {
-  const columns = [
-    ["company_name", "업체명"],
-    ["location", "지역"],
-    ["detail_address", "상세주소"],
-    ["business_status_label", "영업상태"],
-    ["matched_query_label", "후보분류"],
-    ["condition_match_type", "조건충족유형"],
-    ["condition_match_summary", "조건충족요약"],
-    ["requested_item_evidence_summary", "검색어품목근거"],
-    ["license_or_business_type", "면허업종"],
-    ["main_products", "주요품목"],
-    ["direct_production_match", "직접생산근거"],
-    ["mas_match", "MAS근거"],
-    ["shopping_mall_match", "종합쇼핑몰근거"],
-    ["construction_license_match", "공사면허근거"],
-    ["construction_capacity_match", "시공능력근거"],
-    ["policy_company_labels", "정책기업"],
-    ["certified_product_labels", "인증제품"],
-    ["sme_competition_product_label", "중기간경쟁제품"],
-    ["venture_nara_status_label", "벤처나라"],
-    ["recommended_checks", "확인필요항목"],
-    ["review_score", "검토점수"],
-    ["source_refreshed_at", "DB기준일"],
-  ];
-  const header = columns.map(([, label]) => csvCell(label)).join(",");
-  const body = rows.map((row) => columns.map(([key]) => csvCell(row[key])).join(","));
-  return [header, ...body].join("\r\n");
-}
-
-function updateDownloadState(enabled, detail = "") {
-  els.downloadLink.classList.toggle("disabled", !enabled);
-  els.downloadLink.setAttribute("aria-disabled", enabled ? "false" : "true");
-  if (els.downloadDetail) {
-    els.downloadDetail.textContent = detail || (enabled ? "현재 검색조건 기준 최대 100건 XLSX" : "검색 후 다운로드 가능");
-  }
-}
-
-function downloadRecommendationXlsx() {
-  if (lastSearchIsFallback || !lastSearchQuery) return;
-  updateDownloadState(true, "XLSX 생성 요청");
-  const url = `${API_BASE_URL}/vendor-recommendations/search.xlsx?q=${encodeURIComponent(lastSearchQuery)}&region=${encodeURIComponent("부산")}&limit=100&include_product_policy=true`;
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "busan_vendor_recommendations.xlsx";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  updateDownloadState(true, `상세 근거 최대 100건 XLSX`);
-}
-
-function hasPositive(value) {
-  const normalized = text(value, "").toLowerCase();
-  if (!normalized) return false;
-  return !/없음|unknown|미확인|not|false|0/.test(normalized);
-}
-
-function escapeHtml(value) {
-  return text(value, "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function truncate(value, max = 90) {
-  const normalized = text(value, "");
-  if (normalized.length <= max) return normalized || "-";
-  return `${normalized.slice(0, max - 1)}…`;
-}
-
-function evidenceLevel(row) {
-  const condition = text(row.condition_match_type, "");
-  if (/모두\s*충족/i.test(condition)) return "조건 충족";
-  if (/일부/i.test(condition)) return "일부 충족";
-  if (/부족|미확인|확인\s*필요/i.test(condition)) return "확인 필요";
-  const score = Number(row.review_score || 0);
-  if (score >= 85) return "근거 충분";
-  if (score >= 65) return "추가 확인";
-  return "기본 후보";
-}
-
-function badge(label, tone = "neutral") {
-  const span = document.createElement("span");
-  span.className = `badge ${tone}`;
-  span.textContent = label;
-  return span;
-}
-
-function routeBadge(label, tone = "neutral") {
-  const span = document.createElement("span");
-  span.className = `route-badge ${tone}`;
-  span.textContent = label;
-  return span;
+function basisLevel(row) {
+  const condition = valueText(row.condition_match_type, "");
+  if (condition.includes("모두 충족")) return "조건 충족";
+  if (condition.includes("일부 충족")) return "일부 충족";
+  if (condition.includes("근거 부족")) return "확인 필요";
+  if (isPositive(row.purchase_route_fit_summary) || isPositive(row.requested_item_evidence_summary)) return "근거 확인";
+  return "후보";
 }
 
 function buildBadges(row) {
-  const badges = [badge("부산 후보", "info")];
-  const condition = text(row.condition_match_type, "");
-
-  if (/모두\s*충족/i.test(condition)) badges.push(badge("조건 모두 충족", "good"));
-  else if (/일부/i.test(condition)) badges.push(badge("조건 일부 충족", "warn"));
-  else if (condition) badges.push(badge("조건 확인 필요", "warn"));
-
-  if (hasPositive(row.business_status_label) && !/폐업|휴업/.test(text(row.business_status_label, ""))) {
-    badges.push(badge("정상영업", "good"));
-  } else {
-    badges.push(badge("영업상태 확인", "warn"));
-  }
-
-  if (hasPositive(row.license_or_business_type)) badges.push(badge("면허·업종", "neutral"));
-  if (directProductionEvidence(row)) badges.push(badge("직접생산", "good"));
-  if (masEvidence(row)) badges.push(badge("MAS", "info"));
-  if (shoppingEvidence(row)) badges.push(badge("종합쇼핑몰", "info"));
-  if (constructionEvidence(row)) badges.push(badge("면허·시공능력", "neutral"));
-  if (hasPositive(row.policy_company_labels)) badges.push(badge("정책기업", "good"));
-  if (hasPositive(row.certified_product_labels)) badges.push(badge("인증제품", "neutral"));
-  if (hasPositive(row.sme_competition_product_label)) badges.push(badge("중기간경쟁 확인", "warn"));
-
-  return badges;
-}
-
-function isTruthyValue(value) {
-  const normalized = text(value, "").toLowerCase();
-  return ["true", "1", "yes", "y", "valid"].includes(normalized);
-}
-
-function rowHasMas(row) {
-  return isTruthyValue(row.has_mas) || hasPositive(row.mas_status_label) || hasPositive(row.mas_product_summary);
-}
-
-function rowHasShopping(row) {
-  return (
-    isTruthyValue(row.has_shopping_mall) ||
-    hasPositive(row.shopping_mall_status_label) ||
-    hasPositive(row.shopping_mall_product_summary)
-  );
-}
-
-function rowHasDirectProduction(row) {
-  return (
-    hasPositive(row.direct_production_certificate_status) ||
-    hasPositive(row.direct_production_certificate_products) ||
-    hasPositive(row.direct_production_summary) ||
-    hasPositive(row.direct_production_flags)
-  );
-}
-
-function rowIsSmeCompetition(row) {
-  return (
-    isTruthyValue(row.is_sme_competition_product) ||
-    /해당|중기간|중소기업자간/i.test(text(row.sme_competition_product_label, "")) ||
-    /sme|competition|중소기업자간/i.test(text(row.procurement_attributes, ""))
-  );
-}
-
-function summarizePurchaseRoute(data, rows) {
-  const serverGuidance = data?.purchase_route_guidance || {};
-  if (serverGuidance.primary_route || Array.isArray(serverGuidance.route_cards)) {
-    const primary = serverGuidance.primary_route || (serverGuidance.route_cards || [])[0] || {};
-    const badges = (serverGuidance.badges || []).map((item) =>
-      routeBadge(text(item.label, "확인 필요"), text(item.tone, "neutral"))
-    );
-    const requiredChecks = Array.isArray(serverGuidance.required_checks)
-      ? serverGuidance.required_checks.join(" / ")
-      : text(serverGuidance.required_checks, "");
-    const rankingBasis = Array.isArray(serverGuidance.ranking_basis)
-      ? serverGuidance.ranking_basis.join(" / ")
-      : text(serverGuidance.ranking_basis, "");
-    return {
-      title: text(serverGuidance.title, text(primary.label, "구매수단 확인 필요")),
-      desc: text(primary.reason, text(serverGuidance.legal_notice, "품목정책 DB와 후보업체 DB 기준으로 구매수단 후보를 표시합니다.")),
-      primary: text(primary.label, "조회 후 판정"),
-      required: requiredChecks || "면허·업종·영업상태 확인",
-      ranking: rankingBasis || "구매수단 근거가 높은 업체를 우선 표시",
-      badges: badges.length ? badges : [routeBadge("구매수단 확인 필요", "neutral")],
-    };
-  }
-  const itemPolicy = data?.item_policy_summary || {};
-  const policyStatus = text(itemPolicy.status, "");
-  const matchedProducts = Array.isArray(itemPolicy.matched_products) ? itemPolicy.matched_products : [];
-  const hasPolicyMatch = matchedProducts.length > 0 && !/not_found|unavailable/i.test(policyStatus);
-  const hasMas = rows.some(rowHasMas);
-  const hasShopping = rows.some(rowHasShopping);
-  const hasDirect = rows.some(rowHasDirectProduction);
-  const hasSme = rows.some(rowIsSmeCompetition) || /해당/.test(text(itemPolicy.sme_competition_product, ""));
-  const hasVendorRows = rows.length > 0;
-
   const badges = [];
-  const required = [];
-  let title = "발주처 직접계약·입찰공고 검토형";
-  let desc = "조달등록 부산업체 후보를 넓게 보되, 공고 전 면허·업종·영업상태를 확인해야 합니다.";
-  let primary = "직접계약 또는 자체 입찰공고 검토";
-  let ranking = "조달등록, 면허·업종, 정상영업 상태가 확인되는 업체를 우선 표시";
-
-  if (hasShopping || hasMas) {
-    title = "조달청 쇼핑몰/MAS 우선 검토형";
-    desc = "종합쇼핑몰 또는 MAS 등록 여부가 구매 가능성 판단의 핵심입니다. 미등록 업체는 바로구매 후보가 아니라 관련 부산업체로 분리해야 합니다.";
-    primary = hasMas ? "MAS/종합쇼핑몰 납품요구 우선 검토" : "종합쇼핑몰 등록업체 우선 검토";
-    ranking = "MAS·종합쇼핑몰 등록, 직생, 정상영업 상태가 확인되는 업체를 우선 표시";
-    badges.push(routeBadge("쇼핑몰/MAS 근거 있음", "info"));
-    required.push("MAS/쇼핑몰 계약상태·납품조건");
-  }
-
-  if (hasSme) {
-    title = hasMas || hasShopping ? "쇼핑몰/MAS + 중기간경쟁 확인형" : "중소기업자간 경쟁제품 확인형";
-    badges.push(routeBadge("중기간경쟁 확인 필요", "warn"));
-    required.push("중소기업자간 경쟁제품 해당 여부");
-    ranking = "중기간경쟁 해당 시 직접생산확인 보유 업체를 우선 표시";
-  }
-
-  if (hasDirect) {
-    badges.push(routeBadge("직접생산 근거 있음", "good"));
-    required.push("직접생산확인 세부품명·유효기간");
-  } else if (hasSme) {
-    badges.push(routeBadge("직생 미확인 후보 주의", "warn"));
-    required.push("직접생산확인 보유 여부");
-  }
-
-  if (hasPolicyMatch) {
-    badges.push(routeBadge("품목정책 DB 매칭", "good"));
-  } else {
-    badges.push(routeBadge("품목정책 DB 확인 필요", "neutral"));
-  }
-
-  if (!hasVendorRows) {
-    title = "후보 미확인";
-    desc = "입력 조건에 맞는 후보가 아직 없습니다. 품목명, 세부품명, 면허명을 바꿔 확인해야 합니다.";
-    primary = "검색조건 재확인";
-    ranking = "후보 없음";
-    required.push("검색어 정규화");
-  }
-
-  return {
-    title,
-    desc,
-    primary,
-    required: [...new Set(required)].join(" / ") || "면허·업종·영업상태 확인",
-    ranking,
-    badges,
-  };
+  const status = valueText(row.business_status_label || row.business_status, "");
+  if (status) badges.push(tag(status, /정상|active|fresh/i.test(status) ? "good" : "warn"));
+  if (directEvidence(row)) badges.push(tag("직접생산", "good"));
+  if (masEvidence(row)) badges.push(tag("MAS", "info"));
+  if (shoppingEvidence(row)) badges.push(tag("종합쇼핑몰", "info"));
+  if (constructionEvidence(row)) badges.push(tag("면허·시공능력", "good"));
+  if (policyEvidence(row)) badges.push(tag("정책·인증", "good"));
+  if (!badges.length) badges.push(tag("근거 확인 필요", "warn"));
+  return badges.slice(0, 8);
 }
 
-function renderPurchaseGuide(data, rows, isFallback = false) {
-  if (!els.routeTitle) return;
-  const summary = summarizePurchaseRoute(data || {}, rows || []);
-  els.routeTitle.textContent = isFallback ? "샘플 기준 구매수단 적합성" : summary.title;
-  els.routeDesc.textContent = isFallback
-    ? "API 연결 전 샘플 데이터 기준입니다. 실제 판정은 업체 DB와 품목정책 DB 연결 후 확인해야 합니다."
-    : summary.desc;
-  els.routePrimary.textContent = summary.primary;
-  els.routeRequired.textContent = summary.required;
-  els.routeRanking.textContent = summary.ranking;
-  els.routeBadges.innerHTML = "";
-  summary.badges.forEach((item) => els.routeBadges.appendChild(item));
+function evidenceItems(row) {
+  return [
+    ["조건 충족", conditionText(row), toneFor(row.condition_match_type)],
+    ["품목·검색 근거", firstPositive(row.requested_item_evidence_summary, row.matched_query_label, row.main_products) || "요청 품목 근거 확인 필요", toneFor(row.requested_item_evidence_summary)],
+    ["구매수단 적합성", valueText(row.purchase_route_fit_summary, "구매수단 근거는 별도 확인 필요"), toneFor(row.purchase_route_fit_summary)],
+    ["직접생산", directEvidence(row) || "직접생산 근거 없음 또는 확인 필요", directEvidence(row) ? "good" : "warn"],
+    ["MAS/종합쇼핑몰", [masEvidence(row), shoppingEvidence(row)].filter(Boolean).join(" · ") || "등록 근거 없음 또는 확인 필요", masEvidence(row) || shoppingEvidence(row) ? "good" : "warn"],
+    ["면허·시공능력", constructionEvidence(row) || firstPositive(row.license_or_business_type) || "면허·시공능력 확인 필요", constructionEvidence(row) ? "good" : "info"],
+    ["정책기업·인증", policyEvidence(row) || "해당 근거 없음 또는 확인 필요", policyEvidence(row) ? "good" : "info"],
+  ];
 }
 
-function procurementEvidence(row) {
-  const items = [];
-  if (directProductionEvidence(row)) items.push("직접생산");
-  if (masEvidence(row)) items.push("MAS");
-  if (shoppingEvidence(row)) items.push("종합쇼핑몰");
-  if (constructionEvidence(row)) items.push("면허·시공능력");
-  if (hasPositive(row.policy_company_labels)) items.push(text(row.policy_company_labels));
-  if (hasPositive(row.certified_product_labels)) items.push(text(row.certified_product_labels));
-  if (hasPositive(row.venture_nara_status_label)) items.push("벤처나라");
-  return items.length ? items.join(" / ") : "DB 등록 근거 없음";
-}
-
-function sourceDate(rows) {
-  const dates = rows
-    .map((row) => text(row.source_refreshed_at, ""))
-    .filter(Boolean)
-    .map((item) => item.slice(0, 10));
-  return dates[0] || "";
-}
-
-function findRateValue(obj, keys) {
-  if (!obj || typeof obj !== "object") return "";
-  for (const key of keys) {
-    if (obj[key] !== undefined && obj[key] !== null && obj[key] !== "") return obj[key];
+function checkItems(row) {
+  const checks = splitValues(row.recommended_checks);
+  if (!directEvidence(row) && /중기간|직접생산/.test(valueText(row.sme_competition_product_label, ""))) {
+    checks.push("중기간 경쟁제품이면 직접생산확인증명서 세부품명과 유효기간 확인");
   }
-  return "";
+  if (!masEvidence(row) && !shoppingEvidence(row)) {
+    checks.push("조달청 종합쇼핑몰 또는 MAS 등록 여부 별도 확인");
+  }
+  if (!constructionEvidence(row) && /공사|면허|시공/.test(valueText(row.contract_review_types, ""))) {
+    checks.push("공고 면허, 주력분야, 시공능력평가금액 기준연도 확인");
+  }
+  checks.push("최종 계약 가능 여부는 공고 전 원천자료로 재확인");
+  return [...new Set(checks)].slice(0, 6);
 }
 
-function findNestedRate(data, pathCandidates) {
-  for (const path of pathCandidates) {
-    let cur = data;
-    for (const key of path) {
-      if (!cur || typeof cur !== "object") {
-        cur = null;
-        break;
-      }
-      cur = cur[key];
-    }
-    const rate = findRateValue(cur, ["수주율", "rate", "award_rate", "local_rate"]);
-    if (rate !== "") return rate;
-  }
-  return "";
+function formatKrw(value) {
+  const numeric = Number(value || 0);
+  if (!Number.isFinite(numeric) || numeric <= 0) return "";
+  if (numeric >= 100000000) return `${(numeric / 100000000).toFixed(1)}억원`;
+  return `${Math.round(numeric / 10000).toLocaleString("ko-KR")}만원`;
 }
 
 function formatRate(value) {
   if (value === "" || value === null || value === undefined) return "";
   const numeric = Number(String(value).replace("%", ""));
-  if (!Number.isFinite(numeric)) return String(value);
+  if (!Number.isFinite(numeric)) return valueText(value, "");
   return `${numeric.toFixed(1)}%`;
 }
 
-function formatKrwShort(value) {
-  const numeric = Number(value || 0);
-  if (!Number.isFinite(numeric) || numeric <= 0) return "-";
-  if (numeric >= 100000000) return `${(numeric / 100000000).toFixed(1)}억`;
-  if (numeric >= 10000) return `${Math.round(numeric / 10000).toLocaleString("ko-KR")}만`;
-  return numeric.toLocaleString("ko-KR");
+function sourceDate(rows) {
+  for (const row of rows) {
+    const date = valueText(row.source_refreshed_at, "");
+    if (date) return date;
+  }
+  return "";
 }
 
-function setSectorMetric(el, value) {
-  const label = formatRate(value);
-  if (!label) return;
-  el.textContent = label;
-  const bar = el.parentElement?.querySelector("i");
-  if (bar) bar.style.setProperty("--value", label);
-}
+function renderRouteGuide(payload) {
+  const guide = payload?.purchase_route_guidance || {};
+  const primary = guide.primary_route || {};
+  const cards = Array.isArray(guide.route_cards) ? guide.route_cards : [];
+  const badges = Array.isArray(guide.badges) ? guide.badges : [];
 
-async function loadMonitoringSummary() {
-  if (!els.monitoringState) return;
-  try {
-    const response = await fetch(`${MONITORING_API_BASE_URL}/api/summary`, { cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    const overall = findNestedRate(data, [["1_전체"], ["summary"], ["overall"], ["전체"]]);
-    const busanGroup = findNestedRate(data, [["3_그룹별", "부산광역시 및 소속기관"], ["by_group", "부산광역시 및 소속기관"]]);
-    const nationalGroup = findNestedRate(data, [["3_그룹별", "정부 및 국가공공기관"], ["by_group", "정부 및 국가공공기관"]]);
-    const construction = findNestedRate(data, [["2_분야별", "공사"], ["by_sector", "공사"]]);
-    const service = findNestedRate(data, [["2_분야별", "용역"], ["by_sector", "용역"]]);
-    const goods = findNestedRate(data, [["2_분야별", "물품"], ["by_sector", "물품"]]);
-    const shopping = findNestedRate(data, [["2_분야별", "쇼핑몰"], ["by_sector", "쇼핑몰"]]);
+  els.routeTitle.textContent = guide.title || primary.label || "구매수단 확인 필요";
+  els.routePrimary.textContent = primary.label
+    ? `${primary.label}: ${primary.reason || "후보 근거 확인"}`
+    : "입력 품목 기준으로 구매수단을 확인해야 합니다.";
+  els.routeRequired.textContent = (guide.required_checks || primary.required_checks || ["원천자료 확인"]).join(" · ");
+  els.routeRanking.textContent = (guide.ranking_basis || ["조건 일치", "구매수단 근거", "영업상태", "정책·인증"]).join(" · ");
+  els.routeNotice.textContent =
+    guide.legal_notice || "구매수단 안내는 후보 정보입니다. 최종 계약 가능 여부와 법령 해석은 별도 검토가 필요합니다.";
 
-    if (overall) els.metricOverall.textContent = formatRate(overall);
-    if (busanGroup) els.metricBusanGroup.textContent = formatRate(busanGroup);
-    if (nationalGroup) els.metricNationalGroup.textContent = formatRate(nationalGroup);
-    if (construction) setSectorMetric(els.sectorConstruction, construction);
-    if (service) setSectorMetric(els.sectorService, service);
-    if (goods) setSectorMetric(els.sectorGoods, goods);
-    if (shopping) setSectorMetric(els.sectorShopping, shopping);
-    if (data.generated_at) els.metricGenerated.textContent = `생성 ${data.generated_at}`;
-    els.monitoringState.textContent = "모니터링 지표 연결됨";
-  } catch {
-    els.monitoringState.textContent = "모니터링 지표는 API 연결 시 갱신";
+  els.routeBadges.innerHTML = "";
+  if (badges.length) {
+    badges.forEach((item) => els.routeBadges.appendChild(tag(item.label || "확인 필요", item.tone || "info")));
+  } else if (cards.length) {
+    cards.slice(0, 4).forEach((item) => els.routeBadges.appendChild(tag(item.label || item.route_id, item.status === "candidate_found" ? "info" : "warn")));
+  } else {
+    els.routeBadges.appendChild(tag("확인 필요", "warn"));
   }
 }
 
-function leakageValue(item, names, fallback = "") {
-  for (const name of names) {
-    if (item && item[name] !== undefined && item[name] !== null && item[name] !== "") return item[name];
-  }
-  return fallback;
+function renderSummary(payload, rows) {
+  const count = Number(payload?.count || rows.length || 0);
+  const conditionLabels = rows.map((row) => valueText(row.condition_match_type, ""));
+  const all = conditionLabels.filter((label) => /모두 충족|조건 충족/.test(label)).length;
+  const evidenceChecked = conditionLabels.filter((label) => /품목근거 확인|근거 확인|후보 표시/.test(label)).length;
+  const partial = conditionLabels.filter((label) => label.includes("일부 충족")).length;
+  const needs = conditionLabels.filter((label) => /근거 부족|확인 필요/.test(label)).length;
+  const routeEvidence = rows.filter((row) => directEvidence(row) || masEvidence(row) || shoppingEvidence(row) || policyEvidence(row)).length;
+
+  els.summaryCount.textContent = `${count.toLocaleString("ko-KR")}개`;
+  els.summaryDesc.textContent = count
+    ? `화면에는 상위 ${Math.min(DISPLAY_LIMIT, rows.length)}개를 표시합니다. 전체 후보는 XLSX로 내려받아 검토하세요.`
+    : "조건에 맞는 후보가 없습니다. 검색어를 품목명 또는 면허명 중심으로 바꿔보세요.";
+  els.summaryCondition.textContent = all
+    ? `조건 충족 ${all}개`
+    : evidenceChecked
+      ? `근거 확인 ${evidenceChecked}개`
+      : partial
+        ? `일부 충족 ${partial}개`
+        : needs
+          ? `확인 필요 ${needs}개`
+          : "-";
+  els.summaryRoute.textContent = routeEvidence ? `근거 있음 ${routeEvidence}개` : "확인 필요";
+  els.summaryDownload.textContent = count ? "가능" : "대기";
 }
 
-function renderLeakageItems(items) {
-  if (!els.leakageList) return;
-  els.leakageList.innerHTML = "";
-  const visible = items.slice(0, 5);
-  if (!visible.length) {
-    els.leakageList.innerHTML = '<p class="side-muted">현재 표시할 쇼핑몰 주요 유출품목이 없습니다.</p>';
+function renderCandidate(row, index) {
+  const node = els.template.content.cloneNode(true);
+  node.querySelector(".rank").textContent = `후보 ${index + 1}`;
+  node.querySelector(".candidate-name").textContent = valueText(row.company_name, "업체명 미확인");
+  node.querySelector(".candidate-location").textContent = [row.location, row.detail_address].map((item) => valueText(item, "")).filter(Boolean).join(" · ") || "소재지 확인 필요";
+  node.querySelector(".basis-level").textContent = basisLevel(row);
+  node.querySelector(".score-pill").textContent = row.review_score ? `검토점수 ${row.review_score}` : "점수 미산정";
+
+  const badgeRow = node.querySelector(".card-badges");
+  buildBadges(row).forEach((item) => badgeRow.appendChild(item));
+
+  const grid = node.querySelector(".evidence-grid");
+  evidenceItems(row).forEach(([label, value, tone]) => {
+    const div = document.createElement("div");
+    div.className = `evidence-item ${tone}`;
+    div.innerHTML = `<span>${escapeHtml(label)}</span><strong>${escapeHtml(truncate(value, 190))}</strong>`;
+    grid.appendChild(div);
+  });
+
+  const checkList = node.querySelector(".check-list");
+  checkItems(row).forEach((item) => {
+    const li = document.createElement("li");
+    li.textContent = item;
+    checkList.appendChild(li);
+  });
+
+  node.querySelector(".main-products").textContent = truncate(splitValues(row.main_products).join(", "), 220);
+  node.querySelector(".licenses").textContent = truncate(splitValues(row.license_or_business_type).join(", "), 260);
+  node.querySelector(".procurement-evidence").textContent = truncate(
+    [directEvidence(row), masEvidence(row), shoppingEvidence(row), policyEvidence(row)].filter(Boolean).join(" / ") || "조달 근거 확인 필요",
+    260,
+  );
+  node.querySelector(".checks").textContent = truncate(checkItems(row).join(" / "), 260);
+
+  return node;
+}
+
+function renderComparison(rows) {
+  els.compareBody.innerHTML = "";
+  if (!rows.length) {
+    els.compareBody.innerHTML = '<tr><td colspan="7">조회 후 비교표가 표시됩니다.</td></tr>';
     return;
   }
 
-  visible.forEach((item) => {
-    const name = text(leakageValue(item, ["품목명", "item_name", "product_name"]), "품목명 미확인");
-    const amount = leakageValue(item, ["유출액", "leakage_amount", "amount"], 0);
-    const rate = leakageValue(item, ["유출율", "유출률", "leakage_rate"], "");
-    const count = leakageValue(item, ["유출건수", "count"], "");
-    const agency = text(leakageValue(item, ["주요수요기관", "agency"], ""), "");
-    const busanSupplierCount = leakageValue(item, ["부산공급업체", "busan_supplier_count"], "");
-
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "leakage-item";
-    button.innerHTML = `
-      <span class="leakage-name">${escapeHtml(name)}</span>
-      <span class="leakage-meta">
-        <b>${escapeHtml(formatKrwShort(amount))}</b>
-        <span>유출 ${escapeHtml(formatRate(rate) || "-")}</span>
-        <span>${escapeHtml(text(count, "0"))}건</span>
-      </span>
-      <span class="leakage-sub">
-        ${escapeHtml(agency || "주요수요기관 미확인")}
-        ${busanSupplierCount !== "" ? ` · 부산공급 ${escapeHtml(text(busanSupplierCount))}` : ""}
-      </span>
+  rows.slice(0, DISPLAY_LIMIT).forEach((row) => {
+    const tr = document.createElement("tr");
+    const route = valueText(row.purchase_route_fit_summary, "확인 필요");
+    const mall = [masEvidence(row), shoppingEvidence(row)].filter(Boolean).join(" / ") || "확인 필요";
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(valueText(row.company_name))}</strong><br><span class="muted">${escapeHtml(valueText(row.location, ""))}</span></td>
+      <td>${escapeHtml(conditionText(row))}</td>
+      <td>${escapeHtml(truncate(route, 120))}</td>
+      <td>${escapeHtml(truncate(directEvidence(row) || "확인 필요", 100))}</td>
+      <td>${escapeHtml(truncate(mall, 120))}</td>
+      <td>${escapeHtml(truncate(constructionEvidence(row) || valueText(row.license_or_business_type, "확인 필요"), 140))}</td>
+      <td>${escapeHtml(truncate(checkItems(row).join(" / "), 160))}</td>
     `;
-    button.addEventListener("click", () => {
-      els.input.value = name;
-      els.input.focus();
-      els.form.requestSubmit();
-    });
-    els.leakageList.appendChild(button);
+    els.compareBody.appendChild(tr);
   });
 }
 
-async function loadShoppingLeakage() {
-  if (!els.leakageList) return;
-  try {
-    const response = await fetch(`${MONITORING_API_BASE_URL}/api/leakage/shopping`, { cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    const items = data["유출품목"] || data["쇼핑몰_유출품목"] || data.items || [];
-    renderLeakageItems(Array.isArray(items) ? items : []);
-    if (els.leakageUpdated) {
-      els.leakageUpdated.textContent = data.generated_at ? data.generated_at.slice(5, 16) : "연결됨";
-    }
-  } catch {
-    els.leakageList.innerHTML = '<p class="side-muted">쇼핑몰 유출품목 API 연결이 필요합니다.</p>';
-    if (els.leakageUpdated) els.leakageUpdated.textContent = "미연결";
+function setDownloadState(enabled) {
+  if (!enabled) {
+    els.downloadLink.classList.add("disabled");
+    els.downloadLink.setAttribute("aria-disabled", "true");
+    return;
   }
+  els.downloadLink.classList.remove("disabled");
+  els.downloadLink.setAttribute("aria-disabled", "false");
 }
 
-function renderRows(rows, query, totalCount, isFallback = false, responseData = {}) {
-  lastSearchQuery = query;
-  lastSearchRows = rows;
-  lastSearchIsFallback = isFallback;
+function renderPayload(payload) {
+  const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+  lastPayload = payload;
   els.candidateList.innerHTML = "";
-  const visibleRows = rows.slice(0, DISPLAY_LIMIT);
-  els.visibleCount.textContent = `${visibleRows.length}개 표시`;
-  renderPurchaseGuide(responseData, rows, isFallback);
 
-  if (!visibleRows.length) {
-    const empty = document.createElement("article");
-    empty.className = "empty-panel";
-    empty.innerHTML = "<strong>조건에 해당하는 후보가 없습니다.</strong><span>검색어를 품목명, 세부품명, 면허명 중심으로 바꿔 다시 조회하세요.</span>";
-    els.candidateList.appendChild(empty);
+  if (!rows.length) {
+    els.candidateList.innerHTML = `
+      <article class="empty-panel">
+        <strong>조건에 맞는 후보가 없습니다.</strong>
+        <span>예: 품목명, 세부품명, 면허명, 업종명을 더 구체적으로 입력해 보세요.</span>
+      </article>
+    `;
+  } else {
+    rows.slice(0, DISPLAY_LIMIT).forEach((row, index) => els.candidateList.appendChild(renderCandidate(row, index)));
   }
 
-  visibleRows.forEach((row, index) => {
-    const node = els.template.content.cloneNode(true);
-    node.querySelector(".candidate-rank").textContent = `후보 ${index + 1}`;
-    node.querySelector(".candidate-name").textContent = text(row.company_name, "업체명 미확인");
-    node.querySelector(".basis-level").textContent = evidenceLevel(row);
-    node.querySelector(".candidate-location").textContent = [row.location, row.detail_address]
-      .map((item) => text(item, ""))
-      .filter(Boolean)
-      .join(" · ") || "소재지 정보 확인 필요";
-
-    const badgeRow = node.querySelector(".badge-row");
-    buildBadges(row).forEach((item) => badgeRow.appendChild(item));
-
-    const score = Number(row.review_score || row.match_rank_score || 0);
-    node.querySelector(".score-pill").textContent = score ? `검토점수 ${score.toFixed(0)}` : "점수 미산정";
-    node.querySelector(".match-label").textContent = truncate(matchLabel(row), 90);
-    node.querySelector(".condition-summary").textContent = truncate(conditionLabel(row), 80);
-    node.querySelector(".business-status").textContent = truncate(text(row.business_status_label, "영업상태 확인 필요"), 80);
-    node.querySelector(".requested-evidence").textContent = truncate(
-      firstPositive(row.requested_item_evidence_summary, row.condition_match_summary) || "검색어 기준 근거 확인",
-      110,
-    );
-    renderEvidenceList(node.querySelector(".evidence-list"), buildEvidenceItems(row));
-    renderCheckList(node.querySelector(".check-list"), buildCheckItems(row));
-
-    node.querySelector(".main-products").textContent = truncate(splitValues(row.main_products).join(", "), 120);
-    node.querySelector(".licenses").textContent = truncate(splitValues(row.license_or_business_type).join(", "), 120);
-    node.querySelector(".procurement-evidence").textContent = truncate(procurementEvidence(row), 120);
-    node.querySelector(".checks").textContent = truncate(buildCheckItems(row).join(", "), 150);
-
-    els.candidateList.appendChild(node);
-  });
-
-  const countLabel = Number.isFinite(totalCount) ? totalCount : rows.length;
-  els.summaryTitle.textContent = `관련 부산업체 후보 ${countLabel.toLocaleString("ko-KR")}개 확인`;
-  els.summaryDesc.textContent = isFallback
-    ? "API 연결 전 디자인 검토용 샘플을 표시 중입니다. 실제 결과는 서버 API 연결 후 확인해야 합니다."
-    : `화면에는 대표 후보 ${visibleRows.length}개를 표시합니다. 전체 후보군은 CSV로 내려받아 비교 검토하세요.`;
-
+  els.visibleCount.textContent = `${Math.min(DISPLAY_LIMIT, rows.length)}개 표시`;
   const date = sourceDate(rows);
-  els.dataDate.textContent = date ? `DB 기준일 ${date}` : "DB 기준일 확인 필요";
+  if (date) els.dataDate.textContent = `DB 기준 ${date}`;
+  renderSummary(payload, rows);
+  renderRouteGuide(payload);
+  renderComparison(rows);
+  setDownloadState(rows.length > 0);
+}
 
-  els.downloadLink.href = "#";
-  updateDownloadState(!isFallback && rows.length > 0, rows.length > 0 ? "현재 검색조건 기준 최대 100건 XLSX" : "다운로드할 후보 없음");
+async function search(query) {
+  lastQuery = query;
+  els.button.disabled = true;
+  els.button.textContent = "조회 중";
+  els.apiState.textContent = "조회 중";
+  els.apiState.className = "state-pill muted";
+
+  const requestParams = new URLSearchParams({
+    q: query,
+    region: "부산",
+    limit: valueText(els.limit.value, "30"),
+    include_product_policy: "true",
+  });
+  const budget = Number(els.budget.value || 0);
+  if (Number.isFinite(budget) && budget > 0) requestParams.set("budget_krw", String(Math.round(budget)));
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/vendor-recommendations/search?${requestParams.toString()}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    renderPayload(payload);
+    els.apiState.textContent = "API 연결됨";
+    els.apiState.className = "state-pill ok";
+  } catch (error) {
+    els.apiState.textContent = "API 오류";
+    els.apiState.className = "state-pill warn";
+    els.candidateList.innerHTML = `
+      <article class="empty-panel">
+        <strong>API 응답을 불러오지 못했습니다.</strong>
+        <span>${escapeHtml(error.message || "네트워크 상태와 API 서버를 확인하세요.")}</span>
+      </article>
+    `;
+  } finally {
+    els.button.disabled = false;
+    els.button.textContent = "후보 조회";
+  }
+}
+
+function downloadXlsx() {
+  if (!lastPayload || !lastQuery) return;
+  const requestParams = new URLSearchParams({
+    q: lastQuery,
+    region: "부산",
+    limit: "100",
+    include_product_policy: "true",
+  });
+  const budget = Number(els.budget.value || 0);
+  if (Number.isFinite(budget) && budget > 0) requestParams.set("budget_krw", String(Math.round(budget)));
+  window.location.href = `${API_BASE_URL}/vendor-recommendations/search.xlsx?${requestParams.toString()}`;
 }
 
 async function checkHealth() {
@@ -732,48 +411,80 @@ async function checkHealth() {
     const response = await fetch(`${API_BASE_URL}/health`, { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     els.apiState.textContent = "API 연결됨";
-    els.apiState.className = "state-pill state-ok";
+    els.apiState.className = "state-pill ok";
   } catch {
     els.apiState.textContent = "API 미연결";
-    els.apiState.className = "state-pill state-warn";
+    els.apiState.className = "state-pill warn";
   }
 }
 
-async function search(query) {
-  els.button.disabled = true;
-  els.button.textContent = "조회 중";
-  els.apiState.textContent = "조회 중";
-  els.apiState.className = "state-pill state-muted";
+function findRateValue(obj) {
+  if (!obj || typeof obj !== "object") return "";
+  for (const key of ["수주율", "rate", "award_rate", "local_rate"]) {
+    if (obj[key] !== undefined && obj[key] !== null && obj[key] !== "") return obj[key];
+  }
+  return "";
+}
 
+function findNestedRate(data, paths) {
+  for (const path of paths) {
+    let current = data;
+    for (const key of path) current = current && current[key];
+    const rate = findRateValue(current);
+    if (rate !== "") return rate;
+  }
+  return "";
+}
+
+async function loadMonitoringSummary() {
   try {
-    const url = `${API_BASE_URL}/vendor-recommendations/search?q=${encodeURIComponent(query)}&region=${encodeURIComponent("부산")}&limit=30&include_product_policy=true`;
-    const response = await fetch(url, { cache: "no-store" });
+    const response = await fetch(`${MONITORING_API_BASE_URL}/api/summary`, { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
-    renderRows(data.rows || [], query, Number(data.count || 0), false, data);
-    els.apiState.textContent = "API 연결됨";
-    els.apiState.className = "state-pill state-ok";
-  } catch (error) {
-    renderRows(sampleRows, query, sampleRows.length, true, {});
-    els.apiState.textContent = "샘플 표시";
-    els.apiState.className = "state-pill state-warn";
-  } finally {
-    els.button.disabled = false;
-    els.button.textContent = "후보 조회";
+    const overall = findNestedRate(data, [["1_전체"], ["summary"], ["overall"], ["전체"]]);
+    const busanGroup = findNestedRate(data, [["3_그룹별", "부산광역시 및 소속기관"], ["by_group", "부산광역시 및 소속기관"]]);
+    const nationalGroup = findNestedRate(data, [["3_그룹별", "정부 및 국가공공기관"], ["by_group", "정부 및 국가공공기관"]]);
+    if (overall) els.metricOverall.textContent = formatRate(overall);
+    if (busanGroup) els.metricBusanGroup.textContent = formatRate(busanGroup);
+    if (nationalGroup) els.metricNationalGroup.textContent = formatRate(nationalGroup);
+    if (data.generated_at) els.metricGenerated.textContent = `생성 ${data.generated_at}`;
+  } catch {
+    els.metricOverall.textContent = "연결 필요";
+    els.metricGenerated.textContent = "모니터링 API 확인 필요";
   }
 }
 
-document.querySelectorAll(".sample-chip").forEach((chip) => {
-  chip.addEventListener("click", () => {
-    els.input.value = chip.dataset.query || chip.textContent.trim();
+async function loadShoppingLeakage() {
+  try {
+    const response = await fetch(`${MONITORING_API_BASE_URL}/api/leakage/shopping`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    const items = data["유출품목"] || data["쇼핑몰 유출품목"] || data.items || [];
+    els.leakageList.innerHTML = "";
+    if (!Array.isArray(items) || !items.length) throw new Error("empty");
+    items.slice(0, 5).forEach((item) => {
+      const name = item["품목명"] || item.item_name || item.product_name || "품목명 미확인";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = name;
+      button.addEventListener("click", () => {
+        els.input.value = name;
+        search(name);
+      });
+      els.leakageList.appendChild(button);
+    });
+    els.leakageUpdated.textContent = data.generated_at || "연결됨";
+  } catch {
+    els.leakageList.innerHTML = '<p class="muted">쇼핑몰 유출품목 API 연결 확인 필요</p>';
+    els.leakageUpdated.textContent = "미연결";
+  }
+}
+
+document.querySelectorAll(".sample-row button").forEach((button) => {
+  button.addEventListener("click", () => {
+    els.input.value = button.dataset.query || button.textContent.trim();
     els.input.focus();
   });
-});
-
-els.downloadLink.addEventListener("click", (event) => {
-  event.preventDefault();
-  if (els.downloadLink.classList.contains("disabled")) return;
-  downloadRecommendationXlsx();
 });
 
 els.form.addEventListener("submit", (event) => {
@@ -784,6 +495,20 @@ els.form.addEventListener("submit", (event) => {
     return;
   }
   search(query);
+});
+
+els.clear.addEventListener("click", () => {
+  els.input.value = "";
+  els.budget.value = "";
+  lastPayload = null;
+  lastQuery = "";
+  renderPayload({ rows: [], count: 0, purchase_route_guidance: {} });
+});
+
+els.downloadLink.addEventListener("click", (event) => {
+  event.preventDefault();
+  if (els.downloadLink.classList.contains("disabled")) return;
+  downloadXlsx();
 });
 
 checkHealth();
