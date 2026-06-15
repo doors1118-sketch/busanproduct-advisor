@@ -30,6 +30,10 @@ try:
     from policies.item_normalization_policy import normalize_item_query
 except Exception:
     normalize_item_query = None
+try:
+    from policies.purchase_route_guidance_policy import build_purchase_route_cards
+except Exception:
+    build_purchase_route_cards = None
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -1761,7 +1765,13 @@ def _vendor_recommendation_payload(
     rows = _vendor_apply_construction_evidence(rows, q)
     rows = rows[:requested_limit]
     item_policy_summary = _vendor_item_policy_summary(q, product_policy_checks, requested=product_policy_requested)
-    purchase_route_guidance = _vendor_purchase_route_guidance(q, rows, product_policy_checks, item_policy_summary)
+    purchase_route_guidance = _vendor_purchase_route_guidance(
+        q,
+        rows,
+        product_policy_checks,
+        item_policy_summary,
+        budget_krw=normalized_budget,
+    )
     policy_preference_summary = _vendor_policy_preference_summary(q, rows, region=region)
     policy_company_alternatives = policy_preference_summary.get("alternatives") or []
     return {
@@ -3024,11 +3034,130 @@ def _vendor_product_policy_checks(q: str, *, limit: int = 5) -> list[dict[str, s
     return _vendor_sort_product_policy_checks(q, checks)
 
 
+def _vendor_route_candidate_count(rows: list[dict[str, str | int]], *fields: str) -> int:
+    count = 0
+    for row in rows:
+        if any(_vendor_is_truthy(row.get(field)) for field in fields):
+            count += 1
+    return count
+
+
+def _vendor_policy_tool_results(rows: list[dict[str, str | int]]) -> list[dict[str, object]]:
+    def result(tool_name: str, count: int) -> dict[str, object]:
+        return {
+            "tool_name": tool_name,
+            "status": "success",
+            "result": f"부산 지역업체 검색 결과: 총 {count}건" if count else "검색 결과가 없습니다.",
+            "elapsed_ms": 0,
+        }
+
+    shopping_count = _vendor_route_candidate_count(
+        rows,
+        "mas_match",
+        "mas_product_summary",
+        "has_mas",
+        "shopping_mall_match",
+        "shopping_mall_product_summary",
+        "has_shopping_mall",
+    )
+    policy_count = _vendor_route_candidate_count(rows, "policy_company_labels", "policy_subtypes")
+    certified_count = _vendor_route_candidate_count(rows, "certified_product_labels", "certified_product_summary")
+
+    return [
+        result("search_shopping_mall", shopping_count),
+        result("search_local_company_by_product", len(rows)),
+        result("search_company_by_policy", policy_count),
+        result("search_certified_product", certified_count),
+    ]
+
+
+def _vendor_contract_object_for_route(q: str, construction_terms: list[str]) -> str:
+    if construction_terms and not _vendor_has_construction_material_intent(q):
+        return "construction"
+    if any(term in q for term in ("용역", "과업", "위탁", "유지보수", "청소", "방역", "설계")):
+        return "service"
+    return "goods"
+
+
+def _vendor_route_item_name(q: str, product_policy_checks: list[dict[str, str]]) -> str:
+    for item in product_policy_checks:
+        name = _vendor_join(item.get("detail_product_name"))
+        if name:
+            return name
+    compact = _vendor_compact(q)
+    if any(term in compact for term in ("데스크탑", "데스크톱", "desktop", "pc")):
+        return "데스크톱컴퓨터"
+    if any(term in compact for term in ("노트북", "랩톱", "랩탑", "notebook", "laptop")):
+        return "노트북컴퓨터"
+    return q
+
+
+def _vendor_priority_route_cards(
+    q: str,
+    rows: list[dict[str, str | int]],
+    product_policy_checks: list[dict[str, str]],
+    *,
+    budget_krw: int | None,
+    construction_terms: list[str],
+) -> list[dict[str, object]]:
+    if not budget_krw or build_purchase_route_cards is None:
+        return []
+
+    try:
+        item_name = _vendor_route_item_name(q, product_policy_checks)
+        policy_cards = build_purchase_route_cards(
+            amount=budget_krw,
+            item_name=item_name,
+            contract_object=_vendor_contract_object_for_route(q, construction_terms),
+            tool_results=_vendor_policy_tool_results(rows),
+        )
+    except Exception:
+        return []
+
+    priority_order = {"primary": 0, "secondary": 1, "reference": 2, "excluded": 3}
+    route_order = {
+        "shopping_mall_mas": 0,
+        "two_quote_small_value": 1,
+        "policy_company_one_quote": 2,
+        "sme_competition_direct_production": 3,
+        "general_small_value_direct": 4,
+        "local_company_competitive": 5,
+        "technology_development_product": 6,
+        "innovation_product": 7,
+    }
+
+    route_cards: list[dict[str, object]] = []
+    for card in sorted(
+        [card for card in policy_cards if getattr(card, "display_policy", "show") != "hide"],
+        key=lambda card: (
+            priority_order.get(getattr(card, "route_priority", ""), 9),
+            route_order.get(getattr(card, "route_id", ""), 80),
+            getattr(card, "route_id", ""),
+        ),
+    ):
+        route_cards.append({
+            "route_id": getattr(card, "route_id", ""),
+            "label": getattr(card, "title", ""),
+            "status": getattr(card, "status", ""),
+            "route_priority": getattr(card, "route_priority", ""),
+            "reason": getattr(card, "practical_meaning", ""),
+            "required_checks": list(getattr(card, "required_checks", []) or []),
+            "practical_note": f"예산 {_format_krw_short(budget_krw)} 기준: {getattr(card, 'user_label', '')}",
+            "next_actions": list(getattr(card, "required_checks", []) or [])[:3],
+            "legal_refs": list(getattr(card, "legal_refs", ()) or ()),
+            "display_policy": getattr(card, "display_policy", "show"),
+            "exclusion_reason": getattr(card, "exclusion_reason", ""),
+        })
+    return route_cards
+
+
 def _vendor_purchase_route_guidance(
     q: str,
     rows: list[dict[str, str | int]],
     product_policy_checks: list[dict[str, str]],
     item_policy_summary: dict[str, object],
+    *,
+    budget_krw: int | None = None,
 ) -> dict[str, object]:
     requirements = _vendor_policy_route_requirements(product_policy_checks)
     construction_terms = _vendor_requested_construction_terms(q)
@@ -3158,27 +3287,52 @@ def _vendor_purchase_route_guidance(
             ["조달등록·영업상태 확인", "면허·업종과 실제 취급품목 확인", "공고 조건에 지역업체 참여 가능성을 반영할지 검토"],
         )
 
+    budget_route_cards = _vendor_priority_route_cards(
+        q,
+        rows,
+        product_policy_checks,
+        budget_krw=budget_krw,
+        construction_terms=construction_terms,
+    )
+    if budget_route_cards:
+        route_cards = budget_route_cards
+
     priority = {
         "candidate_found": 0,
         "policy_only": 1,
         "needs_check": 2,
         "reference_only": 3,
     }
+    route_priority = {
+        "primary": 0,
+        "secondary": 1,
+        "reference": 2,
+        "excluded": 3,
+    }
     route_order = {
+        "shopping_mall_mas": 0,
         "mas": 0,
         "shopping_mall": 1,
+        "two_quote_small_value": 2,
         "sme_direct_production": 2,
-        "policy_company_direct": 3,
+        "sme_competition_direct_production": 3,
+        "policy_company_one_quote": 4,
+        "policy_company_direct": 4,
+        "general_small_value_direct": 5,
         "facility_material_price": 4,
-        "construction_license": 5,
-        "open_market_or_bid": 6,
+        "construction_license": 6,
+        "local_company_competitive": 7,
+        "technology_development_product": 8,
+        "innovation_product": 9,
+        "open_market_or_bid": 10,
     }
 
     def route_sort_key(item: dict[str, object]) -> tuple[int, int, str]:
         route_id = str(item.get("route_id"))
         if construction_route_primary and route_id == "construction_license":
             return (-1, priority.get(str(item.get("status")), 9), route_id)
-        return (priority.get(str(item.get("status")), 9), route_order.get(route_id, 9), route_id)
+        priority_group = route_priority.get(str(item.get("route_priority")), priority.get(str(item.get("status")), 9))
+        return (priority_group, route_order.get(route_id, 80), route_id)
 
     route_cards.sort(key=route_sort_key)
     primary = route_cards[0]

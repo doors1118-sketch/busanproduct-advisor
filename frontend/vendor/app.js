@@ -234,17 +234,33 @@ function sourceDate(rows) {
   return "";
 }
 
-function routeStatusLabel(status) {
-  if (status === "candidate_found") return "후보 근거 있음";
+function routeStatusLabel(status, priority = "") {
+  if (priority === "primary") return "먼저 확인";
+  if (priority === "secondary") return "다음 검토";
+  if (priority === "reference") return "참고";
+  if (priority === "excluded") return "어려움";
+  if (status === "candidate_found") return "업체 근거 있음";
   if (status === "policy_only") return "품목정책 확인";
   if (status === "reference_only") return "참고자료";
+  if (status === "mas_direct_check") return "직접구매 검토";
+  if (status === "mas_second_stage_check") return "2단계 확인";
+  if (status === "viable_check") return "검토 가능";
+  if (status === "needs_amount_check" || status === "needs_lookup") return "확인 필요";
+  if (status === "not_viable" || status === "no_candidate_found") return "제외";
   return "확인 필요";
 }
 
-function routeStatusTone(status) {
+function routeStatusTone(status, priority = "") {
+  if (priority === "primary") return "good";
+  if (priority === "secondary") return "info";
+  if (priority === "reference") return "neutral";
+  if (priority === "excluded") return "warn";
   if (status === "candidate_found") return "good";
   if (status === "policy_only") return "info";
   if (status === "reference_only") return "neutral";
+  if (status === "mas_direct_check" || status === "viable_check") return "good";
+  if (status === "mas_second_stage_check" || status === "needs_amount_check" || status === "needs_lookup") return "warn";
+  if (status === "not_viable" || status === "no_candidate_found") return "warn";
   return "warn";
 }
 
@@ -262,14 +278,23 @@ function renderRouteOptions(cards) {
     const nextActions = Array.isArray(card.next_actions) ? card.next_actions.filter(Boolean).slice(0, 3) : [];
     const checks = Array.isArray(card.required_checks) ? card.required_checks.filter(Boolean).slice(0, 3) : [];
     const status = valueText(card.status, "needs_check");
+    const priority = valueText(card.route_priority, "");
+    const rankLabel =
+      priority === "excluded"
+        ? "현재 조건상 어려움"
+        : priority === "reference"
+          ? "참고 확인"
+          : index === 0
+            ? "1순위 먼저 확인"
+            : `${index + 1}순위 다음 검토`;
     const detailItems = nextActions.length ? nextActions : checks;
     article.innerHTML = `
       <div class="route-option-head">
         <div>
-          <span class="route-rank">${index + 1}순위</span>
+          <span class="route-rank">${rankLabel}</span>
           <strong>${escapeHtml(valueText(card.label, "구매방식 확인"))}</strong>
         </div>
-        <span class="tag ${routeStatusTone(status)}">${escapeHtml(routeStatusLabel(status))}</span>
+        <span class="tag ${routeStatusTone(status, priority)}">${escapeHtml(routeStatusLabel(status, priority))}</span>
       </div>
       <p>${escapeHtml(valueText(card.reason, "원천 DB 근거를 확인해야 합니다."))}</p>
       ${card.practical_note ? `<em>${escapeHtml(card.practical_note)}</em>` : ""}
@@ -288,7 +313,7 @@ function renderRouteGuide(payload) {
   const cards = Array.isArray(guide.route_cards) ? guide.route_cards : [];
   const badges = Array.isArray(guide.badges) ? guide.badges : [];
 
-  els.routeTitle.textContent = cards.length ? "지역업체 계약 검토 우선순위" : "구매방식 확인 필요";
+  els.routeTitle.textContent = cards.length ? "먼저 확인할 구매 경로" : "구매방식 확인 필요";
   els.routeNotice.textContent =
     guide.legal_notice || "구매방식 안내는 후보 정보입니다. 최종 계약 가능 여부와 법령 해석은 별도 검토가 필요합니다.";
   renderRouteOptions(cards);

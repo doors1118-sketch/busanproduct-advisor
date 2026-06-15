@@ -184,7 +184,10 @@ def test_vendor_recommendation_search_endpoint(monkeypatch):
     assert "직접생산증명서" in body["item_policy_summary"]["direct_production_certificate"]
     assert "조합추천" in body["item_policy_summary"]["cooperative_purchase_route"]
     assert body["product_policy_checks"][0]["detail_product_code"] == "123"
-    assert body["purchase_route_guidance"]["primary_route"]["route_id"] in {"mas", "shopping_mall", "sme_direct_production"}
+    assert body["purchase_route_guidance"]["primary_route"]["route_id"] == "shopping_mall_mas"
+    assert body["purchase_route_guidance"]["primary_route"]["route_priority"] == "primary"
+    assert "예산 4,500만원 기준" in body["purchase_route_guidance"]["primary_route"]["practical_note"]
+    assert "2단계" in body["purchase_route_guidance"]["primary_route"]["reason"]
     assert body["purchase_route_guidance"]["required_checks"]
     assert "purchase_route_fit_summary" in body["rows"][0]
 
@@ -245,6 +248,38 @@ def test_vendor_purchase_route_guidance_prioritizes_direct_and_mas_requirements(
     assert "sme_direct_production" in route_ids
     assert "mas" in route_ids
     assert "직접생산 확인 필요" in badge_labels
+
+
+def test_vendor_purchase_route_guidance_uses_budget_for_desktop_mas_priority():
+    rows = [
+        api_server._vendor_recommendation_row({
+            **_sample_vendor_row(),
+            "direct_production_summary": "데스크톱컴퓨터 / 직접생산 / valid",
+            "mas_product_summary": "데스크톱컴퓨터 / MAS / active",
+            "shopping_mall_product_summary": "데스크톱컴퓨터 / 쇼핑몰 / active",
+            "has_mas": "true",
+            "has_shopping_mall": "true",
+        })
+    ]
+    checks = [{
+        "detail_product_code": "4321150701",
+        "detail_product_name": "데스크톱컴퓨터",
+        "is_sme_competition_product": "1",
+        "direct_production_valid_supplier_count": "5",
+    }]
+
+    guidance = api_server._vendor_purchase_route_guidance(
+        "데스크탑",
+        rows,
+        checks,
+        {"status": "matched"},
+        budget_krw=60_000_000,
+    )
+
+    assert guidance["primary_route"]["route_id"] == "shopping_mall_mas"
+    assert guidance["primary_route"]["route_priority"] == "primary"
+    assert "1억원" in guidance["primary_route"]["reason"]
+    assert "예산 6,000만원 기준" in guidance["primary_route"]["practical_note"]
 
 
 def test_vendor_purchase_route_guidance_prioritizes_construction_intent_over_mas_rows():
