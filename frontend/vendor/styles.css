@@ -578,6 +578,65 @@ select:focus {
   margin-top: 7px;
 }
 
+.route-options {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 12px;
+}
+
+.route-options.is-empty {
+  display: none;
+}
+
+.route-option-card {
+  background: #ffffff;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+  padding: 14px;
+}
+
+.route-option-head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.route-option-head strong {
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.route-option-card p,
+.route-option-card em {
+  display: block;
+  font-size: 13px;
+  line-height: 1.65;
+  margin: 10px 0 0;
+}
+
+.route-option-card p {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.route-option-card em {
+  color: var(--muted);
+  font-style: normal;
+}
+
+.route-option-card ul {
+  color: var(--slate);
+  display: grid;
+  font-size: 12px;
+  gap: 4px;
+  line-height: 1.55;
+  margin: 10px 0 0;
+  padding-left: 16px;
+}
+
 .legal-notice {
   color: var(--muted);
   font-size: 13px;
@@ -906,6 +965,7 @@ th {
   .hero,
   .content-grid,
   .route-grid,
+  .route-options,
   .summary-grid {
     grid-template-columns: 1fr;
   }

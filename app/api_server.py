@@ -3059,16 +3059,31 @@ def _vendor_purchase_route_guidance(
         or _vendor_is_truthy(row.get("construction_capacity_summary"))
         for row in rows
     )
+    row_has_policy = any(
+        _vendor_is_truthy(row.get("policy_company_labels"))
+        or _vendor_is_truthy(row.get("policy_subtypes"))
+        for row in rows
+    )
 
     route_cards: list[dict[str, object]] = []
 
-    def add_card(route_id: str, label: str, status: str, reason: str, required_checks: list[str]) -> None:
+    def add_card(
+        route_id: str,
+        label: str,
+        status: str,
+        reason: str,
+        required_checks: list[str],
+        practical_note: str = "",
+        next_actions: list[str] | None = None,
+    ) -> None:
         route_cards.append({
             "route_id": route_id,
             "label": label,
             "status": status,
             "reason": reason,
             "required_checks": required_checks,
+            "practical_note": practical_note,
+            "next_actions": next_actions or [],
         })
 
     if construction_terms:
@@ -3078,38 +3093,58 @@ def _vendor_purchase_route_guidance(
             "candidate_found" if row_has_construction else "needs_check",
             "입력 질의가 공사업 면허 또는 공사 시공 조건으로 해석됩니다.",
             ["공사 종류", "요구 면허", "시공능력평가금액", "입찰공고/직접계약 가능 여부"],
+            "공사는 품목 구매가 아니라 면허·실적·시공능력 기준으로 후보를 좁히는 경로입니다.",
+            ["요구 면허와 시공능력평가금액을 먼저 확인", "공사 내용이 공사용자재 직접구매 대상과 연결되는지 별도 확인"],
         )
     if requirements["has_mas_route"] or row_has_mas:
         add_card(
             "mas",
             "MAS/다수공급자계약",
             "candidate_found" if row_has_mas else "policy_only",
-            "품목정책 또는 후보업체 DB에서 MAS 근거가 확인됩니다.",
-            ["MAS 계약상태", "계약기간", "납품조건", "2단계 경쟁 필요 여부"],
+            "제3자단가계약 또는 다수공급자계약 근거가 있으면 조달청 종합쇼핑몰/MAS 구매 경로를 우선 검토합니다.",
+            ["제3자단가계약 여부", "MAS 계약상태", "계약기간", "납품조건", "2단계 경쟁 필요 여부"],
+            "금액·품목 조건에 따라 바로구매 또는 2단계 경쟁으로 갈라질 수 있으므로 물품식별번호와 계약조건 확인이 필요합니다.",
+            ["조달청 종합쇼핑몰에서 동일 세부품명 검색", "2단계 경쟁 대상 금액인지 확인", "부산업체의 MAS 계약 유효 여부 확인"],
         )
     if requirements["has_shopping_route"] or row_has_shopping:
         add_card(
             "shopping_mall",
             "종합쇼핑몰 구매",
             "candidate_found" if row_has_shopping else "policy_only",
-            "종합쇼핑몰 등록 또는 부산업체 상품 근거가 확인됩니다.",
+            "종합쇼핑몰 등록 상품이면 조달청 쇼핑몰 구매 또는 수의계약 성격의 바로구매 가능성을 검토할 수 있습니다.",
             ["쇼핑몰 등록상태", "물품식별번호", "가격/규격", "납품 가능지역"],
+            "지역업체가 쇼핑몰에 등록돼 있으면 담당자가 별도 공고 없이 구매 가능한지 확인하기 쉬운 근거가 됩니다.",
+            ["부산업체 등록 상품 여부 확인", "가격·규격·납품 가능지역 확인", "동일 품목의 타지역 상품과 비교"],
         )
     if requirements["is_sme_competition_product"] or requirements["requires_direct_production"]:
         add_card(
             "sme_direct_production",
             "중소기업자간 경쟁제품/직접생산",
             "candidate_found" if row_has_direct else "needs_check",
-            "중기간 경쟁제품 또는 직접생산 유효 공급업체 근거가 있습니다.",
+            "중소기업자간 경쟁제품이면 중소기업제품 검색과 직접생산확인증명서 보유 여부를 먼저 확인해야 합니다.",
             ["중기간 경쟁제품 해당 여부", "직접생산확인증명서", "세부품명 일치", "유효기간"],
+            "직접생산이 필요한 품목에서 증명서가 없는 업체는 상위 후보라도 계약 전 검토 대상에서 제외될 수 있습니다.",
+            ["세부품명 기준 중기간 경쟁제품 여부 확인", "직접생산확인증명서 유효기간 확인", "조합추천·공동사업 적용 가능성 확인"],
+        )
+    if row_has_policy:
+        add_card(
+            "policy_company_direct",
+            "정책기업 수의계약 검토",
+            "candidate_found",
+            "여성기업·장애인기업·사회적기업 등 정책기업 근거가 있는 업체는 관련 법령상 수의계약 가능 범위 확대 여부를 검토할 수 있습니다.",
+            ["정책기업 유형", "인증 유효기간", "수의계약 한도", "발주기관 적용 법령"],
+            "정책기업 여부는 구매 편의성을 높이는 보조 근거이며, 최종 가능 여부는 금액·계약목적·발주기관 법령에 따라 달라집니다.",
+            ["정책기업 유형과 유효기간 확인", "국가계약/지방계약 적용 여부 확인", "동일 품목 공급 가능성 확인"],
         )
     if requirements["has_facility_material_price"]:
         add_card(
             "facility_material_price",
             "시설공통자재 가격정보",
             "reference_only",
-            "시설공통자재 가격정보 원천과 매칭된 품목입니다.",
+            "시설공통자재 가격정보와 매칭된 품목이면 가격 기준과 규격을 참고하고 공사용자재 직접구매 대상 여부를 확인합니다.",
             ["가격 기준일", "규격 일치", "공사용자재 직접구매 대상 여부"],
+            "가격정보는 후보업체 확정 근거가 아니라 설계·예정가격·품목 식별을 보조하는 참고자료입니다.",
+            ["동일 규격 가격정보 확인", "공사용자재 직접구매 대상 여부 확인"],
         )
 
     if not route_cards:
@@ -3117,8 +3152,10 @@ def _vendor_purchase_route_guidance(
             "open_market_or_bid",
             "직접계약/입찰공고 검토",
             "needs_check",
-            "품목정책 DB에서 MAS·쇼핑몰·직접생산 필수 근거가 명확히 확인되지 않았습니다.",
+            "품목정책 DB에서 제3자단가·MAS·쇼핑몰·직접생산 필수 근거가 명확히 확인되지 않았습니다.",
             ["조달등록 여부", "면허/업종", "영업상태", "공고 조건"],
+            "이 경우에는 조달등록 부산업체 후보를 기준으로 직접계약 가능성 또는 입찰공고 조건 설계를 검토합니다.",
+            ["조달등록·영업상태 확인", "면허·업종과 실제 취급품목 확인", "공고 조건에 지역업체 참여 가능성을 반영할지 검토"],
         )
 
     priority = {
@@ -3131,9 +3168,10 @@ def _vendor_purchase_route_guidance(
         "mas": 0,
         "shopping_mall": 1,
         "sme_direct_production": 2,
-        "facility_material_price": 3,
-        "construction_license": 4,
-        "open_market_or_bid": 5,
+        "policy_company_direct": 3,
+        "facility_material_price": 4,
+        "construction_license": 5,
+        "open_market_or_bid": 6,
     }
 
     def route_sort_key(item: dict[str, object]) -> tuple[int, int, str]:
@@ -3155,10 +3193,12 @@ def _vendor_purchase_route_guidance(
         badges.append({"label": "MAS 업체 근거 있음", "tone": "info"})
     if row_has_shopping:
         badges.append({"label": "쇼핑몰 등록 근거 있음", "tone": "info"})
+    if row_has_policy:
+        badges.append({"label": "정책기업 수의계약 검토", "tone": "good"})
     if requirements["has_facility_material_price"]:
         badges.append({"label": "시설자재 가격정보 매칭", "tone": "neutral"})
     if not badges:
-        badges.append({"label": "구매수단 확인 필요", "tone": "neutral"})
+        badges.append({"label": "구매방식 확인 필요", "tone": "neutral"})
 
     required_checks: list[str] = []
     for card in route_cards:
@@ -3174,12 +3214,12 @@ def _vendor_purchase_route_guidance(
         "required_checks": required_checks,
         "ranking_basis": [
             "입력 품목/면허와 직접 일치하는 업체",
-            "구매수단 근거(MAS/쇼핑몰/직접생산/시공능력)가 있는 업체",
+            "지역업체 구매 지원 근거(MAS/쇼핑몰/직접생산/시공능력)가 있는 업체",
             "정상 영업 상태와 부산 본사 근거가 확인되는 업체",
             "정책기업·인증제품 등 계약 편의성이 있는 업체",
         ],
         "item_policy_status": item_policy_summary.get("status"),
-        "legal_notice": "구매수단 후보 안내입니다. 최종 계약 가능 여부와 법령 해석은 별도 계약검토/법령해석 절차에서 확인해야 합니다.",
+        "legal_notice": "구매방식 안내는 후보 정보입니다. 최종 계약 가능 여부, 수의계약 가능 한도, 법령 해석은 별도 계약검토/법령해석 절차에서 확인해야 합니다.",
     }
 
 

@@ -45,6 +45,7 @@ const els = {
   routePrimary: document.querySelector("#route-primary"),
   routeRequired: document.querySelector("#route-required"),
   routeRanking: document.querySelector("#route-ranking"),
+  routeOptions: document.querySelector("#route-options"),
   routeNotice: document.querySelector("#route-notice"),
   downloadLink: document.querySelector("#download-link"),
   candidateList: document.querySelector("#candidate-list"),
@@ -235,20 +236,67 @@ function sourceDate(rows) {
   return "";
 }
 
+function routeStatusLabel(status) {
+  if (status === "candidate_found") return "후보 근거 있음";
+  if (status === "policy_only") return "품목정책 확인";
+  if (status === "reference_only") return "참고자료";
+  return "확인 필요";
+}
+
+function routeStatusTone(status) {
+  if (status === "candidate_found") return "good";
+  if (status === "policy_only") return "info";
+  if (status === "reference_only") return "neutral";
+  return "warn";
+}
+
+function renderRouteOptions(cards) {
+  if (!els.routeOptions) return;
+  els.routeOptions.innerHTML = "";
+  if (!cards.length) {
+    els.routeOptions.classList.add("is-empty");
+    return;
+  }
+  els.routeOptions.classList.remove("is-empty");
+  cards.slice(0, 5).forEach((card) => {
+    const article = document.createElement("article");
+    article.className = "route-option-card";
+    const nextActions = Array.isArray(card.next_actions) ? card.next_actions.filter(Boolean).slice(0, 3) : [];
+    const checks = Array.isArray(card.required_checks) ? card.required_checks.filter(Boolean).slice(0, 3) : [];
+    const status = valueText(card.status, "needs_check");
+    const detailItems = nextActions.length ? nextActions : checks;
+    article.innerHTML = `
+      <div class="route-option-head">
+        <strong>${escapeHtml(valueText(card.label, "구매방식 확인"))}</strong>
+        <span class="tag ${routeStatusTone(status)}">${escapeHtml(routeStatusLabel(status))}</span>
+      </div>
+      <p>${escapeHtml(valueText(card.reason, "원천 DB 근거를 확인해야 합니다."))}</p>
+      ${card.practical_note ? `<em>${escapeHtml(card.practical_note)}</em>` : ""}
+      ${
+        detailItems.length
+          ? `<ul>${detailItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
+          : ""
+      }
+    `;
+    els.routeOptions.appendChild(article);
+  });
+}
+
 function renderRouteGuide(payload) {
   const guide = payload?.purchase_route_guidance || {};
   const primary = guide.primary_route || {};
   const cards = Array.isArray(guide.route_cards) ? guide.route_cards : [];
   const badges = Array.isArray(guide.badges) ? guide.badges : [];
 
-  els.routeTitle.textContent = guide.title || primary.label || "구매수단 확인 필요";
+  els.routeTitle.textContent = guide.title || primary.label || "구매방식 확인 필요";
   els.routePrimary.textContent = primary.label
-    ? `${primary.label}: ${primary.reason || "후보 근거 확인"}`
-    : "입력 품목 기준으로 구매수단을 확인해야 합니다.";
+    ? `${primary.label}: ${[primary.reason, primary.practical_note].filter(Boolean).join(" ")}`
+    : "입력 품목 기준으로 구매방식을 확인해야 합니다.";
   els.routeRequired.textContent = (guide.required_checks || primary.required_checks || ["원천자료 확인"]).join(" · ");
   els.routeRanking.textContent = (guide.ranking_basis || ["조건 일치", "구매 지원 근거", "영업상태", "정책·인증"]).join(" · ");
   els.routeNotice.textContent =
     guide.legal_notice || "구매방식 안내는 후보 정보입니다. 최종 계약 가능 여부와 법령 해석은 별도 검토가 필요합니다.";
+  renderRouteOptions(cards);
 
   els.routeBadges.innerHTML = "";
   if (badges.length) {
