@@ -207,10 +207,17 @@ a {
 
 .sector-mix {
   color: #a9c6ff;
+  display: grid;
+  gap: 2px;
   font-size: 12px;
   font-weight: 800;
   line-height: 1.5;
   margin: 0;
+}
+
+.sector-row {
+  display: block;
+  white-space: nowrap;
 }
 
 .rail-card.compact {

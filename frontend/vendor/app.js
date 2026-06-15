@@ -468,14 +468,17 @@ function buildSectorMix(data, totalAmount) {
   const bySector = data?.["2_분야별"];
   const total = Number(totalAmount);
   if (!bySector || typeof bySector !== "object" || !Number.isFinite(total) || total <= 0) return "";
-  return ["공사", "용역", "물품", "쇼핑몰"]
-    .map((label) => {
+  const values = ["공사", "용역", "물품", "쇼핑몰"]
+    .reduce((acc, label) => {
       const amount = Number(findValueByKeys(bySector[label], ["발주액", "total_amount", "contract_amount"]));
-      if (!Number.isFinite(amount)) return "";
-      return `${label} ${((amount / total) * 100).toFixed(1)}%`;
-    })
-    .filter(Boolean)
-    .join(" · ");
+      if (Number.isFinite(amount)) acc[label] = `${label} ${((amount / total) * 100).toFixed(1)}%`;
+      return acc;
+    }, {});
+  const rows = [
+    [values["공사"], values["용역"]].filter(Boolean).join(" · "),
+    [values["물품"], values["쇼핑몰"]].filter(Boolean).join(" · "),
+  ].filter(Boolean);
+  return rows.map((row) => `<span class="sector-row">${row}</span>`).join("");
 }
 
 async function loadMonitoringSummary() {
@@ -493,7 +496,7 @@ async function loadMonitoringSummary() {
     if (totalAmount) els.metricTotalAmount.textContent = formatWonCompact(totalAmount);
     if (localAmount) els.metricLocalAmount.textContent = formatWonCompact(localAmount);
     if (overall) els.metricOverall.textContent = formatRate(overall);
-    if (sectorMix) els.metricSectorMix.textContent = sectorMix;
+    if (sectorMix) els.metricSectorMix.innerHTML = sectorMix;
     if (busanGroup) els.metricBusanGroup.textContent = formatRate(busanGroup);
     if (nationalGroup) els.metricNationalGroup.textContent = formatRate(nationalGroup);
     if (data.generated_at) els.metricGenerated.textContent = `생성 ${data.generated_at}`;
