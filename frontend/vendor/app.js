@@ -6,6 +6,18 @@ const MONITORING_API_BASE_URL = (params.get("monitoring") || "https://busanprodu
 
 const DISPLAY_LIMIT = 10;
 
+function todayKstDateText() {
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+    .format(new Date())
+    .replace(/\. /g, "-")
+    .replace(".", "");
+}
+
 const els = {
   form: document.querySelector("#search-form"),
   input: document.querySelector("#query-input"),
@@ -45,6 +57,10 @@ const els = {
 
 let lastPayload = null;
 let lastQuery = "";
+
+function setDefaultDataDate() {
+  if (els.dataDate) els.dataDate.textContent = `기준일 ${todayKstDateText()}`;
+}
 
 function valueText(value, fallback = "-") {
   if (value === null || value === undefined) return fallback;
@@ -166,7 +182,7 @@ function evidenceItems(row) {
   return [
     ["조건 충족", conditionText(row), toneFor(row.condition_match_type)],
     ["품목·검색 근거", firstPositive(row.requested_item_evidence_summary, row.matched_query_label, row.main_products) || "요청 품목 근거 확인 필요", toneFor(row.requested_item_evidence_summary)],
-    ["구매수단 적합성", valueText(row.purchase_route_fit_summary, "구매수단 근거는 별도 확인 필요"), toneFor(row.purchase_route_fit_summary)],
+    ["구매수단 적합성", valueText(row.purchase_route_fit_summary, "지역업체 구매 지원 근거는 별도 확인 필요"), toneFor(row.purchase_route_fit_summary)],
     ["직접생산", directEvidence(row) || "직접생산 근거 없음 또는 확인 필요", directEvidence(row) ? "good" : "warn"],
     ["MAS/종합쇼핑몰", [masEvidence(row), shoppingEvidence(row)].filter(Boolean).join(" · ") || "등록 근거 없음 또는 확인 필요", masEvidence(row) || shoppingEvidence(row) ? "good" : "warn"],
     ["면허·시공능력", constructionEvidence(row) || firstPositive(row.license_or_business_type) || "면허·시공능력 확인 필요", constructionEvidence(row) ? "good" : "info"],
@@ -230,7 +246,7 @@ function renderRouteGuide(payload) {
     ? `${primary.label}: ${primary.reason || "후보 근거 확인"}`
     : "입력 품목 기준으로 구매수단을 확인해야 합니다.";
   els.routeRequired.textContent = (guide.required_checks || primary.required_checks || ["원천자료 확인"]).join(" · ");
-  els.routeRanking.textContent = (guide.ranking_basis || ["조건 일치", "구매수단 근거", "영업상태", "정책·인증"]).join(" · ");
+  els.routeRanking.textContent = (guide.ranking_basis || ["조건 일치", "구매 지원 근거", "영업상태", "정책·인증"]).join(" · ");
   els.routeNotice.textContent =
     guide.legal_notice || "구매수단 안내는 후보 정보입니다. 최종 계약 가능 여부와 법령 해석은 별도 검토가 필요합니다.";
 
@@ -566,6 +582,7 @@ els.downloadLink.addEventListener("click", (event) => {
   downloadXlsx();
 });
 
+setDefaultDataDate();
 checkHealth();
 loadMonitoringSummary();
 loadShoppingLeakage();

@@ -258,8 +258,8 @@ a {
   grid-template-columns: minmax(0, 1fr) 320px;
   margin-bottom: 18px;
   overflow: hidden;
-  min-height: 250px;
-  padding: 24px 28px;
+  min-height: 210px;
+  padding: 22px 28px;
   position: relative;
 }
 
@@ -300,7 +300,34 @@ a {
   max-width: 820px;
 }
 
+.data-source-strip {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.18);
+  border: 1px solid rgba(191, 219, 254, 0.2);
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 16px;
+  max-width: 900px;
+  padding: 10px 12px;
+}
+
+.data-source-strip span {
+  color: #a7f3d0;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.data-source-strip strong {
+  color: #eff6ff;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 .hero-metrics {
+  align-content: start;
   display: grid;
   gap: 10px;
 }
