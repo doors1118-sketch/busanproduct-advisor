@@ -791,7 +791,8 @@ def search_shopping_mall_product(product_name: str, *, limit: int = 20) -> dict[
     where, params = _like_where(["shopping_mall_product_summary_raw", "mas_product_summary_raw", "main_products"], terms)
     where = f"({where}) AND IFNULL(shopping_mall_flags_raw, '') != ''"
     primary = _run_search(where, params, limit=limit, query={"product_name": product_name, "limit": limit}, source="local_view_shopping_mall")
-    candidates = list((primary or {}).get("candidates") or [])
+    primary_candidates = list((primary or {}).get("candidates") or [])
+    source_candidates: list[dict[str, Any]] = []
 
     conn = _connect()
     if conn is None:
@@ -804,7 +805,7 @@ def search_shopping_mall_product(product_name: str, *, limit: int = 20) -> dict[
         ):
             return primary
 
-        seen = {str(row.get("company_id") or "") for row in candidates if row.get("company_id")}
+        seen: set[str] = set()
         source_sql_parts: list[str] = []
         source_params: list[Any] = []
 
@@ -874,6 +875,15 @@ def search_shopping_mall_product(product_name: str, *, limit: int = 20) -> dict[
         rows = conn.execute(sql, [*source_params, max(1, min(int(limit or 20), 100))]).fetchall()
         for row in rows:
             candidate = _row_to_candidate(row)
+            company_id = str(candidate.get("company_id") or "")
+            if not company_id or company_id in seen:
+                continue
+            seen.add(company_id)
+            source_candidates.append(candidate)
+            if len(source_candidates) >= max(1, int(limit or 20)):
+                break
+        candidates = list(source_candidates)
+        for candidate in primary_candidates:
             company_id = str(candidate.get("company_id") or "")
             if not company_id or company_id in seen:
                 continue
