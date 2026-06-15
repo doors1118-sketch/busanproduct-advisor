@@ -3080,11 +3080,21 @@ def _vendor_contract_object_for_route(q: str, construction_terms: list[str]) -> 
 
 
 def _vendor_route_item_name(q: str, product_policy_checks: list[dict[str, str]]) -> str:
+    compact = _vendor_compact(q)
+    preferred_names: list[str] = []
+    if any(term in compact for term in ("데스크탑", "데스크톱", "desktop", "pc")):
+        preferred_names.append("데스크톱컴퓨터")
+    if any(term in compact for term in ("노트북", "랩톱", "랩탑", "notebook", "laptop")):
+        preferred_names.append("노트북컴퓨터")
+    for preferred in preferred_names:
+        for item in product_policy_checks:
+            name = _vendor_join(item.get("detail_product_name"))
+            if preferred in name:
+                return preferred
     for item in product_policy_checks:
         name = _vendor_join(item.get("detail_product_name"))
         if name:
             return name
-    compact = _vendor_compact(q)
     if any(term in compact for term in ("데스크탑", "데스크톱", "desktop", "pc")):
         return "데스크톱컴퓨터"
     if any(term in compact for term in ("노트북", "랩톱", "랩탑", "notebook", "laptop")):
