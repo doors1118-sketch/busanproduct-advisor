@@ -2242,6 +2242,7 @@ def _vendor_apply_construction_evidence(
     if not rows or not requested_terms:
         return rows
 
+    construction_material_intent = _vendor_has_construction_material_intent(q)
     requested_label = ", ".join(requested_terms[:4])
     for row in rows:
         license_text = str(row.get("license_or_business_type") or "")
@@ -2276,22 +2277,25 @@ def _vendor_apply_construction_evidence(
             row["construction_capacity_match"] = "시공능력 확인: " + " / ".join(labels)
             row["construction_capacity_amount"] = int(top_amount) if isinstance(top_amount, int) else ""
             row["construction_capacity_status_label"] = "요청 공사업 시공능력평가금액 확인"
-            row["condition_match_type"] = "공사면허 확인"
-            row["condition_match_summary"] = "요청 공사업 면허/시공능력 근거 확인"
+            if not construction_material_intent:
+                row["condition_match_type"] = "공사면허 확인"
+                row["condition_match_summary"] = "요청 공사업 면허/시공능력 근거 확인"
             row["review_score"] = int(row.get("review_score") or 0) + 45
         elif license_matched:
             row["construction_license_match"] = "요청 면허 일치: " + ", ".join(license_matched[:4])
             row["construction_capacity_match"] = "면허는 일치하나 시공능력평가금액은 후보뷰에서 확인 필요"
             row["construction_capacity_amount"] = ""
-            row["condition_match_type"] = "공사면허 확인"
-            row["condition_match_summary"] = "요청 공사업 면허 근거 확인, 시공능력평가금액은 추가 확인 필요"
+            if not construction_material_intent:
+                row["condition_match_type"] = "공사면허 확인"
+                row["condition_match_summary"] = "요청 공사업 면허 근거 확인, 시공능력평가금액은 추가 확인 필요"
             row["review_score"] = int(row.get("review_score") or 0) + 20
         else:
             row["construction_license_match"] = f"요청 면허 근거 없음: {requested_label}"
             row["construction_capacity_match"] = "요청 공사업 기준 시공능력평가금액 근거 없음"
             row["construction_capacity_amount"] = ""
-            row["condition_match_type"] = "확인 필요"
-            row["condition_match_summary"] = "요청 공사업 면허/시공능력 근거 확인 필요"
+            if not construction_material_intent:
+                row["condition_match_type"] = "확인 필요"
+                row["condition_match_summary"] = "요청 공사업 면허/시공능력 근거 확인 필요"
             row["review_score"] = int(row.get("review_score") or 0) - 15
 
     rows.sort(
