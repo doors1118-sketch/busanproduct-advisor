@@ -1183,8 +1183,24 @@ def _vendor_query_plan(q: str) -> list[dict[str, str]]:
     elif any(term in compact for term in ("도로포장", "포장공사", "지반조성포장", "포장업체")):
         for term in ("지반조성ㆍ포장공사업", "포장공사업", "토공사업"):
             _vendor_add_plan(plan, seen, "license", term, f"면허: {term}")
-        for term in ("도로포장공사", "포장공사", "아스팔트콘크리트"):
-            _vendor_add_plan(plan, seen, "product", term, f"보조 품목/자재: {term}")
+        paving_material_intent = any(
+            term in compact
+            for term in (
+                "자재",
+                "재료",
+                "관급",
+                "직접구매",
+                "구매",
+                "납품",
+                "아스콘",
+                "아스팔트",
+                "아스팔트콘크리트",
+                "포장재",
+            )
+        )
+        if paving_material_intent:
+            for term in ("아스팔트콘크리트", "아스콘", "순환상온아스팔트콘크리트"):
+                _vendor_add_plan(plan, seen, "product", term, f"보조 품목/자재: {term}")
     elif any(term in compact for term in ("천연잔디", "잔디조성", "잔디식재", "잔디시공", "운동장잔디")):
         for term in ("잔디", "조경식재공사", "토양개량", "복합비료"):
             _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
@@ -2988,6 +3004,7 @@ def _vendor_purchase_route_guidance(
     item_policy_summary: dict[str, object],
 ) -> dict[str, object]:
     requirements = _vendor_policy_route_requirements(product_policy_checks)
+    construction_terms = _vendor_requested_construction_terms(q)
     row_has_direct = any(
         _vendor_is_truthy(row.get("direct_production_match"))
         or _vendor_is_truthy(row.get("direct_production_certificate_products"))
@@ -3007,6 +3024,13 @@ def _vendor_purchase_route_guidance(
         or _vendor_is_truthy(row.get("has_shopping_mall"))
         for row in rows
     )
+    row_has_construction = any(
+        _vendor_is_truthy(row.get("construction_license_match"))
+        or _vendor_is_truthy(row.get("construction_capacity_match"))
+        or _vendor_is_truthy(row.get("construction_capacity_amount"))
+        or _vendor_is_truthy(row.get("construction_capacity_summary"))
+        for row in rows
+    )
 
     route_cards: list[dict[str, object]] = []
 
@@ -3019,6 +3043,14 @@ def _vendor_purchase_route_guidance(
             "required_checks": required_checks,
         })
 
+    if construction_terms:
+        add_card(
+            "construction_license",
+            "공사 면허/시공능력 검토",
+            "candidate_found" if row_has_construction else "needs_check",
+            "입력 질의가 공사업 면허 또는 공사 시공 조건으로 해석됩니다.",
+            ["공사 종류", "요구 면허", "시공능력평가금액", "입찰공고/직접계약 가능 여부"],
+        )
     if requirements["has_mas_route"] or row_has_mas:
         add_card(
             "mas",
@@ -3062,14 +3094,21 @@ def _vendor_purchase_route_guidance(
         )
 
     priority = {
+        "construction_license": -1 if construction_terms else 4,
         "candidate_found": 0,
         "policy_only": 1,
         "needs_check": 2,
         "reference_only": 3,
     }
-    route_cards.sort(key=lambda item: (priority.get(str(item.get("status")), 9), str(item.get("route_id"))))
+    route_cards.sort(key=lambda item: (
+        priority.get(str(item.get("route_id")), 9),
+        priority.get(str(item.get("status")), 9),
+        str(item.get("route_id")),
+    ))
     primary = route_cards[0]
     badges = []
+    if construction_terms:
+        badges.append({"label": "공사 면허/시공능력 검토", "tone": "good" if row_has_construction else "warn"})
     if requirements["is_sme_competition_product"]:
         badges.append({"label": "중기간 경쟁제품 가능성", "tone": "warn"})
     if requirements["requires_direct_production"]:

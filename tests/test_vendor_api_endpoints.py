@@ -247,6 +247,24 @@ def test_vendor_purchase_route_guidance_prioritizes_direct_and_mas_requirements(
     assert "직접생산 확인 필요" in badge_labels
 
 
+def test_vendor_purchase_route_guidance_prioritizes_construction_intent_over_mas_rows():
+    rows = [
+        api_server._vendor_recommendation_row({
+            **_sample_vendor_row(),
+            "license_or_business_type": "지반조성ㆍ포장공사업",
+            "construction_capacity_summary": "지반조성ㆍ포장공사업 / 1200000000",
+            "mas_product_summary": "아스팔트콘크리트 / MAS / active",
+            "has_mas": "true",
+        })
+    ]
+
+    guidance = api_server._vendor_purchase_route_guidance("도로 포장공사 면허 업체 추천", rows, [], {"status": "matched"})
+
+    assert guidance["primary_route"]["route_id"] == "construction_license"
+    assert guidance["title"] == "공사 면허/시공능력 검토"
+    assert any(badge["label"] == "공사 면허/시공능력 검토" for badge in guidance["badges"])
+
+
 def test_vendor_query_plan_adds_construction_license_terms():
     cases = [
         ("금속창호공사 업체 추천", "금속창호공사업"),
@@ -447,10 +465,13 @@ def test_vendor_query_tokens_prioritize_interpretation_over_event():
 
 
 def test_vendor_query_plan_expands_paving_work():
-    terms = {(item["search_type"], item["term"]) for item in api_server._vendor_query_plan("도로포장공사 부산업체")}
+    work_terms = {(item["search_type"], item["term"]) for item in api_server._vendor_query_plan("도로포장공사 부산업체")}
+    material_terms = {(item["search_type"], item["term"]) for item in api_server._vendor_query_plan("도로포장 자재 구매 부산업체")}
 
-    assert ("product", "도로포장공사") in terms
-    assert ("license", "지반조성ㆍ포장공사업") in terms
+    assert ("license", "지반조성ㆍ포장공사업") in work_terms
+    assert ("product", "아스팔트콘크리트") not in work_terms
+    assert ("product", "아스팔트콘크리트") in material_terms
+    assert ("license", "지반조성ㆍ포장공사업") in material_terms
 
 
 def test_vendor_query_plan_extracts_policy_product_terms():
