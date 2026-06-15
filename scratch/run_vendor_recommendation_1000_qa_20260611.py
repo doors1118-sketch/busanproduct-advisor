@@ -255,6 +255,8 @@ def evaluate_case(base_url: str, case: dict[str, Any], timeout: float, max_laten
         )
         rows = data.get("rows") or []
         first = rows[0] if rows else {}
+        route_guidance = data.get("purchase_route_guidance") or {}
+        route_text = json.dumps(route_guidance, ensure_ascii=False)
         row_blob = compact(" ".join(text_blob(r) for r in rows[:5]))
         first_blob = compact(text_blob(first))
         checks: dict[str, bool] = {}
@@ -264,9 +266,12 @@ def evaluate_case(base_url: str, case: dict[str, Any], timeout: float, max_laten
         checks["has_active_or_display_status"] = bool(first.get("business_status_label") or first.get("business_status"))
         checks["has_review_score"] = bool(str(first.get("review_score") or ""))
         checks["has_recommended_checks"] = bool(first.get("recommended_checks"))
+        checks["purchase_route_guidance_present"] = bool(route_guidance.get("primary_route") or route_guidance.get("route_cards"))
         terms = case.get("terms") or []
         checks["term_match_any_top5"] = any(compact(term) and compact(term) in row_blob for term in terms)
         checks["term_match_top1"] = any(compact(term) and compact(term) in first_blob for term in terms)
+        if "mixed" in (case.get("tags") or []):
+            checks["mixed_condition_explained"] = bool(first.get("condition_match_summary") or first.get("purchase_route_fit_summary"))
         if case.get("policy_expected"):
             summary = data.get("item_policy_summary") or {}
             checks["policy_summary_present"] = bool(summary) and summary.get("status") != "not_requested"
@@ -280,14 +285,14 @@ def evaluate_case(base_url: str, case: dict[str, Any], timeout: float, max_laten
                     or bool(r.get("shopping_mall_product_summary"))
                     or bool(r.get("mas_product_summary"))
                     for r in rows
-                )
+                ) or "종합쇼핑몰" in route_text or "쇼핑몰" in route_text
             elif cap == "mas":
                 checks["mas_visible"] = any(
                     str(r.get("mas_status_label") or "").startswith("MAS")
                     or bool(r.get("mas_match"))
                     or bool(r.get("mas_product_summary"))
                     for r in rows
-                )
+                ) or "MAS" in route_text or "다수공급자" in route_text
             elif cap == "direct":
                 checks["direct_production_visible"] = any(
                     "직접생산" in str(r.get("direct_production_certificate_status") or "")
@@ -295,7 +300,7 @@ def evaluate_case(base_url: str, case: dict[str, Any], timeout: float, max_laten
                     or bool(r.get("direct_production_certificate_products"))
                     or bool(r.get("direct_production_summary"))
                     for r in rows
-                )
+                ) or "직접생산" in route_text
             elif cap == "capacity":
                 checks["capacity_visible"] = any(
                     "시공능력" in str(r.get("construction_capacity_status_label") or "")
@@ -330,6 +335,8 @@ def evaluate_case(base_url: str, case: dict[str, Any], timeout: float, max_laten
             "term_match_any_top5": 25,
             "term_match_top1": 10,
             "policy_summary_present": 5,
+            "purchase_route_guidance_present": 8,
+            "mixed_condition_explained": 8,
             "shopping_or_mas_visible": 5,
             "mas_visible": 5,
             "direct_production_visible": 5,
@@ -359,6 +366,7 @@ def evaluate_case(base_url: str, case: dict[str, Any], timeout: float, max_laten
             "first_contract_review_types": first.get("contract_review_types", ""),
             "first_budget_review_hint": first.get("budget_review_hint", ""),
             "item_policy_summary": data.get("item_policy_summary") or {},
+            "purchase_route_guidance": route_guidance,
             "policy_preference_summary": data.get("policy_preference_summary") or {},
             "search_plan": (data.get("meta") or {}).get("search_plan"),
             "error": "",
@@ -377,6 +385,7 @@ def evaluate_case(base_url: str, case: dict[str, Any], timeout: float, max_laten
             "first_contract_review_types": "",
             "first_budget_review_hint": "",
             "item_policy_summary": {},
+            "purchase_route_guidance": {},
             "policy_preference_summary": {},
             "search_plan": [],
             "error": f"{type(exc).__name__}: {exc}",
@@ -469,6 +478,7 @@ def main() -> int:
     parser.add_argument("--timeout-sec", type=float, default=20)
     parser.add_argument("--max-latency-ms", type=int, default=5000)
     parser.add_argument("--out-dir", default="artifacts/vendor_recommendation_quality_qa")
+    parser.add_argument("--progress-every", type=int, default=50)
     args = parser.parse_args()
 
     cases = make_cases(args.count)
@@ -476,6 +486,8 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%d_%H%M%S")
     stem = f"vendor_recommendation_1000_qa_{stamp}"
+    jsonl_path = out_dir / f"{stem}.jsonl"
+    partial_summary_path = out_dir / f"{stem}.partial.summary.json"
     records: list[dict[str, Any]] = []
     with ThreadPoolExecutor(max_workers=max(1, min(args.workers, 16))) as executor:
         futures = {
@@ -483,16 +495,49 @@ def main() -> int:
             for idx, case in enumerate(cases)
         }
         by_index: dict[int, dict[str, Any]] = {}
-        for future in as_completed(futures):
-            idx = futures[future]
-            by_index[idx] = future.result()
+        completed = 0
+        with jsonl_path.open("w", encoding="utf-8") as jsonl_file:
+            for future in as_completed(futures):
+                idx = futures[future]
+                record = future.result()
+                by_index[idx] = record
+                jsonl_file.write(json.dumps(record, ensure_ascii=False) + "\n")
+                jsonl_file.flush()
+                completed += 1
+                if completed == len(cases) or (args.progress_every > 0 and completed % args.progress_every == 0):
+                    partial_records = [by_index[i] for i in sorted(by_index)]
+                    partial_summary = summarize(partial_records)
+                    partial_summary_path.write_text(
+                        json.dumps(
+                            {
+                                **partial_summary,
+                                "completed": completed,
+                                "target_total": len(cases),
+                                "jsonl": str(jsonl_path),
+                            },
+                            ensure_ascii=False,
+                            indent=2,
+                        ),
+                        encoding="utf-8",
+                    )
+                    print(
+                        json.dumps(
+                            {
+                                "completed": completed,
+                                "total": len(cases),
+                                "average_score": partial_summary["average_score"],
+                                "average_latency_ms": partial_summary["average_latency_ms"],
+                                "weak": partial_summary["grade_counts"].get("weak", 0),
+                            },
+                            ensure_ascii=False,
+                        ),
+                        flush=True,
+                    )
         records = [by_index[i] for i in range(len(cases))]
 
     summary = summarize(records)
-    jsonl_path = out_dir / f"{stem}.jsonl"
     summary_path = out_dir / f"{stem}.summary.json"
     report_path = out_dir / f"{stem}.md"
-    jsonl_path.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in records) + "\n", encoding="utf-8")
     summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     write_report(report_path, records, summary, args.base_url)
     print(json.dumps({"jsonl": str(jsonl_path), "summary": str(summary_path), "report": str(report_path), **summary}, ensure_ascii=False, indent=2))

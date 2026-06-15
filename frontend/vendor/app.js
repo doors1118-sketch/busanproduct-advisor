@@ -405,6 +405,27 @@ function rowIsSmeCompetition(row) {
 }
 
 function summarizePurchaseRoute(data, rows) {
+  const serverGuidance = data?.purchase_route_guidance || {};
+  if (serverGuidance.primary_route || Array.isArray(serverGuidance.route_cards)) {
+    const primary = serverGuidance.primary_route || (serverGuidance.route_cards || [])[0] || {};
+    const badges = (serverGuidance.badges || []).map((item) =>
+      routeBadge(text(item.label, "확인 필요"), text(item.tone, "neutral"))
+    );
+    const requiredChecks = Array.isArray(serverGuidance.required_checks)
+      ? serverGuidance.required_checks.join(" / ")
+      : text(serverGuidance.required_checks, "");
+    const rankingBasis = Array.isArray(serverGuidance.ranking_basis)
+      ? serverGuidance.ranking_basis.join(" / ")
+      : text(serverGuidance.ranking_basis, "");
+    return {
+      title: text(serverGuidance.title, text(primary.label, "구매수단 확인 필요")),
+      desc: text(primary.reason, text(serverGuidance.legal_notice, "품목정책 DB와 후보업체 DB 기준으로 구매수단 후보를 표시합니다.")),
+      primary: text(primary.label, "조회 후 판정"),
+      required: requiredChecks || "면허·업종·영업상태 확인",
+      ranking: rankingBasis || "구매수단 근거가 높은 업체를 우선 표시",
+      badges: badges.length ? badges : [routeBadge("구매수단 확인 필요", "neutral")],
+    };
+  }
   const itemPolicy = data?.item_policy_summary || {};
   const policyStatus = text(itemPolicy.status, "");
   const matchedProducts = Array.isArray(itemPolicy.matched_products) ? itemPolicy.matched_products : [];

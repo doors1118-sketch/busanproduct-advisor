@@ -184,6 +184,67 @@ def test_vendor_recommendation_search_endpoint(monkeypatch):
     assert "직접생산증명서" in body["item_policy_summary"]["direct_production_certificate"]
     assert "조합추천" in body["item_policy_summary"]["cooperative_purchase_route"]
     assert body["product_policy_checks"][0]["detail_product_code"] == "123"
+    assert body["purchase_route_guidance"]["primary_route"]["route_id"] in {"mas", "shopping_mall", "sme_direct_production"}
+    assert body["purchase_route_guidance"]["required_checks"]
+    assert "purchase_route_fit_summary" in body["rows"][0]
+
+
+def test_vendor_search_rows_collects_multiple_terms_for_mixed_query(monkeypatch):
+    calls = []
+
+    def search_by_product(term, limit=20):
+        calls.append(term)
+        if term == "CCTV":
+            return {"candidates": [{**_sample_vendor_row(), "company_id": "cctv", "company_name": "CCTV Vendor", "main_products": "CCTV"}]}
+        if term in {"노트북", "컴퓨터"}:
+            return {"candidates": [{**_sample_vendor_row(), "company_id": "notebook", "company_name": "Notebook Vendor", "main_products": "노트북컴퓨터"}]}
+        return {"candidates": []}
+
+    fake_company_db = SimpleNamespace(
+        search_by_product=search_by_product,
+        search_by_license=lambda term, limit=20: {"candidates": []},
+        search_by_company_name=lambda term, limit=20: {"candidates": []},
+        search_shopping_mall_product=lambda term, limit=20: {"candidates": []},
+        search_certified_product=lambda term, limit=20: {"candidates": []},
+        search_innovation_product=lambda term, limit=20: {"candidates": []},
+        search_excellent_procurement_product=lambda term, limit=20: {"candidates": []},
+        search_by_direct_production=lambda term, limit=20: {"candidates": []},
+    )
+    monkeypatch.setattr(api_server, "_vendor_import_company_db", lambda: fake_company_db)
+
+    rows = api_server._vendor_search_rows("CCTV와 노트북 둘 다 가능한 업체", region="", limit=10)
+
+    names = {row["company_name"] for row in rows}
+    assert "CCTV Vendor" in names
+    assert "Notebook Vendor" in names
+    assert any(term in calls for term in {"노트북", "컴퓨터"})
+
+
+def test_vendor_purchase_route_guidance_prioritizes_direct_and_mas_requirements():
+    rows = [
+        api_server._vendor_recommendation_row({
+            **_sample_vendor_row(),
+            "direct_production_summary": "데스크톱컴퓨터 / 직접생산 / valid",
+            "mas_product_summary": "데스크톱컴퓨터 / MAS / active",
+            "has_mas": "true",
+        })
+    ]
+    checks = [{
+        "detail_product_code": "4321150701",
+        "detail_product_name": "데스크톱컴퓨터",
+        "is_sme_competition_product": "1",
+        "direct_production_valid_supplier_count": "5",
+        "mas_active_supplier_count": "2",
+        "busan_company_product_count": "3",
+    }]
+
+    guidance = api_server._vendor_purchase_route_guidance("데스크톱 컴퓨터 구매", rows, checks, {"status": "matched"})
+
+    route_ids = {card["route_id"] for card in guidance["route_cards"]}
+    badge_labels = {badge["label"] for badge in guidance["badges"]}
+    assert "sme_direct_production" in route_ids
+    assert "mas" in route_ids
+    assert "직접생산 확인 필요" in badge_labels
 
 
 def test_vendor_query_plan_adds_construction_license_terms():

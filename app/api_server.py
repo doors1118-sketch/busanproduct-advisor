@@ -565,6 +565,8 @@ VENDOR_RECOMMENDATION_COLUMNS = [
     "location",
     "contract_review_types",
     "budget_review_hint",
+    "purchase_route_fit_summary",
+    "purchase_route_fit_score",
     "license_status_label",
     "license_or_business_type",
     "main_products",
@@ -812,8 +814,8 @@ _VENDOR_ALIAS_TOKENS = {
     "컴퓨터": ["컴퓨터", "데스크톱", "데스크탑", "노트북", "일체형컴퓨터", "개인용컴퓨터", "컴퓨터서버", "서버"],
     "노트북": ["노트북", "컴퓨터", "개인용컴퓨터"],
     "서버": ["서버", "컴퓨터서버"],
-    "cctv": ["CCTV", "씨씨티비", "카메라", "감시카메라", "보안카메라", "보안용카메라", "영상감시장치", "영상감시"],
-    "카메라": ["카메라", "CCTV", "영상감시장치"],
+    "cctv": ["CCTV", "씨씨티비", "카메라", "감시카메라", "보안카메라", "보안캠", "보안용카메라", "영상감시장치", "영상감시"],
+    "카메라": ["카메라", "CCTV", "보안캠", "영상감시장치"],
     "led": ["LED", "LED조명", "LED실내조명등", "LED램프", "조명", "등기구"],
     "조명": ["조명", "등기구", "LED"],
     "소프트웨어": [
@@ -1598,12 +1600,25 @@ def _vendor_search_rows(q: str, *, region: str = "부산", limit: int = 50) -> l
     }
     rows: list[dict[str, str]] = []
     seen: set[str] = set()
+    multi_condition_query = _vendor_is_multi_condition_query(q)
+    if multi_condition_query:
+        calls_by_type["product"] = calls_by_type["product"][:2]
     per_call_limit = max(limit, 20)
     result_target = limit
+    if multi_condition_query:
+        # AND-style questions need evidence for more than the first matched
+        # term. Keep each individual lookup bounded, but continue through the
+        # plan so rows from the second/third condition can compete in ranking.
+        per_call_limit = min(max(2, limit // 6), 4)
+        result_target = min(max(limit // 2, 6), 10)
     if _vendor_query_has_any(q, ("번역", "번역용역", "통번역", "통역", "외국어")):
         result_target = min(result_target, 10)
         per_call_limit = min(per_call_limit, 10)
-    for plan_item in _vendor_query_plan(q):
+    query_plan = _vendor_query_plan(q)
+    if multi_condition_query:
+        query_plan = query_plan[:6]
+    min_plan_scans = min(2, len(query_plan)) if multi_condition_query else 1
+    for plan_index, plan_item in enumerate(query_plan, 1):
         term = plan_item["term"]
         label = plan_item.get("label") or term
         for source, func in calls_by_type.get(plan_item["search_type"], []):
@@ -1629,9 +1644,9 @@ def _vendor_search_rows(q: str, *, region: str = "부산", limit: int = 50) -> l
                 rows.append(row)
                 if len(rows) >= result_target:
                     break
-            if len(rows) >= result_target:
+            if len(rows) >= result_target and (not multi_condition_query or plan_index >= min_plan_scans):
                 break
-        if len(rows) >= result_target:
+        if len(rows) >= result_target and (not multi_condition_query or plan_index >= min_plan_scans):
             break
     if not rows:
         if _vendor_is_medical_vaccine_query(q):
@@ -1709,6 +1724,7 @@ def _vendor_recommendation_payload(
     rows = _vendor_apply_item_evidence(rows, q, product_policy_checks)
     rows = _vendor_apply_construction_evidence(rows, q)
     item_policy_summary = _vendor_item_policy_summary(q, product_policy_checks, requested=product_policy_requested)
+    purchase_route_guidance = _vendor_purchase_route_guidance(q, rows, product_policy_checks, item_policy_summary)
     policy_preference_summary = _vendor_policy_preference_summary(q, rows, region=region)
     policy_company_alternatives = policy_preference_summary.get("alternatives") or []
     return {
@@ -1721,6 +1737,7 @@ def _vendor_recommendation_payload(
         "columns": VENDOR_RECOMMENDATION_COLUMNS,
         "rows": rows,
         "search_plan": _vendor_query_plan(q),
+        "purchase_route_guidance": purchase_route_guidance,
         "item_policy_summary": item_policy_summary,
         "policy_preference_summary": policy_preference_summary,
         "policy_company_alternative_count": len(policy_company_alternatives),
@@ -1761,6 +1778,8 @@ def _vendor_recommendation_xlsx_bytes(payload: dict) -> bytes:
         ("matched_query_label", "후보분류", 28),
         ("condition_match_type", "조건충족유형", 18),
         ("condition_match_summary", "조건충족요약", 44),
+        ("purchase_route_fit_summary", "구매수단 적합성", 36),
+        ("purchase_route_fit_score", "구매수단 점수", 12),
         ("requested_item_evidence_summary", "검색어-품목 근거", 58),
         ("license_or_business_type", "면허·업종", 45),
         ("main_products", "주요품목", 36),
@@ -2347,6 +2366,42 @@ def _vendor_term_supported_by_row(row: dict[str, str | int], term: str) -> bool:
     return compact_term in haystack
 
 
+def _vendor_policy_int(value) -> int:
+    try:
+        return int(str(value or "0").replace(",", "").strip())
+    except (TypeError, ValueError):
+        return 0
+
+
+def _vendor_policy_route_requirements(product_policy_checks: list[dict[str, str]]) -> dict[str, bool]:
+    requires_direct = False
+    has_mas_route = False
+    has_shopping_route = False
+    has_facility_material = False
+    is_sme_competition = False
+    for item in product_policy_checks or []:
+        sme = _vendor_item_bool(item.get("is_sme_competition_product"))
+        if sme is True:
+            is_sme_competition = True
+            requires_direct = True
+        if _vendor_policy_int(item.get("direct_production_valid_supplier_count")) > 0:
+            requires_direct = True
+        if _vendor_policy_int(item.get("mas_active_supplier_count")) > 0:
+            has_mas_route = True
+            has_shopping_route = True
+        if _vendor_policy_int(item.get("busan_company_product_count")) > 0:
+            has_shopping_route = True
+        if str(item.get("matched_policy_source") or "") == "facility_material_price_file":
+            has_facility_material = True
+    return {
+        "requires_direct_production": requires_direct,
+        "has_mas_route": has_mas_route,
+        "has_shopping_route": has_shopping_route,
+        "has_facility_material_price": has_facility_material,
+        "is_sme_competition_product": is_sme_competition,
+    }
+
+
 def _vendor_apply_item_evidence(
     rows: list[dict[str, str | int]],
     q: str,
@@ -2372,6 +2427,7 @@ def _vendor_apply_item_evidence(
     wants_direct = any(term in compact_q for term in ("직접생산", "직생"))
     wants_mas = any(term in compact_q for term in ("mas", "다수공급자", "다수공급자계약"))
     wants_shopping = any(term in compact_q for term in ("종합쇼핑몰", "쇼핑몰"))
+    route_requirements = _vendor_policy_route_requirements(product_policy_checks)
     for row in rows:
         company_id = str(row.get("company_id") or "")
         evidence = evidence_by_company.get(company_id) or {"direct_production": [], "shopping_mall": [], "mas": []}
@@ -2393,6 +2449,39 @@ def _vendor_apply_item_evidence(
             route_score += 30 if shopping_items else -10
         if not any((wants_direct, wants_mas, wants_shopping)) and evidence_summary:
             route_score += 10
+
+        row_has_direct = bool(direct_items) or _vendor_is_truthy(row.get("direct_production_summary")) or _vendor_is_truthy(row.get("direct_production_flags"))
+        row_has_mas = bool(mas_items) or _vendor_is_truthy(row.get("has_mas")) or _vendor_is_truthy(row.get("mas_product_summary"))
+        row_has_shopping = bool(shopping_items) or _vendor_is_truthy(row.get("has_shopping_mall")) or _vendor_is_truthy(row.get("shopping_mall_product_summary"))
+        route_fit_score = 0
+        route_fit_parts: list[str] = []
+        if route_requirements["requires_direct_production"]:
+            if row_has_direct:
+                route_fit_score += 35
+                route_fit_parts.append("직접생산 근거 충족")
+            else:
+                route_fit_score -= 20
+                route_fit_parts.append("직접생산 근거 미확인")
+        if route_requirements["has_mas_route"]:
+            if row_has_mas:
+                route_fit_score += 25
+                route_fit_parts.append("MAS 등록 근거 충족")
+            else:
+                route_fit_score -= 8
+                route_fit_parts.append("MAS 등록 근거 미확인")
+        elif route_requirements["has_shopping_route"]:
+            if row_has_shopping:
+                route_fit_score += 18
+                route_fit_parts.append("종합쇼핑몰 등록 근거 충족")
+            else:
+                route_fit_score -= 5
+                route_fit_parts.append("종합쇼핑몰 등록 근거 미확인")
+        if route_requirements["has_facility_material_price"]:
+            route_fit_parts.append("시설자재 가격정보 매칭 품목")
+        if route_fit_score:
+            route_score += route_fit_score
+        row["purchase_route_fit_score"] = route_fit_score
+        row["purchase_route_fit_summary"] = " | ".join(route_fit_parts)
 
         if direct_items:
             row["direct_production_certificate_status"] = "직접생산증명서 품목 일치"
@@ -2848,6 +2937,131 @@ def _vendor_product_policy_checks(q: str, *, limit: int = 5) -> list[dict[str, s
             if len(checks) >= max_checks:
                 return _vendor_sort_product_policy_checks(q, checks)
     return _vendor_sort_product_policy_checks(q, checks)
+
+
+def _vendor_purchase_route_guidance(
+    q: str,
+    rows: list[dict[str, str | int]],
+    product_policy_checks: list[dict[str, str]],
+    item_policy_summary: dict[str, object],
+) -> dict[str, object]:
+    requirements = _vendor_policy_route_requirements(product_policy_checks)
+    row_has_direct = any(
+        _vendor_is_truthy(row.get("direct_production_match"))
+        or _vendor_is_truthy(row.get("direct_production_certificate_products"))
+        or _vendor_is_truthy(row.get("direct_production_summary"))
+        or _vendor_is_truthy(row.get("direct_production_flags"))
+        for row in rows
+    )
+    row_has_mas = any(
+        _vendor_is_truthy(row.get("mas_match"))
+        or _vendor_is_truthy(row.get("mas_product_summary"))
+        or _vendor_is_truthy(row.get("has_mas"))
+        for row in rows
+    )
+    row_has_shopping = any(
+        _vendor_is_truthy(row.get("shopping_mall_match"))
+        or _vendor_is_truthy(row.get("shopping_mall_product_summary"))
+        or _vendor_is_truthy(row.get("has_shopping_mall"))
+        for row in rows
+    )
+
+    route_cards: list[dict[str, object]] = []
+
+    def add_card(route_id: str, label: str, status: str, reason: str, required_checks: list[str]) -> None:
+        route_cards.append({
+            "route_id": route_id,
+            "label": label,
+            "status": status,
+            "reason": reason,
+            "required_checks": required_checks,
+        })
+
+    if requirements["has_mas_route"] or row_has_mas:
+        add_card(
+            "mas",
+            "MAS/다수공급자계약",
+            "candidate_found" if row_has_mas else "policy_only",
+            "품목정책 또는 후보업체 DB에서 MAS 근거가 확인됩니다.",
+            ["MAS 계약상태", "계약기간", "납품조건", "2단계 경쟁 필요 여부"],
+        )
+    if requirements["has_shopping_route"] or row_has_shopping:
+        add_card(
+            "shopping_mall",
+            "종합쇼핑몰 구매",
+            "candidate_found" if row_has_shopping else "policy_only",
+            "종합쇼핑몰 등록 또는 부산업체 상품 근거가 확인됩니다.",
+            ["쇼핑몰 등록상태", "물품식별번호", "가격/규격", "납품 가능지역"],
+        )
+    if requirements["is_sme_competition_product"] or requirements["requires_direct_production"]:
+        add_card(
+            "sme_direct_production",
+            "중소기업자간 경쟁제품/직접생산",
+            "candidate_found" if row_has_direct else "needs_check",
+            "중기간 경쟁제품 또는 직접생산 유효 공급업체 근거가 있습니다.",
+            ["중기간 경쟁제품 해당 여부", "직접생산확인증명서", "세부품명 일치", "유효기간"],
+        )
+    if requirements["has_facility_material_price"]:
+        add_card(
+            "facility_material_price",
+            "시설공통자재 가격정보",
+            "reference_only",
+            "시설공통자재 가격정보 원천과 매칭된 품목입니다.",
+            ["가격 기준일", "규격 일치", "공사용자재 직접구매 대상 여부"],
+        )
+
+    if not route_cards:
+        add_card(
+            "open_market_or_bid",
+            "직접계약/입찰공고 검토",
+            "needs_check",
+            "품목정책 DB에서 MAS·쇼핑몰·직접생산 필수 근거가 명확히 확인되지 않았습니다.",
+            ["조달등록 여부", "면허/업종", "영업상태", "공고 조건"],
+        )
+
+    priority = {
+        "candidate_found": 0,
+        "policy_only": 1,
+        "needs_check": 2,
+        "reference_only": 3,
+    }
+    route_cards.sort(key=lambda item: (priority.get(str(item.get("status")), 9), str(item.get("route_id"))))
+    primary = route_cards[0]
+    badges = []
+    if requirements["is_sme_competition_product"]:
+        badges.append({"label": "중기간 경쟁제품 가능성", "tone": "warn"})
+    if requirements["requires_direct_production"]:
+        badges.append({"label": "직접생산 확인 필요", "tone": "warn" if not row_has_direct else "good"})
+    if row_has_mas:
+        badges.append({"label": "MAS 업체 근거 있음", "tone": "info"})
+    if row_has_shopping:
+        badges.append({"label": "쇼핑몰 등록 근거 있음", "tone": "info"})
+    if requirements["has_facility_material_price"]:
+        badges.append({"label": "시설자재 가격정보 매칭", "tone": "neutral"})
+    if not badges:
+        badges.append({"label": "구매수단 확인 필요", "tone": "neutral"})
+
+    required_checks: list[str] = []
+    for card in route_cards:
+        for check in card.get("required_checks") or []:
+            if check not in required_checks:
+                required_checks.append(str(check))
+
+    return {
+        "title": str(primary["label"]),
+        "primary_route": primary,
+        "route_cards": route_cards,
+        "badges": badges,
+        "required_checks": required_checks,
+        "ranking_basis": [
+            "입력 품목/면허와 직접 일치하는 업체",
+            "구매수단 근거(MAS/쇼핑몰/직접생산/시공능력)가 있는 업체",
+            "정상 영업 상태와 부산 본사 근거가 확인되는 업체",
+            "정책기업·인증제품 등 계약 편의성이 있는 업체",
+        ],
+        "item_policy_status": item_policy_summary.get("status"),
+        "legal_notice": "구매수단 후보 안내입니다. 최종 계약 가능 여부와 법령 해석은 별도 계약검토/법령해석 절차에서 확인해야 합니다.",
+    }
 
 
 def _vendor_sort_product_policy_checks(q: str, checks: list[dict[str, str]]) -> list[dict[str, str]]:
