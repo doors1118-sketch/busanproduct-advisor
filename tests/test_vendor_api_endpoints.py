@@ -338,6 +338,8 @@ def test_vendor_apply_construction_evidence_prioritizes_capacity_match():
     assert updated[0]["construction_capacity_amount"] == 1534663000
     assert "시공능력 확인" in updated[0]["construction_capacity_match"]
     assert "요청 면허 일치" in updated[0]["construction_license_match"]
+    assert updated[0]["condition_match_type"] == "공사면허 확인"
+    assert "시공능력 근거 확인" in updated[0]["condition_match_summary"]
     assert updated[1]["construction_capacity_amount"] == ""
 
 

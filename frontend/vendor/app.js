@@ -237,7 +237,7 @@ function renderSummary(payload, rows) {
   const count = Number(payload?.count || rows.length || 0);
   const conditionLabels = rows.map((row) => valueText(row.condition_match_type, ""));
   const all = conditionLabels.filter((label) => /모두 충족|조건 충족/.test(label)).length;
-  const evidenceChecked = conditionLabels.filter((label) => /품목근거 확인|근거 확인|후보 표시/.test(label)).length;
+  const evidenceChecked = conditionLabels.filter((label) => /품목근거 확인|공사면허 확인|근거 확인|후보 표시/.test(label)).length;
   const partial = conditionLabels.filter((label) => label.includes("일부 충족")).length;
   const needs = conditionLabels.filter((label) => /근거 부족|확인 필요/.test(label)).length;
   const routeEvidence = rows.filter((row) => directEvidence(row) || masEvidence(row) || shoppingEvidence(row) || policyEvidence(row)).length;
