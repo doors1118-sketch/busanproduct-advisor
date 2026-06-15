@@ -49,8 +49,8 @@ _ITEM_SYNONYM_GROUPS: list[dict] = [
     {
         "canonical_name": "CCTV",
         "primary_search_term": "CCTV",
-        "search_terms": ["CCTV", "영상감시장치", "감시카메라", "보안카메라", "보안용카메라"],
-        "aliases": ["cctv", "씨씨티비", "영상감시장치", "감시카메라", "보안카메라", "보안용카메라"],
+        "search_terms": ["CCTV", "영상감시장치", "감시카메라", "보안카메라", "보안캠", "보안용카메라"],
+        "aliases": ["cctv", "씨씨티비", "영상감시장치", "감시카메라", "보안카메라", "보안캠", "보안용카메라"],
     },
     {
         "canonical_name": "컴퓨터",

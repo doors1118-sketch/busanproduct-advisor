@@ -1010,6 +1010,10 @@ _VENDOR_CONSTRUCTION_LICENSE_GROUPS: tuple[tuple[tuple[str, ...], tuple[str, ...
         ("토공사업", "지반조성ㆍ포장공사업", "토공사"),
     ),
     (
+        ("도로포장", "도로 포장", "포장공사", "포장 공사", "지반조성포장", "지반조성 포장"),
+        ("지반조성ㆍ포장공사업", "포장공사업", "포장공사"),
+    ),
+    (
         ("조경식재", "조경공사", "조경시설물", "잔디식재"),
         ("조경공사업", "조경식재공사업", "조경식재ㆍ시설물공사업", "조경시설물설치공사업"),
     ),
@@ -1170,10 +1174,10 @@ def _vendor_query_plan(q: str) -> list[dict[str, str]]:
         for term in ("조경시설물설치공사업", "지반조성ㆍ포장공사업", "포장공사업"):
             _vendor_add_plan(plan, seen, "license", term, f"면허: {term}")
     elif any(term in compact for term in ("도로포장", "포장공사", "지반조성포장", "포장업체")):
-        for term in ("도로포장공사", "포장공사", "아스팔트콘크리트"):
-            _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
         for term in ("지반조성ㆍ포장공사업", "포장공사업", "토공사업"):
             _vendor_add_plan(plan, seen, "license", term, f"면허: {term}")
+        for term in ("도로포장공사", "포장공사", "아스팔트콘크리트"):
+            _vendor_add_plan(plan, seen, "product", term, f"보조 품목/자재: {term}")
     elif any(term in compact for term in ("천연잔디", "잔디조성", "잔디식재", "잔디시공", "운동장잔디")):
         for term in ("잔디", "조경식재공사", "토양개량", "복합비료"):
             _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
@@ -1327,6 +1331,7 @@ def _vendor_match_rank_score(row: dict[str, str], q: str) -> int:
         (("드론",), ("드론", "초경량비행장치"), ("정보시스템개발서비스", "소프트웨어")),
         (("사무용가구", "중기간경쟁제품"), ("책상", "의자", "사무용가구", "보조책상"), ("기타미분류가구",)),
         (("방화벽",), ("방화벽", "방화벽장치", "보안소프트웨어"), ("소프트웨어사업자",)),
+        (("도로포장", "포장공사"), ("지반조성포장공사업", "포장공사업", "포장공사"), ("아스팔트콘크리트", "순환상온아스팔트콘크리트")),
         (("탄성포장", "탄성포장재"), ("탄성포장재", "체육시설탄성포장재", "운동장포장"), ("조경시설물설치공사업",)),
         (("현수막",), ("현수막",), ("인쇄물", "기타인쇄물", "상업인쇄물")),
         (("pc", "데스크톱", "데스크탑"), ("데스크톱컴퓨터", "노트북컴퓨터", "컴퓨터서버"), ("컴퓨터책상",)),
@@ -1616,7 +1621,7 @@ def _vendor_search_rows(q: str, *, region: str = "부산", limit: int = 50) -> l
         per_call_limit = min(per_call_limit, 10)
     query_plan = _vendor_query_plan(q)
     if multi_condition_query:
-        query_plan = query_plan[:6]
+        query_plan = query_plan[:12]
     min_plan_scans = min(2, len(query_plan)) if multi_condition_query else 1
     for plan_index, plan_item in enumerate(query_plan, 1):
         term = plan_item["term"]
@@ -2364,10 +2369,26 @@ def _vendor_term_supported_by_row(row: dict[str, str | int], term: str) -> bool:
         "mas_product_summary",
         "direct_production_summary",
         "construction_capacity_summary",
+        "construction_license_match",
+        "construction_capacity_match",
         "venture_nara_product_summary",
         "requested_item_evidence_summary",
+        "matched_query",
+        "matched_query_label",
+        "condition_match_summary",
     )))
-    return compact_term in haystack
+    if compact_term in haystack:
+        return True
+    construction_term = _vendor_construction_compact(term)
+    construction_haystack = _vendor_construction_compact(" ".join(str(row.get(field) or "") for field in (
+        "license_or_business_type",
+        "construction_capacity_summary",
+        "construction_license_match",
+        "construction_capacity_match",
+        "matched_query",
+        "matched_query_label",
+    )))
+    return bool(construction_term and construction_term in construction_haystack)
 
 
 def _vendor_policy_int(value) -> int:
