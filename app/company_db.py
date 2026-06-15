@@ -790,7 +790,117 @@ def search_shopping_mall_product(product_name: str, *, limit: int = 20) -> dict[
     terms = _terms(product_name, "shopping_mall")
     where, params = _like_where(["shopping_mall_product_summary_raw", "mas_product_summary_raw", "main_products"], terms)
     where = f"({where}) AND IFNULL(shopping_mall_flags_raw, '') != ''"
-    return _run_search(where, params, limit=limit, query={"product_name": product_name, "limit": limit}, source="local_view_shopping_mall")
+    primary = _run_search(where, params, limit=limit, query={"product_name": product_name, "limit": limit}, source="local_view_shopping_mall")
+    candidates = list((primary or {}).get("candidates") or [])
+
+    conn = _connect()
+    if conn is None:
+        return primary
+    try:
+        if not (
+            _object_exists(conn, "chatbot_company_candidate_view")
+            and _object_exists(conn, "company_identity")
+            and (_object_exists(conn, "shopping_mall_product") or _object_exists(conn, "mas_product"))
+        ):
+            return primary
+
+        seen = {str(row.get("company_id") or "") for row in candidates if row.get("company_id")}
+        source_sql_parts: list[str] = []
+        source_params: list[Any] = []
+
+        def add_source(table: str, alias: str, source_rank: int) -> None:
+            if not _object_exists(conn, table):
+                return
+            source_where, source_where_params = _like_where(
+                [
+                    f"{alias}.product_name",
+                    f"{alias}.product_name_normalized",
+                    f"{alias}.detail_product_name",
+                    f"{alias}.product_code",
+                    f"{alias}.detail_product_code",
+                ],
+                terms,
+            )
+            source_sql_parts.append(
+                f"""
+                SELECT
+                    ci.company_id,
+                    {source_rank} AS source_rank,
+                    CASE WHEN IFNULL({alias}.contract_status, '') = 'active' THEN 0 ELSE 1 END AS status_rank,
+                    IFNULL({alias}.contract_end_date, '') AS contract_end_date,
+                    IFNULL({alias}.detail_product_name, {alias}.product_name) AS matched_product_name
+                FROM {table} {alias}
+                JOIN company_identity ci ON ci.company_internal_id = {alias}.company_internal_id
+                WHERE ({source_where})
+                  AND IFNULL({alias}.contract_status, '') IN ('active', 'unknown', '')
+                """
+            )
+            source_params.extend(source_where_params)
+
+        add_source("shopping_mall_product", "s", 0)
+        add_source("mas_product", "m", 1)
+        if not source_sql_parts:
+            return primary
+
+        source_sql = " UNION ALL ".join(source_sql_parts)
+        sql = f"""
+            WITH source_matches AS (
+                {source_sql}
+            ),
+            ranked AS (
+                SELECT
+                    company_id,
+                    MIN(source_rank) AS source_rank,
+                    MIN(status_rank) AS status_rank,
+                    MAX(contract_end_date) AS contract_end_date,
+                    COUNT(*) AS match_count
+                FROM source_matches
+                GROUP BY company_id
+            )
+            SELECT v.*
+            FROM ranked r
+            JOIN chatbot_company_candidate_view v ON v.company_id = r.company_id
+            WHERE COALESCE(NULLIF(TRIM(LOWER(v.business_status)), ''), 'unknown')
+                NOT IN ('inactive', 'closed', 'suspended', '폐업', '휴업', '종료', 'cancelled', 'canceled')
+            ORDER BY
+                r.source_rank,
+                r.status_rank,
+                r.match_count DESC,
+                r.contract_end_date DESC,
+                CASE WHEN v.business_status = 'active' THEN 0 ELSE 1 END,
+                v.company_name
+            LIMIT ?
+        """
+        rows = conn.execute(sql, [*source_params, max(1, min(int(limit or 20), 100))]).fetchall()
+        for row in rows:
+            candidate = _row_to_candidate(row)
+            company_id = str(candidate.get("company_id") or "")
+            if not company_id or company_id in seen:
+                continue
+            seen.add(company_id)
+            candidates.append(candidate)
+            if len(candidates) >= max(1, int(limit or 20)):
+                break
+        if not candidates:
+            return primary
+        response = primary or {
+            "query": {"product_name": product_name, "limit": limit},
+            "candidates": [],
+            "company_source_status": "cached_daily",
+            "company_source_status_user_label": "내부 업체 DB VIEW 직접 조회",
+            "company_cache_mode": "local_view_db",
+            "company_cache_used": True,
+            "company_search_status": "success",
+        }
+        response["candidates"] = candidates[: max(1, int(limit or 20))]
+        response["company_cache_used"] = True
+        response["company_cache_mode"] = "local_view_db"
+        response["company_search_status"] = "success"
+        return response
+    except Exception:
+        return primary
+    finally:
+        conn.close()
 
 
 def search_shopping_mall_supplier(company_keyword: str, *, limit: int = 20) -> dict[str, Any] | None:

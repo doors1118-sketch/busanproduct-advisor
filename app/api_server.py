@@ -1621,7 +1621,9 @@ def _vendor_search_rows(q: str, *, region: str = "부산", limit: int = 50) -> l
     for plan_index, plan_item in enumerate(query_plan, 1):
         term = plan_item["term"]
         label = plan_item.get("label") or term
-        for source, func in calls_by_type.get(plan_item["search_type"], []):
+        source_calls = calls_by_type.get(plan_item["search_type"], [])
+        min_source_scans = 2 if plan_item.get("search_type") == "product" and len(source_calls) >= 2 else 1
+        for source_index, (source, func) in enumerate(source_calls, 1):
             if not callable(func):
                 continue
             try:
@@ -1642,9 +1644,9 @@ def _vendor_search_rows(q: str, *, region: str = "부산", limit: int = 50) -> l
                     continue
                 seen.add(key)
                 rows.append(row)
-                if len(rows) >= result_target:
+                if len(rows) >= result_target and source_index >= min_source_scans:
                     break
-            if len(rows) >= result_target and (not multi_condition_query or plan_index >= min_plan_scans):
+            if len(rows) >= result_target and source_index >= min_source_scans and (not multi_condition_query or plan_index >= min_plan_scans):
                 break
         if len(rows) >= result_target and (not multi_condition_query or plan_index >= min_plan_scans):
             break
