@@ -1086,6 +1086,25 @@ def _vendor_requested_construction_terms(q: str) -> list[str]:
     return terms
 
 
+def _vendor_has_construction_material_intent(q: str) -> bool:
+    compact = _vendor_compact(q)
+    return any(
+        term in compact
+        for term in (
+            "자재",
+            "재료",
+            "관급",
+            "직접구매",
+            "구매",
+            "납품",
+            "아스콘",
+            "아스팔트",
+            "아스팔트콘크리트",
+            "포장재",
+        )
+    )
+
+
 def _vendor_requested_service_terms(q: str) -> list[str]:
     compact = _vendor_construction_compact(q)
     terms: list[str] = []
@@ -1183,22 +1202,7 @@ def _vendor_query_plan(q: str) -> list[dict[str, str]]:
     elif any(term in compact for term in ("도로포장", "포장공사", "지반조성포장", "포장업체")):
         for term in ("지반조성ㆍ포장공사업", "포장공사업", "토공사업"):
             _vendor_add_plan(plan, seen, "license", term, f"면허: {term}")
-        paving_material_intent = any(
-            term in compact
-            for term in (
-                "자재",
-                "재료",
-                "관급",
-                "직접구매",
-                "구매",
-                "납품",
-                "아스콘",
-                "아스팔트",
-                "아스팔트콘크리트",
-                "포장재",
-            )
-        )
-        if paving_material_intent:
+        if _vendor_has_construction_material_intent(text):
             for term in ("아스팔트콘크리트", "아스콘", "순환상온아스팔트콘크리트"):
                 _vendor_add_plan(plan, seen, "product", term, f"보조 품목/자재: {term}")
     elif any(term in compact for term in ("천연잔디", "잔디조성", "잔디식재", "잔디시공", "운동장잔디")):
@@ -2473,6 +2477,8 @@ def _vendor_apply_item_evidence(
 
     multi_condition = _vendor_is_multi_condition_query(q) and len(condition_terms) >= 2
     compact_q = _vendor_compact(q)
+    construction_terms = _vendor_requested_construction_terms(q)
+    construction_material_intent = _vendor_has_construction_material_intent(q)
     wants_direct = any(term in compact_q for term in ("직접생산", "직생"))
     wants_mas = any(term in compact_q for term in ("mas", "다수공급자", "다수공급자계약"))
     wants_shopping = any(term in compact_q for term in ("종합쇼핑몰", "쇼핑몰"))
@@ -2563,7 +2569,18 @@ def _vendor_apply_item_evidence(
                 row["condition_match_type"] = "근거 부족"
                 row["review_score"] = int(row.get("review_score") or 0) - 10
         else:
-            if evidence_summary:
+            if construction_terms and not construction_material_intent:
+                construction_positive = _vendor_is_truthy(row.get("construction_capacity_amount")) or (
+                    _vendor_is_truthy(row.get("construction_license_match"))
+                    and "근거 없음" not in str(row.get("construction_license_match") or "")
+                )
+                if construction_positive:
+                    row["condition_match_type"] = "공사면허 확인"
+                    row["condition_match_summary"] = "요청 공사업 면허/시공능력 근거 확인"
+                else:
+                    row["condition_match_type"] = "확인 필요"
+                    row["condition_match_summary"] = "요청 공사업 면허/시공능력 근거 확인 필요"
+            elif evidence_summary:
                 row["condition_match_type"] = "품목근거 확인"
                 row["condition_match_summary"] = "요청 품목 기준 직생/MAS/쇼핑몰 근거 확인"
                 row["review_score"] = int(row.get("review_score") or 0) + 10
@@ -3005,6 +3022,7 @@ def _vendor_purchase_route_guidance(
 ) -> dict[str, object]:
     requirements = _vendor_policy_route_requirements(product_policy_checks)
     construction_terms = _vendor_requested_construction_terms(q)
+    construction_route_primary = bool(construction_terms) and not _vendor_has_construction_material_intent(q)
     row_has_direct = any(
         _vendor_is_truthy(row.get("direct_production_match"))
         or _vendor_is_truthy(row.get("direct_production_certificate_products"))
@@ -3094,17 +3112,27 @@ def _vendor_purchase_route_guidance(
         )
 
     priority = {
-        "construction_license": -1 if construction_terms else 4,
         "candidate_found": 0,
         "policy_only": 1,
         "needs_check": 2,
         "reference_only": 3,
     }
-    route_cards.sort(key=lambda item: (
-        priority.get(str(item.get("route_id")), 9),
-        priority.get(str(item.get("status")), 9),
-        str(item.get("route_id")),
-    ))
+    route_order = {
+        "mas": 0,
+        "shopping_mall": 1,
+        "sme_direct_production": 2,
+        "facility_material_price": 3,
+        "construction_license": 4,
+        "open_market_or_bid": 5,
+    }
+
+    def route_sort_key(item: dict[str, object]) -> tuple[int, int, str]:
+        route_id = str(item.get("route_id"))
+        if construction_route_primary and route_id == "construction_license":
+            return (-1, priority.get(str(item.get("status")), 9), route_id)
+        return (priority.get(str(item.get("status")), 9), route_order.get(route_id, 9), route_id)
+
+    route_cards.sort(key=route_sort_key)
     primary = route_cards[0]
     badges = []
     if construction_terms:

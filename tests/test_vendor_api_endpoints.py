@@ -265,6 +265,23 @@ def test_vendor_purchase_route_guidance_prioritizes_construction_intent_over_mas
     assert any(badge["label"] == "공사 면허/시공능력 검토" for badge in guidance["badges"])
 
 
+def test_vendor_purchase_route_guidance_keeps_material_purchase_on_mas_route():
+    rows = [
+        api_server._vendor_recommendation_row({
+            **_sample_vendor_row(),
+            "license_or_business_type": "지반조성ㆍ포장공사업",
+            "construction_capacity_summary": "지반조성ㆍ포장공사업 / 1200000000",
+            "mas_product_summary": "아스팔트콘크리트 / MAS / active",
+            "has_mas": "true",
+        })
+    ]
+
+    guidance = api_server._vendor_purchase_route_guidance("도로포장 자재 구매 부산업체", rows, [], {"status": "matched"})
+
+    assert guidance["primary_route"]["route_id"] == "mas"
+    assert guidance["title"] == "MAS/다수공급자계약"
+
+
 def test_vendor_query_plan_adds_construction_license_terms():
     cases = [
         ("금속창호공사 업체 추천", "금속창호공사업"),
