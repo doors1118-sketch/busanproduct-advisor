@@ -305,6 +305,29 @@ def test_vendor_purchase_route_guidance_promotes_confirmed_third_party_unit_pric
     assert "계약유형=제3자단가계약" in guidance["primary_route"]["required_checks"]
 
 
+def test_vendor_purchase_route_guidance_uses_item_master_third_party_signal_without_supplier_rows():
+    checks = [{
+        "detail_product_code": "4321150701",
+        "detail_product_name": "desktop computer",
+        "matched_policy_source": "pps_shopping_mall_item_policy_summary",
+        "shopping_mall_active_registered_count": "12",
+        "shopping_mall_active_third_party_count": "7",
+        "shopping_mall_active_mas_count": "0",
+        "shopping_mall_active_busan_supplier_count": "0",
+    }]
+
+    guidance = api_server._vendor_purchase_route_guidance(
+        "desktop computer",
+        [],
+        checks,
+        {"status": "matched"},
+        budget_krw=30_000_000,
+    )
+
+    assert guidance["primary_route"]["route_id"] == "third_party_unit_price"
+    assert guidance["primary_route"]["route_priority"] == "primary"
+
+
 def test_vendor_purchase_route_guidance_prioritizes_construction_intent_over_mas_rows():
     rows = [
         api_server._vendor_recommendation_row({

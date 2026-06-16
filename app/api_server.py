@@ -2464,6 +2464,16 @@ def _vendor_policy_route_requirements(product_policy_checks: list[dict[str, str]
             has_shopping_route = True
         if _vendor_policy_int(item.get("busan_company_product_count")) > 0:
             has_shopping_route = True
+        if _vendor_policy_int(item.get("shopping_mall_active_third_party_count")) > 0:
+            has_mas_route = True
+            has_shopping_route = True
+        if _vendor_policy_int(item.get("shopping_mall_active_mas_count")) > 0:
+            has_mas_route = True
+            has_shopping_route = True
+        if _vendor_policy_int(item.get("shopping_mall_active_general_unit_price_count")) > 0:
+            has_shopping_route = True
+        if _vendor_policy_int(item.get("shopping_mall_active_registered_count")) > 0:
+            has_shopping_route = True
         if str(item.get("matched_policy_source") or "") == "facility_material_price_file":
             has_facility_material = True
     return {
@@ -2695,6 +2705,13 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
             "direct_production_valid_supplier_count": _vendor_join(item.get("direct_production_valid_supplier_count")),
             "mas_active_supplier_count": _vendor_join(item.get("mas_active_supplier_count")),
             "busan_company_product_count": _vendor_join(item.get("busan_company_product_count")),
+            "shopping_mall_active_registered_count": _vendor_join(item.get("shopping_mall_active_registered_count")),
+            "shopping_mall_active_third_party_count": _vendor_join(item.get("shopping_mall_active_third_party_count")),
+            "shopping_mall_active_mas_count": _vendor_join(item.get("shopping_mall_active_mas_count")),
+            "shopping_mall_active_general_unit_price_count": _vendor_join(item.get("shopping_mall_active_general_unit_price_count")),
+            "shopping_mall_active_supplier_count": _vendor_join(item.get("shopping_mall_active_supplier_count")),
+            "shopping_mall_active_busan_supplier_count": _vendor_join(item.get("shopping_mall_active_busan_supplier_count")),
+            "shopping_mall_active_contract_types": _vendor_join(item.get("shopping_mall_active_contract_types")),
             "required_special_note": _vendor_join(item.get("required_special_note")),
             "facility_material_active_price_count": _vendor_join(item.get("facility_material_active_price_count")),
             "facility_material_latest_posted_date": _vendor_join(item.get("facility_material_latest_posted_date")),
@@ -2920,6 +2937,36 @@ def _vendor_product_policy_checks(q: str, *, limit: int = 5) -> list[dict[str, s
     timeout = float(os.getenv("VENDOR_PRODUCT_POLICY_TIMEOUT_SEC", "0.8"))
     checks: list[dict[str, str]] = []
     seen_codes: set[str] = set()
+
+    def merge_check(payload: dict[str, str]) -> None:
+        code = _vendor_join(payload.get("detail_product_code"))
+        name = _vendor_join(payload.get("detail_product_name"))
+        key = code or name
+        target: dict[str, str] | None = None
+        if key:
+            for existing in checks:
+                existing_key = _vendor_join(existing.get("detail_product_code")) or _vendor_join(existing.get("detail_product_name"))
+                if existing_key == key:
+                    target = existing
+                    break
+        if target is None:
+            if key:
+                seen_codes.add(key)
+            checks.append(payload)
+            return
+        for field, value in payload.items():
+            value_text = _vendor_join(value)
+            if not value_text:
+                continue
+            if not _vendor_join(target.get(field)):
+                target[field] = value_text
+        source = _vendor_join(payload.get("matched_policy_source"))
+        current_source = _vendor_join(target.get("matched_policy_source"))
+        if source and current_source and source not in current_source.split("+"):
+            target["matched_policy_source"] = f"{current_source}+{source}"
+        elif source and not current_source:
+            target["matched_policy_source"] = source
+
     terms: list[str] = []
     for item in _vendor_query_plan(q):
         if item.get("search_type") == "product":
@@ -2957,17 +3004,13 @@ def _vendor_product_policy_checks(q: str, *, limit: int = 5) -> list[dict[str, s
                     name = _vendor_join(item.get("detail_product_name"))
                     product_identifier_no = _vendor_join(item.get("product_identifier_no"))
                     key = code or product_identifier_no or name
-                    if key and key in seen_codes:
-                        continue
-                    if key:
-                        seen_codes.add(key)
                     min_price = _vendor_join(item.get("facility_material_min_price_amount"))
                     max_price = _vendor_join(item.get("facility_material_max_price_amount"))
                     if min_price and max_price and min_price != max_price:
                         price_range = f"{min_price}~{max_price}"
                     else:
                         price_range = min_price or max_price
-                    checks.append({
+                    merge_check({
                         "detail_product_code": code,
                         "detail_product_name": name,
                         "matched_policy_keyword": term,
@@ -2981,6 +3024,48 @@ def _vendor_product_policy_checks(q: str, *, limit: int = 5) -> list[dict[str, s
                         "facility_material_active_price_count": _vendor_join(item.get("facility_material_active_price_count")),
                         "facility_material_latest_posted_date": _vendor_join(item.get("facility_material_latest_posted_date")),
                         "facility_material_price_range": price_range,
+                    })
+                    if len(checks) >= max_checks:
+                        break
+        except Exception:
+            pass
+        try:
+            company_db = _vendor_import_company_db()
+            search_shopping_mall_item_policy = getattr(company_db, "search_shopping_mall_item_policy", None)
+            if callable(search_shopping_mall_item_policy):
+                mall_policy_data = search_shopping_mall_item_policy(term, limit=max_checks)
+                mall_policy_items = (mall_policy_data or {}).get("candidates") or []
+                for item in mall_policy_items:
+                    if not isinstance(item, dict):
+                        continue
+                    code = _vendor_join(item.get("detail_product_code"))
+                    name = _vendor_join(item.get("detail_product_name"))
+                    merge_check({
+                        "detail_product_code": code,
+                        "detail_product_name": name,
+                        "matched_policy_keyword": term,
+                        "matched_policy_source": "pps_shopping_mall_item_policy_summary",
+                        "shopping_mall_product_class_code": _vendor_join(item.get("product_class_code")),
+                        "shopping_mall_product_class_name": _vendor_join(item.get("product_class_name")),
+                        "shopping_mall_active_registered_count": _vendor_join(item.get("active_registered_count")),
+                        "shopping_mall_active_third_party_count": _vendor_join(item.get("active_third_party_count")),
+                        "shopping_mall_active_mas_count": _vendor_join(item.get("active_mas_count")),
+                        "shopping_mall_active_general_unit_price_count": _vendor_join(item.get("active_general_unit_price_count")),
+                        "shopping_mall_active_excellent_procurement_count": _vendor_join(item.get("active_excellent_procurement_count")),
+                        "shopping_mall_active_sme_competition_count": _vendor_join(item.get("active_sme_competition_count")),
+                        "shopping_mall_active_supplier_count": _vendor_join(item.get("active_supplier_count")),
+                        "shopping_mall_active_busan_supplier_count": _vendor_join(item.get("active_busan_supplier_count")),
+                        "shopping_mall_active_price_range": _vendor_join(
+                            "~".join(
+                                part for part in (
+                                    _vendor_join(item.get("active_min_price_amount")),
+                                    _vendor_join(item.get("active_max_price_amount")),
+                                )
+                                if part
+                            )
+                        ),
+                        "shopping_mall_active_contract_types": _vendor_join(item.get("active_contract_types")),
+                        "shopping_mall_source_refreshed_at": _vendor_join(item.get("source_refreshed_at")),
                     })
                     if len(checks) >= max_checks:
                         break
@@ -3013,11 +3098,7 @@ def _vendor_product_policy_checks(q: str, *, limit: int = 5) -> list[dict[str, s
             code = _vendor_join(item.get("detail_product_code"))
             name = _vendor_join(item.get("detail_product_name"))
             key = code or name
-            if key and key in seen_codes:
-                continue
-            if key:
-                seen_codes.add(key)
-            checks.append({
+            merge_check({
                 "detail_product_code": code,
                 "detail_product_name": name,
                 "matched_policy_keyword": term,
@@ -3042,7 +3123,10 @@ def _vendor_route_candidate_count(rows: list[dict[str, str | int]], *fields: str
     return count
 
 
-def _vendor_policy_tool_results(rows: list[dict[str, str | int]]) -> list[dict[str, object]]:
+def _vendor_policy_tool_results(
+    rows: list[dict[str, str | int]],
+    product_policy_checks: list[dict[str, str]] | None = None,
+) -> list[dict[str, object]]:
     def result(tool_name: str, count: int) -> dict[str, object]:
         return {
             "tool_name": tool_name,
@@ -3067,6 +3151,23 @@ def _vendor_policy_tool_results(rows: list[dict[str, str | int]]) -> list[dict[s
         combined = f"{mall_text} {flags_text}".lower()
         if any(term in combined for term in ("third_party_unit_price", "third party", "제3자", "3자단가", "제3자를 위한 단가")):
             third_party_count += 1
+    item_master_shopping_count = 0
+    item_master_third_party_count = 0
+    for item in product_policy_checks or []:
+        item_master_third_party_count = max(
+            item_master_third_party_count,
+            _vendor_policy_int(item.get("shopping_mall_active_third_party_count")),
+        )
+        item_master_shopping_count = max(
+            item_master_shopping_count,
+            _vendor_policy_int(item.get("shopping_mall_active_registered_count")),
+            _vendor_policy_int(item.get("shopping_mall_active_mas_count")),
+            _vendor_policy_int(item.get("shopping_mall_active_general_unit_price_count")),
+            _vendor_policy_int(item.get("shopping_mall_active_supplier_count")),
+            _vendor_policy_int(item.get("shopping_mall_active_busan_supplier_count")),
+        )
+    shopping_count = max(shopping_count, item_master_shopping_count)
+    third_party_count = max(third_party_count, item_master_third_party_count)
     policy_count = _vendor_route_candidate_count(rows, "policy_company_labels", "policy_subtypes")
     certified_count = _vendor_route_candidate_count(rows, "certified_product_labels", "certified_product_summary")
 
@@ -3127,7 +3228,7 @@ def _vendor_priority_route_cards(
             amount=budget_krw,
             item_name=item_name,
             contract_object=_vendor_contract_object_for_route(q, construction_terms),
-            tool_results=_vendor_policy_tool_results(rows),
+            tool_results=_vendor_policy_tool_results(rows, product_policy_checks),
         )
     except Exception:
         return []

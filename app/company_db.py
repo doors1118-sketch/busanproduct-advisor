@@ -384,6 +384,25 @@ _PRODUCT_POLICY_COLUMNS = [
     "generated_at",
 ]
 
+_SHOPPING_MALL_ITEM_POLICY_COLUMNS = [
+    "detail_product_code",
+    "detail_product_name",
+    "product_class_code",
+    "product_class_name",
+    "active_registered_count",
+    "active_third_party_count",
+    "active_mas_count",
+    "active_general_unit_price_count",
+    "active_excellent_procurement_count",
+    "active_sme_competition_count",
+    "active_supplier_count",
+    "active_busan_supplier_count",
+    "active_min_price_amount",
+    "active_max_price_amount",
+    "active_contract_types",
+    "source_refreshed_at",
+]
+
 
 def search_facility_material_policy(keyword: str, *, limit: int = 5) -> dict[str, Any] | None:
     """Read facility material price dictionary facts.
@@ -692,6 +711,81 @@ def search_product_policy(keyword: str, *, limit: int = 5) -> dict[str, Any] | N
             "meta": {
                 "keyword": text,
                 "limit": max(1, min(int(limit or 5), 20)),
+                "source": view_name,
+                "cache_mode": "local_view_db",
+            },
+            "candidates": [dict(row) for row in rows],
+            "company_cache_used": True,
+            "company_cache_mode": "local_view_db",
+            "company_search_status": "success",
+        }
+    except Exception:
+        return None
+    finally:
+        conn.close()
+
+
+def search_shopping_mall_item_policy(keyword: str, *, limit: int = 5) -> dict[str, Any] | None:
+    """Read national shopping-mall item contract facts.
+
+    This is item-level evidence. It answers whether the product itself appears
+    in the G2B shopping-mall contract master as third-party unit price, MAS, or
+    general unit price. It is intentionally separate from Busan supplier rows.
+    """
+    text = " ".join(str(keyword or "").split())
+    if not text:
+        return None
+    conn = _connect()
+    if conn is None:
+        return None
+    try:
+        view_name = "pps_shopping_mall_item_policy_summary"
+        if not _object_exists(conn, view_name):
+            return None
+        available = _columns(conn, view_name)
+        search_columns = [
+            col
+            for col in (
+                "detail_product_name",
+                "detail_product_code",
+                "product_class_name",
+                "product_class_code",
+                "active_contract_types",
+            )
+            if col in available
+        ]
+        if "detail_product_name" not in available or not search_columns:
+            return None
+        terms = _terms(text, "shopping_mall")
+        where, params = _like_where(search_columns, terms)
+        select_sql = ", ".join(_select_expr(col, available) for col in _SHOPPING_MALL_ITEM_POLICY_COLUMNS)
+        order_parts = [
+            "CASE WHEN IFNULL(detail_product_name, '') = ? THEN 0 WHEN IFNULL(detail_product_name, '') LIKE ? THEN 1 ELSE 2 END",
+        ]
+        order_params: list[Any] = [text, f"{text}%"]
+        for count_col in (
+            "active_third_party_count",
+            "active_mas_count",
+            "active_registered_count",
+            "active_busan_supplier_count",
+            "active_supplier_count",
+        ):
+            if count_col in available:
+                order_parts.append(f"CAST(IFNULL({count_col}, 0) AS INTEGER) DESC")
+        order_parts.append("detail_product_name")
+        sql = f"""
+            SELECT {select_sql}
+            FROM {view_name}
+            WHERE {where}
+            ORDER BY {', '.join(order_parts)}
+            LIMIT ?
+        """
+        bounded_limit = max(1, min(int(limit or 5), 20))
+        rows = conn.execute(sql, [*params, *order_params, bounded_limit]).fetchall()
+        return {
+            "meta": {
+                "keyword": text,
+                "limit": bounded_limit,
                 "source": view_name,
                 "cache_mode": "local_view_db",
             },
