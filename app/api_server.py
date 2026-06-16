@@ -1761,6 +1761,7 @@ def _vendor_recommendation_payload(
     rows = _vendor_recommendation_rows(q, region=region, limit=evidence_pool_limit, budget_krw=normalized_budget)
     product_policy_requested = bool(include_product_policy and _vendor_should_check_product_policy(q))
     product_policy_checks = _vendor_product_policy_checks(q, limit=5) if product_policy_requested else []
+    _vendor_log_item_policy_miss(q, product_policy_checks, requested=product_policy_requested)
     rows = _vendor_apply_item_evidence(rows, q, product_policy_checks)
     rows = _vendor_apply_construction_evidence(rows, q)
     rows = rows[:requested_limit]
@@ -2744,6 +2745,62 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
     }
 
 
+def _vendor_has_shopping_mall_item_master_evidence(product_policy_checks: list[dict[str, str]]) -> bool:
+    for item in product_policy_checks or []:
+        if any(
+            _vendor_policy_int(item.get(field)) > 0
+            for field in (
+                "shopping_mall_active_registered_count",
+                "shopping_mall_active_third_party_count",
+                "shopping_mall_active_mas_count",
+                "shopping_mall_active_general_unit_price_count",
+                "shopping_mall_active_supplier_count",
+                "shopping_mall_active_busan_supplier_count",
+            )
+        ):
+            return True
+    return False
+
+
+def _vendor_log_item_policy_miss(q: str, product_policy_checks: list[dict[str, str]], *, requested: bool) -> None:
+    if not requested:
+        return
+    if not product_policy_checks:
+        return
+    if _vendor_has_shopping_mall_item_master_evidence(product_policy_checks):
+        return
+    if os.getenv("VENDOR_ITEM_POLICY_MISS_QUEUE_ENABLED", "true").lower() not in {"1", "true", "yes", "on"}:
+        return
+    try:
+        canonical_name, normalized_terms = _vendor_normalized_item_terms(q)
+        queue_path = Path(os.getenv(
+            "VENDOR_ITEM_POLICY_MISS_QUEUE_PATH",
+            os.path.join(APP_DIR, "data", "vendor_item_policy_miss_queue.jsonl"),
+        ))
+        queue_path.parent.mkdir(parents=True, exist_ok=True)
+        record = {
+            "logged_at": datetime.now().isoformat(),
+            "query": q,
+            "normalized_canonical_name": canonical_name,
+            "normalized_terms": normalized_terms,
+            "reason": "shopping_mall_item_master_not_matched",
+            "matched_policy_products": [
+                {
+                    "detail_product_code": _vendor_join(item.get("detail_product_code")),
+                    "detail_product_name": _vendor_join(item.get("detail_product_name")),
+                    "matched_policy_source": _vendor_join(item.get("matched_policy_source")),
+                    "matched_policy_keyword": _vendor_join(item.get("matched_policy_keyword")),
+                }
+                for item in product_policy_checks[:10]
+            ],
+            "review_status": "pending",
+        }
+        with queue_path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+
 _VENDOR_POLICY_PREFERENCE_RULES = [
     ("disabled_company", "장애인기업", ("장애인기업", "장애인 표준사업장", "장애인표준사업장", "중증장애인생산품", "disabled")),
     ("women_company", "여성기업", ("여성기업", "여성 업체", "women")),
@@ -3110,6 +3167,37 @@ def _vendor_product_policy_checks(q: str, *, limit: int = 5) -> list[dict[str, s
                 "busan_company_product_count": _vendor_join(item.get("busan_company_product_count")),
                 "required_special_note": _vendor_join(item.get("required_special_note")),
             })
+            if name and name != term:
+                try:
+                    company_db = _vendor_import_company_db()
+                    search_shopping_mall_item_policy = getattr(company_db, "search_shopping_mall_item_policy", None)
+                    if callable(search_shopping_mall_item_policy):
+                        mall_policy_data = search_shopping_mall_item_policy(name, limit=2)
+                        for mall_item in (mall_policy_data or {}).get("candidates") or []:
+                            if not isinstance(mall_item, dict):
+                                continue
+                            mall_code = _vendor_join(mall_item.get("detail_product_code"))
+                            mall_name = _vendor_join(mall_item.get("detail_product_name"))
+                            merge_check({
+                                "detail_product_code": mall_code,
+                                "detail_product_name": mall_name,
+                                "matched_policy_keyword": name,
+                                "matched_policy_source": "pps_shopping_mall_item_policy_summary",
+                                "shopping_mall_product_class_code": _vendor_join(mall_item.get("product_class_code")),
+                                "shopping_mall_product_class_name": _vendor_join(mall_item.get("product_class_name")),
+                                "shopping_mall_active_registered_count": _vendor_join(mall_item.get("active_registered_count")),
+                                "shopping_mall_active_third_party_count": _vendor_join(mall_item.get("active_third_party_count")),
+                                "shopping_mall_active_mas_count": _vendor_join(mall_item.get("active_mas_count")),
+                                "shopping_mall_active_general_unit_price_count": _vendor_join(mall_item.get("active_general_unit_price_count")),
+                                "shopping_mall_active_excellent_procurement_count": _vendor_join(mall_item.get("active_excellent_procurement_count")),
+                                "shopping_mall_active_sme_competition_count": _vendor_join(mall_item.get("active_sme_competition_count")),
+                                "shopping_mall_active_supplier_count": _vendor_join(mall_item.get("active_supplier_count")),
+                                "shopping_mall_active_busan_supplier_count": _vendor_join(mall_item.get("active_busan_supplier_count")),
+                                "shopping_mall_active_contract_types": _vendor_join(mall_item.get("active_contract_types")),
+                                "shopping_mall_source_refreshed_at": _vendor_join(mall_item.get("source_refreshed_at")),
+                            })
+                except Exception:
+                    pass
             if len(checks) >= max_checks:
                 return _vendor_sort_product_policy_checks(q, checks)
     return _vendor_sort_product_policy_checks(q, checks)

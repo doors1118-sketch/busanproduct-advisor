@@ -106,3 +106,12 @@ def test_pc_and_notebook_queries_prefer_detail_item_names():
     assert "노트북컴퓨터" in pc.search_terms
     assert notebook.primary_search_term == "노트북"
     assert "노트북컴퓨터" in notebook.search_terms
+
+
+def test_projector_queries_normalize_to_video_projector_terms():
+    result = normalize_item_query("빔프로젝터 구매 가능한 부산업체")
+
+    assert result.found is True
+    assert result.canonical_name == "비디오프로젝터"
+    assert result.primary_search_term == "비디오프로젝터"
+    assert "슬라이드프로젝터" in result.search_terms

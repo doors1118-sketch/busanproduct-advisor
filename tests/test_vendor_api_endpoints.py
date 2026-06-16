@@ -1,3 +1,4 @@
+import json
 import sqlite3
 
 from fastapi.testclient import TestClient
@@ -326,6 +327,28 @@ def test_vendor_purchase_route_guidance_uses_item_master_third_party_signal_with
 
     assert guidance["primary_route"]["route_id"] == "third_party_unit_price"
     assert guidance["primary_route"]["route_priority"] == "primary"
+
+
+def test_vendor_logs_item_policy_miss_queue_when_master_evidence_is_absent(monkeypatch, tmp_path):
+    queue_path = tmp_path / "vendor_item_policy_miss_queue.jsonl"
+    monkeypatch.setenv("VENDOR_ITEM_POLICY_MISS_QUEUE_PATH", str(queue_path))
+    monkeypatch.setenv("VENDOR_ITEM_POLICY_MISS_QUEUE_ENABLED", "true")
+
+    api_server._vendor_log_item_policy_miss(
+        "비디오프로젝터",
+        [{
+            "detail_product_code": "4511161601",
+            "detail_product_name": "슬라이드프로젝터",
+            "matched_policy_source": "product_policy_summary",
+            "matched_policy_keyword": "비디오프로젝터",
+        }],
+        requested=True,
+    )
+
+    records = [json.loads(line) for line in queue_path.read_text(encoding="utf-8").splitlines()]
+    assert records[0]["query"] == "비디오프로젝터"
+    assert records[0]["reason"] == "shopping_mall_item_master_not_matched"
+    assert records[0]["review_status"] == "pending"
 
 
 def test_vendor_purchase_route_guidance_prioritizes_construction_intent_over_mas_rows():
