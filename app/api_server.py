@@ -363,7 +363,7 @@ def _candidate_export_requested(question: str) -> bool:
     q = (question or "").replace(" ", "").lower()
     return any(term in q for term in (
         "업체", "후보", "추천", "공급사", "부산업체", "지역업체",
-        "행사용역", "행사", "발대식", "기념식", "행사기획", "행사대행",
+        "행사용역", "행사", "축제", "발대식", "기념식", "행사기획", "행사대행",
     ))
 
 
@@ -562,6 +562,11 @@ VENDOR_CSV_FIELDS = [
     "manufacturer_type",
     "business_status_freshness",
     "source_refreshed_at",
+    "contract_history_match",
+    "contract_history_summary",
+    "contract_history_recent_count",
+    "contract_history_total_amount",
+    "contract_history_last_date",
 ]
 
 VENDOR_RECOMMENDATION_COLUMNS = [
@@ -584,6 +589,12 @@ VENDOR_RECOMMENDATION_COLUMNS = [
     "direct_production_match",
     "direct_production_certificate_products",
     "requested_item_evidence_summary",
+    "contract_history_status_label",
+    "contract_history_match",
+    "contract_history_summary",
+    "contract_history_recent_count",
+    "contract_history_total_amount",
+    "contract_history_last_date",
     "condition_match_type",
     "condition_match_summary",
     "construction_capacity_status_label",
@@ -835,10 +846,11 @@ _VENDOR_ALIAS_TOKENS = {
     "아스콘": ["아스콘", "아스팔트콘크리트", "아스팔트"],
     "탄성포장재": ["탄성포장재", "체육시설탄성포장재", "운동장포장", "운동장 탄성포장"],
     "포장공사": ["포장공사", "도로포장", "지반조성포장", "지반조성ㆍ포장공사업", "포장"],
-    "행사": ["행사", "행사용역", "행사기획", "행사대행", "기타행사기획및대행서비스", "이벤트", "발대식", "기념식", "개회식", "공연", "전시", "홍보"],
+    "행사": ["행사", "축제", "행사용역", "행사기획", "행사대행", "기타행사기획및대행서비스", "이벤트", "발대식", "기념식", "개회식", "공연", "전시", "홍보"],
     "번역": ["번역", "번역용역", "통번역", "통역", "외국어", "언어"],
     "경비": ["경비", "경비용역", "시설경비", "시설경비업무", "기계경비", "특수경비", "시설물경비서비스"],
     "조경": ["조경", "조경공사업", "조경식재공사업", "조경식재공사", "조경시설물설치공사업", "잔디", "수목"],
+    "출입통제시스템": ["출입통제시스템", "출입통제장치", "출입관리시스템", "출입통제", "출입관리", "출입보안시스템"],
 }
 
 
@@ -848,6 +860,13 @@ def _vendor_compact(value: str) -> str:
 
 def _vendor_intent_text(q: str) -> str:
     text = str(q or "")
+    typo_aliases = {
+        "컴퓨타": "컴퓨터",
+        "콤퓨터": "컴퓨터",
+        "컴터": "컴퓨터",
+    }
+    for typo, canonical in typo_aliases.items():
+        text = text.replace(typo, canonical)
     context_patterns = (
         r"(?:문화행사|행사)\s*담당\s*부서\s*(?:에서|가|는)?",
         r"(?:시설관리|청사관리)\s*부서\s*(?:에서|가|는)?",
@@ -998,6 +1017,10 @@ _VENDOR_CONSTRUCTION_LICENSE_GROUPS: tuple[tuple[tuple[str, ...], tuple[str, ...
         ("기계설비공사업", "기계가스설비공사업", "기계설비공사"),
     ),
     (
+        ("가스시설공사", "가스시설시공", "가스 난방 공사", "가스난방공사", "난방공사", "기계가스설비"),
+        ("가스시설시공업제1종", "가스시설시공업제2종", "가스시설시공업제3종", "가스난방공사업", "기계가스설비공사업"),
+    ),
+    (
         ("도장공사", "도색공사", "페인트공사"),
         ("도장공사업", "도장ㆍ습식ㆍ방수ㆍ석공사업", "도장공사"),
     ),
@@ -1030,8 +1053,8 @@ _VENDOR_SERVICE_LICENSE_GROUPS: tuple[tuple[tuple[str, ...], tuple[str, ...]], .
         ("건축사사무소", "건축사", "건축설계", "공사감리"),
     ),
     (
-        ("기술용역", "엔지니어링", "토목설계", "실시설계", "기본설계"),
-        ("엔지니어링사업자", "기술사사무소", "건설엔지니어링업", "엔지니어링서비스"),
+        ("기술용역", "엔지니어링", "토목설계", "실시설계", "기본설계", "건설사업관리", "건설사업관리용역", "건설기술용역", "감리용역", "CM용역"),
+        ("엔지니어링사업자", "기술사사무소", "건설엔지니어링업", "건설기술용역업", "엔지니어링서비스", "건설사업관리", "감리"),
     ),
     (
         ("측량", "측량용역", "공공측량", "지적측량"),
@@ -1062,8 +1085,44 @@ _VENDOR_SERVICE_LICENSE_GROUPS: tuple[tuple[tuple[str, ...], tuple[str, ...]], .
         ("소프트웨어사업자(컴퓨터관련서비스사업)", "소프트웨어사업자", "정보시스템유지관리서비스"),
     ),
     (
-        ("행사", "행사용역", "행사기획", "행사대행", "이벤트"),
+        ("전기안전관리", "전기안전관리대행", "전기안전점검"),
+        ("전기안전관리", "전기안전관리대행", "전기공사업"),
+    ),
+    (
+        ("소방시설점검", "소방시설 점검", "소방점검", "소방시설관리"),
+        ("전문소방시설공사업", "일반소방시설공사업", "소방시설", "소방"),
+    ),
+    (
+        ("건축물안전점검", "건축물 안전점검", "시설물안전점검", "정밀안전점검"),
+        ("시설물유지관리업", "안전진단", "건축물안전점검", "건축사사무소", "건설엔지니어링업"),
+    ),
+    (
+        ("행사", "축제", "행사용역", "행사기획", "행사대행", "이벤트"),
         ("행사", "이벤트", "기타행사기획및대행서비스", "공연기획및대행서비스", "전시회기획및대행서비스"),
+    ),
+    (
+        ("교육훈련", "교육 용역", "훈련 용역", "연수", "강의", "교육운영"),
+        ("교육서비스", "교육훈련서비스", "기타교육서비스", "교육운영용역", "강의서비스"),
+    ),
+    (
+        ("학술연구", "연구용역", "정책연구", "조사용역", "실태조사"),
+        ("학술연구용역", "학술.연구용역", "학술 연구용역", "연구용역", "연구개발서비스", "조사연구서비스", "정책연구용역"),
+    ),
+    (
+        ("교통영향평가", "교통량조사", "교통량 조사", "교통조사"),
+        ("엔지니어링사업(교통)", "교통영향평가", "교통조사", "학술.연구용역", "학술연구용역"),
+    ),
+    (
+        ("지반조사", "지질조사", "토질조사"),
+        ("엔지니어링사업(토질", "엔지니어링사업(지질", "지반조사", "지질및지반조사", "토질조사"),
+    ),
+    (
+        ("환경영향평가", "환경조사", "환경 조사"),
+        ("환경영향평가업", "환경전문공사업", "환경컨설팅회사", "학술.연구용역", "학술연구용역"),
+    ),
+    (
+        ("원가계산", "원가검토", "계약원가", "예정가격 검토"),
+        ("원가계산용역", "원가계산기관", "회계서비스", "회계감사"),
     ),
 )
 
@@ -1134,10 +1193,23 @@ def _vendor_query_plan(q: str) -> list[dict[str, str]]:
 
     canonical_name, normalized_terms = _vendor_normalized_item_terms(text)
     direct_or_sme_query = any(marker in compact for marker in ("직접생산", "직생", "중기간경쟁", "중소기업자간경쟁"))
+    service_terms = _vendor_requested_service_terms(text)
+    service_intent = bool(service_terms) or any(
+        marker in compact
+        for marker in ("용역", "위탁", "대행", "행사", "축제", "공연", "전시", "교육", "연구", "감리", "평가")
+    )
+    if (
+        service_intent
+        and canonical_name in {"운영체제", "소프트웨어"}
+        and "운영" in compact
+        and not any(marker in compact for marker in ("운영체제", "소프트웨어", "프로그램", "시스템", "sw"))
+    ):
+        canonical_name = ""
+        normalized_terms = []
 
     for term in _vendor_requested_construction_terms(text):
         _vendor_add_plan(plan, seen, "license", term, f"공사업 면허: {term}")
-    for term in _vendor_requested_service_terms(text):
+    for term in service_terms:
         _vendor_add_plan(plan, seen, "license", term, f"용역 면허/업종: {term}")
 
     if any(term in compact for term in ("인쇄", "인쇄물", "홍보물", "리플릿", "책자", "브로슈어", "포스터", "카탈로그", "현수막")):
@@ -1198,6 +1270,9 @@ def _vendor_query_plan(q: str) -> list[dict[str, str]]:
     elif "분전반" in compact:
         for term in ("분전반", "배전반", "폐쇄형배전반"):
             _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
+    elif any(term in compact for term in ("출입통제", "출입관리", "출입보안")):
+        for term in ("출입통제시스템", "출입통제장치", "출입관리시스템", "출입통제"):
+            _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
     elif any(term in compact for term in ("탄성포장", "체육시설탄성포장", "운동장탄성포장")):
         for term in ("탄성포장재", "체육시설탄성포장재", "운동장포장"):
             _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
@@ -1249,7 +1324,7 @@ def _vendor_query_plan(q: str) -> list[dict[str, str]]:
             if _vendor_term_should_search_license(term):
                 _vendor_add_plan(plan, seen, "license", term, f"{label_prefix}/면허: {term}")
 
-    elif any(term in compact for term in ("행사용역", "행사", "발대식", "기념식", "행사기획", "행사대행", "이벤트")):
+    elif any(term in compact for term in ("행사용역", "행사", "축제", "발대식", "기념식", "행사기획", "행사대행", "이벤트")):
         for term in ("행사", "기타행사기획및대행서비스", "공연기획및대행서비스", "전시회기획및대행서비스"):
             _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
         for term in ("행사", "이벤트"):
@@ -1268,6 +1343,9 @@ def _vendor_query_plan(q: str) -> list[dict[str, str]]:
             _vendor_add_plan(plan, seen, "license", term, f"면허/업종: {term}")
     elif any(term in compact for term in ("빔프로젝트", "빔프로젝터", "프로젝터", "비디오프로젝터")):
         for term in ("비디오프로젝터", "프로젝터"):
+            _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
+    elif "방향제" in compact:
+        for term in ("방향제", "탈취제", "공기청향제"):
             _vendor_add_plan(plan, seen, "product", term, f"품목: {term}")
 
     default_terms = [
@@ -1334,6 +1412,8 @@ def _vendor_match_rank_score(row: dict[str, str], q: str) -> int:
         "direct_production_summary",
         "venture_nara_product_summary",
         "venture_nara_order_summary",
+        "contract_history_summary",
+        "contract_history_match",
     )))
     license_text = _vendor_compact(str(row.get("license_or_business_type") or ""))
     company_text = _vendor_compact(str(row.get("company_name") or ""))
@@ -1344,6 +1424,24 @@ def _vendor_match_rank_score(row: dict[str, str], q: str) -> int:
         "candidate_types",
         "procurement_attributes",
     )).lower()
+    service_terms = _vendor_requested_service_terms(q)
+    service_intent = bool(service_terms) or any(term in compact_q for term in ("용역", "과업", "위탁", "교육훈련", "학술연구", "원가계산", "감리", "건설사업관리"))
+    if service_intent:
+        service_term_hit = any(_vendor_compact(term) in license_text or _vendor_compact(term) in product_text for term in service_terms)
+        service_keyword_hit = any(
+            term in license_text or term in product_text
+            for term in ("용역", "서비스", "교육", "훈련", "학술", "연구", "원가계산", "감리", "건설사업관리", "시설관리", "폐기물", "행사", "번역")
+        )
+        goods_only_evidence = any(
+            term in product_text
+            for term in ("cctv", "카메라", "타일", "모니터", "컴퓨터", "프린터", "조명", "밸브", "펌프", "책상", "의자")
+        )
+        if service_term_hit:
+            score += 40
+        elif service_keyword_hit:
+            score += 18
+        if goods_only_evidence and not service_term_hit and not service_keyword_hit:
+            score -= 35
 
     if "품목정규화" in label:
         score += 12
@@ -1475,6 +1573,10 @@ def _vendor_is_medical_vaccine_query(q: str) -> bool:
 def _vendor_forbidden_row_terms(q: str) -> tuple[str, ...]:
     if _vendor_query_has_any(q, ("행사용역", "행사", "발대식", "기념식", "행사기획", "행사대행", "이벤트")):
         return ("건물청소서비스", "청소서비스", "청소용역", "시설물경비서비스", "경비용역")
+    if _vendor_query_has_any(q, ("방향제", "탈취제", "공기청향제")):
+        return ("화장실용화장지", "화장실칸막이", "이동식화장실", "화장지")
+    if _vendor_query_has_any(q, ("전기안전관리", "전기안전관리대행", "전기안전점검")):
+        return ("행사대행", "행사기획", "전시회기획", "축제기획", "전시홍보관", "전시부스")
     if _vendor_query_has_any(q, ("번역", "번역용역", "통번역", "통역")):
         return ("청소서비스", "행사기획", "행사대행", "조명장치", "경비용역")
     if _vendor_query_has_any(q, ("청사경비", "경비용역", "시설경비", "무인경비", "기계경비", "특수경비")):
@@ -1617,20 +1719,410 @@ def _vendor_basic_search_rows(company_db, q: str, *, region: str = "부산", lim
         conn.close()
 
 
+_VENDOR_HISTORY_STOPWORDS = {
+    "busan",
+    "krw",
+    "goods",
+    "service",
+    "vendor",
+    "candidate",
+    "contract",
+    "부산",
+    "부산업체",
+    "지역업체",
+    "업체",
+    "후보",
+    "추천",
+    "가능",
+    "가능한",
+    "과거",
+    "수행",
+    "수행이력",
+    "이력",
+    "있는",
+    "보유",
+    "대행",
+    "계약",
+    "구매",
+    "구입",
+    "발주",
+    "예산",
+    "금액",
+    "관리",
+    "교체",
+    "설치",
+    "구축",
+    "운영",
+    "유지",
+    "보수",
+    "물품",
+    "용역",
+    "공사",
+    "조달",
+    "나라장터",
+    "종합쇼핑몰",
+    "쇼핑몰",
+    "제안",
+    "리스트",
+    "목록",
+    "보여줘",
+    "찾아줘",
+}
+
+
+def _vendor_contract_history_terms(q: str) -> list[str]:
+    text = str(q or "")
+    terms: list[str] = []
+    terms.extend(_vendor_query_tokens(text))
+    terms.extend(re.findall(r"[^\W_]{2,}", text, flags=re.UNICODE))
+    cleaned: list[str] = []
+    for term in terms:
+        term = str(term or "").strip().lower()
+        term = re.sub(r"^[^\w가-힣]+|[^\w가-힣]+$", "", term)
+        if len(term) < 2 or term.isdigit() or term in _VENDOR_HISTORY_STOPWORDS:
+            continue
+        if term not in cleaned:
+            cleaned.append(term)
+    return cleaned[:8]
+
+
+def _vendor_contract_history_table_ready(conn) -> bool:
+    try:
+        row = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type IN ('table', 'view') AND name = 'vendor_contract_history' LIMIT 1"
+        ).fetchone()
+        return bool(row)
+    except Exception:
+        return False
+
+
+def _vendor_contract_history_search_rows(company_db, q: str, *, region: str = "부산", limit: int = 30) -> list[dict[str, str]]:
+    connect = getattr(company_db, "_connect", None)
+    if not callable(connect):
+        return []
+    terms = _vendor_contract_history_terms(q)
+    if not terms:
+        return []
+    conn = connect()
+    if conn is None:
+        return []
+    try:
+        if not _vendor_contract_history_table_ready(conn):
+            return []
+        clauses = " OR ".join(["LOWER(h.search_text) LIKE ?" for _ in terms])
+        match_expr = " + ".join(["CASE WHEN LOWER(h.search_text) LIKE ? THEN 1 ELSE 0 END" for _ in terms])
+        match_params = [f"%{term}%" for term in terms]
+        where_params = [f"%{term}%" for term in terms]
+        required_hits = 2 if len(terms) >= 2 else 1
+        sql = f"""
+            WITH row_hits AS (
+                SELECT
+                    h.company_id,
+                    h.contract_amount,
+                    h.contract_date,
+                    ({match_expr}) AS term_hits
+                FROM vendor_contract_history h
+                WHERE {clauses}
+            ),
+            matched AS (
+                SELECT
+                    company_id,
+                    COUNT(*) AS history_count,
+                    SUM(COALESCE(contract_amount, 0)) AS history_amount,
+                    MAX(contract_date) AS history_last_date,
+                    MAX(term_hits) AS max_term_hits
+                FROM row_hits
+                WHERE term_hits >= ?
+                GROUP BY company_id
+            )
+            SELECT v.*
+            FROM matched m
+            JOIN chatbot_company_candidate_view v ON v.company_id = m.company_id
+            ORDER BY m.max_term_hits DESC, m.history_count DESC, m.history_amount DESC, m.history_last_date DESC
+            LIMIT ?
+        """
+        rows: list[dict[str, str]] = []
+        seen: set[str] = set()
+        for db_row in conn.execute(sql, [*match_params, *where_params, required_hits, max(limit * 3, limit)]).fetchall():
+            row = _vendor_row_from_db(dict(db_row))
+            row["matched_source"] = "contract_history"
+            row["matched_query"] = " | ".join(terms)
+            row["matched_query_label"] = f"과거 계약이력: {' / '.join(terms[:3])}"
+            key = row.get("company_id") or row.get("company_name")
+            if not key or key in seen:
+                continue
+            if _vendor_is_closed_or_suspended(row):
+                continue
+            if not _vendor_region_matches(row, region):
+                continue
+            seen.add(key)
+            rows.append(row)
+            if len(rows) >= limit:
+                break
+        return rows
+    except Exception:
+        return []
+    finally:
+        conn.close()
+
+
+def _vendor_contract_history_summary(conn, company_id: str, terms: list[str]) -> dict[str, object] | None:
+    if not company_id or not terms:
+        return None
+    clauses = " OR ".join(["LOWER(search_text) LIKE ?" for _ in terms])
+    match_expr = " + ".join(["CASE WHEN LOWER(search_text) LIKE ? THEN 1 ELSE 0 END" for _ in terms])
+    match_params = [f"%{term}%" for term in terms]
+    where_params = [f"%{term}%" for term in terms]
+    required_hits = 2 if len(terms) >= 2 else 1
+    try:
+        row = conn.execute(
+            f"""
+            SELECT
+                COUNT(*) AS history_count,
+                SUM(COALESCE(contract_amount, 0)) AS history_amount,
+                MAX(contract_date) AS history_last_date
+            FROM (
+                SELECT contract_amount, contract_date, ({match_expr}) AS term_hits
+                FROM vendor_contract_history
+                WHERE company_id = ? AND ({clauses})
+            )
+            WHERE term_hits >= ?
+            """,
+            [*match_params, company_id, *where_params, required_hits],
+        ).fetchone()
+        if not row or int(row["history_count"] or 0) <= 0:
+            return None
+        samples = conn.execute(
+            f"""
+            SELECT contract_type, contract_name, agency_name, contract_amount, contract_date
+            FROM (
+                SELECT contract_type, contract_name, agency_name, contract_amount, contract_date, ({match_expr}) AS term_hits
+                FROM vendor_contract_history
+                WHERE company_id = ? AND ({clauses})
+            )
+            WHERE term_hits >= ?
+            ORDER BY contract_date DESC, contract_amount DESC
+            LIMIT 3
+            """,
+            [*match_params, company_id, *where_params, required_hits],
+        ).fetchall()
+        return {
+            "count": int(row["history_count"] or 0),
+            "amount": int(row["history_amount"] or 0),
+            "last_date": str(row["history_last_date"] or ""),
+            "samples": [dict(sample) for sample in samples],
+        }
+    except Exception:
+        return None
+
+
+def _vendor_contract_history_detail_payload(company_id: str, q: str = "", *, limit: int = 20) -> dict[str, object]:
+    company_id = str(company_id or "").strip()
+    if not company_id:
+        raise HTTPException(status_code=400, detail="company_id is required")
+    limit = max(1, min(int(limit or 20), 100))
+    company_db = _vendor_import_company_db()
+    connect = getattr(company_db, "_connect", None)
+    if not callable(connect):
+        raise HTTPException(status_code=503, detail="company DB connection unavailable")
+    conn = connect()
+    if conn is None:
+        raise HTTPException(status_code=503, detail="company DB connection unavailable")
+    try:
+        if not _vendor_contract_history_table_ready(conn):
+            raise HTTPException(status_code=404, detail="vendor contract history table not found")
+        terms = _vendor_contract_history_terms(q)
+        min_hits = 2 if len(terms) >= 2 else 1
+        if terms:
+            like_terms = [f"%{term}%" for term in terms]
+            score_expr = " + ".join(["CASE WHEN LOWER(search_text) LIKE ? THEN 1 ELSE 0 END" for _ in terms])
+            where_terms = " OR ".join(["LOWER(search_text) LIKE ?" for _ in terms])
+            count_sql = f"""
+                SELECT
+                    COUNT(*) AS history_count,
+                    SUM(COALESCE(contract_amount, 0)) AS history_amount,
+                    MAX(contract_date) AS history_last_date
+                FROM (
+                    SELECT contract_amount, contract_date, ({score_expr}) AS match_score
+                    FROM vendor_contract_history
+                    WHERE company_id = ? AND ({where_terms})
+                )
+                WHERE match_score >= ?
+            """
+            count_params = [*like_terms, company_id, *like_terms, min_hits]
+            detail_sql = f"""
+                SELECT
+                    history_id,
+                    company_id,
+                    company_name,
+                    contract_type,
+                    contract_name,
+                    contract_amount,
+                    contract_date,
+                    agency_name,
+                    product_classification_no,
+                    product_classification_name,
+                    product_mid_classification_name,
+                    product_large_classification_name,
+                    source_contract_no,
+                    contractor_role,
+                    contractor_share,
+                    source_name,
+                    ({score_expr}) AS match_score
+                FROM vendor_contract_history
+                WHERE company_id = ?
+                  AND ({where_terms})
+                  AND ({score_expr}) >= ?
+                ORDER BY match_score DESC, contract_date DESC, contract_amount DESC
+                LIMIT ?
+            """
+            detail_params = [*like_terms, company_id, *like_terms, *like_terms, min_hits, limit]
+        else:
+            count_sql = """
+                SELECT
+                    COUNT(*) AS history_count,
+                    SUM(COALESCE(contract_amount, 0)) AS history_amount,
+                    MAX(contract_date) AS history_last_date
+                FROM vendor_contract_history
+                WHERE company_id = ?
+            """
+            count_params = [company_id]
+            detail_sql = """
+                SELECT
+                    history_id,
+                    company_id,
+                    company_name,
+                    contract_type,
+                    contract_name,
+                    contract_amount,
+                    contract_date,
+                    agency_name,
+                    product_classification_no,
+                    product_classification_name,
+                    product_mid_classification_name,
+                    product_large_classification_name,
+                    source_contract_no,
+                    contractor_role,
+                    contractor_share,
+                    source_name,
+                    0 AS match_score
+                FROM vendor_contract_history
+                WHERE company_id = ?
+                ORDER BY contract_date DESC, contract_amount DESC
+                LIMIT ?
+            """
+            detail_params = [company_id, limit]
+        summary_row = conn.execute(count_sql, count_params).fetchone()
+        rows = []
+        for row in conn.execute(detail_sql, detail_params).fetchall():
+            item = dict(row)
+            item["contract_amount"] = int(item.get("contract_amount") or 0)
+            rows.append(item)
+        return {
+            "company_id": company_id,
+            "query": q,
+            "matched_terms": terms,
+            "limit": limit,
+            "count": int(summary_row["history_count"] or 0) if summary_row else 0,
+            "total_amount": int(summary_row["history_amount"] or 0) if summary_row else 0,
+            "last_date": str(summary_row["history_last_date"] or "") if summary_row else "",
+            "rows": rows,
+            "limitations": [
+                "Past contract history is reference evidence, not a legal eligibility confirmation.",
+                "Licenses, direct-production certificates, MAS/shopping-mall status, and policy-company validity must be checked against original sources before notice or contract.",
+                "Some long-term continuing contracts may have source-date limits.",
+            ],
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"contract history lookup failed: {exc}") from exc
+    finally:
+        conn.close()
+
+
+def _vendor_apply_contract_history_evidence(rows: list[dict[str, str | int]], q: str) -> list[dict[str, str | int]]:
+    if not rows:
+        return rows
+    terms = _vendor_contract_history_terms(q)
+    if not terms:
+        return rows
+    company_db = _vendor_import_company_db()
+    connect = getattr(company_db, "_connect", None)
+    if not callable(connect):
+        return rows
+    conn = connect()
+    if conn is None:
+        return rows
+    try:
+        if not _vendor_contract_history_table_ready(conn):
+            return rows
+        for row in rows:
+            company_id = str(row.get("company_id") or "")
+            summary = _vendor_contract_history_summary(conn, company_id, terms)
+            if not summary:
+                row.setdefault("contract_history_status_label", "과거 유사계약 이력 없음")
+                continue
+            count = int(summary.get("count") or 0)
+            amount = int(summary.get("amount") or 0)
+            last_date = str(summary.get("last_date") or "")
+            samples = summary.get("samples") or []
+            sample_labels = []
+            for sample in samples:
+                name = str(sample.get("contract_name") or "").strip()
+                agency = str(sample.get("agency_name") or "").strip()
+                date = str(sample.get("contract_date") or "").strip()
+                label = " / ".join(part for part in (date, agency, name) if part)
+                if label:
+                    sample_labels.append(label)
+            amount_label = _format_krw_short(amount) if amount else "금액 미상"
+            row["contract_history_status_label"] = "과거 유사계약 수행이력 있음"
+            row["contract_history_match"] = f"유사계약 {count:,}건 / {amount_label}"
+            row["contract_history_summary"] = " | ".join(sample_labels[:3]) or row["contract_history_match"]
+            row["contract_history_recent_count"] = str(count)
+            row["contract_history_total_amount"] = str(amount)
+            row["contract_history_last_date"] = last_date
+            current_score = int(row.get("review_score") or 0)
+            row["review_score"] = current_score + min(25, 8 + count * 2)
+            if str(row.get("condition_match_type") or "").strip() in {"", "후보 표시", "확인 필요"}:
+                row["condition_match_type"] = "과거 유사계약 이력 확인"
+            if not str(row.get("condition_match_summary") or "").strip():
+                row["condition_match_summary"] = row["contract_history_match"]
+            checks = str(row.get("recommended_checks") or "")
+            history_check = "과거 수행이력은 참고자료이며 현재 과업범위·면허·자격요건 재확인"
+            if history_check not in checks:
+                row["recommended_checks"] = " | ".join(part for part in (checks, history_check) if part)
+        return rows
+    except Exception:
+        return rows
+    finally:
+        conn.close()
+
+
 def _vendor_search_rows(q: str, *, region: str = "부산", limit: int = 50) -> list[dict[str, str]]:
     q = " ".join(str(q or "").split())
     if not q:
         raise HTTPException(status_code=400, detail="q query parameter is required")
     limit = max(1, min(int(limit or 50), 500))
+    compact_q = _vendor_compact(q)
+    service_terms_for_query = _vendor_requested_service_terms(q)
+    service_intent_for_query = bool(service_terms_for_query) or any(
+        marker in compact_q
+        for marker in ("용역", "과업", "위탁", "대행", "교육", "연구", "감리", "평가", "조사", "점검", "유지관리")
+    )
     company_db = _vendor_import_company_db()
-    calls_by_type = {
-        "product": [
-            ("product", getattr(company_db, "search_by_product", None)),
-            ("shopping_mall_product", getattr(company_db, "search_shopping_mall_product", None)),
+    product_calls = [
+        ("product", getattr(company_db, "search_by_product", None)),
+        ("shopping_mall_product", getattr(company_db, "search_shopping_mall_product", None)),
+    ]
+    if _vendor_query_has_any(q, ("인증", "기술개발", "혁신", "우수조달", "시제품", "벤처나라")):
+        product_calls.extend([
             ("certified_product", getattr(company_db, "search_certified_product", None)),
             ("innovation_product", getattr(company_db, "search_innovation_product", None)),
             ("excellent_procurement_product", getattr(company_db, "search_excellent_procurement_product", None)),
-        ],
+        ])
+    calls_by_type = {
+        "product": product_calls,
         "license": [("license", getattr(company_db, "search_by_license", None))],
         "company_name": [("company_name", getattr(company_db, "search_by_company_name", None))],
         "direct_production": [("direct_production", getattr(company_db, "search_by_direct_production", None))],
@@ -1642,6 +2134,9 @@ def _vendor_search_rows(q: str, *, region: str = "부산", limit: int = 50) -> l
         calls_by_type["product"] = calls_by_type["product"][:2]
     per_call_limit = max(limit, 20)
     result_target = limit
+    if _vendor_query_has_any(q, ("출입통제시스템", "출입통제장치", "출입관리시스템", "출입통제", "출입관리")):
+        per_call_limit = min(per_call_limit, 12)
+        result_target = min(result_target, 12)
     if multi_condition_query:
         # AND-style questions need evidence for more than the first matched
         # term. Keep each individual lookup bounded, but continue through the
@@ -1652,6 +2147,22 @@ def _vendor_search_rows(q: str, *, region: str = "부산", limit: int = 50) -> l
         result_target = min(result_target, 10)
         per_call_limit = min(per_call_limit, 10)
     query_plan = _vendor_query_plan(q)
+    if not multi_condition_query:
+        # The DB adapter already expands product aliases internally. Repeating
+        # multiple normalized product terms at the API plan layer makes no-hit
+        # searches scan the same large text summaries several times. Keep a
+        # small cap for interactive dashboard latency while preserving explicit
+        # AND-style multi-condition searches.
+        max_product_plan_terms = max(1, min(int(os.getenv("VENDOR_PRODUCT_PLAN_TERM_LIMIT", "2")), 8))
+        product_plan_count = 0
+        bounded_plan: list[dict[str, str]] = []
+        for item in query_plan:
+            if item.get("search_type") == "product":
+                product_plan_count += 1
+                if product_plan_count > max_product_plan_terms:
+                    continue
+            bounded_plan.append(item)
+        query_plan = bounded_plan
     if multi_condition_query:
         query_plan = query_plan[:12]
     min_plan_scans = min(2, len(query_plan)) if multi_condition_query else 1
@@ -1694,7 +2205,11 @@ def _vendor_search_rows(q: str, *, region: str = "부산", limit: int = 50) -> l
     filtered_rows = _vendor_filter_relevant_rows(rows, q)
     if not filtered_rows and rows and not _vendor_is_medical_vaccine_query(q):
         fallback_rows = _vendor_basic_search_rows(company_db, q, region=region, limit=limit)
-        filtered_rows = _vendor_filter_relevant_rows(fallback_rows, q) or fallback_rows
+        fallback_filtered = _vendor_filter_relevant_rows(fallback_rows, q)
+        if fallback_filtered:
+            filtered_rows = fallback_filtered
+        elif not service_intent_for_query:
+            filtered_rows = fallback_rows
     return filtered_rows[:limit]
 
 
@@ -1766,6 +2281,12 @@ def _vendor_recommendation_payload(
     rows = _vendor_apply_construction_evidence(rows, q)
     rows = rows[:requested_limit]
     item_policy_summary = _vendor_item_policy_summary(q, product_policy_checks, requested=product_policy_requested)
+    zero_result_status = _vendor_zero_result_status(
+        q,
+        rows,
+        product_policy_checks,
+        product_policy_requested=product_policy_requested,
+    )
     purchase_route_guidance = _vendor_purchase_route_guidance(
         q,
         rows,
@@ -1787,6 +2308,7 @@ def _vendor_recommendation_payload(
         "search_plan": _vendor_query_plan(q),
         "purchase_route_guidance": purchase_route_guidance,
         "item_policy_summary": item_policy_summary,
+        "zero_result_status": zero_result_status,
         "policy_preference_summary": policy_preference_summary,
         "policy_company_alternative_count": len(policy_company_alternatives),
         "policy_company_alternatives": policy_company_alternatives,
@@ -1955,6 +2477,8 @@ def _vendor_is_truthy(value) -> bool:
     if value is False or value is None:
         return False
     text = str(value).strip().lower()
+    if any(marker in text for marker in ("근거 없음", "미확인", "확인 필요", "no evidence", "not found")):
+        return False
     return text not in {"", "false", "0", "none", "unknown", "[]"}
 
 
@@ -2042,6 +2566,31 @@ def _vendor_cooperative_purchase_row_label(row: dict[str, str]) -> str:
 def _vendor_contains_any(row: dict[str, str], fields: list[str], needles: tuple[str, ...]) -> bool:
     haystack = " ".join(str(row.get(field) or "") for field in fields).lower()
     return any(needle.lower() in haystack for needle in needles)
+
+
+def _vendor_direct_contract_support(row: dict[str, object], *, direct_items: list[dict[str, object]] | None = None) -> tuple[int, list[str]]:
+    score = 0
+    parts: list[str] = []
+    if _vendor_is_truthy(row.get("policy_company_labels")) or _vendor_is_truthy(row.get("policy_subtypes")):
+        score += 18
+        parts.append("정책기업 수의계약 근거")
+    if _vendor_is_truthy(row.get("certified_product_labels")) or _vendor_is_truthy(row.get("certified_product_types")) or _vendor_is_truthy(row.get("certified_product_summary")):
+        score += 22
+        parts.append("기술개발/인증제품 수의계약 근거")
+    if _vendor_contains_any(
+        row,
+        ["procurement_attributes", "policy_subtypes", "candidate_types", "cooperative_purchase_route_label"],
+        ("coop", "cooperative", "협동조합", "조합추천", "소기업공동", "small_business_collective"),
+    ):
+        score += 24
+        parts.append("조합추천/소기업 공동사업 경로")
+    if direct_items:
+        score += 18
+        parts.append("요청품목 직접생산 근거")
+    elif _vendor_is_truthy(row.get("direct_production_summary")) or _vendor_is_truthy(row.get("direct_production_flags")):
+        score += 8
+        parts.append("직접생산 보유")
+    return score, parts
 
 
 def _vendor_contract_review_types(row: dict[str, str]) -> list[str]:
@@ -2169,6 +2718,12 @@ def _vendor_recommendation_row(row: dict[str, str], *, budget_krw: int | None = 
         positive_label="직접생산증명서 정보 있음",
     )
     rec["direct_production_certificate_products"] = direct_summary
+    rec["contract_history_status_label"] = row.get("contract_history_status_label") or "과거 유사계약 이력 없음"
+    rec["contract_history_match"] = row.get("contract_history_match") or ""
+    rec["contract_history_summary"] = row.get("contract_history_summary") or ""
+    rec["contract_history_recent_count"] = row.get("contract_history_recent_count") or ""
+    rec["contract_history_total_amount"] = row.get("contract_history_total_amount") or ""
+    rec["contract_history_last_date"] = row.get("contract_history_last_date") or ""
     rec["construction_capacity_status_label"] = _vendor_data_status(
         row.get("construction_capacity_summary"),
         positive_label="시공능력평가금액 정보 있음",
@@ -2319,23 +2874,43 @@ def _vendor_apply_construction_evidence(
     return rows
 
 
+def _vendor_add_evidence_search_term(terms: list[str], value: object, *, max_len: int = 80) -> None:
+    term = " ".join(str(value or "").split())
+    if term and len(term) <= max_len and term not in terms:
+        terms.append(term)
+
+
+def _vendor_policy_code_terms(product_policy_checks: list[dict[str, str]] | None) -> list[str]:
+    terms: list[str] = []
+    for item in product_policy_checks or []:
+        for key in (
+            "detail_product_code",
+            "shopping_mall_product_class_code",
+            "product_class_code",
+            "product_code",
+        ):
+            term = " ".join(str(item.get(key) or "").split())
+            if not term:
+                continue
+            if not re.fullmatch(r"[0-9A-Za-z][0-9A-Za-z\-]{3,24}", term):
+                continue
+            _vendor_add_evidence_search_term(terms, term, max_len=25)
+    return terms
+
+
 def _vendor_evidence_search_terms(q: str, product_policy_checks: list[dict[str, str]] | None = None) -> list[str]:
     terms: list[str] = []
+    for term in _vendor_policy_code_terms(product_policy_checks):
+        _vendor_add_evidence_search_term(terms, term, max_len=25)
     for item in _vendor_query_plan(q):
         if item.get("search_type") not in {"product", "direct_production", "shopping_mall_product", "license"}:
             continue
-        term = " ".join(str(item.get("term") or "").split())
-        if term and len(term) <= 80 and term not in terms:
-            terms.append(term)
+        _vendor_add_evidence_search_term(terms, item.get("term"))
     for item in product_policy_checks or []:
         for key in ("detail_product_name", "matched_policy_keyword"):
-            term = " ".join(str(item.get(key) or "").split())
-            if term and len(term) <= 80 and term not in terms:
-                terms.append(term)
+            _vendor_add_evidence_search_term(terms, item.get(key))
     for token in _vendor_query_tokens(q):
-        token = " ".join(str(token or "").split())
-        if token and len(token) <= 80 and token not in terms:
-            terms.append(token)
+        _vendor_add_evidence_search_term(terms, token)
     return terms[:20]
 
 
@@ -2447,6 +3022,87 @@ def _vendor_policy_int(value) -> int:
         return 0
 
 
+def _vendor_policy_contract_signal(
+    product_policy_checks: list[dict[str, str]] | None,
+    rows: list[dict[str, str | int]] | None = None,
+) -> dict[str, object]:
+    third_party_count = 0
+    mas_count = 0
+    general_unit_price_count = 0
+    registered_count = 0
+    supplier_count = 0
+    busan_supplier_count = 0
+    contract_types: list[str] = []
+    item_master_used = False
+
+    for item in product_policy_checks or []:
+        if str(item.get("matched_policy_source") or "") == "pps_shopping_mall_item_policy_summary":
+            item_master_used = True
+        third_party_count = max(third_party_count, _vendor_policy_int(item.get("shopping_mall_active_third_party_count")))
+        mas_count = max(mas_count, _vendor_policy_int(item.get("shopping_mall_active_mas_count")))
+        general_unit_price_count = max(
+            general_unit_price_count,
+            _vendor_policy_int(item.get("shopping_mall_active_general_unit_price_count")),
+        )
+        registered_count = max(registered_count, _vendor_policy_int(item.get("shopping_mall_active_registered_count")))
+        supplier_count = max(supplier_count, _vendor_policy_int(item.get("shopping_mall_active_supplier_count")))
+        busan_supplier_count = max(
+            busan_supplier_count,
+            _vendor_policy_int(item.get("shopping_mall_active_busan_supplier_count")),
+        )
+        for part in _vendor_split_values(item.get("shopping_mall_active_contract_types")):
+            if part and part not in contract_types:
+                contract_types.append(part)
+
+    candidate_row_evidence_count = 0
+    for row in rows or []:
+        if _vendor_is_truthy(row.get("mas_match")) or _vendor_is_truthy(row.get("shopping_mall_match")):
+            candidate_row_evidence_count += 1
+
+    has_confirmed_contract = any((third_party_count, mas_count, general_unit_price_count))
+    if third_party_count > 0:
+        basis_level = "confirmed_third_party_unit_price"
+        basis_label = "제3자단가계약 품목 확인"
+        basis_explanation = "조달청 종합쇼핑몰 품목 마스터에서 계약유형이 제3자단가계약으로 확인됩니다."
+    elif mas_count > 0:
+        basis_level = "confirmed_mas"
+        basis_label = "MAS/다수공급자계약 품목 확인"
+        basis_explanation = "조달청 종합쇼핑몰 품목 마스터에서 MAS 계약유형이 확인됩니다."
+    elif general_unit_price_count > 0:
+        basis_level = "confirmed_general_unit_price"
+        basis_label = "일반단가계약 품목 확인"
+        basis_explanation = "조달청 종합쇼핑몰 품목 마스터에서 일반단가계약 유형이 확인됩니다."
+    elif registered_count > 0:
+        basis_level = "shopping_mall_registered_only"
+        basis_label = "종합쇼핑몰 등록 확인"
+        basis_explanation = "종합쇼핑몰 등록 품목은 확인되지만 제3자단가·MAS·일반단가 계약유형은 별도 확인이 필요합니다."
+    elif candidate_row_evidence_count > 0:
+        basis_level = "candidate_row_evidence_only"
+        basis_label = "후보업체 쇼핑몰/MAS 근거"
+        basis_explanation = "후보업체 DB에 쇼핑몰/MAS 근거가 있으나 품목 마스터의 계약유형 확정 근거는 아직 없습니다."
+    else:
+        basis_level = "no_central_procurement_evidence"
+        basis_label = "조달청 단가계약 근거 미확인"
+        basis_explanation = "현재 DB 기준 제3자단가·MAS·일반단가·종합쇼핑몰 등록 근거가 확인되지 않았습니다."
+
+    return {
+        "basis_level": basis_level,
+        "basis_label": basis_label,
+        "basis_explanation": basis_explanation,
+        "item_master_used": item_master_used,
+        "has_confirmed_contract": has_confirmed_contract,
+        "third_party_count": third_party_count,
+        "mas_count": mas_count,
+        "general_unit_price_count": general_unit_price_count,
+        "registered_count": registered_count,
+        "supplier_count": supplier_count,
+        "busan_supplier_count": busan_supplier_count,
+        "candidate_row_evidence_count": candidate_row_evidence_count,
+        "contract_types": contract_types,
+        "has_local_shopping_supplier": busan_supplier_count > 0 or candidate_row_evidence_count > 0,
+    }
+
+
 def _vendor_policy_route_requirements(product_policy_checks: list[dict[str, str]]) -> dict[str, bool]:
     requires_direct = False
     has_mas_route = False
@@ -2477,12 +3133,16 @@ def _vendor_policy_route_requirements(product_policy_checks: list[dict[str, str]
             has_shopping_route = True
         if str(item.get("matched_policy_source") or "") == "facility_material_price_file":
             has_facility_material = True
+    contract_signal = _vendor_policy_contract_signal(product_policy_checks)
     return {
         "requires_direct_production": requires_direct,
         "has_mas_route": has_mas_route,
         "has_shopping_route": has_shopping_route,
         "has_facility_material_price": has_facility_material,
         "is_sme_competition_product": is_sme_competition,
+        "has_confirmed_unit_contract": bool(contract_signal["has_confirmed_contract"]),
+        "has_registered_shopping_mall_item": bool(contract_signal["registered_count"]),
+        "has_busan_shopping_mall_supplier": bool(contract_signal["busan_supplier_count"]),
     }
 
 
@@ -2514,6 +3174,10 @@ def _vendor_apply_item_evidence(
     wants_mas = any(term in compact_q for term in ("mas", "다수공급자", "다수공급자계약"))
     wants_shopping = any(term in compact_q for term in ("종합쇼핑몰", "쇼핑몰"))
     route_requirements = _vendor_policy_route_requirements(product_policy_checks)
+    direct_contract_preferred = (
+        not route_requirements["has_confirmed_unit_contract"]
+        or not route_requirements["has_busan_shopping_mall_supplier"]
+    )
     for row in rows:
         company_id = str(row.get("company_id") or "")
         evidence = evidence_by_company.get(company_id) or {"direct_production": [], "shopping_mall": [], "mas": []}
@@ -2549,7 +3213,7 @@ def _vendor_apply_item_evidence(
                 route_fit_score += 8
                 route_fit_parts.append("직접생산 보유(요청품목 일치 확인 필요)")
             else:
-                route_fit_score -= 20
+                route_fit_score -= 30 if route_requirements["is_sme_competition_product"] else 20
                 route_fit_parts.append("직접생산 근거 미확인")
         if route_requirements["has_mas_route"]:
             if mas_items:
@@ -2573,6 +3237,14 @@ def _vendor_apply_item_evidence(
                 route_fit_parts.append("종합쇼핑몰 등록 근거 미확인")
         if route_requirements["has_facility_material_price"]:
             route_fit_parts.append("시설자재 가격정보 매칭 품목")
+        if direct_contract_preferred:
+            support_score, support_parts = _vendor_direct_contract_support(row, direct_items=direct_items)
+            if support_score:
+                route_fit_score += support_score
+                route_fit_parts.append("지역업체 직접계약 지원 근거: " + ", ".join(support_parts))
+            elif not route_requirements["has_confirmed_unit_contract"]:
+                route_fit_score -= 4
+                route_fit_parts.append("수의계약 지원 근거 미확인")
         if route_fit_score:
             route_score += route_fit_score
         row["purchase_route_fit_score"] = route_fit_score
@@ -2690,6 +3362,7 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
     matched_products: list[dict[str, str]] = []
     sme_values: list[bool] = []
     direct_supplier_counts: list[int] = []
+    contract_signal = _vendor_policy_contract_signal(product_policy_checks)
     for item in product_policy_checks:
         sme_flag = _vendor_item_bool(item.get("is_sme_competition_product"))
         if sme_flag is not None:
@@ -2741,7 +3414,72 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
         "sme_competition_product": "해당 가능" if is_sme else "미매칭 또는 확인 필요",
         "direct_production_certificate": direct_label,
         "cooperative_purchase_route": cooperative_label,
+        "shopping_mall_contract_basis_level": contract_signal["basis_level"],
+        "shopping_mall_contract_basis_label": contract_signal["basis_label"],
+        "shopping_mall_contract_basis_explanation": contract_signal["basis_explanation"],
+        "shopping_mall_busan_supplier_count": contract_signal["busan_supplier_count"],
+        "shopping_mall_active_registered_count": contract_signal["registered_count"],
         "matched_products": matched_products,
+    }
+
+
+def _vendor_zero_result_status(
+    q: str,
+    rows: list[dict[str, str | int]],
+    product_policy_checks: list[dict[str, str]],
+    *,
+    product_policy_requested: bool,
+) -> dict[str, object]:
+    if rows:
+        return {
+            "status": "has_candidates",
+            "label": "후보 있음",
+            "message": "부산업체 후보가 조회되었습니다.",
+            "next_actions": [],
+        }
+    construction_terms = _vendor_requested_construction_terms(q)
+    service_terms = _vendor_requested_service_terms(q)
+    if product_policy_checks:
+        contract_signal = _vendor_policy_contract_signal(product_policy_checks)
+        if int(contract_signal.get("busan_supplier_count") or 0) == 0 and int(contract_signal.get("registered_count") or 0) > 0:
+            return {
+                "status": "item_identified_no_busan_supplier",
+                "label": "품목 확인됨 / 부산 공급업체 미확인",
+                "message": "품목정책 또는 조달청 쇼핑몰 품목은 확인됐지만 현재 DB 기준 부산 공급업체 후보가 없습니다.",
+                "next_actions": ["세부품명번호 확인", "나라장터 종합쇼핑몰 부산 공급업체 수동 확인", "조달청 입찰 또는 지역업체 대안 검토"],
+            }
+        return {
+            "status": "item_identified_no_vendor_match",
+            "label": "품목 확인됨 / 후보업체 매칭 없음",
+            "message": "원천 품목은 확인됐지만 부산업체 후보뷰와 연결된 업체가 없습니다.",
+            "next_actions": ["품목-업체 연결 테이블 보강", "직접생산/MAS/쇼핑몰 공급업체 원천 재확인", "수동 후보 검토"],
+        }
+    if construction_terms:
+        return {
+            "status": "construction_license_no_candidate",
+            "label": "공사 면허 인식 / 후보 없음",
+            "message": "공사 질의로 분류됐지만 해당 면허 또는 시공능력 기준 후보가 없습니다.",
+            "next_actions": ["면허명 동의어 확인", "부산 본사 면허 DB 재검증", "시공능력평가 자료 보강"],
+        }
+    if service_terms:
+        return {
+            "status": "service_term_no_candidate",
+            "label": "용역 업종 인식 / 후보 없음",
+            "message": "용역 질의로 분류됐지만 현재 용역 업종/실적 사전 기준 후보가 없습니다.",
+            "next_actions": ["용역 업종 사전 보강", "입찰공고/계약명 기반 용역 사전 보강", "수행실적 원천자료 확인"],
+        }
+    if product_policy_requested:
+        return {
+            "status": "item_policy_not_found",
+            "label": "품목정책 미분류",
+            "message": "제품정책 DB/API에서 품목을 확인하지 못했고 후보업체도 조회되지 않았습니다.",
+            "next_actions": ["검색어 동의어 확인", "세부품명번호 수동 확인", "원천 DB 보강 대상 등록"],
+        }
+    return {
+        "status": "unclassified_no_candidate",
+        "label": "검색어 미분류 / 후보 없음",
+        "message": "검색어가 품목·공사·용역 사전과 후보업체 DB에 충분히 매칭되지 않았습니다.",
+        "next_actions": ["검색어를 품목명 또는 면허명으로 구체화", "사전 보강 대상 검토"],
     }
 
 
@@ -3015,6 +3753,9 @@ def _vendor_product_policy_checks(q: str, *, limit: int = 5) -> list[dict[str, s
             value_text = _vendor_join(value)
             if not value_text:
                 continue
+            if field.endswith("_count") and _vendor_policy_int(value_text) > _vendor_policy_int(target.get(field)):
+                target[field] = value_text
+                continue
             if not _vendor_join(target.get(field)):
                 target[field] = value_text
         source = _vendor_join(payload.get("matched_policy_source"))
@@ -3047,7 +3788,7 @@ def _vendor_product_policy_checks(q: str, *, limit: int = 5) -> list[dict[str, s
                 reordered.append(term)
         terms = reordered or terms
     max_checks = max(1, min(int(limit or 5), 20))
-    for term in terms[:8]:
+    for term_index, term in enumerate(terms[:8]):
         try:
             company_db = _vendor_import_company_db()
             search_facility_material_policy = getattr(company_db, "search_facility_material_policy", None)
@@ -3130,21 +3871,32 @@ def _vendor_product_policy_checks(q: str, *, limit: int = 5) -> list[dict[str, s
             pass
         data = None
         used_db_policy = False
-        try:
-            company_db = _vendor_import_company_db()
-            search_product_policy = getattr(company_db, "search_product_policy", None)
-            if callable(search_product_policy):
-                data = search_product_policy(term, limit=max_checks)
-                used_db_policy = bool(data and (data.get("candidates") or data.get("items") or data.get("data")))
-        except Exception:
-            data = None
-        if not (data and (data.get("candidates") or data.get("items") or data.get("data"))):
-            data = _monitoring_api_get(
-                "/api/chatbot/product-policy/search",
-                {"keyword": term, "limit": max_checks},
-                timeout=timeout,
+        slow_policy_already_checked = (
+            bool(checks)
+            and not _vendor_is_multi_condition_query(q)
+            and any(
+                any(source in str(item.get("matched_policy_source") or "") for source in ("product_policy_summary", "monitoring_api"))
+                for item in checks
             )
-            used_db_policy = False
+        )
+        if slow_policy_already_checked:
+            data = {"candidates": []}
+        else:
+            try:
+                company_db = _vendor_import_company_db()
+                search_product_policy = getattr(company_db, "search_product_policy", None)
+                if callable(search_product_policy):
+                    data = search_product_policy(term, limit=max_checks)
+                    used_db_policy = bool(data and (data.get("candidates") or data.get("items") or data.get("data")))
+            except Exception:
+                data = None
+            if not (data and (data.get("candidates") or data.get("items") or data.get("data"))):
+                data = _monitoring_api_get(
+                    "/api/chatbot/product-policy/search",
+                    {"keyword": term, "limit": max_checks},
+                    timeout=timeout,
+                )
+                used_db_policy = False
         if not data:
             continue
         policy_source = str((data.get("meta") or {}).get("source") or "product_policy_summary") if used_db_policy else "monitoring_api"
@@ -3200,6 +3952,10 @@ def _vendor_product_policy_checks(q: str, *, limit: int = 5) -> list[dict[str, s
                     pass
             if len(checks) >= max_checks:
                 return _vendor_sort_product_policy_checks(q, checks)
+        if checks and not _vendor_is_multi_condition_query(q):
+            contract_signal = _vendor_policy_contract_signal(checks)
+            if contract_signal["busan_supplier_count"] or term_index >= 5:
+                return _vendor_sort_product_policy_checks(q, checks)
     return _vendor_sort_product_policy_checks(q, checks)
 
 
@@ -3223,12 +3979,15 @@ def _vendor_policy_tool_results(
             "elapsed_ms": 0,
         }
 
-    shopping_count = _vendor_route_candidate_count(
+    candidate_exact_shopping_count = _vendor_route_candidate_count(
         rows,
         "mas_match",
+        "shopping_mall_match",
+    )
+    generic_shopping_count = _vendor_route_candidate_count(
+        rows,
         "mas_product_summary",
         "has_mas",
-        "shopping_mall_match",
         "shopping_mall_product_summary",
         "has_shopping_mall",
     )
@@ -3239,22 +3998,20 @@ def _vendor_policy_tool_results(
         combined = f"{mall_text} {flags_text}".lower()
         if any(term in combined for term in ("third_party_unit_price", "third party", "제3자", "3자단가", "제3자를 위한 단가")):
             third_party_count += 1
-    item_master_shopping_count = 0
-    item_master_third_party_count = 0
-    for item in product_policy_checks or []:
-        item_master_third_party_count = max(
-            item_master_third_party_count,
-            _vendor_policy_int(item.get("shopping_mall_active_third_party_count")),
-        )
-        item_master_shopping_count = max(
-            item_master_shopping_count,
-            _vendor_policy_int(item.get("shopping_mall_active_registered_count")),
-            _vendor_policy_int(item.get("shopping_mall_active_mas_count")),
-            _vendor_policy_int(item.get("shopping_mall_active_general_unit_price_count")),
-            _vendor_policy_int(item.get("shopping_mall_active_supplier_count")),
-            _vendor_policy_int(item.get("shopping_mall_active_busan_supplier_count")),
-        )
-    shopping_count = max(shopping_count, item_master_shopping_count)
+    contract_signal = _vendor_policy_contract_signal(product_policy_checks, rows)
+    item_master_third_party_count = int(contract_signal["third_party_count"] or 0)
+    item_master_shopping_count = max(
+        int(contract_signal["registered_count"] or 0),
+        int(contract_signal["mas_count"] or 0),
+        int(contract_signal["general_unit_price_count"] or 0),
+        int(contract_signal["supplier_count"] or 0),
+        int(contract_signal["busan_supplier_count"] or 0),
+    )
+    # 구매경로 우선순위는 품목 마스터의 계약유형 근거를 우선한다.
+    # 후보업체의 일반 보유 플래그는 후보 정렬에는 쓰되, 조달청 경로 확정 근거로 승격하지 않는다.
+    shopping_count = max(item_master_shopping_count, candidate_exact_shopping_count)
+    if not shopping_count and not product_policy_checks:
+        shopping_count = generic_shopping_count
     third_party_count = max(third_party_count, item_master_third_party_count)
     policy_count = _vendor_route_candidate_count(rows, "policy_company_labels", "policy_subtypes")
     certified_count = _vendor_route_candidate_count(rows, "certified_product_labels", "certified_product_summary")
@@ -3269,9 +4026,12 @@ def _vendor_policy_tool_results(
 
 
 def _vendor_contract_object_for_route(q: str, construction_terms: list[str]) -> str:
+    compact = _vendor_compact(q)
     if construction_terms and not _vendor_has_construction_material_intent(q):
         return "construction"
-    if any(term in q for term in ("용역", "과업", "위탁", "유지보수", "청소", "방역", "설계")):
+    if "공사" in compact and not _vendor_has_construction_material_intent(q):
+        return "construction"
+    if any(term in compact for term in ("용역", "과업", "위탁", "유지보수", "청소", "방역", "설계", "교육훈련", "학술연구", "원가계산")):
         return "service"
     return "goods"
 
@@ -3310,6 +4070,12 @@ def _vendor_priority_route_cards(
     if not budget_krw or build_purchase_route_cards is None:
         return []
 
+    contract_signal = _vendor_policy_contract_signal(product_policy_checks, rows)
+    basis_level = str(contract_signal["basis_level"])
+    has_confirmed_contract = bool(contract_signal["has_confirmed_contract"])
+    has_registered_item = int(contract_signal["registered_count"] or 0) > 0
+    has_local_shopping_supplier = bool(contract_signal["has_local_shopping_supplier"])
+
     try:
         item_name = _vendor_route_item_name(q, product_policy_checks)
         policy_cards = build_purchase_route_cards(
@@ -3325,6 +4091,7 @@ def _vendor_priority_route_cards(
     route_order = {
         "third_party_unit_price": -1,
         "shopping_mall_mas": 0,
+        "local_company_alternative": 1,
         "two_quote_small_value": 1,
         "policy_company_one_quote": 2,
         "sme_competition_direct_production": 3,
@@ -3343,19 +4110,116 @@ def _vendor_priority_route_cards(
             getattr(card, "route_id", ""),
         ),
     ):
+        route_id = getattr(card, "route_id", "")
+        route_priority = getattr(card, "route_priority", "")
+        status = getattr(card, "status", "")
+        reason = getattr(card, "practical_meaning", "")
+        user_label = getattr(card, "user_label", "")
+        basis_explanation = str(contract_signal["basis_explanation"])
+
+        if route_id == "shopping_mall_mas":
+            if has_confirmed_contract:
+                basis_label = str(contract_signal["basis_label"])
+                if not has_local_shopping_supplier:
+                    status = "no_local_supplier"
+                    route_priority = "secondary"
+                    reason = (
+                        f"{basis_explanation} 다만 현재 부산 쇼핑몰 공급업체 근거가 확인되지 않으므로 "
+                        "조달청 계약경로와 별도로 지역업체 직접계약·견적·입찰 가능성을 함께 검토해야 합니다. "
+                        "조달청을 통한 입찰 가능성도 계약검토 단계에서 별도로 확인합니다."
+                    )
+                    user_label = f"{basis_label} / 부산 공급업체 미확인"
+                else:
+                    reason = f"{basis_explanation} 부산업체 공급 근거가 있으면 쇼핑몰/MAS 경로를 먼저 확인합니다."
+                    user_label = basis_label
+            elif has_registered_item:
+                status = "registered_only"
+                route_priority = "secondary"
+                user_label = str(contract_signal["basis_label"])
+                reason = (
+                    f"{basis_explanation} 등록 사실만으로 조달청 구매 의무나 쇼핑몰 우선구매를 단정하지 말고, "
+                    "물품식별번호·계약유형·계약상태·기관유형을 확인한 뒤 지역업체 후보와 비교합니다."
+                )
+            elif basis_level == "candidate_row_evidence_only":
+                status = "candidate_evidence_only"
+                route_priority = "secondary"
+                user_label = "후보업체 단위 근거"
+                reason = (
+                    f"{basis_explanation} 쇼핑몰/MAS 구매 가능성은 열어두되, "
+                    "품목 자체가 단가계약 대상인지 조달청 원천자료로 재확인해야 합니다."
+                )
+            else:
+                status = "needs_lookup"
+                route_priority = "reference"
+                user_label = "계약유형 확인 필요"
+                reason = (
+                    "현재 DB 기준 조달청 단가계약·MAS·종합쇼핑몰 등록 근거가 확정되지 않았습니다. "
+                    "지역업체 직접계약, 2인 이상 견적, 입찰공고 조건 설계를 우선 대안으로 검토합니다."
+                )
+        elif route_id == "third_party_unit_price":
+            if basis_level == "confirmed_third_party_unit_price":
+                if not has_local_shopping_supplier:
+                    status = "no_local_supplier"
+                    route_priority = "primary"
+                    user_label = "제3자단가계약 확인 / 부산 공급업체 미확인"
+                    reason = (
+                        f"{basis_explanation} 다만 현재 부산 쇼핑몰 공급업체 근거가 확인되지 않습니다. "
+                        "조달청 납품요구 가능성, 조달청 입찰 가능성, 지역업체 대안 경로를 분리해서 검토해야 합니다."
+                    )
+                else:
+                    user_label = "제3자단가계약 확인"
+                    reason = f"{basis_explanation} 부산 공급업체 근거가 있으면 조달청 납품요구 경로를 먼저 확인합니다."
+            elif status in {"needs_lookup", "no_candidate_found"}:
+                route_priority = "reference"
+        elif has_confirmed_contract and route_id in {"two_quote_small_value", "general_small_value_direct", "policy_company_one_quote"}:
+            if route_priority == "primary":
+                route_priority = "secondary"
+                reason = (
+                    f"{reason} 다만 품목 마스터에서 조달청 계약유형이 확인되므로, "
+                    "조달청 납품요구·입찰 가능성을 먼저 확인한 뒤 지역업체 대안으로 검토합니다."
+                )
+
         route_cards.append({
             "route_id": getattr(card, "route_id", ""),
             "label": getattr(card, "title", ""),
-            "status": getattr(card, "status", ""),
-            "route_priority": getattr(card, "route_priority", ""),
-            "reason": getattr(card, "practical_meaning", ""),
+            "status": status,
+            "route_priority": route_priority,
+            "reason": reason,
             "required_checks": list(getattr(card, "required_checks", []) or []),
-            "practical_note": f"예산 {_format_krw_short(budget_krw)} 기준: {getattr(card, 'user_label', '')}",
+            "practical_note": f"예산 {_format_krw_short(budget_krw)} 기준: {user_label}",
             "next_actions": list(getattr(card, "required_checks", []) or [])[:3],
             "legal_refs": list(getattr(card, "legal_refs", ()) or ()),
             "display_policy": getattr(card, "display_policy", "show"),
             "exclusion_reason": getattr(card, "exclusion_reason", ""),
+            "basis_level": basis_level if route_id in {"third_party_unit_price", "shopping_mall_mas"} else "",
+            "basis_explanation": basis_explanation if route_id in {"third_party_unit_price", "shopping_mall_mas"} else "",
         })
+    if has_confirmed_contract and not has_local_shopping_supplier:
+        route_cards.append({
+            "route_id": "local_company_alternative",
+            "label": "지역업체 대안 검토",
+            "status": "candidate_found",
+            "route_priority": "secondary",
+            "reason": (
+                "조달청 단가계약 또는 쇼핑몰 계약경로 확인 대상이어도 부산 공급업체가 확인되지 않으면 "
+                "조달청을 통한 입찰 가능성, 지역업체 직접계약, 2인 이상 견적, 지역제한 입찰, 정책기업·인증제품 경로를 대안으로 비교합니다."
+            ),
+            "required_checks": ["조달청 입찰 가능 여부", "직접계약 가능 여부", "2인 이상 견적 가능 여부", "지역제한 입찰 가능 여부", "정책기업·인증제품 증빙"],
+            "practical_note": f"예산 {_format_krw_short(budget_krw)} 기준: 부산 쇼핑몰 공급업체 미확인 시 대안",
+            "next_actions": ["조달등록 부산업체 취급품목 확인", "정책기업·직접생산·인증제품 근거 확인", "입찰 또는 견적 방식 검토"],
+            "legal_refs": ["지방계약법 시행령 제25조", "지방계약법 시행령 제30조", "지방계약법 시행규칙 제24조"],
+            "display_policy": "show",
+            "exclusion_reason": "",
+            "basis_level": "local_vendor_alternative",
+            "basis_explanation": "부산 쇼핑몰 공급업체가 없을 때 지역업체 활용 가능성을 닫지 않기 위한 대안 카드입니다.",
+        })
+        route_cards.sort(
+            key=lambda item: (
+                priority_order.get(str(item.get("route_priority")), 9),
+                route_order.get(str(item.get("route_id")), 80),
+                str(item.get("route_id", "")),
+            )
+        )
     return route_cards
 
 
@@ -3368,7 +4232,14 @@ def _vendor_purchase_route_guidance(
     budget_krw: int | None = None,
 ) -> dict[str, object]:
     requirements = _vendor_policy_route_requirements(product_policy_checks)
+    contract_signal = _vendor_policy_contract_signal(product_policy_checks, rows)
+    basis_level = str(contract_signal["basis_level"])
+    has_confirmed_contract = bool(contract_signal["has_confirmed_contract"])
+    has_registered_item = int(contract_signal["registered_count"] or 0) > 0
+    has_local_shopping_supplier = bool(contract_signal["has_local_shopping_supplier"])
     construction_terms = _vendor_requested_construction_terms(q)
+    contract_object = _vendor_contract_object_for_route(q, construction_terms)
+    service_route_primary = contract_object == "service"
     construction_route_primary = bool(construction_terms) and not _vendor_has_construction_material_intent(q)
     row_has_direct = any(
         _vendor_is_truthy(row.get("direct_production_match"))
@@ -3401,6 +4272,26 @@ def _vendor_purchase_route_guidance(
         or _vendor_is_truthy(row.get("policy_subtypes"))
         for row in rows
     )
+    row_has_certified = any(
+        _vendor_is_truthy(row.get("certified_product_labels"))
+        or _vendor_is_truthy(row.get("certified_product_types"))
+        or _vendor_is_truthy(row.get("certified_product_summary"))
+        for row in rows
+    )
+    row_has_cooperative = any(
+        _vendor_contains_any(
+            row,
+            ["procurement_attributes", "policy_subtypes", "candidate_types", "cooperative_purchase_route_label"],
+            ("coop", "cooperative", "협동조합", "조합추천", "소기업공동", "small_business_collective"),
+        )
+        for row in rows
+    )
+    direct_contract_support_count = sum(
+        1
+        for row in rows
+        if _vendor_direct_contract_support(row)[0] > 0
+    )
+    direct_contract_preferred = not has_confirmed_contract or not has_local_shopping_supplier
 
     route_cards: list[dict[str, object]] = []
 
@@ -3412,6 +4303,9 @@ def _vendor_purchase_route_guidance(
         required_checks: list[str],
         practical_note: str = "",
         next_actions: list[str] | None = None,
+        route_priority: str = "",
+        basis_level_override: str = "",
+        basis_explanation: str = "",
     ) -> None:
         route_cards.append({
             "route_id": route_id,
@@ -3421,7 +4315,42 @@ def _vendor_purchase_route_guidance(
             "required_checks": required_checks,
             "practical_note": practical_note,
             "next_actions": next_actions or [],
+            "route_priority": route_priority,
+            "basis_level": basis_level_override,
+            "basis_explanation": basis_explanation,
         })
+
+    def add_direct_contract_support_card() -> None:
+        if not direct_contract_preferred or not direct_contract_support_count:
+            return
+        if any(str(card.get("route_id")) == "regional_direct_contract_support" for card in route_cards):
+            return
+        support_labels = []
+        if row_has_policy:
+            support_labels.append("정책기업")
+        if row_has_certified:
+            support_labels.append("기술개발/인증제품")
+        if row_has_cooperative:
+            support_labels.append("조합추천/공동사업")
+        if row_has_direct:
+            support_labels.append("직접생산")
+        reason_prefix = (
+            "현재 DB에서 조달청 단가계약 경로가 확정되지 않아"
+            if not has_confirmed_contract
+            else "조달청 계약경로는 확인되지만 부산 쇼핑몰 공급업체가 확인되지 않아"
+        )
+        add_card(
+            "regional_direct_contract_support",
+            "지역업체 직접계약 지원 근거",
+            "candidate_found",
+            f"{reason_prefix} 정책기업·기술개발제품·조합추천·직접생산 등 수의계약 또는 지역업체 활용 근거가 있는 후보를 우선 비교합니다.",
+            ["수의계약 가능 금액", "정책기업/인증제품/조합추천 증빙", "직접생산확인증명서 세부품명", "발주기관 적용 법령", "가격 적정성"],
+            f"확인된 지원 근거: {', '.join(support_labels) if support_labels else '후보별 세부 근거 확인 필요'}",
+            ["후보표의 구매 지원 근거와 증빙 유효기간 확인", "수의계약 한도와 1인/2인 견적 요건 확인", "조달청 구매 의무 대상이면 조달청 경로를 먼저 판단"],
+            route_priority="secondary",
+            basis_level_override="regional_direct_contract_support",
+            basis_explanation="조달청 우선 구매 대상이 명확하지 않거나 부산 쇼핑몰 공급업체가 없을 때 적용하는 지역업체 대안 판단입니다.",
+        )
 
     if construction_terms:
         add_card(
@@ -3432,26 +4361,89 @@ def _vendor_purchase_route_guidance(
             ["공사 종류", "요구 면허", "시공능력평가금액", "입찰공고/직접계약 가능 여부"],
             "공사는 품목 구매가 아니라 면허·실적·시공능력 기준으로 후보를 좁히는 경로입니다.",
             ["요구 면허와 시공능력평가금액을 먼저 확인", "공사 내용이 공사용자재 직접구매 대상과 연결되는지 별도 확인"],
+            route_priority="reference" if _vendor_has_construction_material_intent(q) else "primary",
         )
-    if requirements["has_mas_route"] or row_has_mas:
+    if service_route_primary and not has_confirmed_contract:
+        add_card(
+            "service_contract_review",
+            "용역 직접계약/입찰공고 검토",
+            "candidate_found" if rows else "needs_check",
+            "입력 질의가 용역으로 해석되며, 현재 DB 기준 조달청 단가계약/MAS 품목 근거가 확정되지 않았습니다.",
+            ["용역 범위", "업종·면허·인력 요건", "수행실적", "지역제한 가능 여부", "수의계약/입찰공고 가능 여부"],
+            "용역은 물품식별번호보다 과업 범위, 업종·면허, 수행실적, 발주기관 적용 법령을 먼저 확인해야 합니다.",
+            ["후보업체의 실제 수행 가능 용역 확인", "수의계약 가능 금액과 견적 요건 확인", "지역제한 또는 평가항목 적용 가능성 확인"],
+            route_priority="primary",
+        )
+    if requirements["has_mas_route"] or has_confirmed_contract or (row_has_mas and not service_route_primary):
+        if has_confirmed_contract:
+            mas_status = "candidate_found" if has_local_shopping_supplier else "no_local_supplier"
+            mas_reason = (
+                f"{contract_signal['basis_explanation']} "
+                "부산 쇼핑몰 공급업체 근거가 있으면 조달청 종합쇼핑몰/MAS 계약경로를 먼저 확인합니다."
+                if has_local_shopping_supplier
+                else f"{contract_signal['basis_explanation']} 다만 현재 부산 쇼핑몰 공급업체 근거가 확인되지 않으므로 조달청 입찰 가능성과 지역업체 대안 경로도 함께 검토합니다."
+            )
+            mas_priority = "primary" if has_local_shopping_supplier else "secondary"
+        elif row_has_mas:
+            mas_status = "candidate_evidence_only"
+            mas_reason = "후보업체 DB에 MAS 근거가 있으나 품목 마스터 기준 계약유형 확정 근거는 추가 확인이 필요합니다."
+            mas_priority = "secondary"
+        else:
+            mas_status = "policy_only"
+            mas_reason = "제3자단가계약 또는 다수공급자계약 가능성이 있으면 조달청 종합쇼핑몰/MAS 구매 경로를 검토합니다."
+            mas_priority = "secondary"
         add_card(
             "mas",
             "MAS/다수공급자계약",
-            "candidate_found" if row_has_mas else "policy_only",
-            "제3자단가계약 또는 다수공급자계약 근거가 있으면 조달청 종합쇼핑몰/MAS 구매 경로를 우선 검토합니다.",
+            mas_status,
+            mas_reason,
             ["제3자단가계약 여부", "MAS 계약상태", "계약기간", "납품조건", "2단계 경쟁 필요 여부"],
             "금액·품목 조건에 따라 바로구매 또는 2단계 경쟁으로 갈라질 수 있으므로 물품식별번호와 계약조건 확인이 필요합니다.",
             ["조달청 종합쇼핑몰에서 동일 세부품명 검색", "2단계 경쟁 대상 금액인지 확인", "부산업체의 MAS 계약 유효 여부 확인"],
+            route_priority=mas_priority,
+            basis_level_override=basis_level,
+            basis_explanation=str(contract_signal["basis_explanation"]),
         )
-    if requirements["has_shopping_route"] or row_has_shopping:
+    if requirements["has_shopping_route"] or has_registered_item or (row_has_shopping and not service_route_primary):
+        if has_registered_item and not has_confirmed_contract:
+            shopping_status = "registered_only"
+            shopping_reason = (
+                f"{contract_signal['basis_explanation']} 등록 사실만으로 조달청 구매 의무나 쇼핑몰 우선구매를 단정하지 말고 "
+                "계약유형, 물품식별번호, 기관유형을 확인해야 합니다."
+            )
+            shopping_priority = "secondary"
+        elif row_has_shopping and not has_confirmed_contract:
+            shopping_status = "candidate_evidence_only"
+            shopping_reason = "후보업체 DB에 쇼핑몰 등록 근거가 있으나 품목 계약유형은 조달청 원천자료로 확인해야 합니다."
+            shopping_priority = "secondary"
+        else:
+            shopping_status = "candidate_found" if row_has_shopping else "policy_only"
+            shopping_reason = "종합쇼핑몰 등록 상품이면 조달청 쇼핑몰 구매 또는 수의계약 성격의 바로구매 가능성을 검토할 수 있습니다."
+            shopping_priority = "secondary"
         add_card(
             "shopping_mall",
             "종합쇼핑몰 구매",
-            "candidate_found" if row_has_shopping else "policy_only",
-            "종합쇼핑몰 등록 상품이면 조달청 쇼핑몰 구매 또는 수의계약 성격의 바로구매 가능성을 검토할 수 있습니다.",
+            shopping_status,
+            shopping_reason,
             ["쇼핑몰 등록상태", "물품식별번호", "가격/규격", "납품 가능지역"],
             "지역업체가 쇼핑몰에 등록돼 있으면 담당자가 별도 공고 없이 구매 가능한지 확인하기 쉬운 근거가 됩니다.",
             ["부산업체 등록 상품 여부 확인", "가격·규격·납품 가능지역 확인", "동일 품목의 타지역 상품과 비교"],
+            route_priority=shopping_priority,
+            basis_level_override=basis_level,
+            basis_explanation=str(contract_signal["basis_explanation"]),
+        )
+    if has_confirmed_contract and not has_local_shopping_supplier:
+        add_card(
+            "local_company_alternative",
+            "지역업체 대안 검토",
+            "candidate_found",
+            "조달청 단가계약 또는 쇼핑몰 계약경로 확인 대상이어도 부산 공급업체가 확인되지 않으면 조달청 입찰 가능성과 지역업체 직접계약·견적·입찰 가능성을 함께 봅니다.",
+            ["조달청 입찰 가능 여부", "직접계약 가능 여부", "2인 이상 견적 가능 여부", "지역제한 입찰 가능 여부", "정책기업·인증제품 증빙"],
+            "부산 쇼핑몰 공급업체 미확인 시 지역업체 후보를 닫지 않고 대안으로 비교합니다.",
+            ["조달등록 부산업체 취급품목 확인", "정책기업·직접생산·인증제품 근거 확인", "입찰 또는 견적 방식 검토"],
+            route_priority="secondary",
+            basis_level_override="local_vendor_alternative",
+            basis_explanation="부산 쇼핑몰 공급업체가 없을 때 지역업체 활용 가능성을 검토하기 위한 대안입니다.",
         )
     if requirements["is_sme_competition_product"] or requirements["requires_direct_production"]:
         add_card(
@@ -3462,6 +4454,7 @@ def _vendor_purchase_route_guidance(
             ["중기간 경쟁제품 해당 여부", "직접생산확인증명서", "세부품명 일치", "유효기간"],
             "직접생산이 필요한 품목에서 증명서가 없는 업체는 상위 후보라도 계약 전 검토 대상에서 제외될 수 있습니다.",
             ["세부품명 기준 중기간 경쟁제품 여부 확인", "직접생산확인증명서 유효기간 확인", "조합추천·공동사업 적용 가능성 확인"],
+            route_priority="secondary",
         )
     if row_has_policy:
         add_card(
@@ -3472,6 +4465,7 @@ def _vendor_purchase_route_guidance(
             ["정책기업 유형", "인증 유효기간", "수의계약 한도", "발주기관 적용 법령"],
             "정책기업 여부는 구매 편의성을 높이는 보조 근거이며, 최종 가능 여부는 금액·계약목적·발주기관 법령에 따라 달라집니다.",
             ["정책기업 유형과 유효기간 확인", "국가계약/지방계약 적용 여부 확인", "동일 품목 공급 가능성 확인"],
+            route_priority="secondary",
         )
     if requirements["has_facility_material_price"]:
         add_card(
@@ -3482,6 +4476,7 @@ def _vendor_purchase_route_guidance(
             ["가격 기준일", "규격 일치", "공사용자재 직접구매 대상 여부"],
             "가격정보는 후보업체 확정 근거가 아니라 설계·예정가격·품목 식별을 보조하는 참고자료입니다.",
             ["동일 규격 가격정보 확인", "공사용자재 직접구매 대상 여부 확인"],
+            route_priority="reference",
         )
 
     if not route_cards:
@@ -3493,6 +4488,9 @@ def _vendor_purchase_route_guidance(
             ["조달등록 여부", "면허/업종", "영업상태", "공고 조건"],
             "이 경우에는 조달등록 부산업체 후보를 기준으로 직접계약 가능성 또는 입찰공고 조건 설계를 검토합니다.",
             ["조달등록·영업상태 확인", "면허·업종과 실제 취급품목 확인", "공고 조건에 지역업체 참여 가능성을 반영할지 검토"],
+            route_priority="secondary",
+            basis_level_override=basis_level,
+            basis_explanation=str(contract_signal["basis_explanation"]),
         )
 
     budget_route_cards = _vendor_priority_route_cards(
@@ -3504,6 +4502,7 @@ def _vendor_purchase_route_guidance(
     )
     if budget_route_cards:
         route_cards = budget_route_cards
+    add_direct_contract_support_card()
 
     priority = {
         "candidate_found": 0,
@@ -3523,6 +4522,8 @@ def _vendor_purchase_route_guidance(
         "mas": 0,
         "shopping_mall": 1,
         "two_quote_small_value": 2,
+        "local_company_alternative": 2,
+        "regional_direct_contract_support": 2,
         "sme_direct_production": 2,
         "sme_competition_direct_production": 3,
         "policy_company_one_quote": 4,
@@ -3530,6 +4531,7 @@ def _vendor_purchase_route_guidance(
         "general_small_value_direct": 5,
         "facility_material_price": 4,
         "construction_license": 6,
+        "service_contract_review": 6,
         "local_company_competitive": 7,
         "technology_development_product": 8,
         "innovation_product": 9,
@@ -3558,6 +4560,8 @@ def _vendor_purchase_route_guidance(
         badges.append({"label": "쇼핑몰 등록 근거 있음", "tone": "info"})
     if row_has_policy:
         badges.append({"label": "정책기업 수의계약 검토", "tone": "good"})
+    if direct_contract_preferred and direct_contract_support_count:
+        badges.append({"label": "지역업체 직접계약 근거 있음", "tone": "good"})
     if requirements["has_facility_material_price"]:
         badges.append({"label": "시설자재 가격정보 매칭", "tone": "neutral"})
     if not badges:
@@ -3577,11 +4581,19 @@ def _vendor_purchase_route_guidance(
         "required_checks": required_checks,
         "ranking_basis": [
             "입력 품목/면허와 직접 일치하는 업체",
+            "품목 마스터의 계약유형이 확인된 경우 해당 조달청 경로에 맞는 업체",
+            "부산 쇼핑몰 공급업체가 없을 경우 직접계약·견적·입찰 대안으로 검토 가능한 지역업체",
+            "조달청 우선경로가 확정되지 않은 경우 정책기업·기술개발제품·조합추천 등 수의계약 지원 근거가 있는 업체",
             "지역업체 구매 지원 근거(MAS/쇼핑몰/직접생산/시공능력)가 있는 업체",
             "정상 영업 상태와 부산 본사 근거가 확인되는 업체",
             "정책기업·인증제품 등 계약 편의성이 있는 업체",
         ],
         "item_policy_status": item_policy_summary.get("status"),
+        "purchase_route_basis_level": basis_level,
+        "purchase_route_basis_label": contract_signal["basis_label"],
+        "purchase_route_basis_explanation": contract_signal["basis_explanation"],
+        "shopping_mall_busan_supplier_count": contract_signal["busan_supplier_count"],
+        "shopping_mall_active_registered_count": contract_signal["registered_count"],
         "legal_notice": "구매방식 안내는 후보 정보입니다. 최종 계약 가능 여부, 수의계약 가능 한도, 법령 해석은 별도 계약검토/법령해석 절차에서 확인해야 합니다.",
     }
 
@@ -3706,7 +4718,21 @@ def _vendor_recommendation_rows(q: str, *, region: str = "부산", limit: int = 
     if _vendor_query_has_any(q, ("벤처나라", "거래실적", "구매실적", "납품실적", "주문거래")):
         pool_limit = max(pool_limit, min(max(requested_limit + 25, 30), 100))
     raw_rows = _vendor_search_rows(q, region=region, limit=pool_limit)
+    if not _vendor_is_medical_vaccine_query(q):
+        company_db = _vendor_import_company_db()
+        history_rows = _vendor_contract_history_search_rows(company_db, q, region=region, limit=pool_limit)
+        if history_rows:
+            seen = {row.get("company_id") or row.get("company_name") for row in raw_rows}
+            for history_row in history_rows:
+                key = history_row.get("company_id") or history_row.get("company_name")
+                if not key or key in seen:
+                    continue
+                raw_rows.append(history_row)
+                seen.add(key)
+                if len(raw_rows) >= pool_limit:
+                    break
     rows = [_vendor_recommendation_row(row, budget_krw=budget_krw) for row in raw_rows]
+    rows = _vendor_apply_contract_history_evidence(rows, q)
     for row in rows:
         row["match_rank_score"] = _vendor_match_rank_score(row, q)
     rows.sort(
@@ -4158,6 +5184,19 @@ def vendor_recommendation_search_xlsx(
         content=content,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": 'attachment; filename="busan_vendor_recommendations.xlsx"'},
+    )
+
+
+@app.get("/vendor-recommendations/{company_id}/contract-history")
+def vendor_recommendation_contract_history(
+    company_id: str,
+    q: str = "",
+    limit: int = 20,
+):
+    payload = _vendor_contract_history_detail_payload(company_id, q=q, limit=limit)
+    return JSONResponse(
+        content=payload,
+        media_type="application/json; charset=utf-8",
     )
 
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -33,6 +34,9 @@ _PRODUCT_ALIASES = {
     "빔프로젝터": ["비디오프로젝터", "빔프로젝터", "빔프로젝트", "프로젝터", "슬라이드프로젝터"],
     "빔프로젝트": ["비디오프로젝터", "빔프로젝터", "빔프로젝트", "프로젝터", "슬라이드프로젝터"],
     "프로젝터": ["비디오프로젝터", "빔프로젝터", "빔프로젝트", "프로젝터", "슬라이드프로젝터"],
+    "스텐밴드": ["스텐밴드", "스테인리스밴드", "스텐레스밴드", "스테인레스밴드", "스테인리스 밴드", "스텐 밴드"],
+    "스테인리스밴드": ["스텐밴드", "스테인리스밴드", "스텐레스밴드", "스테인레스밴드", "스테인리스 밴드"],
+    "스텐레스밴드": ["스텐밴드", "스테인리스밴드", "스텐레스밴드", "스테인레스밴드"],
 }
 
 _POLICY_ALIASES = {
@@ -357,6 +361,22 @@ def _object_exists(conn: sqlite3.Connection, name: str) -> bool:
     return row is not None
 
 
+def _preferred_object(conn: sqlite3.Connection, preferred: str, fallback: str) -> str | None:
+    """Return a materialized search table when present, otherwise the canonical view.
+
+    product_policy_summary and pps_shopping_mall_item_policy_summary are views
+    backed by several aggregate joins. They are correct as canonical definitions,
+    but too slow for interactive dashboard search. The monitoring pipeline can
+    materialize *_fast tables in the same read-only snapshot; use them first and
+    keep the view fallback for older DB snapshots.
+    """
+    if _object_exists(conn, preferred):
+        return preferred
+    if _object_exists(conn, fallback):
+        return fallback
+    return None
+
+
 def _columns(conn: sqlite3.Connection, name: str) -> set[str]:
     return {str(row[1]) for row in conn.execute(f"PRAGMA table_info({name})").fetchall()}
 
@@ -505,15 +525,30 @@ def _company_item_evidence_terms(terms: list[str]) -> list[str]:
     return cleaned[:20]
 
 
+def _company_item_evidence_code_term(term: str) -> bool:
+    return bool(re.fullmatch(r"[0-9A-Za-z][0-9A-Za-z\-]{3,24}", str(term or "").strip()))
+
+
 def _company_item_evidence_where(columns: list[str], terms: list[str]) -> tuple[str, list[Any]]:
     parts: list[str] = []
     params: list[Any] = []
     for term in terms:
+        code_like = _company_item_evidence_code_term(term)
+        if code_like:
+            target_columns = [col for col in columns if "code" in col.lower()]
+            if not target_columns:
+                target_columns = columns
+        else:
+            target_columns = columns
         like = f"%{term}%"
         term_parts: list[str] = []
-        for col in columns:
-            term_parts.append(f"IFNULL({col}, '') LIKE ?")
-            params.append(like)
+        for col in target_columns:
+            if code_like and len(str(term).strip()) >= 9:
+                term_parts.append(f"IFNULL({col}, '') = ?")
+                params.append(term)
+            else:
+                term_parts.append(f"IFNULL({col}, '') LIKE ?")
+                params.append(like)
         parts.append("(" + " OR ".join(term_parts) + ")")
     if not parts:
         return "1=0", []
@@ -678,8 +713,8 @@ def search_product_policy(keyword: str, *, limit: int = 5) -> dict[str, Any] | N
     if conn is None:
         return None
     try:
-        view_name = "product_policy_summary"
-        if not _object_exists(conn, view_name):
+        view_name = _preferred_object(conn, "product_policy_summary_fast", "product_policy_summary")
+        if not view_name:
             return None
         available = _columns(conn, view_name)
         search_columns = [
@@ -743,8 +778,8 @@ def search_shopping_mall_item_policy(keyword: str, *, limit: int = 5) -> dict[st
     if conn is None:
         return None
     try:
-        view_name = "pps_shopping_mall_item_policy_summary"
-        if not _object_exists(conn, view_name):
+        view_name = _preferred_object(conn, "pps_shopping_mall_item_policy_summary_fast", "pps_shopping_mall_item_policy_summary")
+        if not view_name:
             return None
         available = _columns(conn, view_name)
         search_columns = [

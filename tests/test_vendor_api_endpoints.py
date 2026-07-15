@@ -4,7 +4,7 @@ import sqlite3
 from fastapi.testclient import TestClient
 from types import SimpleNamespace
 
-from app import api_server
+from app import api_server, company_db
 
 
 def _sample_vendor_row():
@@ -185,10 +185,11 @@ def test_vendor_recommendation_search_endpoint(monkeypatch):
     assert "직접생산증명서" in body["item_policy_summary"]["direct_production_certificate"]
     assert "조합추천" in body["item_policy_summary"]["cooperative_purchase_route"]
     assert body["product_policy_checks"][0]["detail_product_code"] == "123"
-    assert body["purchase_route_guidance"]["primary_route"]["route_id"] == "shopping_mall_mas"
-    assert body["purchase_route_guidance"]["primary_route"]["route_priority"] == "primary"
-    assert "예산 4,500만원 기준" in body["purchase_route_guidance"]["primary_route"]["practical_note"]
-    assert "2단계" in body["purchase_route_guidance"]["primary_route"]["reason"]
+    assert body["purchase_route_guidance"]["primary_route"]["route_id"] == "two_quote_small_value"
+    assert body["purchase_route_guidance"]["purchase_route_basis_level"] == "no_central_procurement_evidence"
+    mas_card = next(card for card in body["purchase_route_guidance"]["route_cards"] if card["route_id"] == "shopping_mall_mas")
+    assert mas_card["route_priority"] == "reference"
+    assert "계약유형 확인 필요" in mas_card["practical_note"]
     assert body["purchase_route_guidance"]["required_checks"]
     assert "purchase_route_fit_summary" in body["rows"][0]
 
@@ -251,7 +252,7 @@ def test_vendor_purchase_route_guidance_prioritizes_direct_and_mas_requirements(
     assert "직접생산 확인 필요" in badge_labels
 
 
-def test_vendor_purchase_route_guidance_uses_budget_for_desktop_mas_priority():
+def test_vendor_purchase_route_guidance_does_not_promote_desktop_mas_without_contract_type():
     rows = [
         api_server._vendor_recommendation_row({
             **_sample_vendor_row(),
@@ -277,10 +278,11 @@ def test_vendor_purchase_route_guidance_uses_budget_for_desktop_mas_priority():
         budget_krw=60_000_000,
     )
 
-    assert guidance["primary_route"]["route_id"] == "shopping_mall_mas"
-    assert guidance["primary_route"]["route_priority"] == "primary"
-    assert "1억원" in guidance["primary_route"]["reason"]
-    assert "예산 6,000만원 기준" in guidance["primary_route"]["practical_note"]
+    assert guidance["primary_route"]["route_id"] == "two_quote_small_value"
+    mas_card = next(card for card in guidance["route_cards"] if card["route_id"] == "shopping_mall_mas")
+    assert mas_card["route_priority"] == "reference"
+    assert mas_card["basis_level"] == "no_central_procurement_evidence"
+    assert "계약유형 확인 필요" in mas_card["practical_note"]
 
 
 def test_vendor_purchase_route_guidance_promotes_confirmed_third_party_unit_price():
@@ -383,6 +385,7 @@ def test_vendor_purchase_route_guidance_keeps_material_purchase_on_mas_route():
     guidance = api_server._vendor_purchase_route_guidance("도로포장 자재 구매 부산업체", rows, [], {"status": "matched"})
 
     assert guidance["primary_route"]["route_id"] == "mas"
+    assert guidance["primary_route"]["status"] == "candidate_evidence_only"
     assert guidance["title"] == "MAS/다수공급자계약"
 
 
@@ -798,6 +801,41 @@ def test_vendor_query_tokens_include_normalized_item_aliases():
     assert "영상감시장치" in cctv_tokens
 
 
+def test_vendor_evidence_search_terms_prefer_policy_codes_before_broad_terms():
+    terms = api_server._vendor_evidence_search_terms(
+        "비디오프로젝터 구매 업체",
+        [{
+            "detail_product_code": "4511161601",
+            "detail_product_name": "비디오프로젝터",
+            "matched_policy_keyword": "프로젝터",
+            "shopping_mall_product_class_code": "45111616",
+        }],
+    )
+
+    assert terms[:2] == ["4511161601", "45111616"]
+    assert terms.index("4511161601") < terms.index("비디오프로젝터")
+
+
+def test_company_item_evidence_where_uses_code_columns_for_code_terms():
+    where_sql, params = company_db._company_item_evidence_where(
+        ["d.detail_product_name", "d.detail_product_code"],
+        ["4511161601", "비디오프로젝터"],
+    )
+
+    assert "IFNULL(d.detail_product_code, '') = ?" in where_sql
+    assert "IFNULL(d.detail_product_name, '') = ?" not in where_sql
+    assert "4511161601" in params
+    assert "%4511161601%" not in params
+    assert "%비디오프로젝터%" in params
+
+
+def test_company_db_product_aliases_include_stainless_band_variants():
+    terms = company_db._terms("스텐레스밴드", "product")
+
+    assert "스텐밴드" in terms
+    assert "스테인리스밴드" in terms
+
+
 def test_vendor_product_policy_checks_use_normalized_product_terms(monkeypatch):
     calls = []
 
@@ -847,6 +885,79 @@ def test_vendor_product_policy_checks_prefer_db_adapter(monkeypatch):
     assert checks[0]["detail_product_code"] == "3911160301"
     assert checks[0]["matched_policy_keyword"] == "LED"
     assert checks[0]["matched_policy_source"] == "product_policy_summary"
+
+
+def test_vendor_product_policy_checks_short_circuit_after_first_single_item_match(monkeypatch):
+    calls = []
+
+    def fake_search_product_policy(keyword, limit=5):
+        calls.append(keyword)
+        return {
+            "meta": {"source": "product_policy_summary"},
+            "candidates": [{
+                "detail_product_code": "4617161001",
+                "detail_product_name": "영상감시장치",
+                "is_sme_competition_product": "1",
+            }],
+        }
+
+    fake_company_db = SimpleNamespace(
+        search_facility_material_policy=lambda keyword, limit=5: {"candidates": []},
+        search_shopping_mall_item_policy=lambda keyword, limit=5: {
+            "candidates": [{
+                "detail_product_code": "4617161001",
+                "detail_product_name": "영상감시장치",
+                "active_busan_supplier_count": "2",
+            }]
+        },
+        search_product_policy=fake_search_product_policy,
+    )
+    monkeypatch.setattr(api_server, "_vendor_import_company_db", lambda: fake_company_db)
+
+    checks = api_server._vendor_product_policy_checks("CCTV 구매 업체", limit=5)
+
+    assert checks[0]["detail_product_name"] == "영상감시장치"
+    assert calls == ["CCTV"]
+
+
+def test_vendor_product_policy_checks_continue_fast_mall_aliases_without_repeating_slow_policy(monkeypatch):
+    policy_calls = []
+    mall_calls = []
+
+    def fake_search_product_policy(keyword, limit=5):
+        policy_calls.append(keyword)
+        return {
+            "meta": {"source": "product_policy_summary"},
+            "candidates": [{
+                "detail_product_code": "4617161001",
+                "detail_product_name": "영상감시장치",
+                "is_sme_competition_product": "1",
+            }],
+        }
+
+    def fake_search_shopping_mall_item_policy(keyword, limit=5):
+        mall_calls.append(keyword)
+        busan_count = "3" if keyword == "보안캠" else "0"
+        return {
+            "candidates": [{
+                "detail_product_code": "4617161001",
+                "detail_product_name": "영상감시장치",
+                "active_busan_supplier_count": busan_count,
+            }]
+        }
+
+    fake_company_db = SimpleNamespace(
+        search_facility_material_policy=lambda keyword, limit=5: {"candidates": []},
+        search_shopping_mall_item_policy=fake_search_shopping_mall_item_policy,
+        search_product_policy=fake_search_product_policy,
+    )
+    monkeypatch.setattr(api_server, "_vendor_import_company_db", lambda: fake_company_db)
+
+    checks = api_server._vendor_product_policy_checks("CCTV 구매 업체", limit=5)
+
+    assert policy_calls == ["CCTV"]
+    assert "보안캠" in mall_calls
+    assert any(item.get("shopping_mall_active_busan_supplier_count") == "3" for item in checks)
 
 
 def test_monitoring_api_fallback_uses_short_circuit_after_failure(monkeypatch):
@@ -1055,3 +1166,120 @@ def test_vendor_product_policy_check_gate_skips_service_queries():
     assert api_server._vendor_should_check_product_policy("데스크톱 컴퓨터 납품 업체") is True
     assert api_server._vendor_should_check_product_policy("번역용역 부산 업체") is False
     assert api_server._vendor_should_check_product_policy("청사 경비용역 부산 업체") is False
+
+
+def test_vendor_item_evidence_prioritizes_direct_production_for_sme_competition(monkeypatch):
+    monkeypatch.setattr(api_server, "_vendor_import_company_db", lambda: SimpleNamespace())
+    direct_vendor = {
+        **_sample_vendor_row(),
+        "company_id": "direct",
+        "company_name": "직접생산보유",
+        "direct_production_summary": "데스크톱컴퓨터 / 직접생산 / valid",
+        "policy_subtypes": "",
+        "certified_product_types": "",
+        "has_mas": "",
+        "has_shopping_mall": "",
+    }
+    generic_vendor = {
+        **_sample_vendor_row(),
+        "company_id": "generic",
+        "company_name": "일반후보",
+        "direct_production_summary": "",
+        "direct_production_flags": "",
+        "policy_subtypes": "",
+        "certified_product_types": "",
+        "has_mas": "",
+        "has_shopping_mall": "",
+    }
+    product_policy = [{
+        "detail_product_name": "데스크톱컴퓨터",
+        "is_sme_competition_product": "1",
+        "direct_production_valid_supplier_count": "5",
+    }]
+
+    rows = api_server._vendor_apply_item_evidence([generic_vendor, direct_vendor], "데스크탑 구매", product_policy)
+
+    assert rows[0]["company_id"] == "direct"
+    assert "직접생산" in rows[0]["purchase_route_fit_summary"]
+    assert "직접생산 근거 미확인" in rows[-1]["purchase_route_fit_summary"]
+
+
+def test_vendor_item_evidence_prioritizes_direct_contract_support_when_no_central_route(monkeypatch):
+    monkeypatch.setattr(api_server, "_vendor_import_company_db", lambda: SimpleNamespace())
+    generic_vendor = {
+        **_sample_vendor_row(),
+        "company_id": "generic",
+        "company_name": "일반후보",
+        "policy_subtypes": "",
+        "certified_product_types": "",
+        "certified_product_summary": "",
+        "procurement_attributes": "",
+        "direct_production_summary": "",
+        "direct_production_flags": "",
+        "has_mas": "",
+        "has_shopping_mall": "",
+    }
+    supported_vendor = {
+        **generic_vendor,
+        "company_id": "supported",
+        "company_name": "지원근거보유",
+        "policy_subtypes": "women_company",
+        "certified_product_types": "performance_certification",
+        "certified_product_summary": "사무용품 / 성능인증 / valid",
+        "procurement_attributes": "cooperative_purchase",
+    }
+
+    rows = api_server._vendor_apply_item_evidence([generic_vendor, supported_vendor], "사무용품 구매", [])
+
+    assert rows[0]["company_id"] == "supported"
+    assert "지역업체 직접계약 지원 근거" in rows[0]["purchase_route_fit_summary"]
+    assert "수의계약 지원 근거 미확인" in rows[-1]["purchase_route_fit_summary"]
+
+
+def test_vendor_purchase_route_guidance_adds_regional_direct_contract_support_card():
+    rows = [{
+        **_sample_vendor_row(),
+        "policy_company_labels": "여성기업",
+        "policy_subtypes": "women_company",
+        "certified_product_labels": "성능인증",
+        "certified_product_types": "performance_certification",
+        "cooperative_purchase_route_label": "조합추천/소기업 공동사업제품 경로 검토 가능성",
+    }]
+
+    guidance = api_server._vendor_purchase_route_guidance(
+        "사무용품 구매",
+        rows,
+        [],
+        {"status": "확인 필요"},
+        budget_krw=30_000_000,
+    )
+    cards = {card["route_id"]: card for card in guidance["route_cards"]}
+
+    assert "regional_direct_contract_support" in cards
+    assert cards["regional_direct_contract_support"]["route_priority"] == "secondary"
+    assert "정책기업" in cards["regional_direct_contract_support"]["practical_note"]
+
+
+def test_vendor_purchase_route_guidance_does_not_promote_generic_mas_for_service_query():
+    rows = [
+        api_server._vendor_recommendation_row({
+            **_sample_vendor_row(),
+            "company_id": "cleaning",
+            "company_name": "청소후보",
+            "main_products": "청소용역",
+            "mas_product_summary": "과거 MAS 근거",
+            "shopping_mall_product_summary": "과거 쇼핑몰 근거",
+            "has_mas": "true",
+            "has_shopping_mall": "true",
+        })
+    ]
+
+    guidance = api_server._vendor_purchase_route_guidance(
+        "청소용역 업체",
+        rows,
+        [],
+        {"status": "not_requested"},
+    )
+
+    assert guidance["primary_route"]["route_id"] == "service_contract_review"
+    assert all(card["route_id"] != "mas" for card in guidance["route_cards"])
