@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>지능형 지역상생 계약 지원 시스템 | 지역업체 후보 조회</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=20260715-candidate-hero-grid" />
   </head>
   <body>
     <div class="app-shell">
@@ -235,33 +235,50 @@
 
     <template id="candidate-template">
       <article class="candidate-card">
-        <div class="rank"></div>
-        <div class="candidate-body">
-          <div class="candidate-title">
-            <div>
-              <h3 class="candidate-name"></h3>
-              <p class="candidate-location"></p>
-            </div>
+        <header class="candidate-hero">
+          <div class="candidate-hero-top">
+            <div class="rank"></div>
             <div class="score-box">
               <span class="basis-level"></span>
-              <strong class="score-pill"></strong>
             </div>
           </div>
-          <div class="badge-row card-badges"></div>
-          <div class="evidence-grid"></div>
-          <div class="check-panel">
-            <strong>확인 필요사항</strong>
-            <ul class="check-list"></ul>
+          <div class="candidate-title">
+            <h3 class="candidate-name"></h3>
+            <p class="candidate-location"></p>
           </div>
-          <details>
-            <summary>원문 속성 보기</summary>
-            <dl class="raw-grid">
-              <div><dt>주요 품목</dt><dd class="main-products"></dd></div>
-              <div><dt>면허·업종</dt><dd class="licenses"></dd></div>
-              <div><dt>조달 근거</dt><dd class="procurement-evidence"></dd></div>
-              <div><dt>추천 확인사항</dt><dd class="checks"></dd></div>
-            </dl>
+          <div class="candidate-score-line">
+            <span>검토점수</span>
+            <strong class="score-pill"></strong>
+          </div>
+        </header>
+        <div class="candidate-body">
+          <div class="badge-row card-badges"></div>
+          <div class="candidate-alert">
+            <div>
+              <span>계약 전 확인</span>
+              <strong class="candidate-alert-count"></strong>
+            </div>
+            <p class="candidate-alert-copy"></p>
+          </div>
+          <details class="candidate-details">
+            <summary>상세 근거 및 확인사항</summary>
+            <div class="candidate-details-body">
+              <h4>근거 상세</h4>
+              <div class="evidence-grid"></div>
+              <div class="check-panel">
+                <strong>확인 필요사항</strong>
+                <ul class="check-list"></ul>
+              </div>
+              <h4>원문 속성</h4>
+              <dl class="raw-grid">
+                <div><dt>주요 품목</dt><dd class="main-products"></dd></div>
+                <div><dt>면허·업종</dt><dd class="licenses"></dd></div>
+                <div><dt>조달 근거</dt><dd class="procurement-evidence"></dd></div>
+                <div><dt>추천 확인사항</dt><dd class="checks"></dd></div>
+              </dl>
+            </div>
           </details>
+          <div class="candidate-actions-slot"></div>
         </div>
       </article>
     </template>
@@ -281,6 +298,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260714-route-narrative"></script>
+    <script src="./app.js?v=20260715-candidate-hero-grid"></script>
   </body>
 </html>

@@ -867,21 +867,24 @@ async function showContractHistory(row) {
 
 function renderCandidate(row, index) {
   const node = els.template.content.cloneNode(true);
+  const card = node.querySelector(".candidate-card");
+  if (index === 0) card.classList.add("is-top");
   node.querySelector(".rank").innerHTML = `<span>후보</span><strong>${String(index + 1).padStart(2, "0")}</strong>`;
   node.querySelector(".candidate-name").textContent = valueText(row.company_name, "업체명 미확인");
   node.querySelector(".candidate-location").textContent = [row.location, row.detail_address].map((item) => valueText(item, "")).filter(Boolean).join(" · ") || "소재지 확인 필요";
   node.querySelector(".basis-level").textContent = basisLevel(row);
-  node.querySelector(".score-pill").textContent = row.review_score ? `검토점수 ${row.review_score}` : "점수 미산정";
+  const reviewScore = Number(row.review_score);
+  node.querySelector(".score-pill").textContent = Number.isFinite(reviewScore) && reviewScore > 0 ? reviewScore.toLocaleString("ko-KR") : "미산정";
 
   const badgeRow = node.querySelector(".card-badges");
-  buildBadges(row).forEach((item) => badgeRow.appendChild(item));
+  buildBadges(row).slice(0, 6).forEach((item) => badgeRow.appendChild(item));
 
   const featureStrip = document.createElement("div");
   featureStrip.className = "feature-strip";
-  compactFeatureTags(row).forEach(([label, value, tone]) => {
+  compactFeatureTags(row).slice(0, 4).forEach(([label, value, tone]) => {
     const item = document.createElement("div");
     item.className = `feature-pill ${tone}`;
-    item.innerHTML = `<span>${escapeHtml(label)}</span><strong title="${escapeHtml(value)}">${escapeHtml(truncate(value, 42))}</strong>`;
+    item.innerHTML = `<span>${escapeHtml(label)}</span><strong title="${escapeHtml(value)}">${escapeHtml(truncate(value, 54))}</strong>`;
     featureStrip.appendChild(item);
   });
   badgeRow.insertAdjacentElement("afterend", featureStrip);
@@ -897,8 +900,12 @@ function renderCandidate(row, index) {
     grid.appendChild(div);
   });
 
+  const checks = checkItems(row);
+  node.querySelector(".candidate-alert-count").textContent = `${checks.length.toLocaleString("ko-KR")}개`;
+  node.querySelector(".candidate-alert-copy").textContent = checks[0] || "최종 계약 가능 여부를 원천자료로 확인하세요.";
+
   const checkList = node.querySelector(".check-list");
-  checkItems(row).slice(0, 3).forEach((item) => {
+  checks.slice(0, 4).forEach((item) => {
     const li = document.createElement("li");
     li.textContent = item;
     checkList.appendChild(li);
@@ -910,7 +917,7 @@ function renderCandidate(row, index) {
     [directEvidence(row), masEvidence(row), shoppingEvidence(row), historyEvidence(row), policyEvidence(row)].filter(Boolean).join(" / ") || "조달 근거 확인 필요",
     260,
   );
-  node.querySelector(".checks").textContent = truncate(checkItems(row).join(" / "), 260);
+  node.querySelector(".checks").textContent = truncate(checks.join(" / "), 260);
 
   const actionRow = document.createElement("div");
   actionRow.className = "candidate-actions";
@@ -924,7 +931,7 @@ function renderCandidate(row, index) {
   historyMini.textContent = historySummaryText(row);
   actionRow.appendChild(historyButton);
   actionRow.appendChild(historyMini);
-  node.querySelector(".check-panel").insertAdjacentElement("afterend", actionRow);
+  node.querySelector(".candidate-actions-slot").appendChild(actionRow);
 
   return node;
 }
