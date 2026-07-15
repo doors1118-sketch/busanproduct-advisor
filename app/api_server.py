@@ -853,9 +853,44 @@ _VENDOR_ALIAS_TOKENS = {
     "출입통제시스템": ["출입통제시스템", "출입통제장치", "출입관리시스템", "출입통제", "출입관리", "출입보안시스템"],
 }
 
+_VENDOR_AMBIGUOUS_PRODUCT_RULES = (
+    {
+        "key": "telephone_type",
+        "generic_markers": ("전화기",),
+        "specific_markers": (
+            "유선전화",
+            "일반전화",
+            "휴대전화",
+            "휴대폰",
+            "스마트폰",
+            "무선전화",
+            "ip전화",
+            "인터넷전화",
+            "voip",
+        ),
+        "search_terms": ("유선전화기", "일반전화기", "휴대전화기", "IP전화기", "인터넷전화기", "전화기"),
+        "title": "전화기 종류 선택 필요",
+        "message": (
+            "'전화기'만으로는 유선전화기·휴대전화기·IP전화기 등 세부품명을 확정할 수 없습니다. "
+            "아래 세부품명 후보를 선택한 뒤 품목정책을 다시 판정해야 합니다."
+        ),
+    },
+)
+
 
 def _vendor_compact(value: str) -> str:
     return re.sub(r"\s+", "", str(value or "")).lower()
+
+
+def _vendor_item_disambiguation(q: str) -> dict[str, object] | None:
+    compact = _vendor_compact(q)
+    for rule in _VENDOR_AMBIGUOUS_PRODUCT_RULES:
+        if not any(_vendor_compact(marker) in compact for marker in rule["generic_markers"]):
+            continue
+        if any(_vendor_compact(marker) in compact for marker in rule["specific_markers"]):
+            continue
+        return dict(rule)
+    return None
 
 
 def _vendor_intent_text(q: str) -> str:
@@ -3394,6 +3429,35 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
 
     is_sme = any(sme_values)
     direct_count = max(direct_supplier_counts) if direct_supplier_counts else 0
+    disambiguation = _vendor_item_disambiguation(q)
+    if disambiguation:
+        selection_options = [
+            {
+                "detail_product_code": item["detail_product_code"],
+                "detail_product_name": item["detail_product_name"],
+                "selection_query": item["detail_product_name"],
+                "matched_policy_source": item["matched_policy_source"],
+            }
+            for item in matched_products
+            if item.get("detail_product_name")
+        ]
+        return {
+            "status": "needs_item_selection",
+            "query": q,
+            "message": str(disambiguation["message"]),
+            "selection_title": str(disambiguation["title"]),
+            "selection_required": True,
+            "selection_options": selection_options,
+            "sme_competition_product": "세부품명 선택 후 판정",
+            "direct_production_certificate": "세부품명 선택 후 판정",
+            "cooperative_purchase_route": "세부품명 선택 후 판정",
+            "shopping_mall_contract_basis_level": "item_selection_required",
+            "shopping_mall_contract_basis_label": "세부품명 선택 필요",
+            "shopping_mall_contract_basis_explanation": str(disambiguation["message"]),
+            "shopping_mall_busan_supplier_count": 0,
+            "shopping_mall_active_registered_count": 0,
+            "matched_products": matched_products,
+        }
     if is_sme:
         direct_label = "직접생산증명서 세부품명·유효기간 확인 필요"
         cooperative_label = "조합추천/소기업 공동사업제품 수의계약 경로 검토 가능"
@@ -3765,12 +3829,16 @@ def _vendor_product_policy_checks(q: str, *, limit: int = 5) -> list[dict[str, s
         elif source and not current_source:
             target["matched_policy_source"] = source
 
+    disambiguation = _vendor_item_disambiguation(q)
     terms: list[str] = []
-    for item in _vendor_query_plan(q):
-        if item.get("search_type") == "product":
-            term = " ".join(str(item.get("term") or "").split())
-            if term and term not in terms:
-                terms.append(term)
+    if disambiguation:
+        terms = [str(term) for term in disambiguation.get("search_terms", ()) if str(term).strip()]
+    else:
+        for item in _vendor_query_plan(q):
+            if item.get("search_type") == "product":
+                term = " ".join(str(item.get("term") or "").split())
+                if term and term not in terms:
+                    terms.append(term)
     if not terms:
         terms = [q]
     compact_q = _vendor_compact(q)
@@ -3873,6 +3941,7 @@ def _vendor_product_policy_checks(q: str, *, limit: int = 5) -> list[dict[str, s
         used_db_policy = False
         slow_policy_already_checked = (
             bool(checks)
+            and disambiguation is None
             and not _vendor_is_multi_condition_query(q)
             and any(
                 any(source in str(item.get("matched_policy_source") or "") for source in ("product_policy_summary", "monitoring_api"))
@@ -3952,7 +4021,7 @@ def _vendor_product_policy_checks(q: str, *, limit: int = 5) -> list[dict[str, s
                     pass
             if len(checks) >= max_checks:
                 return _vendor_sort_product_policy_checks(q, checks)
-        if checks and not _vendor_is_multi_condition_query(q):
+        if checks and disambiguation is None and not _vendor_is_multi_condition_query(q):
             contract_signal = _vendor_policy_contract_signal(checks)
             if contract_signal["busan_supplier_count"] or term_index >= 5:
                 return _vendor_sort_product_policy_checks(q, checks)
@@ -4231,6 +4300,38 @@ def _vendor_purchase_route_guidance(
     *,
     budget_krw: int | None = None,
 ) -> dict[str, object]:
+    if item_policy_summary.get("status") == "needs_item_selection":
+        message = str(
+            item_policy_summary.get("message")
+            or "세부품명을 선택한 뒤 품목정책과 구매방식을 다시 판정해야 합니다."
+        )
+        selection_card = {
+            "route_id": "item_selection_required",
+            "label": "세부 품목 선택 필요",
+            "status": "needs_item_selection",
+            "reason": message,
+            "required_checks": ["정확한 세부품명", "세부품명번호 10자리", "구매 규격·용도"],
+            "practical_note": "세부품명 선택 전에는 중기간·직접생산·조달청 구매경로를 확정하지 않습니다.",
+            "next_actions": ["품목정책 판정 영역에서 실제 구매하려는 세부품명 선택"],
+            "route_priority": "primary",
+            "basis_level": "item_selection_required",
+            "basis_explanation": message,
+        }
+        return {
+            "title": "세부 품목 선택 필요",
+            "primary_route": selection_card,
+            "route_cards": [selection_card],
+            "badges": [{"label": "품목 선택 필요", "tone": "warn"}],
+            "required_checks": list(selection_card["required_checks"]),
+            "ranking_basis": ["세부품명 선택 전에는 구매방식과 업체 순위를 확정하지 않음"],
+            "item_policy_status": "needs_item_selection",
+            "purchase_route_basis_level": "item_selection_required",
+            "purchase_route_basis_label": "세부품명 선택 필요",
+            "purchase_route_basis_explanation": message,
+            "shopping_mall_busan_supplier_count": 0,
+            "shopping_mall_active_registered_count": 0,
+            "legal_notice": "세부품명번호 10자리를 확정한 뒤 현행 품목정책과 계약 가능 여부를 재확인해야 합니다.",
+        }
     requirements = _vendor_policy_route_requirements(product_policy_checks)
     contract_signal = _vendor_policy_contract_signal(product_policy_checks, rows)
     basis_level = str(contract_signal["basis_level"])

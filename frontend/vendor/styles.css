@@ -1465,6 +1465,45 @@ select:focus {
   overflow-wrap: anywhere;
 }
 
+.policy-selection-notice {
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  border-left: 4px solid #f97316;
+  border-radius: 7px;
+  color: #9a3412 !important;
+  font-weight: 800;
+  padding: 10px 12px;
+}
+
+.policy-source-grid li.policy-choice-row {
+  padding: 0;
+}
+
+.policy-choice {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.policy-choice:hover,
+.policy-choice:focus-visible {
+  background: #ecfeff;
+  outline: 2px solid #0f766e;
+  outline-offset: -2px;
+}
+
+.policy-choice em {
+  color: #0f766e !important;
+  font-size: 11px !important;
+  font-style: normal;
+  font-weight: 900;
+}
+
 .candidate-location {
   color: #cbdaf4;
   font-size: 12px;

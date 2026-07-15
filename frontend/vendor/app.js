@@ -652,8 +652,11 @@ function renderItemPolicySummary(payload) {
   const checks = Array.isArray(payload?.product_policy_checks) ? payload.product_policy_checks : [];
   const matchedProducts = Array.isArray(summary.matched_products) ? summary.matched_products : [];
   const status = valueText(summary.status, "not_requested");
+  const selectionRequired = status === "needs_item_selection" || summary.selection_required === true;
   const statusLabel =
-    status === "matched"
+    selectionRequired
+      ? valueText(summary.selection_title, "세부 품목 선택 필요")
+      : status === "matched"
       ? "품목정책 DB 매칭"
       : status === "not_requested"
         ? "품목정책 조회 제외"
@@ -669,7 +672,11 @@ function renderItemPolicySummary(payload) {
   const productRows = matchedProducts.slice(0, 4).map((item) => {
     const name = valueText(item.detail_product_name || item.name, "품목명 미확인");
     const code = valueText(item.detail_product_code || item.code, "");
-    return `<li><strong>${escapeHtml(name)}</strong>${code ? `<span>${escapeHtml(code)}</span>` : ""}</li>`;
+    const detail = code ? `세부품명번호 ${code}` : "세부품명번호 확인 필요";
+    if (selectionRequired) {
+      return `<li class="policy-choice-row"><button type="button" class="policy-choice" data-policy-query="${escapeHtml(name)}"><strong>${escapeHtml(name)}</strong><span>${escapeHtml(detail)}</span><em>이 품목으로 다시 판정</em></button></li>`;
+    }
+    return `<li><strong>${escapeHtml(name)}</strong><span>${escapeHtml(detail)}</span></li>`;
   });
   const sourceRows = checks.slice(0, 4).map((item) => {
     const name = valueText(item.detail_product_name, "품목명 미확인");
@@ -689,8 +696,9 @@ function renderItemPolicySummary(payload) {
         <span class="route-rank">품목정책 판정</span>
         <strong>${escapeHtml(statusLabel)}</strong>
       </div>
-      <span class="tag ${statusTone}">${escapeHtml(status === "matched" ? "근거 있음" : "확인 필요")}</span>
+      <span class="tag ${statusTone}">${escapeHtml(selectionRequired ? "선택 필요" : status === "matched" ? "근거 있음" : "확인 필요")}</span>
     </div>
+    ${selectionRequired ? `<p class="policy-selection-notice">${escapeHtml(valueText(summary.message, "실제 구매하려는 세부품명을 선택해 주세요."))}</p>` : ""}
     <div class="policy-fact-grid">${facts}</div>
     ${
       productRows.length || sourceRows.length
@@ -707,6 +715,18 @@ function renderItemPolicySummary(payload) {
         : `<p>${escapeHtml(valueText(summary.message, "품목정책 DB에서 근거를 확인하지 못했습니다."))}</p>`
     }
   `;
+
+  if (selectionRequired) {
+    els.itemPolicyPanel.querySelectorAll(".policy-choice").forEach((button) => {
+      button.addEventListener("click", () => {
+        const query = valueText(button.dataset.policyQuery, "");
+        if (!query) return;
+        els.input.value = query;
+        els.input.focus();
+        search(query);
+      });
+    });
+  }
 }
 
 function zeroResultStatus(payload) {

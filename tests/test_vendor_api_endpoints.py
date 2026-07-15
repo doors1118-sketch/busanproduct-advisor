@@ -1123,6 +1123,94 @@ def test_vendor_product_policy_checks_sort_specific_pc_and_toner_matches_first()
     assert api_server._vendor_sort_product_policy_checks("정품토너 구매 업체", toner_checks)[0]["detail_product_name"] == "재제조토너"
 
 
+def test_vendor_generic_telephone_requires_detail_item_selection():
+    assert api_server._vendor_item_disambiguation("전화기 구매") is not None
+    assert api_server._vendor_item_disambiguation("유선 전화기 구매") is None
+    assert api_server._vendor_item_disambiguation("휴대전화기 구매") is None
+
+
+def test_vendor_product_policy_checks_expand_generic_telephone_candidates(monkeypatch):
+    calls = []
+    products = {
+        "유선전화기": ("4319150901", "유선전화기"),
+        "일반전화기": ("4319150902", "일반전화기"),
+        "휴대전화기": ("4319150101", "휴대전화기"),
+        "IP전화기": ("4319151101", "IP전화기"),
+        "인터넷전화기": ("4319151102", "인터넷전화기"),
+    }
+
+    def fake_search_product_policy(keyword, limit=5):
+        calls.append(keyword)
+        if keyword not in products:
+            return {"meta": {"source": "product_policy_summary"}, "candidates": []}
+        code, name = products[keyword]
+        return {
+            "meta": {"source": "product_policy_summary"},
+            "candidates": [{
+                "detail_product_code": code,
+                "detail_product_name": name,
+                "is_sme_competition_product": "0",
+            }],
+        }
+
+    monkeypatch.setattr(
+        api_server,
+        "_vendor_import_company_db",
+        lambda: SimpleNamespace(
+            search_facility_material_policy=lambda keyword, limit=5: {"candidates": []},
+            search_shopping_mall_item_policy=lambda keyword, limit=5: {"candidates": []},
+            search_product_policy=fake_search_product_policy,
+        ),
+    )
+
+    checks = api_server._vendor_product_policy_checks("전화기 구매", limit=5)
+
+    assert calls[:5] == ["유선전화기", "일반전화기", "휴대전화기", "IP전화기", "인터넷전화기"]
+    assert {item["detail_product_name"] for item in checks} == set(products)
+
+
+def test_vendor_item_policy_summary_holds_policy_judgment_for_generic_telephone():
+    checks = [
+        {
+            "detail_product_code": "4319150901",
+            "detail_product_name": "유선전화기",
+            "matched_policy_source": "product_policy_summary",
+            "is_sme_competition_product": "0",
+        },
+        {
+            "detail_product_code": "4319150101",
+            "detail_product_name": "휴대전화기",
+            "matched_policy_source": "product_policy_summary",
+            "is_sme_competition_product": "1",
+        },
+    ]
+
+    summary = api_server._vendor_item_policy_summary("전화기 구매", checks, requested=True)
+
+    assert summary["status"] == "needs_item_selection"
+    assert summary["selection_required"] is True
+    assert summary["sme_competition_product"] == "세부품명 선택 후 판정"
+    assert [item["detail_product_name"] for item in summary["selection_options"]] == ["유선전화기", "휴대전화기"]
+
+
+def test_vendor_purchase_route_waits_for_detail_item_selection():
+    summary = {
+        "status": "needs_item_selection",
+        "message": "전화기 종류를 선택해야 합니다.",
+    }
+
+    guidance = api_server._vendor_purchase_route_guidance(
+        "전화기 구매",
+        [],
+        [{"detail_product_name": "휴대전화기", "is_sme_competition_product": "1"}],
+        summary,
+    )
+
+    assert guidance["primary_route"]["route_id"] == "item_selection_required"
+    assert guidance["item_policy_status"] == "needs_item_selection"
+    assert guidance["badges"][0]["label"] == "품목 선택 필요"
+
+
 def test_vendor_product_policy_checks_reorders_pc_abbreviation_before_lookup(monkeypatch):
     calls = []
 
