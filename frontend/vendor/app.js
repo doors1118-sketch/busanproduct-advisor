@@ -434,29 +434,45 @@ function buildRouteNarrative(payload, primary, summary, checks) {
   const mallRows = countRows(rows, (row) => Boolean(masEvidence(row) || shoppingEvidence(row)));
   const lines = [];
 
-  lines.push(
+  const addLine = (label, text, tone) => {
+    lines.push({ label, text, tone });
+  };
+
+  addLine(
+    "품목 매칭",
     productName
       ? `${query}은(는) DB 기준 '${productName}'${productCode ? `(${productCode})` : ""} 품목으로 매칭됩니다.`
       : `${query}은(는) 입력어 기준으로 지역업체 후보와 구매 지원 근거를 조회했습니다.`,
+    "info",
   );
 
   if (isPolicyPositive(summary?.sme_competition_product) || isPolicyPositive(product?.sme_competition_product || product?.is_sme_competition_product)) {
-    lines.push(
+    addLine(
+      "필수 확인",
       `해당 품목은 중소기업자간 경쟁제품 가능성이 있으므로 직접생산확인증명서의 세부품명과 유효기간을 먼저 확인해야 합니다${directSupplierCount ? `; 현재 DB상 직접생산 유효 공급업체 수는 ${directSupplierCount.toLocaleString("ko-KR")}개입니다.` : "."}`,
+      "warn",
     );
   } else if (summary?.sme_competition_product) {
-    lines.push(`중소기업자간 경쟁제품 해당 여부는 '${valueText(summary.sme_competition_product)}'로 표시되며, 공고 전 세부품명 기준 재확인이 필요합니다.`);
+    addLine(
+      "품목정책",
+      `중소기업자간 경쟁제품 해당 여부는 '${valueText(summary.sme_competition_product)}'로 표시되며, 공고 전 세부품명 기준 재확인이 필요합니다.`,
+      "warn",
+    );
   }
 
   if (primary?.label || summary?.shopping_mall_contract_basis_label || masSupplierCount || shoppingSupplierCount || mallRegisteredCount) {
     const basis = valueText(summary?.shopping_mall_contract_basis_label || payload?.purchase_route_guidance?.purchase_route_basis_label || primary?.label, "조달청 등록 경로");
-    lines.push(
+    addLine(
+      "구매경로",
       `${basis} 근거가 확인됩니다. 조달청 종합쇼핑몰/MAS 등록 근거는 ${masSupplierCount.toLocaleString("ko-KR")}개, 부산 쇼핑몰 공급 근거는 ${shoppingSupplierCount.toLocaleString("ko-KR")}개${mallRegisteredCount ? `, 전체 쇼핑몰 등록 근거는 ${mallRegisteredCount.toLocaleString("ko-KR")}개` : ""}로 집계됩니다.`,
+      "route",
     );
   }
 
-  lines.push(
+  addLine(
+    "업체 근거",
     `화면 후보군은 ${numberOrZero(payload?.count).toLocaleString("ko-KR")}개이며, 이 중 직접생산 근거 ${directRows.toLocaleString("ko-KR")}개, MAS/종합쇼핑몰 근거 ${mallRows.toLocaleString("ko-KR")}개, 정책기업 근거 ${policyCounts.total.toLocaleString("ko-KR")}개가 확인됩니다.`,
+    "good",
   );
 
   if (policyCounts.total) {
@@ -466,12 +482,18 @@ function buildRouteNarrative(payload, primary, summary, checks) {
       policyCounts.social ? `사회적기업 ${policyCounts.social}개` : "",
       policyCounts.severeDisabled ? `중증장애인 생산품 ${policyCounts.severeDisabled}개` : "",
     ].filter(Boolean).join(", ");
-    lines.push(
+    addLine(
+      "정책기업",
       `정책기업 후보는 ${policyBreakdown || `${policyCounts.total}개`}입니다. 물품·용역의 정책기업 수의계약은 추정가격 1억원 이하 범위에서 검토 가능성이 있으나, 발주기관 적용 법령, 계약목적, 인증 유효기간은 별도 확인해야 합니다.`,
+      "policy",
     );
   }
 
-  lines.push("아래 후보업체는 확정 추천이 아니라 DB 근거 충족도가 높은 검토 대상입니다. 최종 계약 가능 여부는 원천자료와 법령해석 탭에서 재확인하세요.");
+  addLine(
+    "계약 전 확인",
+    "아래 후보업체는 확정 추천이 아니라 DB 근거 충족도가 높은 검토 대상입니다. 최종 계약 가능 여부는 원천자료와 법령해석 탭에서 재확인하세요.",
+    "caution",
+  );
   return lines;
 }
 
@@ -511,8 +533,15 @@ function renderRouteDecision(payload, cards) {
     <article class="route-narrative-card">
       <span>실무 요약</span>
       <strong>${escapeHtml(valueText(primary.label || guide.title, "구매방식 확인 필요"))}</strong>
-      <ol>
-        ${narrativeLines.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}
+      <ol class="route-narrative-list">
+        ${narrativeLines.map((line) => `
+          <li class="${escapeHtml(line.tone)}">
+            <div class="narrative-copy">
+              <b>${escapeHtml(line.label)}</b>
+              <p>${escapeHtml(line.text)}</p>
+            </div>
+          </li>
+        `).join("")}
       </ol>
     </article>
     <article class="decision-card decision-primary">
