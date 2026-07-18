@@ -1183,6 +1183,12 @@ def test_vendor_item_policy_summary_holds_policy_judgment_for_generic_telephone(
             "matched_policy_source": "product_policy_summary",
             "is_sme_competition_product": "1",
         },
+        {
+            "detail_product_code": "34101143",
+            "detail_product_name": "구내단자함",
+            "matched_policy_source": "facility_material_price_file",
+            "is_sme_competition_product": "",
+        },
     ]
 
     summary = api_server._vendor_item_policy_summary("전화기 구매", checks, requested=True)
@@ -1209,6 +1215,37 @@ def test_vendor_purchase_route_waits_for_detail_item_selection():
     assert guidance["primary_route"]["route_id"] == "item_selection_required"
     assert guidance["item_policy_status"] == "needs_item_selection"
     assert guidance["badges"][0]["label"] == "품목 선택 필요"
+
+
+def test_vendor_payload_blocks_generic_telephone_candidates(monkeypatch):
+    monkeypatch.setattr(
+        api_server,
+        "_vendor_recommendation_rows",
+        lambda q, region="부산", limit=100, budget_krw=None: [
+            {**_sample_vendor_row(), "matched_source": "product"}
+        ],
+    )
+    monkeypatch.setattr(
+        api_server,
+        "_vendor_product_policy_checks",
+        lambda q, limit=5: [
+            {
+                "detail_product_code": "4319150101",
+                "detail_product_name": "휴대전화기",
+                "matched_policy_source": "product_policy_summary",
+                "is_sme_competition_product": "1",
+            }
+        ],
+    )
+
+    payload = api_server._vendor_recommendation_payload("전화기 구매", limit=10)
+
+    assert payload["count"] == 0
+    assert payload["rows"] == []
+    assert payload["item_policy_summary"]["status"] == "needs_item_selection"
+    assert [item["detail_product_name"] for item in payload["item_policy_summary"]["selection_options"]] == ["휴대전화기"]
+    assert payload["zero_result_status"]["status"] == "item_selection_required"
+    assert payload["purchase_route_guidance"]["primary_route"]["route_id"] == "item_selection_required"
 
 
 def test_vendor_product_policy_checks_reorders_pc_abbreviation_before_lookup(monkeypatch):

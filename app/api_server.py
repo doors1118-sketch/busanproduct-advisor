@@ -2316,11 +2316,14 @@ def _vendor_recommendation_payload(
     rows = _vendor_apply_construction_evidence(rows, q)
     rows = rows[:requested_limit]
     item_policy_summary = _vendor_item_policy_summary(q, product_policy_checks, requested=product_policy_requested)
+    if item_policy_summary.get("status") == "needs_item_selection":
+        rows = []
     zero_result_status = _vendor_zero_result_status(
         q,
         rows,
         product_policy_checks,
         product_policy_requested=product_policy_requested,
+        item_policy_summary=item_policy_summary,
     )
     purchase_route_guidance = _vendor_purchase_route_guidance(
         q,
@@ -3431,6 +3434,14 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
     direct_count = max(direct_supplier_counts) if direct_supplier_counts else 0
     disambiguation = _vendor_item_disambiguation(q)
     if disambiguation:
+        selection_markers = tuple(
+            _vendor_compact(marker)
+            for marker in (
+                tuple(disambiguation.get("generic_markers") or ())
+                + tuple(disambiguation.get("specific_markers") or ())
+            )
+            if marker
+        )
         selection_options = [
             {
                 "detail_product_code": item["detail_product_code"],
@@ -3440,6 +3451,10 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
             }
             for item in matched_products
             if item.get("detail_product_name")
+            and (
+                not selection_markers
+                or any(marker in _vendor_compact(item.get("detail_product_name")) for marker in selection_markers)
+            )
         ]
         return {
             "status": "needs_item_selection",
@@ -3493,6 +3508,7 @@ def _vendor_zero_result_status(
     product_policy_checks: list[dict[str, str]],
     *,
     product_policy_requested: bool,
+    item_policy_summary: dict[str, object] | None = None,
 ) -> dict[str, object]:
     if rows:
         return {
@@ -3500,6 +3516,20 @@ def _vendor_zero_result_status(
             "label": "후보 있음",
             "message": "부산업체 후보가 조회되었습니다.",
             "next_actions": [],
+        }
+    if item_policy_summary and item_policy_summary.get("status") == "needs_item_selection":
+        return {
+            "status": "item_selection_required",
+            "label": "세부품명 선택 필요",
+            "message": str(
+                item_policy_summary.get("message")
+                or "세부품명을 선택한 뒤 품목정책과 구매방식을 다시 판정해야 합니다."
+            ),
+            "next_actions": [
+                "실제 구매하려는 세부품명 선택",
+                "세부품명번호 10자리 확인",
+                "세부품명 확정 후 업체 후보 재조회",
+            ],
         }
     construction_terms = _vendor_requested_construction_terms(q)
     service_terms = _vendor_requested_service_terms(q)
