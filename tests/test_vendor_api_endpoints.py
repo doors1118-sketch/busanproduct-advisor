@@ -160,6 +160,8 @@ def test_vendor_recommendation_search_endpoint(monkeypatch):
     assert body["mode"] == "vendor_recommendation_only"
     assert body["budget_krw"] == 45000000
     assert body["budget_label"] == "4,500만원"
+    assert body["total_candidate_count"] == 1
+    assert body["visible_candidate_count"] == 1
     assert body["rows"][0]["company_name"] == "Busan Test Vendor"
     assert "직접생산증명서 확인" in body["rows"][0]["contract_review_types"]
     assert body["rows"][0]["direct_production_certificate_status"] == "직접생산증명서 정보 있음"
@@ -208,7 +210,7 @@ def test_vendor_item_policy_summary_marks_explicit_non_sme_as_not_applicable():
 
     assert summary["status"] == "matched"
     assert summary["sme_competition_product"] == "미해당"
-    assert "DB 기준 미해당" in summary["message"]
+    assert "중소기업자간 경쟁제품에 미해당입니다(DB 기준)" in summary["message"]
     assert summary["direct_production_certificate"] == "DB 기준 직접생산 의무 미확인"
 
 

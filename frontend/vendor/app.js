@@ -410,6 +410,8 @@ function primaryMatchedProduct(summary, checks) {
 function buildRouteNarrative(payload, primary, summary, checks) {
   const rows = Array.isArray(payload?.rows) ? payload.rows : [];
   const query = valueText(payload?.query, "입력 품목");
+  const totalCandidateCount = numberOrZero(payload?.total_candidate_count || payload?.count || rows.length);
+  const visibleCandidateCount = numberOrZero(payload?.visible_candidate_count || rows.length || payload?.count);
   const product = primaryMatchedProduct(summary, checks);
   const productName = valueText(product?.detail_product_name || product?.name, "");
   const productCode = valueText(product?.detail_product_code, "");
@@ -477,7 +479,7 @@ function buildRouteNarrative(payload, primary, summary, checks) {
   } else if (valueText(summary?.sme_competition_product, "") === "미해당") {
     addLine(
       "품목정책",
-      "중소기업자간 경쟁제품 DB 기준 미해당입니다. 직접생산 의무도 현재 품목정책 DB 기준 확인되지 않습니다. 다만 공고 전 세부품명번호는 원천자료에서 최종 확인하세요.",
+      "중소기업자간 경쟁제품에 미해당입니다(DB 기준). 직접생산 의무도 현재 품목정책 DB 기준 확인되지 않습니다. 다만 공고 전 세부품명번호는 원천자료에서 최종 확인하세요.",
       "info",
     );
   } else if (summary?.sme_competition_product) {
@@ -490,16 +492,21 @@ function buildRouteNarrative(payload, primary, summary, checks) {
 
   if (primary?.label || summary?.shopping_mall_contract_basis_label || masSupplierCount || shoppingSupplierCount || mallRegisteredCount) {
     const basis = valueText(summary?.shopping_mall_contract_basis_label || payload?.purchase_route_guidance?.purchase_route_basis_label || primary?.label, "조달청 등록 경로");
+    const localMallEvidence = Math.max(mallRows, shoppingSupplierCount);
+    const isMasRoute = /MAS|다수공급자/.test(basis) || /MAS|다수공급자/.test(valueText(primary?.label, ""));
+    const routeText = localMallEvidence
+      ? `${isMasRoute ? "조달청 다수공급자계약(MAS)" : "조달청 종합쇼핑몰"}에 지역업체가 ${localMallEvidence.toLocaleString("ko-KR")}개 존재합니다. 품목 마스터 기준은 '${basis}'이며, 전체 쇼핑몰 등록 근거는 ${mallRegisteredCount.toLocaleString("ko-KR")}개입니다.`
+      : `${basis} 근거는 확인되지만, 현재 품목정책 DB 기준 지역업체 쇼핑몰/MAS 공급 근거는 확인되지 않았습니다. 조달등록 지역업체 후보와 직접계약·입찰공고 가능성을 함께 검토하세요.`;
     addLine(
       "구매경로",
-      `${basis} 근거가 확인됩니다. 조달청 종합쇼핑몰/MAS 등록 근거는 ${masSupplierCount.toLocaleString("ko-KR")}개, 부산 쇼핑몰 공급 근거는 ${shoppingSupplierCount.toLocaleString("ko-KR")}개${mallRegisteredCount ? `, 전체 쇼핑몰 등록 근거는 ${mallRegisteredCount.toLocaleString("ko-KR")}개` : ""}로 집계됩니다.`,
+      routeText,
       "route",
     );
   }
 
   addLine(
     "업체 근거",
-    `화면 후보군은 ${numberOrZero(payload?.count).toLocaleString("ko-KR")}개이며, 이 중 직접생산 근거 ${directRows.toLocaleString("ko-KR")}개, MAS/종합쇼핑몰 근거 ${mallRows.toLocaleString("ko-KR")}개, 정책기업 근거 ${policyCounts.total.toLocaleString("ko-KR")}개가 확인됩니다.`,
+    `조회된 지역업체 후보는 총 ${totalCandidateCount.toLocaleString("ko-KR")}개이며, 이 중 근거 충족도가 높은 상위 ${visibleCandidateCount.toLocaleString("ko-KR")}개를 화면에 추천합니다. 화면 후보 중 직접생산 근거 ${directRows.toLocaleString("ko-KR")}개, MAS/종합쇼핑몰 근거 ${mallRows.toLocaleString("ko-KR")}개, 정책기업 근거 ${policyCounts.total.toLocaleString("ko-KR")}개가 확인됩니다.`,
     "good",
   );
 
@@ -665,8 +672,8 @@ function renderRouteDecision(payload, cards) {
     .join(" · ");
   const supplierFacts = [
     ["후보업체", `${numberOrZero(payload?.count).toLocaleString("ko-KR")}개`, numberOrZero(payload?.count) ? "good" : "warn"],
-    ["부산 쇼핑몰 공급", `${numberOrZero(guide.shopping_mall_busan_supplier_count).toLocaleString("ko-KR")}개`, numberOrZero(guide.shopping_mall_busan_supplier_count) ? "good" : "warn"],
-    ["쇼핑몰/MAS 등록", `${Math.max(numberOrZero(guide.shopping_mall_active_registered_count), maxPolicyCount(checks, "shopping_mall_active_supplier_count"), maxPolicyCount(checks, "mas_active_supplier_count")).toLocaleString("ko-KR")}개`, "info"],
+    ["품목DB 부산 공급", `${numberOrZero(guide.shopping_mall_busan_supplier_count).toLocaleString("ko-KR")}개`, numberOrZero(guide.shopping_mall_busan_supplier_count) ? "good" : "warn"],
+    ["품목DB 쇼핑몰 등록", `${Math.max(numberOrZero(guide.shopping_mall_active_registered_count), maxPolicyCount(checks, "shopping_mall_active_supplier_count"), maxPolicyCount(checks, "mas_active_supplier_count")).toLocaleString("ko-KR")}개`, "info"],
     ["직접생산 보유", `${maxPolicyCount(checks, "direct_production_valid_supplier_count").toLocaleString("ko-KR")}개`, maxPolicyCount(checks, "direct_production_valid_supplier_count") ? "good" : "warn"],
   ];
   const checkList = [...new Set([...nextActions, ...requiredChecks])].slice(0, 5);
@@ -780,9 +787,9 @@ function renderRouteGuide(payload) {
   const cards = Array.isArray(guide.route_cards) ? guide.route_cards : [];
   const badges = Array.isArray(guide.badges) ? guide.badges : [];
 
-  els.routeTitle.textContent = cards.length ? "검토 가능한 구매방식과 지역업체 대안" : "지역업체 후보 검토";
+  els.routeTitle.textContent = cards.length ? "지역업체 구매 지원 방안과 후보 대안" : "지역업체 후보 검토";
   els.routeNotice.textContent =
-    guide.legal_notice || "구매방식 안내는 후보 정보입니다. 최종 계약 가능 여부와 법령 해석은 별도 검토가 필요합니다.";
+    guide.legal_notice || "지역업체 구매 지원 방안 안내는 후보 정보입니다. 최종 계약 가능 여부와 법령 해석은 별도 검토가 필요합니다.";
   renderRouteDecision(payload, cards);
   renderRouteOptions(cards);
 

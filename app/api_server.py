@@ -2372,10 +2372,12 @@ def _vendor_recommendation_payload(
     _vendor_log_item_policy_miss(q, product_policy_checks, requested=product_policy_requested)
     rows = _vendor_apply_item_evidence(rows, q, product_policy_checks)
     rows = _vendor_apply_construction_evidence(rows, q)
+    total_candidate_count = len(rows)
     rows = rows[:requested_limit]
     item_policy_summary = _vendor_item_policy_summary(q, product_policy_checks, requested=product_policy_requested)
     if item_policy_summary.get("status") == "needs_item_selection":
         rows = []
+        total_candidate_count = 0
     zero_result_status = _vendor_zero_result_status(
         q,
         rows,
@@ -2399,6 +2401,8 @@ def _vendor_recommendation_payload(
         "budget_label": _format_krw_short(normalized_budget),
         "limit": requested_limit,
         "count": len(rows),
+        "total_candidate_count": total_candidate_count,
+        "visible_candidate_count": len(rows),
         "columns": VENDOR_RECOMMENDATION_COLUMNS,
         "rows": rows,
         "search_plan": _vendor_query_plan(q),
@@ -3557,7 +3561,7 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
     elif sme_status == "미해당":
         direct_label = "DB 기준 직접생산 의무 미확인"
         cooperative_label = "중소기업자간 경쟁제품 DB 기준 미해당"
-        message = "검색 품목은 중소기업자간 경쟁제품 DB 기준 미해당으로 확인됩니다. 공고 전 세부품명번호 기준 최종 재확인은 필요합니다."
+        message = "검색 품목은 중소기업자간 경쟁제품에 미해당입니다(DB 기준). 공고 전 세부품명번호 기준 최종 재확인은 필요합니다."
     else:
         direct_label = "품목 매칭상 직접생산증명서 의무 여부 확인 필요"
         cooperative_label = "중소기업자간 경쟁제품 해당 여부 확인 필요"
@@ -4788,7 +4792,7 @@ def _vendor_purchase_route_guidance(
     if requirements["requires_direct_production"]:
         badges.append({"label": "직접생산 확인 필요", "tone": "warn" if not row_has_direct else "good"})
     if row_has_mas:
-        badges.append({"label": "MAS 지역업체 존재", "tone": "info"})
+        badges.append({"label": "조달청 다수공급자계약(MAS) 지역업체 존재", "tone": "info"})
     if row_has_shopping:
         badges.append({"label": "조달청 나라장터 지역업체 존재", "tone": "info"})
     if row_has_policy:
