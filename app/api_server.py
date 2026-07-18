@@ -2372,6 +2372,7 @@ def _vendor_recommendation_payload(
     _vendor_log_item_policy_miss(q, product_policy_checks, requested=product_policy_requested)
     rows = _vendor_apply_item_evidence(rows, q, product_policy_checks)
     rows = _vendor_apply_construction_evidence(rows, q)
+    rows = _vendor_filter_rows_for_policy_item(rows, product_policy_checks)
     total_candidate_count = len(rows)
     rows = rows[:requested_limit]
     item_policy_summary = _vendor_item_policy_summary(q, product_policy_checks, requested=product_policy_requested)
@@ -3051,6 +3052,116 @@ def _vendor_evidence_match_label(label: str, evidence_items: list[dict[str, obje
     return f"{label} 일치: " + " / ".join(_vendor_evidence_item_label(item) for item in evidence_items[:3])
 
 
+def _vendor_policy_item_identity(
+    product_policy_checks: list[dict[str, str]] | None,
+) -> tuple[set[str], set[str], set[str]]:
+    detail_codes: set[str] = set()
+    class_codes: set[str] = set()
+    detail_names: set[str] = set()
+    for item in product_policy_checks or []:
+        for key in ("detail_product_code", "product_code"):
+            code = re.sub(r"\D", "", str(item.get(key) or ""))
+            if len(code) >= 9:
+                detail_codes.add(code)
+        for key in ("shopping_mall_product_class_code", "product_class_code"):
+            code = re.sub(r"\D", "", str(item.get(key) or ""))
+            if 6 <= len(code) <= 8:
+                class_codes.add(code)
+        name = _vendor_compact(str(item.get("detail_product_name") or ""))
+        if len(name) >= 3:
+            detail_names.add(name)
+    return detail_codes, class_codes, detail_names
+
+
+def _vendor_has_policy_item_identity(product_policy_checks: list[dict[str, str]] | None) -> bool:
+    detail_codes, class_codes, detail_names = _vendor_policy_item_identity(product_policy_checks)
+    return bool(detail_codes or class_codes or detail_names)
+
+
+def _vendor_has_policy_item_code_identity(product_policy_checks: list[dict[str, str]] | None) -> bool:
+    detail_codes, class_codes, _ = _vendor_policy_item_identity(product_policy_checks)
+    return bool(detail_codes or class_codes)
+
+
+def _vendor_evidence_item_matches_policy(
+    item: dict[str, object],
+    detail_codes: set[str],
+    class_codes: set[str],
+    detail_names: set[str],
+) -> bool:
+    item_codes = [
+        re.sub(r"\D", "", str(item.get(key) or ""))
+        for key in ("detail_product_code", "product_code")
+    ]
+    for code in item_codes:
+        if code and code in detail_codes:
+            return True
+        if code and any(len(class_code) >= 6 and code.startswith(class_code) for class_code in class_codes):
+            return True
+
+    item_names = [
+        _vendor_compact(str(item.get(key) or ""))
+        for key in ("detail_product_name", "product_name")
+    ]
+    return any(name and name in detail_names for name in item_names)
+
+
+def _vendor_filter_evidence_items_for_policy(
+    product_policy_checks: list[dict[str, str]] | None,
+    items: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    detail_codes, class_codes, detail_names = _vendor_policy_item_identity(product_policy_checks)
+    if not detail_codes and not class_codes and not detail_names:
+        return items
+    return [
+        item
+        for item in items
+        if _vendor_evidence_item_matches_policy(item, detail_codes, class_codes, detail_names)
+    ]
+
+
+def _vendor_row_matches_policy_item(
+    row: dict[str, str | int],
+    product_policy_checks: list[dict[str, str]] | None,
+) -> bool:
+    detail_codes, class_codes, detail_names = _vendor_policy_item_identity(product_policy_checks)
+    if not detail_codes and not class_codes and not detail_names:
+        return True
+
+    text_fields = (
+        "requested_item_evidence_summary",
+        "main_products",
+        "matched_query",
+        "matched_query_label",
+        "shopping_mall_product_summary",
+        "mas_product_summary",
+        "direct_production_summary",
+        "certified_product_summary",
+        "venture_nara_product_summary",
+        "venture_nara_order_summary",
+        "contract_history_summary",
+        "contract_history_match",
+    )
+    haystack = " ".join(str(row.get(field) or "") for field in text_fields)
+    compact_haystack = _vendor_compact(haystack)
+    numeric_haystack = re.sub(r"\D", "", haystack)
+
+    if any(code and code in numeric_haystack for code in detail_codes):
+        return True
+    if any(class_code and class_code in numeric_haystack for class_code in class_codes):
+        return True
+    return any(name and name in compact_haystack for name in detail_names)
+
+
+def _vendor_filter_rows_for_policy_item(
+    rows: list[dict[str, str | int]],
+    product_policy_checks: list[dict[str, str]] | None,
+) -> list[dict[str, str | int]]:
+    if not rows or not _vendor_has_policy_item_code_identity(product_policy_checks):
+        return rows
+    return [row for row in rows if _vendor_row_matches_policy_item(row, product_policy_checks)]
+
+
 def _vendor_condition_terms(q: str, evidence_terms: list[str]) -> list[str]:
     compact_q = _vendor_compact(q)
     terms: list[str] = []
@@ -3272,6 +3383,7 @@ def _vendor_apply_item_evidence(
     wants_mas = any(term in compact_q for term in ("mas", "다수공급자", "다수공급자계약"))
     wants_shopping = any(term in compact_q for term in ("종합쇼핑몰", "쇼핑몰"))
     route_requirements = _vendor_policy_route_requirements(product_policy_checks)
+    strict_policy_item_identity = _vendor_has_policy_item_code_identity(product_policy_checks)
     direct_contract_preferred = (
         not route_requirements["has_confirmed_unit_contract"]
         or not route_requirements["has_busan_shopping_mall_supplier"]
@@ -3279,10 +3391,15 @@ def _vendor_apply_item_evidence(
     for row in rows:
         company_id = str(row.get("company_id") or "")
         evidence = evidence_by_company.get(company_id) or {"direct_production": [], "shopping_mall": [], "mas": []}
-        direct_items = evidence.get("direct_production") or []
-        shopping_items = evidence.get("shopping_mall") or []
-        mas_items = evidence.get("mas") or []
-        evidence_summary = _vendor_evidence_source_summary(evidence)
+        direct_items = _vendor_filter_evidence_items_for_policy(product_policy_checks, evidence.get("direct_production") or [])
+        shopping_items = _vendor_filter_evidence_items_for_policy(product_policy_checks, evidence.get("shopping_mall") or [])
+        mas_items = _vendor_filter_evidence_items_for_policy(product_policy_checks, evidence.get("mas") or [])
+        filtered_evidence = {
+            "direct_production": direct_items,
+            "shopping_mall": shopping_items,
+            "mas": mas_items,
+        }
+        evidence_summary = _vendor_evidence_source_summary(filtered_evidence)
         row["direct_production_match"] = _vendor_evidence_match_label("직접생산", direct_items)
         row["mas_match"] = _vendor_evidence_match_label("MAS", mas_items)
         row["shopping_mall_match"] = _vendor_evidence_match_label("종합쇼핑몰", shopping_items)
@@ -3301,6 +3418,10 @@ def _vendor_apply_item_evidence(
         row_has_direct_generic = _vendor_is_truthy(row.get("direct_production_summary")) or _vendor_is_truthy(row.get("direct_production_flags"))
         row_has_mas_generic = _vendor_is_truthy(row.get("has_mas")) or _vendor_is_truthy(row.get("mas_product_summary"))
         row_has_shopping_generic = _vendor_is_truthy(row.get("has_shopping_mall")) or _vendor_is_truthy(row.get("shopping_mall_product_summary"))
+        if strict_policy_item_identity:
+            row_has_direct_generic = False
+            row_has_mas_generic = False
+            row_has_shopping_generic = False
         route_fit_score = 0
         route_fit_parts: list[str] = []
         if route_requirements["requires_direct_production"]:
@@ -3351,12 +3472,18 @@ def _vendor_apply_item_evidence(
         if direct_items:
             row["direct_production_certificate_status"] = "직접생산증명서 품목 일치"
             row["direct_production_certificate_products"] = _vendor_evidence_match_label("직접생산", direct_items)
+        elif strict_policy_item_identity:
+            row["direct_production_certificate_products"] = ""
         if mas_items:
             row["mas_status_label"] = "MAS 품목 일치"
             row["has_mas"] = "true"
+        elif strict_policy_item_identity:
+            row["mas_status_label"] = "MAS 요청품목 근거 없음"
         if shopping_items:
             row["shopping_mall_status_label"] = "종합쇼핑몰 품목 일치"
             row["has_shopping_mall"] = "true"
+        elif strict_policy_item_identity:
+            row["shopping_mall_status_label"] = "종합쇼핑몰 요청품목 근거 없음"
 
         if multi_condition:
             matched_terms = [term for term in condition_terms if _vendor_term_supported_by_row(row, term)]
@@ -4458,23 +4585,39 @@ def _vendor_purchase_route_guidance(
     service_route_primary = contract_object == "service"
     construction_material_intent = _vendor_has_construction_material_intent(q)
     construction_route_primary = bool(construction_terms) and not construction_material_intent
+    strict_policy_item_identity = _vendor_has_policy_item_code_identity(product_policy_checks)
     row_has_direct = any(
         _vendor_is_truthy(row.get("direct_production_match"))
-        or _vendor_is_truthy(row.get("direct_production_certificate_products"))
-        or _vendor_is_truthy(row.get("direct_production_summary"))
-        or _vendor_is_truthy(row.get("direct_production_flags"))
+        or (
+            not strict_policy_item_identity
+            and (
+                _vendor_is_truthy(row.get("direct_production_certificate_products"))
+                or _vendor_is_truthy(row.get("direct_production_summary"))
+                or _vendor_is_truthy(row.get("direct_production_flags"))
+            )
+        )
         for row in rows
     )
     row_has_mas = any(
         _vendor_is_truthy(row.get("mas_match"))
-        or _vendor_is_truthy(row.get("mas_product_summary"))
-        or _vendor_is_truthy(row.get("has_mas"))
+        or (
+            not strict_policy_item_identity
+            and (
+                _vendor_is_truthy(row.get("mas_product_summary"))
+                or _vendor_is_truthy(row.get("has_mas"))
+            )
+        )
         for row in rows
     )
     row_has_shopping = any(
         _vendor_is_truthy(row.get("shopping_mall_match"))
-        or _vendor_is_truthy(row.get("shopping_mall_product_summary"))
-        or _vendor_is_truthy(row.get("has_shopping_mall"))
+        or (
+            not strict_policy_item_identity
+            and (
+                _vendor_is_truthy(row.get("shopping_mall_product_summary"))
+                or _vendor_is_truthy(row.get("has_shopping_mall"))
+            )
+        )
         for row in rows
     )
     row_has_construction = any(

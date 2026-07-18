@@ -1487,6 +1487,113 @@ def test_vendor_item_evidence_prioritizes_direct_contract_support_when_no_centra
     assert "수의계약 지원 근거 미확인" in rows[-1]["purchase_route_fit_summary"]
 
 
+def test_vendor_item_evidence_filters_broad_camera_mas_matches(monkeypatch):
+    def fake_item_evidence(company_ids, terms, limit_per_company=5):
+        return {
+            "camera-broad": {
+                "direct_production": [],
+                "mas": [
+                    {"detail_product_name": "보안용카메라", "detail_product_code": "4617161002", "status": "active"},
+                    {"detail_product_name": "영상감시장치", "detail_product_code": "4617162201", "status": "active"},
+                ],
+                "shopping_mall": [
+                    {"detail_product_name": "카메라브래킷", "detail_product_code": "4512160902", "status": "active"},
+                ],
+            }
+        }
+
+    monkeypatch.setattr(
+        api_server,
+        "_vendor_import_company_db",
+        lambda: SimpleNamespace(search_company_item_evidence=fake_item_evidence),
+    )
+    row = {
+        **_sample_vendor_row(),
+        "company_id": "camera-broad",
+        "company_name": "카메라군 일반후보",
+        "main_products": "CCTV, 보안용카메라",
+        "has_mas": "true",
+        "has_shopping_mall": "true",
+        "mas_product_summary": "보안용카메라 / 4617161002 / MAS / active",
+        "shopping_mall_product_summary": "카메라브래킷 / 4512160902 / 쇼핑몰 / active",
+    }
+    checks = [{
+        "detail_product_name": "디지털카메라",
+        "detail_product_code": "4512150401",
+        "shopping_mall_product_class_code": "45121504",
+        "shopping_mall_active_mas_count": "2",
+        "shopping_mall_active_registered_count": "2",
+        "shopping_mall_active_busan_supplier_count": "0",
+    }]
+
+    rows = api_server._vendor_apply_item_evidence([row], "디지털카메라 구매", checks)
+
+    assert rows[0]["mas_match"] == "MAS 근거 없음"
+    assert rows[0]["shopping_mall_match"] == "종합쇼핑몰 근거 없음"
+    assert "MAS 요청품목 등록 근거 충족" not in rows[0]["purchase_route_fit_summary"]
+    assert "종합쇼핑몰 요청품목 등록 근거 충족" not in rows[0]["purchase_route_fit_summary"]
+    assert "요청 품목 기준 직생/MAS/쇼핑몰 세부 근거 없음" == rows[0]["requested_item_evidence_summary"]
+
+
+def test_vendor_policy_item_filter_removes_other_camera_type_candidates():
+    rows = [
+        {
+            **_sample_vendor_row(),
+            "company_id": "digital-camera",
+            "main_products": "디지털카메라",
+            "matched_query": "디지털카메라",
+        },
+        {
+            **_sample_vendor_row(),
+            "company_id": "security-camera",
+            "main_products": "보안용카메라",
+            "matched_query": "카메라",
+            "mas_product_summary": "보안용카메라 / 4617161002 / MAS / active",
+        },
+    ]
+    checks = [{
+        "detail_product_name": "디지털카메라",
+        "detail_product_code": "4512150401",
+        "shopping_mall_product_class_code": "45121504",
+    }]
+
+    filtered = api_server._vendor_filter_rows_for_policy_item(rows, checks)
+
+    assert [row["company_id"] for row in filtered] == ["digital-camera"]
+
+
+def test_vendor_purchase_route_guidance_does_not_badge_generic_mas_as_local_supplier():
+    row = {
+        **_sample_vendor_row(),
+        "company_id": "camera-broad",
+        "has_mas": "true",
+        "has_shopping_mall": "true",
+        "mas_product_summary": "보안용카메라 / 4617161002 / MAS / active",
+        "shopping_mall_product_summary": "카메라브래킷 / 4512160902 / 쇼핑몰 / active",
+        "mas_match": "MAS 근거 없음",
+        "shopping_mall_match": "종합쇼핑몰 근거 없음",
+    }
+    checks = [{
+        "detail_product_name": "디지털카메라",
+        "detail_product_code": "4512150401",
+        "shopping_mall_active_mas_count": "2",
+        "shopping_mall_active_registered_count": "2",
+        "shopping_mall_active_busan_supplier_count": "0",
+    }]
+
+    guidance = api_server._vendor_purchase_route_guidance(
+        "디지털카메라 구매",
+        [row],
+        checks,
+        {"status": "matched", "sme_competition_product": "미해당"},
+    )
+    badge_labels = [badge["label"] for badge in guidance["badges"]]
+
+    assert "조달청 다수공급자계약(MAS) 지역업체 존재" not in badge_labels
+    assert "조달청 나라장터 지역업체 존재" not in badge_labels
+    assert guidance["shopping_mall_busan_supplier_count"] == 0
+
+
 def test_vendor_purchase_route_guidance_adds_regional_direct_contract_support_card():
     rows = [{
         **_sample_vendor_row(),
