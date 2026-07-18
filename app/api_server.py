@@ -2367,7 +2367,8 @@ def _vendor_recommendation_payload(
     evidence_pool_limit = max(requested_limit, min(max(requested_limit + 25, 30), 100))
     rows = _vendor_recommendation_rows(q, region=region, limit=evidence_pool_limit, budget_krw=normalized_budget)
     product_policy_requested = bool(include_product_policy and _vendor_should_check_product_policy(q))
-    product_policy_checks = _vendor_product_policy_checks(q, limit=5) if product_policy_requested else []
+    product_policy_limit = 12 if _vendor_item_disambiguation(q) else 5
+    product_policy_checks = _vendor_product_policy_checks(q, limit=product_policy_limit) if product_policy_requested else []
     _vendor_log_item_policy_miss(q, product_policy_checks, requested=product_policy_requested)
     rows = _vendor_apply_item_evidence(rows, q, product_policy_checks)
     rows = _vendor_apply_construction_evidence(rows, q)
@@ -3508,21 +3509,26 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
             for marker in tuple(disambiguation.get("exclude_option_markers") or ())
             if marker
         )
-        selection_options = [
-            {
+        selection_options: list[dict[str, str]] = []
+        seen_selection_names: set[str] = set()
+        for item in matched_products:
+            detail_name = item.get("detail_product_name")
+            compact_name = _vendor_compact(detail_name)
+            if not detail_name:
+                continue
+            if selection_markers and not any(marker in compact_name for marker in selection_markers):
+                continue
+            if any(marker in compact_name for marker in exclude_markers):
+                continue
+            if compact_name in seen_selection_names:
+                continue
+            seen_selection_names.add(compact_name)
+            selection_options.append({
                 "detail_product_code": item["detail_product_code"],
                 "detail_product_name": item["detail_product_name"],
                 "selection_query": item["detail_product_name"],
                 "matched_policy_source": item["matched_policy_source"],
-            }
-            for item in matched_products
-            if item.get("detail_product_name")
-            and (
-                not selection_markers
-                or any(marker in _vendor_compact(item.get("detail_product_name")) for marker in selection_markers)
-            )
-            and not any(marker in _vendor_compact(item.get("detail_product_name")) for marker in exclude_markers)
-        ]
+            })
         return {
             "status": "needs_item_selection",
             "query": q,
