@@ -438,6 +438,26 @@ function buildRouteNarrative(payload, primary, summary, checks) {
     lines.push({ label, text, tone });
   };
 
+  const selectionOptions = itemSelectionOptions(summary, checks);
+  if (selectionOptions.length) {
+    addLine(
+      "세부품명 선택",
+      valueText(summary?.message, `${query}은(는) 복수 세부품명으로 나뉘므로 실제 구매 품목을 먼저 선택해야 합니다.`),
+      "warn",
+    );
+    addLine(
+      "선택 후보",
+      `선택 가능한 매칭품목은 ${selectionOptions.map((item) => item.name).join(", ")}입니다. 선택 후 중기간 경쟁제품, 직접생산, 쇼핑몰/MAS, 부산업체 후보를 다시 계산합니다.`,
+      "route",
+    );
+    addLine(
+      "계약 전 확인",
+      "세부품명번호가 확정되기 전에는 후보업체를 표시하지 않습니다. 세부품명 확정 후 표시되는 업체와 원천자료를 다시 확인하세요.",
+      "caution",
+    );
+    return lines;
+  }
+
   addLine(
     "품목 매칭",
     productName
@@ -501,6 +521,91 @@ function routeDecisionLine(label, value, tone = "neutral") {
   return `<span class="decision-fact ${tone}"><b>${escapeHtml(label)}</b>${escapeHtml(valueText(value, "확인 필요"))}</span>`;
 }
 
+function itemSelectionOptions(summary, checks = []) {
+  const status = valueText(summary?.status, "");
+  const selectionRequired = status === "needs_item_selection" || summary?.selection_required === true;
+  if (!selectionRequired) return [];
+
+  const matchedProducts = Array.isArray(summary?.matched_products) ? summary.matched_products : [];
+  const rawOptions = Array.isArray(summary?.selection_options) && summary.selection_options.length
+    ? summary.selection_options
+    : matchedProducts;
+  const references = [...matchedProducts, ...(Array.isArray(checks) ? checks : [])];
+  const seen = new Set();
+
+  return rawOptions
+    .map((item) => {
+      const name = valueText(item.detail_product_name || item.name || item.selection_query, "");
+      const code = valueText(item.detail_product_code || item.code, "");
+      if (!name) return null;
+      const reference =
+        references.find((candidate) => code && valueText(candidate.detail_product_code || candidate.code, "") === code) ||
+        references.find((candidate) => name && valueText(candidate.detail_product_name || candidate.name, "") === name) ||
+        item;
+      const key = code || name;
+      if (seen.has(key)) return null;
+      seen.add(key);
+      return {
+        code,
+        name,
+        query: valueText(item.selection_query || name, name),
+        source: valueText(item.matched_policy_source || reference.matched_policy_source, ""),
+        busanProductCount: numberOrZero(reference.busan_company_product_count),
+        shoppingSupplierCount: Math.max(
+          numberOrZero(reference.shopping_mall_active_busan_supplier_count),
+          numberOrZero(reference.shopping_mall_active_supplier_count),
+        ),
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 8);
+}
+
+function renderItemSelectionOptions(summary, checks = [], mode = "panel") {
+  const options = itemSelectionOptions(summary, checks);
+  if (!options.length) return "";
+  const title = mode === "empty" ? "세부품명 선택 후 다시 조회" : "매칭품목 선택";
+  const description = mode === "empty"
+    ? "현재 검색어는 범위가 넓어 업체 후보를 표시하지 않습니다. 실제 구매하려는 세부품명을 선택하면 품목정책과 부산업체 후보를 다시 계산합니다."
+    : "아래 세부품명 중 실제 구매 대상에 가까운 항목을 선택하면 해당 품목 기준으로 다시 조회합니다.";
+  return `
+    <div class="item-selection-box ${mode === "empty" ? "is-empty" : ""}">
+      <div class="item-selection-copy">
+        <strong>${escapeHtml(title)}</strong>
+        <span>${escapeHtml(description)}</span>
+      </div>
+      <div class="item-selection-list" role="list" aria-label="세부품명 선택">
+        ${options.map((option) => {
+          const meta = [
+            option.code ? `세부품명번호 ${option.code}` : "",
+            option.busanProductCount ? `부산 조달업체 ${option.busanProductCount.toLocaleString("ko-KR")}개` : "",
+            option.shoppingSupplierCount ? `쇼핑몰 공급 ${option.shoppingSupplierCount.toLocaleString("ko-KR")}개` : "",
+          ].filter(Boolean).join(" · ") || valueText(option.source, "품목정책 재판정");
+          return `
+            <button type="button" class="item-selection-button" data-item-selection-query="${escapeHtml(option.query)}" role="listitem">
+              <span>${escapeHtml(option.name)}</span>
+              <em>${escapeHtml(meta)}</em>
+            </button>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function attachItemSelectionHandlers(root) {
+  root.querySelectorAll("[data-item-selection-query]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const query = valueText(button.dataset.itemSelectionQuery, "");
+      if (!query) return;
+      els.input.value = query;
+      els.input.focus();
+      search(query);
+      els.routeDecisionPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+}
+
 function renderRouteDecision(payload, cards) {
   if (!els.routeDecisionPanel) return;
   const guide = payload?.purchase_route_guidance || {};
@@ -515,8 +620,10 @@ function renderRouteDecision(payload, cards) {
     ...(Array.isArray(primary.next_actions) ? primary.next_actions : []),
     ...(Array.isArray(primary.required_checks) ? primary.required_checks : []),
   ].filter(Boolean);
+  const selectionOptions = itemSelectionOptions(summary, checks);
   const matchedProducts = Array.isArray(summary.matched_products) ? summary.matched_products : [];
-  const matchedProductText = matchedProducts
+  const displayProducts = selectionOptions.length ? selectionOptions : matchedProducts;
+  const matchedProductText = displayProducts
     .slice(0, 3)
     .map((item) => valueText(item.detail_product_name || item.name, "품목명 미확인"))
     .join(" · ");
@@ -558,7 +665,8 @@ function renderRouteDecision(payload, cards) {
         ${routeDecisionLine("직접생산", summary.direct_production_certificate, policyFactTone(summary.direct_production_certificate))}
         ${routeDecisionLine("조합추천", summary.cooperative_purchase_route, policyFactTone(summary.cooperative_purchase_route))}
       </div>
-      ${matchedProductText ? `<p class="decision-note">매칭 품목: ${escapeHtml(matchedProductText)}</p>` : `<p class="decision-note">매칭 품목: 확인 필요</p>`}
+      ${renderItemSelectionOptions(summary, checks, "compact")}
+      ${matchedProductText ? `<p class="decision-note">${selectionOptions.length ? "선택 후보" : "매칭 품목"}: ${escapeHtml(matchedProductText)}</p>` : `<p class="decision-note">매칭 품목: 확인 필요</p>`}
     </article>
     <article class="decision-card">
       <span>조달청·지역업체 근거</span>
@@ -577,6 +685,7 @@ function renderRouteDecision(payload, cards) {
       }
     </article>
   `;
+  attachItemSelectionHandlers(els.routeDecisionPanel);
 }
 
 function renderRouteOptions(cards) {
@@ -651,6 +760,7 @@ function renderItemPolicySummary(payload) {
   const summary = payload?.item_policy_summary || {};
   const checks = Array.isArray(payload?.product_policy_checks) ? payload.product_policy_checks : [];
   const matchedProducts = Array.isArray(summary.matched_products) ? summary.matched_products : [];
+  const selectionOptions = itemSelectionOptions(summary, checks);
   const status = valueText(summary.status, "not_requested");
   const selectionRequired = status === "needs_item_selection" || summary.selection_required === true;
   const statusLabel =
@@ -669,12 +779,12 @@ function renderItemPolicySummary(payload) {
   ]
     .map(([label, value]) => `<span class="policy-fact"><b>${escapeHtml(label)}</b>${escapeHtml(valueText(value, "확인 필요"))}</span>`)
     .join("");
-  const productRows = matchedProducts.slice(0, 4).map((item) => {
+  const productRows = (selectionRequired && selectionOptions.length ? selectionOptions : matchedProducts.slice(0, 4)).map((item) => {
     const name = valueText(item.detail_product_name || item.name, "품목명 미확인");
     const code = valueText(item.detail_product_code || item.code, "");
     const detail = code ? `세부품명번호 ${code}` : "세부품명번호 확인 필요";
     if (selectionRequired) {
-      return `<li class="policy-choice-row"><button type="button" class="policy-choice" data-policy-query="${escapeHtml(name)}"><strong>${escapeHtml(name)}</strong><span>${escapeHtml(detail)}</span><em>이 품목으로 다시 판정</em></button></li>`;
+      return `<li class="policy-choice-row"><button type="button" class="policy-choice" data-item-selection-query="${escapeHtml(item.query || name)}"><strong>${escapeHtml(name)}</strong><span>${escapeHtml(detail)}</span><em>이 품목으로 다시 판정</em></button></li>`;
     }
     return `<li><strong>${escapeHtml(name)}</strong><span>${escapeHtml(detail)}</span></li>`;
   });
@@ -699,6 +809,7 @@ function renderItemPolicySummary(payload) {
       <span class="tag ${statusTone}">${escapeHtml(selectionRequired ? "선택 필요" : status === "matched" ? "근거 있음" : "확인 필요")}</span>
     </div>
     ${selectionRequired ? `<p class="policy-selection-notice">${escapeHtml(valueText(summary.message, "실제 구매하려는 세부품명을 선택해 주세요."))}</p>` : ""}
+    ${selectionRequired ? renderItemSelectionOptions(summary, checks, "panel") : ""}
     <div class="policy-fact-grid">${facts}</div>
     ${
       productRows.length || sourceRows.length
@@ -716,17 +827,7 @@ function renderItemPolicySummary(payload) {
     }
   `;
 
-  if (selectionRequired) {
-    els.itemPolicyPanel.querySelectorAll(".policy-choice").forEach((button) => {
-      button.addEventListener("click", () => {
-        const query = valueText(button.dataset.policyQuery, "");
-        if (!query) return;
-        els.input.value = query;
-        els.input.focus();
-        search(query);
-      });
-    });
-  }
+  attachItemSelectionHandlers(els.itemPolicyPanel);
 }
 
 function zeroResultStatus(payload) {
@@ -1001,6 +1102,11 @@ function renderPayload(payload) {
 
   if (!rows.length) {
     const zeroStatus = zeroResultStatus(payload);
+    const selectionHtml = renderItemSelectionOptions(
+      payload?.item_policy_summary || {},
+      Array.isArray(payload?.product_policy_checks) ? payload.product_policy_checks : [],
+      "empty",
+    );
     const actionList = zeroStatus.actions.length
       ? `<ul class="zero-action-list">${zeroStatus.actions.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
       : "";
@@ -1008,9 +1114,11 @@ function renderPayload(payload) {
       <article class="empty-panel">
         <strong>${escapeHtml(zeroStatus.label)}</strong>
         <span>${escapeHtml(zeroStatus.message)}</span>
+        ${selectionHtml}
         ${actionList}
       </article>
     `;
+    attachItemSelectionHandlers(els.candidateList);
   } else {
     rows.slice(0, DISPLAY_LIMIT).forEach((row, index) => els.candidateList.appendChild(renderCandidate(row, index)));
   }
