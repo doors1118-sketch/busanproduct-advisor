@@ -584,6 +584,10 @@ a {
   padding: 22px;
 }
 
+.summary-grid {
+  display: none !important;
+}
+
 .search-panel {
   background: rgba(255, 255, 255, 0.96);
   border-color: rgba(148, 163, 184, 0.26);

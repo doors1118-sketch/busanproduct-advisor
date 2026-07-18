@@ -4672,7 +4672,7 @@ def _vendor_purchase_route_guidance(
     if row_has_policy:
         add_card(
             "policy_company_direct",
-            "정책기업 수의계약 검토",
+            "정책기업 수의계약 검토 가능",
             "candidate_found",
             "여성기업·장애인기업·사회적기업 등 정책기업 근거가 있는 업체는 관련 법령상 수의계약 가능 범위 확대 여부를 검토할 수 있습니다.",
             ["정책기업 유형", "인증 유효기간", "수의계약 한도", "발주기관 적용 법령"],
@@ -4788,11 +4788,11 @@ def _vendor_purchase_route_guidance(
     if requirements["requires_direct_production"]:
         badges.append({"label": "직접생산 확인 필요", "tone": "warn" if not row_has_direct else "good"})
     if row_has_mas:
-        badges.append({"label": "MAS 업체 근거 있음", "tone": "info"})
+        badges.append({"label": "MAS 지역업체 존재", "tone": "info"})
     if row_has_shopping:
-        badges.append({"label": "쇼핑몰 등록 근거 있음", "tone": "info"})
+        badges.append({"label": "조달청 나라장터 지역업체 존재", "tone": "info"})
     if row_has_policy:
-        badges.append({"label": "정책기업 수의계약 검토", "tone": "good"})
+        badges.append({"label": "정책기업 수의계약 검토 가능", "tone": "good"})
     if direct_contract_preferred and direct_contract_support_count:
         badges.append({"label": "지역업체 직접계약 근거 있음", "tone": "good"})
     if requirements["has_facility_material_price"]:

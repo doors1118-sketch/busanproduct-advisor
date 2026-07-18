@@ -309,12 +309,12 @@ function sourceDate(rows) {
 function routeStatusLabel(status, priority = "") {
   if (status === "no_local_supplier") return "부산 공급업체 미확인";
   if (status === "registered_only") return "등록 확인";
-  if (status === "candidate_evidence_only") return "업체 근거";
+  if (status === "candidate_evidence_only") return "후보 근거";
   if (priority === "primary") return "먼저 확인";
   if (priority === "secondary") return "다음 검토";
   if (priority === "reference") return "참고";
   if (priority === "excluded") return "어려움";
-  if (status === "candidate_found") return "업체 근거 있음";
+  if (status === "candidate_found") return "지역업체 존재";
   if (status === "policy_only") return "품목정책 확인";
   if (status === "reference_only") return "참고자료";
   if (status === "mas_direct_check") return "직접구매 검토";
@@ -876,6 +876,9 @@ function zeroResultStatus(payload) {
 }
 
 function renderSummary(payload, rows) {
+  if (!els.summaryCount || !els.summaryDesc || !els.summaryCondition || !els.summaryRoute || !els.summaryDownload) {
+    return;
+  }
   const count = Number(payload?.count || rows.length || 0);
   const conditionLabels = rows.map((row) => valueText(row.condition_match_type, ""));
   const all = conditionLabels.filter((label) => /모두 충족|조건 충족/.test(label)).length;
