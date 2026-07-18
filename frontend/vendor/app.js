@@ -341,7 +341,8 @@ function routeStatusTone(status, priority = "") {
 
 function policyFactTone(value) {
   const normalized = valueText(value, "");
-  if (!normalized || /미해당|확인 필요|미확인|없음|not_found|unavailable/i.test(normalized)) return "warn";
+  if (!normalized || /확인 필요|미확인|없음|not_found|unavailable/i.test(normalized)) return "warn";
+  if (/미해당|비대상/i.test(normalized)) return "info";
   if (/해당|필요|가능|대상|등록|있음|충족|true|matched/i.test(normalized)) return "good";
   return "info";
 }
@@ -473,10 +474,16 @@ function buildRouteNarrative(payload, primary, summary, checks) {
       `해당 품목은 중소기업자간 경쟁제품 가능성이 있으므로 직접생산확인증명서의 세부품명과 유효기간을 먼저 확인해야 합니다${directSupplierCount ? `; 현재 DB상 직접생산 유효 공급업체 수는 ${directSupplierCount.toLocaleString("ko-KR")}개입니다.` : "."}`,
       "warn",
     );
+  } else if (valueText(summary?.sme_competition_product, "") === "미해당") {
+    addLine(
+      "품목정책",
+      "중소기업자간 경쟁제품 DB 기준 미해당입니다. 직접생산 의무도 현재 품목정책 DB 기준 확인되지 않습니다. 다만 공고 전 세부품명번호는 원천자료에서 최종 확인하세요.",
+      "info",
+    );
   } else if (summary?.sme_competition_product) {
     addLine(
       "품목정책",
-      `중소기업자간 경쟁제품 해당 여부는 '${valueText(summary.sme_competition_product)}'로 표시되며, 공고 전 세부품명 기준 재확인이 필요합니다.`,
+      "중소기업자간 경쟁제품 해당 여부를 현재 DB 매칭값만으로 확정하지 못했습니다. 공고 전 세부품명번호 기준 재확인이 필요합니다.",
       "warn",
     );
   }
@@ -668,7 +675,7 @@ function renderRouteDecision(payload, cards) {
   els.routeDecisionPanel.innerHTML = `
     <article class="route-narrative-card">
       <span>실무 요약</span>
-      <strong>${escapeHtml(valueText(primary.label || guide.title, "구매방식 확인 필요"))}</strong>
+      <strong>${escapeHtml(valueText(primary.label || guide.title, "직접계약/입찰공고 검토"))}</strong>
       <ol class="route-narrative-list">
         ${narrativeLines.map((line) => `
           <li class="${escapeHtml(line.tone)}">
@@ -682,7 +689,7 @@ function renderRouteDecision(payload, cards) {
     </article>
     <article class="decision-card decision-primary">
       <span>우선 검토</span>
-      <strong>${escapeHtml(valueText(primary.label || guide.title, "구매방식 확인 필요"))}</strong>
+      <strong>${escapeHtml(valueText(primary.label || guide.title, "직접계약/입찰공고 검토"))}</strong>
       <p>${escapeHtml(valueText(primary.reason || guide.purchase_route_basis_explanation, "품목정책과 조달청 등록 근거를 확인해야 합니다."))}</p>
       <em>${escapeHtml(valueText(primary.practical_note || guide.purchase_route_basis_label, "DB 근거 기반 우선검토이며 최종 계약 가능 여부는 별도 확인이 필요합니다."))}</em>
     </article>
@@ -773,7 +780,7 @@ function renderRouteGuide(payload) {
   const cards = Array.isArray(guide.route_cards) ? guide.route_cards : [];
   const badges = Array.isArray(guide.badges) ? guide.badges : [];
 
-  els.routeTitle.textContent = cards.length ? "검토 가능한 구매방식과 지역업체 대안" : "구매방식 확인 필요";
+  els.routeTitle.textContent = cards.length ? "검토 가능한 구매방식과 지역업체 대안" : "지역업체 후보 검토";
   els.routeNotice.textContent =
     guide.legal_notice || "구매방식 안내는 후보 정보입니다. 최종 계약 가능 여부와 법령 해석은 별도 검토가 필요합니다.";
   renderRouteDecision(payload, cards);
@@ -784,8 +791,6 @@ function renderRouteGuide(payload) {
     badges.forEach((item) => els.routeBadges.appendChild(tag(item.label || "확인 필요", item.tone || "info")));
   } else if (cards.length) {
     cards.slice(0, 4).forEach((item) => els.routeBadges.appendChild(tag(item.label || item.route_id, item.status === "candidate_found" ? "info" : "warn")));
-  } else {
-    els.routeBadges.appendChild(tag("확인 필요", "warn"));
   }
 }
 

@@ -181,7 +181,7 @@ def test_vendor_recommendation_search_endpoint(monkeypatch):
     assert "MAS/쇼핑몰 계약상태" in body["rows"][0]["recommended_checks"]
     assert "시공능력평가금액" in body["rows"][0]["recommended_checks"]
     assert "벤처나라" in body["rows"][0]["recommended_checks"]
-    assert body["item_policy_summary"]["sme_competition_product"] == "해당 가능"
+    assert body["item_policy_summary"]["sme_competition_product"] == "해당"
     assert "직접생산증명서" in body["item_policy_summary"]["direct_production_certificate"]
     assert "조합추천" in body["item_policy_summary"]["cooperative_purchase_route"]
     assert body["product_policy_checks"][0]["detail_product_code"] == "123"
@@ -192,6 +192,45 @@ def test_vendor_recommendation_search_endpoint(monkeypatch):
     assert "계약유형 확인 필요" in mas_card["practical_note"]
     assert body["purchase_route_guidance"]["required_checks"]
     assert "purchase_route_fit_summary" in body["rows"][0]
+
+
+def test_vendor_item_policy_summary_marks_explicit_non_sme_as_not_applicable():
+    checks = [{
+        "detail_product_code": "4319150401",
+        "detail_product_name": "유선전화기",
+        "matched_policy_source": "product_policy_summary_fast",
+        "is_sme_competition_product": "0",
+        "direct_production_valid_supplier_count": "0",
+        "busan_company_product_count": "1",
+    }]
+
+    summary = api_server._vendor_item_policy_summary("유선전화기", checks, requested=True)
+
+    assert summary["status"] == "matched"
+    assert summary["sme_competition_product"] == "미해당"
+    assert "DB 기준 미해당" in summary["message"]
+    assert summary["direct_production_certificate"] == "DB 기준 직접생산 의무 미확인"
+
+
+def test_vendor_purchase_route_guidance_uses_direct_or_bid_when_only_company_product_count_exists():
+    rows = [{**_sample_vendor_row(), "has_mas": "", "has_shopping_mall": ""}]
+    checks = [{
+        "detail_product_code": "4319150401",
+        "detail_product_name": "유선전화기",
+        "matched_policy_source": "product_policy_summary_fast",
+        "is_sme_competition_product": "0",
+        "direct_production_valid_supplier_count": "0",
+        "busan_company_product_count": "1",
+        "shopping_mall_active_registered_count": "0",
+        "shopping_mall_active_busan_supplier_count": "0",
+    }]
+    summary = api_server._vendor_item_policy_summary("유선전화기", checks, requested=True)
+
+    guidance = api_server._vendor_purchase_route_guidance("유선전화기", rows, checks, summary)
+
+    assert guidance["primary_route"]["route_id"] == "open_market_or_bid"
+    assert guidance["primary_route"]["label"] == "직접계약/입찰공고 검토"
+    assert all(badge["label"] != "구매방식 확인 필요" for badge in guidance["badges"])
 
 
 def test_vendor_search_rows_collects_multiple_terms_for_mixed_query(monkeypatch):

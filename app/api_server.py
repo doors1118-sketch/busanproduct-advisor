@@ -3215,8 +3215,6 @@ def _vendor_policy_route_requirements(product_policy_checks: list[dict[str, str]
         if _vendor_policy_int(item.get("mas_active_supplier_count")) > 0:
             has_mas_route = True
             has_shopping_route = True
-        if _vendor_policy_int(item.get("busan_company_product_count")) > 0:
-            has_shopping_route = True
         if _vendor_policy_int(item.get("shopping_mall_active_third_party_count")) > 0:
             has_mas_route = True
             has_shopping_route = True
@@ -3489,6 +3487,12 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
         })
 
     is_sme = any(sme_values)
+    if is_sme:
+        sme_status = "해당"
+    elif sme_values and all(value is False for value in sme_values):
+        sme_status = "미해당"
+    else:
+        sme_status = "확인 필요"
     direct_count = max(direct_supplier_counts) if direct_supplier_counts else 0
     disambiguation = _vendor_item_disambiguation(q)
     if disambiguation:
@@ -3546,14 +3550,18 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
             "shopping_mall_active_registered_count": 0,
             "matched_products": matched_products,
         }
-    if is_sme:
+    if sme_status == "해당":
         direct_label = "직접생산증명서 세부품명·유효기간 확인 필요"
         cooperative_label = "조합추천/소기업 공동사업제품 수의계약 경로 검토 가능"
         message = "검색 품목이 중소기업자간 경쟁제품으로 매칭되었습니다. 직접생산증명서와 예외 구매경로를 별도 확인해야 합니다."
+    elif sme_status == "미해당":
+        direct_label = "DB 기준 직접생산 의무 미확인"
+        cooperative_label = "중소기업자간 경쟁제품 DB 기준 미해당"
+        message = "검색 품목은 중소기업자간 경쟁제품 DB 기준 미해당으로 확인됩니다. 공고 전 세부품명번호 기준 최종 재확인은 필요합니다."
     else:
-        direct_label = "품목 매칭상 직접생산증명서 의무 여부 추가 확인"
-        cooperative_label = "중소기업자간 경쟁제품 해당 시 검토"
-        message = "검색 품목의 중소기업자간 경쟁제품 매칭은 확인되지 않았습니다. 세부품명 기준 재확인이 필요합니다."
+        direct_label = "품목 매칭상 직접생산증명서 의무 여부 확인 필요"
+        cooperative_label = "중소기업자간 경쟁제품 해당 여부 확인 필요"
+        message = "검색 품목은 DB 매칭값만으로 중소기업자간 경쟁제품 해당 여부를 확정하지 못했습니다. 세부품명번호 기준 재확인이 필요합니다."
     if direct_count:
         direct_label = f"{direct_label} / 유효 공급업체 수: {direct_count}"
     if any(str(item.get("matched_policy_source") or "") == "facility_material_price_file" for item in product_policy_checks):
@@ -3563,7 +3571,7 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
         "status": "matched",
         "query": q,
         "message": message,
-        "sme_competition_product": "해당 가능" if is_sme else "미매칭 또는 확인 필요",
+        "sme_competition_product": sme_status,
         "direct_production_certificate": direct_label,
         "cooperative_purchase_route": cooperative_label,
         "shopping_mall_contract_basis_level": contract_signal["basis_level"],
@@ -4444,7 +4452,8 @@ def _vendor_purchase_route_guidance(
     construction_terms = _vendor_requested_construction_terms(q)
     contract_object = _vendor_contract_object_for_route(q, construction_terms)
     service_route_primary = contract_object == "service"
-    construction_route_primary = bool(construction_terms) and not _vendor_has_construction_material_intent(q)
+    construction_material_intent = _vendor_has_construction_material_intent(q)
+    construction_route_primary = bool(construction_terms) and not construction_material_intent
     row_has_direct = any(
         _vendor_is_truthy(row.get("direct_production_match"))
         or _vendor_is_truthy(row.get("direct_production_certificate_products"))
@@ -4591,11 +4600,11 @@ def _vendor_purchase_route_guidance(
         elif row_has_mas:
             mas_status = "candidate_evidence_only"
             mas_reason = "후보업체 DB에 MAS 근거가 있으나 품목 마스터 기준 계약유형 확정 근거는 추가 확인이 필요합니다."
-            mas_priority = "secondary"
+            mas_priority = "primary" if construction_material_intent else "reference"
         else:
             mas_status = "policy_only"
             mas_reason = "제3자단가계약 또는 다수공급자계약 가능성이 있으면 조달청 종합쇼핑몰/MAS 구매 경로를 검토합니다."
-            mas_priority = "secondary"
+            mas_priority = "reference"
         add_card(
             "mas",
             "MAS/다수공급자계약",
@@ -4619,11 +4628,11 @@ def _vendor_purchase_route_guidance(
         elif row_has_shopping and not has_confirmed_contract:
             shopping_status = "candidate_evidence_only"
             shopping_reason = "후보업체 DB에 쇼핑몰 등록 근거가 있으나 품목 계약유형은 조달청 원천자료로 확인해야 합니다."
-            shopping_priority = "secondary"
+            shopping_priority = "reference"
         else:
             shopping_status = "candidate_found" if row_has_shopping else "policy_only"
             shopping_reason = "종합쇼핑몰 등록 상품이면 조달청 쇼핑몰 구매 또는 수의계약 성격의 바로구매 가능성을 검토할 수 있습니다."
-            shopping_priority = "secondary"
+            shopping_priority = "reference" if not has_confirmed_contract else "secondary"
         add_card(
             "shopping_mall",
             "종합쇼핑몰 구매",
@@ -4681,6 +4690,26 @@ def _vendor_purchase_route_guidance(
             "가격정보는 후보업체 확정 근거가 아니라 설계·예정가격·품목 식별을 보조하는 참고자료입니다.",
             ["동일 규격 가격정보 확인", "공사용자재 직접구매 대상 여부 확인"],
             route_priority="reference",
+        )
+
+    if (
+        basis_level == "no_central_procurement_evidence"
+        and not service_route_primary
+        and not construction_route_primary
+        and not (construction_material_intent and (row_has_mas or row_has_shopping))
+        and not any(str(card.get("route_id")) == "open_market_or_bid" for card in route_cards)
+    ):
+        add_card(
+            "open_market_or_bid",
+            "직접계약/입찰공고 검토",
+            "needs_check",
+            "품목정책 DB에서 제3자단가·MAS·쇼핑몰·직접생산 필수 근거가 명확히 확인되지 않았습니다.",
+            ["조달등록 여부", "면허/업종", "영업상태", "공고 조건"],
+            "이 경우에는 조달등록 부산업체 후보를 기준으로 직접계약 가능성 또는 입찰공고 조건 설계를 검토합니다.",
+            ["조달등록·영업상태 확인", "면허·업종과 실제 취급품목 확인", "공고 조건에 지역업체 참여 가능성을 반영할지 검토"],
+            route_priority="primary",
+            basis_level_override=basis_level,
+            basis_explanation=str(contract_signal["basis_explanation"]),
         )
 
     if not route_cards:
@@ -4768,9 +4797,6 @@ def _vendor_purchase_route_guidance(
         badges.append({"label": "지역업체 직접계약 근거 있음", "tone": "good"})
     if requirements["has_facility_material_price"]:
         badges.append({"label": "시설자재 가격정보 매칭", "tone": "neutral"})
-    if not badges:
-        badges.append({"label": "구매방식 확인 필요", "tone": "neutral"})
-
     required_checks: list[str] = []
     for card in route_cards:
         for check in card.get("required_checks") or []:
