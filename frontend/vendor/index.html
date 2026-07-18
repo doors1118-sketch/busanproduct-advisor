@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>지능형 지역상생 계약 지원 시스템 | 지역업체 후보 조회</title>
-    <link rel="stylesheet" href="./styles.css?v=20260718-item-selection" />
+    <link rel="stylesheet" href="./styles.css?v=20260718-item-selection-popover" />
   </head>
   <body>
     <div class="app-shell">
@@ -69,6 +69,12 @@
               placeholder="예: 보안카메라 구매 가능한 부산업체 후보를 찾아줘. 정책기업 여부와 쇼핑몰 등록 여부까지 같이"
               autocomplete="off"
             ></textarea>
+            <div
+              id="item-selection-popover"
+              class="search-selection-popover"
+              aria-live="polite"
+              hidden
+            ></div>
 
             <div class="input-grid">
               <label>
@@ -298,6 +304,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260718-item-selection"></script>
+    <script src="./app.js?v=20260718-item-selection-popover"></script>
   </body>
 </html>

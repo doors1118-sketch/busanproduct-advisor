@@ -665,6 +665,13 @@ select:focus {
   box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
 }
 
+.search-selection-popover {
+  grid-column: 1 / 2;
+  margin-top: -2px;
+  position: relative;
+  z-index: 8;
+}
+
 .input-grid {
   display: grid;
   gap: 12px;
@@ -1483,12 +1490,36 @@ select:focus {
   gap: 12px;
   margin-top: 12px;
   padding: 12px;
+  position: relative;
 }
 
 .item-selection-box.is-empty {
   background: #ffffff;
   border-style: solid;
   margin-top: 12px;
+}
+
+.item-selection-box.is-search {
+  background: #ffffff;
+  border-color: #0f766e;
+  box-shadow:
+    0 18px 36px rgba(15, 23, 42, 0.16),
+    0 0 0 4px rgba(20, 184, 166, 0.08);
+  margin-top: 0;
+  padding: 14px;
+}
+
+.item-selection-box.is-search::before {
+  background: #ffffff;
+  border-left: 1px solid #0f766e;
+  border-top: 1px solid #0f766e;
+  content: "";
+  height: 12px;
+  left: 26px;
+  position: absolute;
+  top: -7px;
+  transform: rotate(45deg);
+  width: 12px;
 }
 
 .item-selection-copy {
@@ -1511,6 +1542,10 @@ select:focus {
   display: grid;
   gap: 8px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.item-selection-box.is-search .item-selection-list {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .item-selection-button {
@@ -2166,6 +2201,10 @@ th {
   .candidate-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .item-selection-box.is-search .item-selection-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 1120px) {
@@ -2196,6 +2235,10 @@ th {
     grid-template-columns: 1fr;
   }
 
+  .item-selection-box.is-search .item-selection-list {
+    grid-template-columns: 1fr;
+  }
+
   .hero {
     padding: 22px 28px 64px;
   }
@@ -2205,6 +2248,7 @@ th {
   }
 
   .search-form > label[for="query-input"],
+  .search-selection-popover,
   .input-grid,
   .sample-row,
   .form-actions {
