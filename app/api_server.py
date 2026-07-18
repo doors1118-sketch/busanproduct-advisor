@@ -875,6 +875,62 @@ _VENDOR_AMBIGUOUS_PRODUCT_RULES = (
             "아래 세부품명 후보를 선택한 뒤 품목정책을 다시 판정해야 합니다."
         ),
     },
+    {
+        "key": "camera_type",
+        "generic_markers": ("카메라",),
+        "specific_markers": (
+            "보안카메라",
+            "보안용카메라",
+            "감시카메라",
+            "cctv",
+            "씨씨티비",
+            "영상감시장치",
+            "영상감시",
+            "디지털카메라",
+            "디카",
+            "비디오카메라",
+            "캠코더",
+            "웹카메라",
+            "웹캠",
+        ),
+        "search_terms": (
+            "보안용카메라",
+            "영상감시장치",
+            "감시카메라",
+            "CCTV",
+            "디지털카메라",
+            "비디오카메라",
+            "캠코더",
+            "웹카메라",
+            "아날로그카메라",
+        ),
+        "option_markers": (
+            "보안용카메라",
+            "영상감시장치",
+            "감시카메라",
+            "디지털카메라",
+            "비디오카메라",
+            "캠코더",
+            "웹카메라",
+            "아날로그카메라",
+        ),
+        "exclude_option_markers": (
+            "회전대",
+            "하우징",
+            "컨트롤러",
+            "브래킷",
+            "브라켓",
+            "렌즈",
+            "마운트",
+            "케이블",
+            "거치대",
+        ),
+        "title": "카메라 종류 선택 필요",
+        "message": (
+            "'카메라'만으로는 보안용카메라·디지털카메라·비디오카메라 등 세부품명을 확정할 수 없습니다. "
+            "아래 세부품명 후보를 선택한 뒤 품목정책과 부산업체 후보를 다시 판정해야 합니다."
+        ),
+    },
 )
 
 
@@ -899,6 +955,7 @@ def _vendor_intent_text(q: str) -> str:
         "컴퓨타": "컴퓨터",
         "콤퓨터": "컴퓨터",
         "컴터": "컴퓨터",
+        "디카": "디지털카메라",
     }
     for typo, canonical in typo_aliases.items():
         text = text.replace(typo, canonical)
@@ -3434,12 +3491,21 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
     direct_count = max(direct_supplier_counts) if direct_supplier_counts else 0
     disambiguation = _vendor_item_disambiguation(q)
     if disambiguation:
-        selection_markers = tuple(
-            _vendor_compact(marker)
-            for marker in (
+        raw_selection_markers = (
+            tuple(disambiguation.get("option_markers") or ())
+            or (
                 tuple(disambiguation.get("generic_markers") or ())
                 + tuple(disambiguation.get("specific_markers") or ())
             )
+        )
+        selection_markers = tuple(
+            _vendor_compact(marker)
+            for marker in raw_selection_markers
+            if marker
+        )
+        exclude_markers = tuple(
+            _vendor_compact(marker)
+            for marker in tuple(disambiguation.get("exclude_option_markers") or ())
             if marker
         )
         selection_options = [
@@ -3455,6 +3521,7 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
                 not selection_markers
                 or any(marker in _vendor_compact(item.get("detail_product_name")) for marker in selection_markers)
             )
+            and not any(marker in _vendor_compact(item.get("detail_product_name")) for marker in exclude_markers)
         ]
         return {
             "status": "needs_item_selection",

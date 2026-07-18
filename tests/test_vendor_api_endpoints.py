@@ -1248,6 +1248,91 @@ def test_vendor_payload_blocks_generic_telephone_candidates(monkeypatch):
     assert payload["purchase_route_guidance"]["primary_route"]["route_id"] == "item_selection_required"
 
 
+def test_vendor_generic_camera_requires_detail_item_selection():
+    assert api_server._vendor_item_disambiguation("카메라 구매") is not None
+    assert api_server._vendor_item_disambiguation("보안카메라 구매") is None
+    assert api_server._vendor_item_disambiguation("CCTV 구매") is None
+    assert api_server._vendor_item_disambiguation("디지털카메라 구매") is None
+    assert api_server._vendor_item_disambiguation("비디오카메라 구매") is None
+    assert api_server._vendor_item_disambiguation("디카 구매") is None
+
+
+def test_vendor_item_policy_summary_filters_generic_camera_accessories():
+    checks = [
+        {
+            "detail_product_code": "4512152001",
+            "detail_product_name": "디지털카메라",
+            "matched_policy_source": "product_policy_summary",
+            "is_sme_competition_product": "0",
+        },
+        {
+            "detail_product_code": "4512151601",
+            "detail_product_name": "캠코더",
+            "matched_policy_source": "product_policy_summary",
+            "is_sme_competition_product": "0",
+        },
+        {
+            "detail_product_code": "4617162201",
+            "detail_product_name": "영상감시장치",
+            "matched_policy_source": "product_policy_summary",
+            "is_sme_competition_product": "1",
+        },
+        {
+            "detail_product_code": "4512159901",
+            "detail_product_name": "카메라회전대",
+            "matched_policy_source": "product_policy_summary",
+            "is_sme_competition_product": "0",
+        },
+        {
+            "detail_product_code": "4512160301",
+            "detail_product_name": "카메라용렌즈",
+            "matched_policy_source": "product_policy_summary",
+            "is_sme_competition_product": "0",
+        },
+    ]
+
+    summary = api_server._vendor_item_policy_summary("카메라 구매", checks, requested=True)
+
+    assert summary["status"] == "needs_item_selection"
+    assert summary["selection_title"] == "카메라 종류 선택 필요"
+    assert [item["detail_product_name"] for item in summary["selection_options"]] == [
+        "디지털카메라",
+        "캠코더",
+        "영상감시장치",
+    ]
+
+
+def test_vendor_payload_blocks_generic_camera_candidates(monkeypatch):
+    monkeypatch.setattr(
+        api_server,
+        "_vendor_recommendation_rows",
+        lambda q, region="부산", limit=100, budget_krw=None: [
+            {**_sample_vendor_row(), "matched_source": "product"}
+        ],
+    )
+    monkeypatch.setattr(
+        api_server,
+        "_vendor_product_policy_checks",
+        lambda q, limit=5: [
+            {
+                "detail_product_code": "4617162201",
+                "detail_product_name": "영상감시장치",
+                "matched_policy_source": "product_policy_summary",
+                "is_sme_competition_product": "1",
+            }
+        ],
+    )
+
+    payload = api_server._vendor_recommendation_payload("카메라 구매", limit=10)
+
+    assert payload["count"] == 0
+    assert payload["rows"] == []
+    assert payload["item_policy_summary"]["status"] == "needs_item_selection"
+    assert [item["detail_product_name"] for item in payload["item_policy_summary"]["selection_options"]] == ["영상감시장치"]
+    assert payload["zero_result_status"]["status"] == "item_selection_required"
+    assert payload["purchase_route_guidance"]["primary_route"]["route_id"] == "item_selection_required"
+
+
 def test_vendor_product_policy_checks_reorders_pc_abbreviation_before_lookup(monkeypatch):
     calls = []
 
