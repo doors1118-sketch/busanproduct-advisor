@@ -1866,7 +1866,19 @@ def _vendor_contract_history_terms(q: str) -> list[str]:
     text = str(q or "")
     terms: list[str] = []
     terms.extend(re.findall(r"[^\W_]{2,}", text, flags=re.UNICODE))
-    terms.extend(_vendor_query_tokens(text))
+    compact_intent = _vendor_compact(_vendor_intent_text(text))
+    precise_camera_history_terms = (
+        (("디지털카메라", "디카"), ("디지털카메라", "디카")),
+        (("비디오카메라", "캠코더"), ("비디오카메라", "캠코더")),
+        (("웹카메라", "웹캠"), ("웹카메라", "웹캠")),
+        (("아날로그카메라",), ("아날로그카메라",)),
+    )
+    for markers, aliases in precise_camera_history_terms:
+        if any(_vendor_compact(marker) in compact_intent for marker in markers):
+            terms.extend(aliases)
+            break
+    else:
+        terms.extend(_vendor_query_tokens(text))
     cleaned: list[str] = []
     for term in terms:
         term = str(term or "").strip().lower()

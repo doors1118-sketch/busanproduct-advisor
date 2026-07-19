@@ -1298,6 +1298,17 @@ def test_vendor_generic_camera_requires_detail_item_selection():
     assert api_server._vendor_item_disambiguation("디카 구매") is None
 
 
+def test_vendor_contract_history_terms_keep_precise_camera_queries_narrow():
+    digital_terms = api_server._vendor_contract_history_terms("디지털카메라 구매")
+    cctv_terms = api_server._vendor_contract_history_terms("CCTV 구매")
+
+    assert "디지털카메라" in digital_terms
+    assert "cctv" not in digital_terms
+    assert "보안용카메라" not in digital_terms
+    assert "cctv" in cctv_terms
+    assert "보안용카메라" in cctv_terms
+
+
 def test_vendor_item_policy_summary_filters_generic_camera_accessories():
     checks = [
         {
