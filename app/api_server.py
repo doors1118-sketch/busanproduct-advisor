@@ -4426,9 +4426,18 @@ def _vendor_priority_route_cards(
         status = getattr(card, "status", "")
         reason = getattr(card, "practical_meaning", "")
         user_label = getattr(card, "user_label", "")
+        display_label = getattr(card, "title", "")
         basis_explanation = str(contract_signal["basis_explanation"])
 
         if route_id == "shopping_mall_mas":
+            if basis_level == "confirmed_third_party_unit_price":
+                display_label = "제3자단가계약"
+            elif basis_level == "confirmed_mas":
+                display_label = "다수공급자계약(MAS)"
+            elif basis_level == "confirmed_general_unit_price":
+                display_label = "일반단가계약"
+            elif has_registered_item:
+                display_label = "종합쇼핑몰 등록 품목이나 계약유형 확인 필요"
             if has_confirmed_contract:
                 basis_label = str(contract_signal["basis_label"])
                 if not has_local_shopping_supplier:
@@ -4468,6 +4477,7 @@ def _vendor_priority_route_cards(
                     "지역업체 직접계약, 2인 이상 견적, 입찰공고 조건 설계를 우선 대안으로 검토합니다."
                 )
         elif route_id == "third_party_unit_price":
+            display_label = "제3자단가계약"
             if basis_level == "confirmed_third_party_unit_price":
                 if not has_local_shopping_supplier:
                     status = "no_local_supplier"
@@ -4492,7 +4502,7 @@ def _vendor_priority_route_cards(
 
         route_cards.append({
             "route_id": getattr(card, "route_id", ""),
-            "label": getattr(card, "title", ""),
+            "label": display_label,
             "status": status,
             "route_priority": route_priority,
             "reason": reason,
@@ -4735,6 +4745,30 @@ def _vendor_purchase_route_guidance(
             route_priority="primary",
         )
     if requirements["has_mas_route"] or has_confirmed_contract or (row_has_mas and not service_route_primary):
+        if basis_level == "confirmed_third_party_unit_price":
+            central_route_id = "third_party_unit_price"
+            central_route_title = "제3자단가계약"
+            central_required_checks = ["제3자단가계약 여부", "계약기간", "납품조건", "납품요구 가능 여부", "부산 공급업체 여부"]
+            central_practical_note = "제3자단가계약 품목으로 확인되면 조달청 종합쇼핑몰 납품요구 경로를 우선 확인합니다."
+            central_next_actions = ["조달청 종합쇼핑몰에서 동일 세부품명 검색", "부산 공급업체 등록 여부 확인", "계약기간과 납품조건 확인"]
+        elif basis_level == "confirmed_mas":
+            central_route_id = "mas"
+            central_route_title = "다수공급자계약(MAS)"
+            central_required_checks = ["MAS 계약상태", "계약기간", "납품조건", "2단계 경쟁 필요 여부", "부산 공급업체 여부"]
+            central_practical_note = "다수공급자계약(MAS) 품목으로 확인되면 금액·품목 조건에 따라 바로구매 또는 2단계 경쟁을 확인합니다."
+            central_next_actions = ["조달청 종합쇼핑몰에서 동일 세부품명 검색", "2단계 경쟁 대상 금액인지 확인", "부산업체의 MAS 계약 유효 여부 확인"]
+        elif basis_level == "confirmed_general_unit_price":
+            central_route_id = "general_unit_price"
+            central_route_title = "일반단가계약"
+            central_required_checks = ["일반단가계약 여부", "계약기간", "납품조건", "부산 공급업체 여부"]
+            central_practical_note = "일반단가계약 품목으로 확인되면 조달청 계약조건과 기관 구매 가능 여부를 확인합니다."
+            central_next_actions = ["조달청 종합쇼핑몰에서 동일 세부품명 검색", "계약기간과 납품조건 확인", "부산 공급업체 등록 여부 확인"]
+        else:
+            central_route_id = "mas"
+            central_route_title = "다수공급자계약(MAS)"
+            central_required_checks = ["제3자단가계약 여부", "MAS 계약상태", "계약기간", "납품조건", "2단계 경쟁 필요 여부"]
+            central_practical_note = "금액·품목 조건에 따라 바로구매 또는 2단계 경쟁으로 갈라질 수 있으므로 물품식별번호와 계약조건 확인이 필요합니다."
+            central_next_actions = ["조달청 종합쇼핑몰에서 동일 세부품명 검색", "2단계 경쟁 대상 금액인지 확인", "부산업체의 MAS 계약 유효 여부 확인"]
         if has_confirmed_contract:
             mas_status = "candidate_found" if has_local_shopping_supplier else "no_local_supplier"
             mas_reason = (
@@ -4753,13 +4787,13 @@ def _vendor_purchase_route_guidance(
             mas_reason = "제3자단가계약 또는 다수공급자계약 가능성이 있으면 조달청 종합쇼핑몰/MAS 구매 경로를 검토합니다."
             mas_priority = "reference"
         add_card(
-            "mas",
-            "다수공급자계약(MAS)",
+            central_route_id,
+            central_route_title,
             mas_status,
             mas_reason,
-            ["제3자단가계약 여부", "MAS 계약상태", "계약기간", "납품조건", "2단계 경쟁 필요 여부"],
-            "금액·품목 조건에 따라 바로구매 또는 2단계 경쟁으로 갈라질 수 있으므로 물품식별번호와 계약조건 확인이 필요합니다.",
-            ["조달청 종합쇼핑몰에서 동일 세부품명 검색", "2단계 경쟁 대상 금액인지 확인", "부산업체의 MAS 계약 유효 여부 확인"],
+            central_required_checks,
+            central_practical_note,
+            central_next_actions,
             route_priority=mas_priority,
             basis_level_override=basis_level,
             basis_explanation=str(contract_signal["basis_explanation"]),
@@ -4900,6 +4934,7 @@ def _vendor_purchase_route_guidance(
         "third_party_unit_price": -1,
         "shopping_mall_mas": 0,
         "mas": 0,
+        "general_unit_price": 0,
         "shopping_mall": 1,
         "two_quote_small_value": 2,
         "local_company_alternative": 2,
