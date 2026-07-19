@@ -500,7 +500,9 @@ function buildRouteNarrative(payload, primary, summary, checks) {
         : "조달청 종합쇼핑몰";
     const routeText = localMallEvidence
       ? `${routeName}에서 요청 세부품명과 일치하는 부산 지역업체 등록 근거가 ${localMallEvidence.toLocaleString("ko-KR")}개 확인됩니다. 품목 마스터 기준은 '${basis}'이며, 전체 쇼핑몰 등록 근거는 ${mallRegisteredCount.toLocaleString("ko-KR")}개입니다.`
-      : `${routeName} 품목으로 확인됩니다. 다만 현재 DB 기준 이 세부품명으로 등록된 부산 MAS/쇼핑몰 공급업체는 확인되지 않습니다. 중소기업자간 경쟁제품이 아니면 직접생산 필수 품목으로 보지 않으므로, 조달등록 부산 유통사·제조사를 직접계약 또는 입찰공고 대안으로 함께 검토할 수 있습니다.`;
+      : isMasRoute
+        ? "다수공급자계약(MAS) 품목으로 확인됩니다. 원칙적으로 조달청 종합쇼핑몰/MAS 2단계경쟁 경로를 우선 확인해야 합니다. 다만 현재 DB 기준 이 세부품명으로 등록된 부산 MAS/쇼핑몰 공급업체가 확인되지 않거나, 필요한 규격·조건을 MAS로 충족하기 어려운 경우에는 조달청 입찰 또는 발주기관 일반입찰 가능성을 계약부서와 별도 검토해야 합니다."
+        : `${routeName} 품목으로 확인됩니다. 다만 현재 DB 기준 이 세부품명으로 등록된 부산 MAS/쇼핑몰 공급업체는 확인되지 않습니다. 중소기업자간 경쟁제품이 아니면 직접생산 필수 품목으로 보지 않으므로, 조달등록 부산 유통사·제조사를 직접계약 또는 입찰공고 대안으로 함께 검토할 수 있습니다.`;
     addLine(
       "구매경로",
       routeText,
@@ -660,27 +662,6 @@ function renderRouteDecision(payload, cards) {
   const summary = payload?.item_policy_summary || {};
   const checks = Array.isArray(payload?.product_policy_checks) ? payload.product_policy_checks : [];
   const primary = guide.primary_route || cards[0] || {};
-  const requiredChecks = [
-    ...(Array.isArray(primary.required_checks) ? primary.required_checks : []),
-    ...(Array.isArray(guide.required_checks) ? guide.required_checks : []),
-  ].filter(Boolean);
-  const nextActions = [
-    ...(Array.isArray(primary.next_actions) ? primary.next_actions : []),
-    ...(Array.isArray(primary.required_checks) ? primary.required_checks : []),
-  ].filter(Boolean);
-  const selectionOptions = itemSelectionOptions(summary, checks);
-  const matchedProducts = Array.isArray(summary.matched_products) ? summary.matched_products : [];
-  const matchedProductText = matchedProducts
-    .slice(0, 3)
-    .map((item) => valueText(item.detail_product_name || item.name, "품목명 미확인"))
-    .join(" · ");
-  const supplierFacts = [
-    ["후보업체", `${numberOrZero(payload?.count).toLocaleString("ko-KR")}개`, numberOrZero(payload?.count) ? "good" : "warn"],
-    ["품목DB 부산 공급", `${numberOrZero(guide.shopping_mall_busan_supplier_count).toLocaleString("ko-KR")}개`, numberOrZero(guide.shopping_mall_busan_supplier_count) ? "good" : "warn"],
-    ["품목DB 쇼핑몰 등록", `${Math.max(numberOrZero(guide.shopping_mall_active_registered_count), maxPolicyCount(checks, "shopping_mall_active_supplier_count"), maxPolicyCount(checks, "mas_active_supplier_count")).toLocaleString("ko-KR")}개`, "info"],
-    ["직접생산 보유", `${maxPolicyCount(checks, "direct_production_valid_supplier_count").toLocaleString("ko-KR")}개`, maxPolicyCount(checks, "direct_production_valid_supplier_count") ? "good" : "warn"],
-  ];
-  const checkList = [...new Set([...nextActions, ...requiredChecks])].slice(0, 5);
   const narrativeLines = buildRouteNarrative(payload, primary, summary, checks);
 
   els.routeDecisionPanel.innerHTML = `
@@ -697,44 +678,6 @@ function renderRouteDecision(payload, cards) {
           </li>
         `).join("")}
       </ol>
-    </article>
-    <article class="decision-card decision-primary">
-      <span>우선 검토</span>
-      <strong>${escapeHtml(valueText(primary.label || guide.title, "직접계약/입찰공고 검토"))}</strong>
-      <p>${escapeHtml(valueText(primary.reason || guide.purchase_route_basis_explanation, "품목정책과 조달청 등록 근거를 확인해야 합니다."))}</p>
-      <em>${escapeHtml(valueText(primary.practical_note || guide.purchase_route_basis_label, "DB 근거 기반 우선검토이며 최종 계약 가능 여부는 별도 확인이 필요합니다."))}</em>
-    </article>
-    <article class="decision-card">
-      <span>품목정책</span>
-      <strong>${escapeHtml(valueText(guide.purchase_route_basis_label || summary.status, "품목정책 확인 필요"))}</strong>
-      <div class="decision-fact-grid">
-        ${routeDecisionLine("중기간", summary.sme_competition_product, policyFactTone(summary.sme_competition_product))}
-        ${routeDecisionLine("직접생산", summary.direct_production_certificate, policyFactTone(summary.direct_production_certificate))}
-        ${routeDecisionLine("조합추천", summary.cooperative_purchase_route, policyFactTone(summary.cooperative_purchase_route))}
-      </div>
-      ${
-        selectionOptions.length
-          ? `<p class="decision-note">세부품명 선택은 검색창 아래 선택창에서 진행하세요.</p>`
-          : matchedProductText
-            ? `<p class="decision-note">매칭 품목: ${escapeHtml(matchedProductText)}</p>`
-            : `<p class="decision-note">매칭 품목: 확인 필요</p>`
-      }
-    </article>
-    <article class="decision-card">
-      <span>조달청·지역업체 근거</span>
-      <strong>${escapeHtml(valueText(guide.purchase_route_basis_explanation, "등록 근거를 확인해야 합니다."))}</strong>
-      <div class="decision-fact-grid">
-        ${supplierFacts.map(([label, value, tone]) => routeDecisionLine(label, value, tone)).join("")}
-      </div>
-    </article>
-    <article class="decision-card">
-      <span>계약 전 확인</span>
-      <strong>공고·계약 전 재확인 항목</strong>
-      ${
-        checkList.length
-          ? `<ul>${checkList.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
-          : `<p class="decision-note">품목명, 세부품명번호, 계약유형, 인증 유효기간을 원천자료에서 확인하세요.</p>`
-      }
     </article>
   `;
   attachItemSelectionHandlers(els.routeDecisionPanel);
@@ -795,7 +738,10 @@ function renderRouteGuide(payload) {
   els.routeNotice.textContent =
     guide.legal_notice || "지역업체 구매 지원 방안 안내는 후보 정보입니다. 최종 계약 가능 여부와 법령 해석은 별도 검토가 필요합니다.";
   renderRouteDecision(payload, cards);
-  renderRouteOptions(cards);
+  if (els.routeOptions) {
+    els.routeOptions.innerHTML = "";
+    els.routeOptions.classList.add("is-empty");
+  }
 
   els.routeBadges.innerHTML = "";
   if (badges.length) {

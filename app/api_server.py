@@ -4771,8 +4771,12 @@ def _vendor_purchase_route_guidance(
             central_route_id = "mas"
             central_route_title = "다수공급자계약(MAS)"
             central_required_checks = ["MAS 계약상태", "계약기간", "납품조건", "2단계 경쟁 필요 여부", "부산 공급업체 여부"]
-            central_practical_note = "다수공급자계약(MAS) 품목으로 확인되면 금액·품목 조건에 따라 바로구매 또는 2단계 경쟁을 확인합니다."
-            central_next_actions = ["조달청 종합쇼핑몰에서 동일 세부품명 검색", "2단계 경쟁 대상 금액인지 확인", "부산업체의 MAS 계약 유효 여부 확인"]
+            central_practical_note = (
+                "다수공급자계약(MAS) 품목으로 확인됩니다. 원칙적으로 조달청 종합쇼핑몰/MAS 2단계경쟁 경로를 우선 확인해야 합니다. "
+                "다만 현재 DB 기준 부산 MAS/쇼핑몰 공급업체가 확인되지 않거나 필요한 규격·조건을 MAS로 충족하기 어려운 경우에는 "
+                "조달청 입찰 또는 발주기관 일반입찰 가능성을 계약부서와 별도 검토해야 합니다."
+            )
+            central_next_actions = ["조달청 종합쇼핑몰에서 동일 세부품명 검색", "2단계 경쟁 대상 금액인지 확인", "부산업체의 MAS 계약 유효 여부 확인", "MAS 충족 곤란 시 입찰 대안 검토"]
         elif basis_level == "confirmed_general_unit_price":
             central_route_id = "general_unit_price"
             central_route_title = "일반단가계약"
