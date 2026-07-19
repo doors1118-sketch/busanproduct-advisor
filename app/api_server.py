@@ -3361,7 +3361,7 @@ def _vendor_policy_contract_signal(
     item_master_used = False
 
     for item in product_policy_checks or []:
-        if str(item.get("matched_policy_source") or "") == "pps_shopping_mall_item_policy_summary":
+        if "pps_shopping_mall_item_policy_summary" in str(item.get("matched_policy_source") or ""):
             item_master_used = True
         third_party_count = max(third_party_count, _vendor_policy_int(item.get("shopping_mall_active_third_party_count")))
         mas_count = max(mas_count, _vendor_policy_int(item.get("shopping_mall_active_mas_count")))
@@ -3416,6 +3416,8 @@ def _vendor_policy_contract_signal(
         "basis_explanation": basis_explanation,
         "item_master_used": item_master_used,
         "has_confirmed_contract": has_confirmed_contract,
+        "has_item_master_local_supplier": busan_supplier_count > 0,
+        "has_candidate_exact_local_supplier": candidate_row_evidence_count > 0,
         "third_party_count": third_party_count,
         "mas_count": mas_count,
         "general_unit_price_count": general_unit_price_count,
@@ -3425,7 +3427,30 @@ def _vendor_policy_contract_signal(
         "candidate_row_evidence_count": candidate_row_evidence_count,
         "contract_types": contract_types,
         "has_local_shopping_supplier": busan_supplier_count > 0 or candidate_row_evidence_count > 0,
+        "local_supplier_basis": (
+            "item_master_busan_supplier"
+            if busan_supplier_count > 0
+            else "candidate_exact_evidence"
+            if candidate_row_evidence_count > 0
+            else "none"
+        ),
     }
+
+
+def _vendor_local_supplier_basis_text(contract_signal: dict[str, object]) -> str:
+    busan_count = int(contract_signal.get("busan_supplier_count") or 0)
+    exact_count = int(contract_signal.get("candidate_row_evidence_count") or 0)
+    if busan_count > 0:
+        return f"품목 마스터 기준 부산 쇼핑몰/MAS 공급업체 {busan_count}개가 확인됩니다."
+    if exact_count > 0:
+        return (
+            f"업체별 세부근거에서 요청 세부품명과 일치하는 부산 MAS/쇼핑몰 공급업체 {exact_count}개가 확인됩니다. "
+            "다만 품목 마스터의 부산 공급업체 집계는 0이므로 계약 전 나라장터에서 물품식별번호와 계약상태를 수동 확인해야 합니다."
+        )
+    return (
+        "현재 DB 기준 해당 세부품명으로 조달청 쇼핑몰/MAS에 등록된 부산 공급업체가 확인되지 않습니다. "
+        "조달등록·취급 후보만으로는 조달청 쇼핑몰 구매 가능 업체로 보기 어렵습니다."
+    )
 
 
 def _vendor_policy_route_requirements(product_policy_checks: list[dict[str, str]]) -> dict[str, bool]:
@@ -3498,6 +3523,7 @@ def _vendor_apply_item_evidence(
     wants_shopping = any(term in compact_q for term in ("종합쇼핑몰", "쇼핑몰"))
     route_requirements = _vendor_policy_route_requirements(product_policy_checks)
     strict_policy_item_identity = _vendor_has_policy_item_code_identity(product_policy_checks)
+    confirmed_central_route = route_requirements["has_confirmed_unit_contract"] or route_requirements["has_registered_shopping_mall_item"]
     direct_contract_preferred = (
         not route_requirements["has_confirmed_unit_contract"]
         or not route_requirements["has_busan_shopping_mall_supplier"]
@@ -3568,6 +3594,9 @@ def _vendor_apply_item_evidence(
             elif not route_requirements["has_mas_route"]:
                 route_fit_score -= 5
                 route_fit_parts.append("종합쇼핑몰 등록 근거 미확인")
+        if confirmed_central_route and strict_policy_item_identity and not (mas_items or shopping_items):
+            route_fit_score -= 18
+            route_fit_parts.append("조달청 쇼핑몰/MAS 요청품목 부산공급 근거 미확인")
         if route_requirements["has_facility_material_price"]:
             route_fit_parts.append("시설자재 가격정보 매칭 품목")
         if direct_contract_preferred:
@@ -3626,6 +3655,9 @@ def _vendor_apply_item_evidence(
                 row["condition_match_type"] = "품목근거 확인"
                 row["condition_match_summary"] = "요청 품목 기준 직생/MAS/쇼핑몰 근거 확인"
                 row["review_score"] = int(row.get("review_score") or 0) + 10
+            elif confirmed_central_route and strict_policy_item_identity:
+                row["condition_match_type"] = "대안 검토"
+                row["condition_match_summary"] = "조달등록 부산업체이나 요청 세부품명의 쇼핑몰/MAS 부산공급 근거는 미확인"
             else:
                 row["condition_match_type"] = "후보 표시"
                 row["condition_match_summary"] = "업체 후보이나 요청 품목 기준 직생/MAS/쇼핑몰 세부 근거는 별도 확인 필요"
@@ -4626,6 +4658,7 @@ def _vendor_priority_route_cards(
     has_confirmed_contract = bool(contract_signal["has_confirmed_contract"])
     has_registered_item = int(contract_signal["registered_count"] or 0) > 0
     has_local_shopping_supplier = bool(contract_signal["has_local_shopping_supplier"])
+    local_supplier_basis_text = _vendor_local_supplier_basis_text(contract_signal)
 
     try:
         item_name = _vendor_route_item_name(q, product_policy_checks)
@@ -4684,13 +4717,13 @@ def _vendor_priority_route_cards(
                     status = "no_local_supplier"
                     route_priority = "secondary"
                     reason = (
-                        f"{basis_explanation} 다만 현재 부산 쇼핑몰 공급업체 근거가 확인되지 않으므로 "
-                        "조달청 계약경로와 별도로 지역업체 직접계약·견적·입찰 가능성을 함께 검토해야 합니다. "
-                        "조달청을 통한 입찰 가능성도 계약검토 단계에서 별도로 확인합니다."
+                        f"{basis_explanation} {local_supplier_basis_text} "
+                        "조달청 계약경로로 바로 지역업체를 구매하기는 어려울 수 있으므로 조달청 입찰 가능성, "
+                        "지역업체 직접계약·견적·입찰 가능성을 함께 검토해야 합니다."
                     )
                     user_label = f"{basis_label} / 부산 공급업체 미확인"
                 else:
-                    reason = f"{basis_explanation} 부산업체 공급 근거가 있으면 쇼핑몰/MAS 경로를 먼저 확인합니다."
+                    reason = f"{basis_explanation} {local_supplier_basis_text} 쇼핑몰/MAS 경로를 먼저 확인합니다."
                     user_label = basis_label
             elif has_registered_item:
                 status = "registered_only"
@@ -4724,12 +4757,12 @@ def _vendor_priority_route_cards(
                     route_priority = "primary"
                     user_label = "제3자단가계약 품목으로 확인 / 부산 공급업체 미확인"
                     reason = (
-                        f"{basis_explanation} 다만 현재 부산 쇼핑몰 공급업체 근거가 확인되지 않습니다. "
+                        f"{basis_explanation} {local_supplier_basis_text} "
                         "조달청 납품요구 가능성, 조달청 입찰 가능성, 지역업체 대안 경로를 분리해서 검토해야 합니다."
                     )
                 else:
                     user_label = "제3자단가계약 품목으로 확인"
-                    reason = f"{basis_explanation} 부산 공급업체 근거가 있으면 조달청 납품요구 경로를 먼저 확인합니다."
+                    reason = f"{basis_explanation} {local_supplier_basis_text} 조달청 납품요구 경로를 먼저 확인합니다."
             elif status in {"needs_lookup", "no_candidate_found"}:
                 route_priority = "reference"
         elif has_confirmed_contract and route_id in {"two_quote_small_value", "general_small_value_direct", "policy_company_one_quote"}:
@@ -4762,8 +4795,9 @@ def _vendor_priority_route_cards(
             "status": "candidate_found",
             "route_priority": "secondary",
             "reason": (
-                "조달청 단가계약 또는 쇼핑몰 계약경로 확인 대상이어도 부산 공급업체가 확인되지 않으면 "
-                "조달청을 통한 입찰 가능성, 지역업체 직접계약, 2인 이상 견적, 지역제한 입찰, 정책기업·인증제품 경로를 대안으로 비교합니다."
+                "조달청 단가계약 또는 쇼핑몰 계약경로 확인 대상이어도 해당 세부품명으로 부산 공급업체가 확인되지 않으면 "
+                "조달등록·취급 후보만으로는 바로 구매 가능 업체로 보기 어렵습니다. 조달청 입찰 가능성, 지역업체 직접계약, "
+                "2인 이상 견적, 지역제한 입찰, 정책기업·인증제품 경로를 대안으로 비교합니다."
             ),
             "required_checks": ["조달청 입찰 가능 여부", "직접계약 가능 여부", "2인 이상 견적 가능 여부", "지역제한 입찰 가능 여부", "정책기업·인증제품 증빙"],
             "practical_note": f"예산 {_format_krw_short(budget_krw)} 기준: 부산 쇼핑몰 공급업체 미확인 시 대안",
@@ -4821,6 +4855,8 @@ def _vendor_purchase_route_guidance(
             "purchase_route_basis_label": "세부품명 선택 필요",
             "purchase_route_basis_explanation": message,
             "shopping_mall_busan_supplier_count": 0,
+            "shopping_mall_candidate_exact_supplier_count": 0,
+            "shopping_mall_local_supplier_basis": "none",
             "shopping_mall_active_registered_count": 0,
             "legal_notice": "세부품명번호 10자리를 확정한 뒤 현행 품목정책과 계약 가능 여부를 재확인해야 합니다.",
         }
@@ -4830,6 +4866,8 @@ def _vendor_purchase_route_guidance(
     has_confirmed_contract = bool(contract_signal["has_confirmed_contract"])
     has_registered_item = int(contract_signal["registered_count"] or 0) > 0
     has_local_shopping_supplier = bool(contract_signal["has_local_shopping_supplier"])
+    local_supplier_basis = str(contract_signal.get("local_supplier_basis") or "none")
+    local_supplier_basis_text = _vendor_local_supplier_basis_text(contract_signal)
     construction_terms = _vendor_requested_construction_terms(q)
     contract_object = _vendor_contract_object_for_route(q, construction_terms)
     service_route_primary = contract_object == "service"
@@ -5016,10 +5054,13 @@ def _vendor_purchase_route_guidance(
         if has_confirmed_contract:
             mas_status = "candidate_found" if has_local_shopping_supplier else "no_local_supplier"
             mas_reason = (
-                f"{contract_signal['basis_explanation']} "
-                "부산 쇼핑몰 공급업체 근거가 있으면 조달청 종합쇼핑몰/MAS 계약경로를 먼저 확인합니다."
+                f"{contract_signal['basis_explanation']} {local_supplier_basis_text} "
+                "조달청 종합쇼핑몰/MAS 계약경로를 먼저 확인합니다."
                 if has_local_shopping_supplier
-                else f"{contract_signal['basis_explanation']} 다만 현재 부산 쇼핑몰 공급업체 근거가 확인되지 않으므로 조달청 입찰 가능성과 지역업체 대안 경로도 함께 검토합니다."
+                else (
+                    f"{contract_signal['basis_explanation']} {local_supplier_basis_text} "
+                    "조달청 계약경로로 바로 지역업체를 구매하기 어려울 수 있으므로 조달청 입찰 가능성과 지역업체 대안 경로를 함께 검토합니다."
+                )
             )
             mas_priority = "primary" if has_local_shopping_supplier else "secondary"
         elif row_has_mas:
@@ -5056,7 +5097,11 @@ def _vendor_purchase_route_guidance(
             shopping_priority = "reference"
         else:
             shopping_status = "candidate_found" if row_has_shopping else "policy_only"
-            shopping_reason = "종합쇼핑몰 등록 상품이면 조달청 쇼핑몰 구매 또는 수의계약 성격의 바로구매 가능성을 검토할 수 있습니다."
+            shopping_reason = (
+                f"{local_supplier_basis_text} 종합쇼핑몰 등록 상품이면 조달청 쇼핑몰 구매 또는 수의계약 성격의 바로구매 가능성을 검토할 수 있습니다."
+                if has_confirmed_contract
+                else "종합쇼핑몰 등록 상품이면 조달청 쇼핑몰 구매 또는 수의계약 성격의 바로구매 가능성을 검토할 수 있습니다."
+            )
             shopping_priority = "reference" if not has_confirmed_contract else "secondary"
         add_card(
             "shopping_mall",
@@ -5075,7 +5120,10 @@ def _vendor_purchase_route_guidance(
             "local_company_alternative",
             "지역업체 대안 검토",
             "candidate_found",
-            "조달청 단가계약 또는 쇼핑몰 계약경로 확인 대상이어도 부산 공급업체가 확인되지 않으면 조달청 입찰 가능성과 지역업체 직접계약·견적·입찰 가능성을 함께 봅니다.",
+            (
+                f"{local_supplier_basis_text} 조달청 단가계약 또는 쇼핑몰 계약경로 확인 대상이어도 부산 공급업체가 확인되지 않으면 "
+                "조달등록·취급 후보만으로 바로 구매 가능 업체로 보지 말고 조달청 입찰 가능성과 지역업체 직접계약·견적·입찰 가능성을 함께 봅니다."
+            ),
             ["조달청 입찰 가능 여부", "직접계약 가능 여부", "2인 이상 견적 가능 여부", "지역제한 입찰 가능 여부", "정책기업·인증제품 증빙"],
             "부산 쇼핑몰 공급업체 미확인 시 지역업체 후보를 닫지 않고 대안으로 비교합니다.",
             ["조달등록 부산업체 취급품목 확인", "정책기업·직접생산·인증제품 근거 확인", "입찰 또는 견적 방식 검토"],
@@ -5217,15 +5265,17 @@ def _vendor_purchase_route_guidance(
         badges.append({"label": "종합쇼핑몰 등록 품목·계약유형 확인 필요", "tone": "warn"})
     if has_confirmed_contract and not has_local_shopping_supplier:
         badges.append({"label": "부산 MAS/쇼핑몰 공급업체 미확인", "tone": "warn"})
+    elif has_confirmed_contract and local_supplier_basis == "candidate_exact_evidence":
+        badges.append({"label": "업체별 MAS/쇼핑몰 부산근거 수동확인", "tone": "warn"})
     if construction_terms:
         badges.append({"label": "공사 면허/시공능력 검토", "tone": "good" if row_has_construction else "warn"})
     if requirements["is_sme_competition_product"]:
         badges.append({"label": "중기간 경쟁제품 가능성", "tone": "warn"})
     if requirements["requires_direct_production"]:
         badges.append({"label": "직접생산 확인 필요", "tone": "warn" if not row_has_direct else "good"})
-    if row_has_mas:
+    if row_has_mas and (not has_confirmed_contract or has_local_shopping_supplier):
         badges.append({"label": "조달청 다수공급자계약(MAS) 지역업체 존재", "tone": "info"})
-    if row_has_shopping:
+    if row_has_shopping and (not has_confirmed_contract or has_local_shopping_supplier):
         badges.append({"label": "조달청 나라장터 지역업체 존재", "tone": "info"})
     if row_has_policy:
         badges.append({"label": "정책기업 수의계약 검토 가능", "tone": "good"})
@@ -5261,6 +5311,8 @@ def _vendor_purchase_route_guidance(
         "purchase_route_basis_label": contract_signal["basis_label"],
         "purchase_route_basis_explanation": contract_signal["basis_explanation"],
         "shopping_mall_busan_supplier_count": contract_signal["busan_supplier_count"],
+        "shopping_mall_candidate_exact_supplier_count": contract_signal["candidate_row_evidence_count"],
+        "shopping_mall_local_supplier_basis": contract_signal["local_supplier_basis"],
         "shopping_mall_active_registered_count": contract_signal["registered_count"],
         "legal_notice": "구매방식 안내는 후보 정보입니다. 최종 계약 가능 여부, 수의계약 가능 한도, 법령 해석은 별도 계약검토/법령해석 절차에서 확인해야 합니다.",
     }

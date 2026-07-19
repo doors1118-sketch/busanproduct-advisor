@@ -1868,6 +1868,41 @@ def test_vendor_purchase_route_guidance_does_not_badge_generic_mas_as_local_supp
     assert guidance["shopping_mall_busan_supplier_count"] == 0
 
 
+def test_vendor_purchase_route_guidance_separates_item_master_and_candidate_supplier_basis():
+    row = {
+        **_sample_vendor_row(),
+        "company_id": "desktop-exact",
+        "has_mas": "true",
+        "has_shopping_mall": "true",
+        "mas_match": "MAS 일치: 데스크톱컴퓨터 4321150701 active",
+        "shopping_mall_match": "종합쇼핑몰 일치: 데스크톱컴퓨터 4321150701 active",
+    }
+    checks = [{
+        "detail_product_name": "데스크톱컴퓨터",
+        "detail_product_code": "4321150701",
+        "matched_policy_source": "pps_shopping_mall_item_policy_summary",
+        "shopping_mall_active_third_party_count": "7",
+        "shopping_mall_active_registered_count": "12",
+        "shopping_mall_active_busan_supplier_count": "0",
+    }]
+
+    guidance = api_server._vendor_purchase_route_guidance(
+        "데스크톱컴퓨터 구매",
+        [row],
+        checks,
+        {"status": "matched"},
+    )
+    badge_labels = [badge["label"] for badge in guidance["badges"]]
+
+    assert guidance["purchase_route_basis_label"] == "제3자단가계약 품목으로 확인"
+    assert guidance["shopping_mall_busan_supplier_count"] == 0
+    assert guidance["shopping_mall_candidate_exact_supplier_count"] == 1
+    assert guidance["shopping_mall_local_supplier_basis"] == "candidate_exact_evidence"
+    assert "업체별 MAS/쇼핑몰 부산근거 수동확인" in badge_labels
+    assert "부산 MAS/쇼핑몰 공급업체 미확인" not in badge_labels
+    assert "물품식별번호와 계약상태를 수동 확인" in guidance["primary_route"]["reason"]
+
+
 def test_vendor_purchase_route_guidance_adds_regional_direct_contract_support_card():
     rows = [{
         **_sample_vendor_row(),

@@ -426,6 +426,8 @@ function buildRouteNarrative(payload, primary, summary, checks) {
     maxPolicyCount(checks, "shopping_mall_active_busan_supplier_count"),
     numberOrZero(product?.shopping_mall_active_busan_supplier_count),
   );
+  const candidateExactSupplierCount = numberOrZero(payload?.purchase_route_guidance?.shopping_mall_candidate_exact_supplier_count);
+  const localSupplierBasis = valueText(payload?.purchase_route_guidance?.shopping_mall_local_supplier_basis, "none");
   const mallRegisteredCount = Math.max(
     numberOrZero(payload?.purchase_route_guidance?.shopping_mall_active_registered_count),
     maxPolicyCount(checks, "shopping_mall_active_registered_count"),
@@ -499,7 +501,9 @@ function buildRouteNarrative(payload, primary, summary, checks) {
         ? "조달청 다수공급자계약(MAS)"
         : "조달청 종합쇼핑몰";
     const routeText = localMallEvidence
-      ? `${routeName}에서 요청 세부품명과 일치하는 부산 지역업체 등록 근거가 ${localMallEvidence.toLocaleString("ko-KR")}개 확인됩니다. 품목 마스터 기준은 '${basis}'이며, 전체 쇼핑몰 등록 근거는 ${mallRegisteredCount.toLocaleString("ko-KR")}개입니다.`
+      ? localSupplierBasis === "candidate_exact_evidence"
+        ? `${routeName}에서 요청 세부품명과 일치하는 부산 지역업체 세부근거가 ${candidateExactSupplierCount.toLocaleString("ko-KR")}개 확인됩니다. 다만 품목 마스터의 부산 공급업체 집계는 0이므로 계약 전 나라장터에서 물품식별번호, 계약상태, 공급업체 유효 여부를 수동 확인해야 합니다.`
+        : `${routeName}에서 요청 세부품명과 일치하는 부산 지역업체 등록 근거가 ${localMallEvidence.toLocaleString("ko-KR")}개 확인됩니다. 품목 마스터 기준은 '${basis}'이며, 전체 쇼핑몰 등록 근거는 ${mallRegisteredCount.toLocaleString("ko-KR")}개입니다.`
       : isMasRoute
         ? "다수공급자계약(MAS) 품목으로 확인됩니다. 원칙적으로 조달청 종합쇼핑몰/MAS 2단계경쟁 경로를 우선 확인해야 합니다. 다만 현재 DB 기준 이 세부품명으로 등록된 부산 MAS/쇼핑몰 공급업체가 확인되지 않거나, 필요한 규격·조건을 MAS로 충족하기 어려운 경우에는 조달청 입찰 또는 발주기관 일반입찰 가능성을 계약부서와 별도 검토해야 합니다."
         : `${routeName} 품목으로 확인됩니다. 다만 현재 DB 기준 이 세부품명으로 등록된 부산 MAS/쇼핑몰 공급업체는 확인되지 않습니다. 중소기업자간 경쟁제품이 아니면 직접생산 필수 품목으로 보지 않으므로, 조달등록 부산 유통사·제조사를 직접계약 또는 입찰공고 대안으로 함께 검토할 수 있습니다.`;
@@ -1077,16 +1081,24 @@ function renderComparison(rows) {
 
 function setDownloadState(enabled) {
   if (!enabled) {
-    els.downloadLink.classList.add("disabled");
-    els.downloadLink.setAttribute("aria-disabled", "true");
-    els.summaryDownloadCard.classList.add("disabled");
-    els.summaryDownloadCard.setAttribute("aria-disabled", "true");
+    if (els.downloadLink) {
+      els.downloadLink.classList.add("disabled");
+      els.downloadLink.setAttribute("aria-disabled", "true");
+    }
+    if (els.summaryDownloadCard) {
+      els.summaryDownloadCard.classList.add("disabled");
+      els.summaryDownloadCard.setAttribute("aria-disabled", "true");
+    }
     return;
   }
-  els.downloadLink.classList.remove("disabled");
-  els.downloadLink.setAttribute("aria-disabled", "false");
-  els.summaryDownloadCard.classList.remove("disabled");
-  els.summaryDownloadCard.setAttribute("aria-disabled", "false");
+  if (els.downloadLink) {
+    els.downloadLink.classList.remove("disabled");
+    els.downloadLink.setAttribute("aria-disabled", "false");
+  }
+  if (els.summaryDownloadCard) {
+    els.summaryDownloadCard.classList.remove("disabled");
+    els.summaryDownloadCard.setAttribute("aria-disabled", "false");
+  }
 }
 
 function renderPayload(payload) {
@@ -1326,17 +1338,19 @@ els.downloadLink.addEventListener("click", (event) => {
   downloadXlsx();
 });
 
-els.summaryDownloadCard.addEventListener("click", () => {
-  if (els.summaryDownloadCard.classList.contains("disabled")) return;
-  downloadXlsx();
-});
+if (els.summaryDownloadCard) {
+  els.summaryDownloadCard.addEventListener("click", () => {
+    if (els.summaryDownloadCard.classList.contains("disabled")) return;
+    downloadXlsx();
+  });
 
-els.summaryDownloadCard.addEventListener("keydown", (event) => {
-  if (!["Enter", " "].includes(event.key)) return;
-  event.preventDefault();
-  if (els.summaryDownloadCard.classList.contains("disabled")) return;
-  downloadXlsx();
-});
+  els.summaryDownloadCard.addEventListener("keydown", (event) => {
+    if (!["Enter", " "].includes(event.key)) return;
+    event.preventDefault();
+    if (els.summaryDownloadCard.classList.contains("disabled")) return;
+    downloadXlsx();
+  });
+}
 
 if (els.historyModalClose) {
   els.historyModalClose.addEventListener("click", closeHistoryModal);
