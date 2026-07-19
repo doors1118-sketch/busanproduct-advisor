@@ -1604,6 +1604,9 @@ def test_vendor_purchase_route_guidance_does_not_badge_generic_mas_as_local_supp
 
     assert "조달청 다수공급자계약(MAS) 지역업체 존재" not in badge_labels
     assert "조달청 나라장터 지역업체 존재" not in badge_labels
+    assert "다수공급자계약(MAS) 품목" in badge_labels
+    assert "부산 MAS/쇼핑몰 공급업체 미확인" in badge_labels
+    assert "지역업체 대안 검토" in badge_labels
     assert guidance["shopping_mall_busan_supplier_count"] == 0
 
 

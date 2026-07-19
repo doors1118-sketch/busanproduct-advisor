@@ -4979,6 +4979,16 @@ def _vendor_purchase_route_guidance(
     route_cards.sort(key=route_sort_key)
     primary = route_cards[0]
     badges = []
+    if basis_level == "confirmed_third_party_unit_price":
+        badges.append({"label": "제3자단가계약 품목", "tone": "warn" if not has_local_shopping_supplier else "info"})
+    elif basis_level == "confirmed_mas":
+        badges.append({"label": "다수공급자계약(MAS) 품목", "tone": "warn" if not has_local_shopping_supplier else "info"})
+    elif basis_level == "confirmed_general_unit_price":
+        badges.append({"label": "일반단가계약 품목", "tone": "warn" if not has_local_shopping_supplier else "info"})
+    elif basis_level == "shopping_mall_registered_only":
+        badges.append({"label": "종합쇼핑몰 등록 품목·계약유형 확인 필요", "tone": "warn"})
+    if has_confirmed_contract and not has_local_shopping_supplier:
+        badges.append({"label": "부산 MAS/쇼핑몰 공급업체 미확인", "tone": "warn"})
     if construction_terms:
         badges.append({"label": "공사 면허/시공능력 검토", "tone": "good" if row_has_construction else "warn"})
     if requirements["is_sme_competition_product"]:
@@ -4993,6 +5003,8 @@ def _vendor_purchase_route_guidance(
         badges.append({"label": "정책기업 수의계약 검토 가능", "tone": "good"})
     if direct_contract_preferred and direct_contract_support_count:
         badges.append({"label": "지역업체 직접계약 근거 있음", "tone": "good"})
+    if has_confirmed_contract and not has_local_shopping_supplier:
+        badges.append({"label": "지역업체 대안 검토", "tone": "info"})
     if requirements["has_facility_material_price"]:
         badges.append({"label": "시설자재 가격정보 매칭", "tone": "neutral"})
     required_checks: list[str] = []
