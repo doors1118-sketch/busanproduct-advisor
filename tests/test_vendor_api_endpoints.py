@@ -1305,8 +1305,10 @@ def test_vendor_contract_history_terms_keep_precise_camera_queries_narrow():
     assert "디지털카메라" in digital_terms
     assert "cctv" not in digital_terms
     assert "보안용카메라" not in digital_terms
+    assert api_server._vendor_contract_history_min_hits(digital_terms) == 1
     assert "cctv" in cctv_terms
     assert "보안용카메라" in cctv_terms
+    assert api_server._vendor_contract_history_min_hits(cctv_terms) == 2
 
 
 def test_vendor_item_policy_summary_filters_generic_camera_accessories():

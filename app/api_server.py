@@ -1890,6 +1890,10 @@ def _vendor_contract_history_terms(q: str) -> list[str]:
     return cleaned[:8]
 
 
+def _vendor_contract_history_min_hits(terms: list[str]) -> int:
+    return 2 if len(terms) >= 3 else 1
+
+
 def _vendor_contract_history_table_ready(conn) -> bool:
     try:
         row = conn.execute(
@@ -1917,7 +1921,7 @@ def _vendor_contract_history_search_rows(company_db, q: str, *, region: str = "ë
         match_expr = " + ".join(["CASE WHEN LOWER(h.search_text) LIKE ? THEN 1 ELSE 0 END" for _ in terms])
         match_params = [f"%{term}%" for term in terms]
         where_params = [f"%{term}%" for term in terms]
-        required_hits = 2 if len(terms) >= 2 else 1
+        required_hits = _vendor_contract_history_min_hits(terms)
         sql = f"""
             WITH row_hits AS (
                 SELECT
@@ -1977,7 +1981,7 @@ def _vendor_contract_history_summary(conn, company_id: str, terms: list[str]) ->
     match_expr = " + ".join(["CASE WHEN LOWER(search_text) LIKE ? THEN 1 ELSE 0 END" for _ in terms])
     match_params = [f"%{term}%" for term in terms]
     where_params = [f"%{term}%" for term in terms]
-    required_hits = 2 if len(terms) >= 2 else 1
+    required_hits = _vendor_contract_history_min_hits(terms)
     try:
         row = conn.execute(
             f"""
@@ -2036,7 +2040,7 @@ def _vendor_contract_history_detail_payload(company_id: str, q: str = "", *, lim
         if not _vendor_contract_history_table_ready(conn):
             raise HTTPException(status_code=404, detail="vendor contract history table not found")
         terms = _vendor_contract_history_terms(q)
-        min_hits = 2 if len(terms) >= 2 else 1
+        min_hits = _vendor_contract_history_min_hits(terms)
         if terms:
             like_terms = [f"%{term}%" for term in terms]
             score_expr = " + ".join(["CASE WHEN LOWER(search_text) LIKE ? THEN 1 ELSE 0 END" for _ in terms])
