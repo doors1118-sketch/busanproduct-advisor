@@ -491,10 +491,16 @@ function buildRouteNarrative(payload, primary, summary, checks) {
   if (primary?.label || summary?.shopping_mall_contract_basis_label || masSupplierCount || shoppingSupplierCount || mallRegisteredCount) {
     const basis = valueText(summary?.shopping_mall_contract_basis_label || payload?.purchase_route_guidance?.purchase_route_basis_label || primary?.label, "조달청 등록 경로");
     const localMallEvidence = Math.max(mallRows, shoppingSupplierCount);
+    const isThirdPartyRoute = /제3자|3자/.test(basis) || /제3자|3자/.test(valueText(primary?.label, ""));
     const isMasRoute = /MAS|다수공급자/.test(basis) || /MAS|다수공급자/.test(valueText(primary?.label, ""));
+    const routeName = isThirdPartyRoute
+      ? "조달청 제3자단가계약"
+      : isMasRoute
+        ? "조달청 다수공급자계약(MAS)"
+        : "조달청 종합쇼핑몰";
     const routeText = localMallEvidence
-      ? `${isMasRoute ? "조달청 다수공급자계약(MAS)" : "조달청 종합쇼핑몰"}에서 요청 세부품명과 일치하는 부산 지역업체 등록 근거가 ${localMallEvidence.toLocaleString("ko-KR")}개 확인됩니다. 품목 마스터 기준은 '${basis}'이며, 전체 쇼핑몰 등록 근거는 ${mallRegisteredCount.toLocaleString("ko-KR")}개입니다.`
-      : `${basis} 근거는 품목 자체가 조달청 종합쇼핑몰/MAS 관리 품목임을 뜻합니다. 다만 현재 DB에서는 이 세부품명으로 등록된 부산 공급업체 근거가 확인되지 않습니다. 중소기업자간 경쟁제품이 아니면 직접생산 필수 품목으로 보지 않으므로, 조달등록 부산 유통사·제조사를 직접계약 또는 입찰공고 대안으로 함께 검토할 수 있습니다.`;
+      ? `${routeName}에서 요청 세부품명과 일치하는 부산 지역업체 등록 근거가 ${localMallEvidence.toLocaleString("ko-KR")}개 확인됩니다. 품목 마스터 기준은 '${basis}'이며, 전체 쇼핑몰 등록 근거는 ${mallRegisteredCount.toLocaleString("ko-KR")}개입니다.`
+      : `${routeName} 품목으로 확인됩니다. 다만 현재 DB 기준 이 세부품명으로 등록된 부산 MAS/쇼핑몰 공급업체는 확인되지 않습니다. 중소기업자간 경쟁제품이 아니면 직접생산 필수 품목으로 보지 않으므로, 조달등록 부산 유통사·제조사를 직접계약 또는 입찰공고 대안으로 함께 검토할 수 있습니다.`;
     addLine(
       "구매경로",
       routeText,

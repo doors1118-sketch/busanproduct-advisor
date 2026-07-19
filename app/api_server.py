@@ -3277,8 +3277,8 @@ def _vendor_policy_contract_signal(
         basis_explanation = "조달청 종합쇼핑몰 품목 마스터에서 계약유형이 제3자단가계약으로 확인됩니다."
     elif mas_count > 0:
         basis_level = "confirmed_mas"
-        basis_label = "MAS/다수공급자계약 품목 확인"
-        basis_explanation = "조달청 종합쇼핑몰 품목 마스터에서 MAS 계약유형이 확인됩니다."
+        basis_label = "다수공급자계약(MAS) 품목 확인"
+        basis_explanation = "조달청 종합쇼핑몰 품목 마스터에서 계약유형이 다수공급자계약(MAS)으로 확인됩니다."
     elif general_unit_price_count > 0:
         basis_level = "confirmed_general_unit_price"
         basis_label = "일반단가계약 품목 확인"
