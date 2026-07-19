@@ -1607,6 +1607,82 @@ def test_vendor_product_policy_checks_reorders_pc_abbreviation_before_lookup(mon
     assert checks[0]["detail_product_name"] == "데스크톱컴퓨터"
 
 
+def test_vendor_product_policy_checks_do_not_expand_specific_desktop_to_generic_computer(monkeypatch):
+    shopping_calls = []
+    policy_calls = []
+    facility_calls = []
+
+    def fake_search_shopping_mall_item_policy(keyword, limit=5):
+        shopping_calls.append(keyword)
+        if keyword == "데스크톱컴퓨터":
+            return {
+                "candidates": [{
+                    "detail_product_code": "4321150701",
+                    "detail_product_name": "데스크톱컴퓨터",
+                    "active_registered_count": "1723",
+                    "active_third_party_count": "1344",
+                    "active_mas_count": "379",
+                    "active_supplier_count": "23",
+                    "active_busan_supplier_count": "0",
+                    "active_contract_types": "mas,third_party_unit_price",
+                }],
+            }
+        if keyword == "컴퓨터":
+            return {
+                "candidates": [{
+                    "detail_product_code": "5612150801",
+                    "detail_product_name": "컴퓨터책상",
+                    "active_registered_count": "3329",
+                    "active_busan_supplier_count": "4",
+                }],
+            }
+        return {"candidates": []}
+
+    def fake_search_product_policy(keyword, limit=5):
+        policy_calls.append(keyword)
+        if keyword == "데스크톱컴퓨터":
+            return {
+                "meta": {"source": "product_policy_summary"},
+                "candidates": [{
+                    "detail_product_code": "4321150701",
+                    "detail_product_name": "데스크톱컴퓨터",
+                    "is_sme_competition_product": "1",
+                    "direct_production_valid_supplier_count": "5",
+                    "mas_active_supplier_count": "379",
+                    "busan_company_product_count": "87",
+                }],
+            }
+        return {"meta": {"source": "product_policy_summary"}, "candidates": []}
+
+    def fake_search_facility_material_policy(keyword, limit=5):
+        facility_calls.append(keyword)
+        return {
+            "candidates": [{
+                "detail_product_code": "55121718",
+                "detail_product_name": "데스크톱컴퓨터, 아이엠펀, SB2120, Intel Core i3 2120(3.3GHz), 모니터제외",
+            }]
+        }
+
+    monkeypatch.setattr(
+        api_server,
+        "_vendor_import_company_db",
+        lambda: SimpleNamespace(
+            search_facility_material_policy=fake_search_facility_material_policy,
+            search_shopping_mall_item_policy=fake_search_shopping_mall_item_policy,
+            search_product_policy=fake_search_product_policy,
+        ),
+    )
+
+    checks = api_server._vendor_product_policy_checks("데스크톱 컴퓨터 구매", limit=5)
+
+    names = [item["detail_product_name"] for item in checks]
+    assert names == ["데스크톱컴퓨터"]
+    assert facility_calls == []
+    assert "컴퓨터" not in shopping_calls
+    assert "노트북컴퓨터" not in shopping_calls
+    assert "컴퓨터" not in policy_calls
+
+
 def test_vendor_product_policy_check_gate_skips_service_queries():
     assert api_server._vendor_should_check_product_policy("정품토너 구매 업체") is True
     assert api_server._vendor_should_check_product_policy("데스크톱 컴퓨터 납품 업체") is True

@@ -4232,6 +4232,29 @@ def _vendor_policy_preference_summary(q: str, rows: list[dict[str, str | int]], 
     }
 
 
+def _vendor_should_check_facility_material_policy(q: str) -> bool:
+    compact = _vendor_compact(q)
+    return any(
+        marker in compact
+        for marker in (
+            "시설공통자재",
+            "시설자재",
+            "공사용자재",
+            "공사자재",
+            "관급자재",
+            "건설자재",
+            "토목자재",
+            "건축자재",
+            "기계설비자재",
+            "전기자재",
+            "정보통신자재",
+            "시장시공가격",
+            "표준시장단가",
+            "가격정보",
+        )
+    )
+
+
 def _vendor_product_policy_checks(q: str, *, limit: int = 5) -> list[dict[str, str]]:
     timeout = float(os.getenv("VENDOR_PRODUCT_POLICY_TIMEOUT_SEC", "0.8"))
     checks: list[dict[str, str]] = []
@@ -4282,59 +4305,78 @@ def _vendor_product_policy_checks(q: str, *, limit: int = 5) -> list[dict[str, s
     if not terms:
         terms = [q]
     compact_q = _vendor_compact(q)
-    if any(token in compact_q for token in ("pc", "피씨", "컴퓨터", "데스크톱", "데스크탑", "노트북")):
-        if any(token in compact_q for token in ("노트북", "랩톱", "랩탑")):
-            preferred_terms = ["노트북컴퓨터", "노트북", "휴대용 컴퓨터", "데스크톱컴퓨터", "컴퓨터"]
+    if any(token in compact_q for token in ("pc", "피씨", "컴퓨터", "데스크톱", "데스크탑", "노트북", "태블릿", "일체형")):
+        use_preferred_terms_only = False
+        if "컴퓨터책상" in compact_q:
+            preferred_terms = ["컴퓨터책상"]
+            use_preferred_terms_only = True
+        elif any(token in compact_q for token in ("컴퓨터서버", "서버")):
+            preferred_terms = ["컴퓨터서버"]
+            use_preferred_terms_only = True
+        elif "태블릿" in compact_q:
+            preferred_terms = ["태블릿컴퓨터", "태블릿"]
+            use_preferred_terms_only = True
+        elif "일체형" in compact_q:
+            preferred_terms = ["일체형컴퓨터", "일체형"]
+            use_preferred_terms_only = True
+        elif any(token in compact_q for token in ("노트북", "랩톱", "랩탑")):
+            preferred_terms = ["노트북컴퓨터", "노트북", "휴대용 컴퓨터"]
+            use_preferred_terms_only = True
+        elif any(token in compact_q for token in ("데스크톱", "데스크탑", "pc", "피씨")):
+            preferred_terms = ["데스크톱컴퓨터", "데스크톱"]
+            use_preferred_terms_only = True
         else:
             preferred_terms = ["데스크톱컴퓨터", "노트북컴퓨터", "컴퓨터", "데스크톱"]
         ambiguous_terms = {"pc", "피씨"}
         reordered: list[str] = []
-        for term in [*preferred_terms, *terms]:
+        source_terms = preferred_terms if use_preferred_terms_only else [*preferred_terms, *terms]
+        for term in source_terms:
             if _vendor_compact(term) in ambiguous_terms:
                 continue
             if term and term not in reordered:
                 reordered.append(term)
         terms = reordered or terms
     max_checks = max(1, min(int(limit or 5), 20))
+    facility_policy_requested = _vendor_should_check_facility_material_policy(q)
     for term_index, term in enumerate(terms[:8]):
-        try:
-            company_db = _vendor_import_company_db()
-            search_facility_material_policy = getattr(company_db, "search_facility_material_policy", None)
-            if callable(search_facility_material_policy):
-                facility_data = search_facility_material_policy(term, limit=min(2, max_checks))
-                facility_items = (facility_data or {}).get("candidates") or []
-                for item in facility_items:
-                    if not isinstance(item, dict):
-                        continue
-                    code = _vendor_join(item.get("detail_product_code"))
-                    name = _vendor_join(item.get("detail_product_name"))
-                    product_identifier_no = _vendor_join(item.get("product_identifier_no"))
-                    key = code or product_identifier_no or name
-                    min_price = _vendor_join(item.get("facility_material_min_price_amount"))
-                    max_price = _vendor_join(item.get("facility_material_max_price_amount"))
-                    if min_price and max_price and min_price != max_price:
-                        price_range = f"{min_price}~{max_price}"
-                    else:
-                        price_range = min_price or max_price
-                    merge_check({
-                        "detail_product_code": code,
-                        "detail_product_name": name,
-                        "matched_policy_keyword": term,
-                        "matched_policy_source": "facility_material_price_file",
-                        "is_sme_competition_product": "",
-                        "is_construction_material_direct_purchase": "",
-                        "direct_production_valid_supplier_count": "",
-                        "mas_active_supplier_count": "",
-                        "busan_company_product_count": "",
-                        "required_special_note": _vendor_join(item.get("required_special_note")),
-                        "facility_material_active_price_count": _vendor_join(item.get("facility_material_active_price_count")),
-                        "facility_material_latest_posted_date": _vendor_join(item.get("facility_material_latest_posted_date")),
-                        "facility_material_price_range": price_range,
-                    })
-                    if len(checks) >= max_checks:
-                        break
-        except Exception:
-            pass
+        if facility_policy_requested:
+            try:
+                company_db = _vendor_import_company_db()
+                search_facility_material_policy = getattr(company_db, "search_facility_material_policy", None)
+                if callable(search_facility_material_policy):
+                    facility_data = search_facility_material_policy(term, limit=min(2, max_checks))
+                    facility_items = (facility_data or {}).get("candidates") or []
+                    for item in facility_items:
+                        if not isinstance(item, dict):
+                            continue
+                        code = _vendor_join(item.get("detail_product_code"))
+                        name = _vendor_join(item.get("detail_product_name"))
+                        product_identifier_no = _vendor_join(item.get("product_identifier_no"))
+                        min_price = _vendor_join(item.get("facility_material_min_price_amount"))
+                        max_price = _vendor_join(item.get("facility_material_max_price_amount"))
+                        if min_price and max_price and min_price != max_price:
+                            price_range = f"{min_price}~{max_price}"
+                        else:
+                            price_range = min_price or max_price
+                        merge_check({
+                            "detail_product_code": code,
+                            "detail_product_name": name,
+                            "matched_policy_keyword": term,
+                            "matched_policy_source": "facility_material_price_file",
+                            "is_sme_competition_product": "",
+                            "is_construction_material_direct_purchase": "",
+                            "direct_production_valid_supplier_count": "",
+                            "mas_active_supplier_count": "",
+                            "busan_company_product_count": "",
+                            "required_special_note": _vendor_join(item.get("required_special_note")),
+                            "facility_material_active_price_count": _vendor_join(item.get("facility_material_active_price_count")),
+                            "facility_material_latest_posted_date": _vendor_join(item.get("facility_material_latest_posted_date")),
+                            "facility_material_price_range": price_range,
+                        })
+                        if len(checks) >= max_checks:
+                            break
+            except Exception:
+                pass
         try:
             company_db = _vendor_import_company_db()
             search_shopping_mall_item_policy = getattr(company_db, "search_shopping_mall_item_policy", None)
