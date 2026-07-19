@@ -1865,8 +1865,8 @@ _VENDOR_HISTORY_STOPWORDS = {
 def _vendor_contract_history_terms(q: str) -> list[str]:
     text = str(q or "")
     terms: list[str] = []
-    terms.extend(_vendor_query_tokens(text))
     terms.extend(re.findall(r"[^\W_]{2,}", text, flags=re.UNICODE))
+    terms.extend(_vendor_query_tokens(text))
     cleaned: list[str] = []
     for term in terms:
         term = str(term or "").strip().lower()
