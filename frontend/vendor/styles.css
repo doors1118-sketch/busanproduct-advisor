@@ -864,8 +864,13 @@ select:focus {
 .route-decision-panel {
   display: grid;
   gap: 12px;
-  grid-template-columns: 1.25fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr;
   margin-top: 18px;
+}
+
+.route-decision-panel > .decision-card,
+.route-options {
+  display: none !important;
 }
 
 .route-narrative-card {
