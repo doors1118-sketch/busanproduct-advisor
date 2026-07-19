@@ -428,6 +428,263 @@ _SHOPPING_MALL_ITEM_POLICY_COLUMNS = [
 ]
 
 
+def _compact_item_text(value: Any) -> str:
+    return re.sub(r"\s+", "", str(value or "")).lower()
+
+
+def _item_selection_display_name(row: dict[str, Any]) -> str:
+    return str(row.get("detail_product_name") or row.get("product_class_name") or row.get("canonical_name") or "").strip()
+
+
+def _item_selection_display_code(row: dict[str, Any]) -> str:
+    return str(row.get("detail_product_code") or row.get("dtil_prdct_clsfc_no") or row.get("classification_no") or "").strip()
+
+
+def search_item_selection_options(keyword: str, *, limit: int = 12) -> dict[str, Any] | None:
+    """Return concrete item options when the query is broader than one detail item.
+
+    The vendor UI must not silently decide a broad word such as "컴퓨터" or
+    "의자". This helper uses the item alias table, the G2B classification tree,
+    and the shopping-mall item summary to surface selectable detail names.
+    """
+    text = " ".join(str(keyword or "").split())
+    compact = _compact_item_text(text)
+    if not compact:
+        return None
+    conn = _connect()
+    if conn is None:
+        return None
+
+    bounded_limit = max(2, min(int(limit or 12), 20))
+    options: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def add_option(payload: dict[str, Any]) -> None:
+        name = _item_selection_display_name(payload)
+        code = _item_selection_display_code(payload)
+        if not name:
+            return
+        key = code or _compact_item_text(name)
+        if not key or key in seen:
+            return
+        seen.add(key)
+        option = {
+            "detail_product_code": code,
+            "detail_product_name": name,
+            "selection_query": name,
+            "matched_policy_source": str(payload.get("matched_policy_source") or ""),
+            "product_class_code": str(payload.get("product_class_code") or payload.get("prdct_clsfc_no") or ""),
+            "product_class_name": str(payload.get("product_class_name") or ""),
+            "active_registered_count": payload.get("active_registered_count") or 0,
+            "active_third_party_count": payload.get("active_third_party_count") or 0,
+            "active_mas_count": payload.get("active_mas_count") or 0,
+            "active_supplier_count": payload.get("active_supplier_count") or 0,
+            "active_busan_supplier_count": payload.get("active_busan_supplier_count") or 0,
+            "active_contract_types": str(payload.get("active_contract_types") or ""),
+        }
+        options.append(option)
+
+    def enrich_with_mall(option: dict[str, Any]) -> dict[str, Any]:
+        if not _object_exists(conn, "pps_shopping_mall_item_policy_summary_fast") and not _object_exists(conn, "pps_shopping_mall_item_policy_summary"):
+            return option
+        table = _preferred_object(conn, "pps_shopping_mall_item_policy_summary_fast", "pps_shopping_mall_item_policy_summary")
+        if not table:
+            return option
+        code = _item_selection_display_code(option)
+        class_code = str(option.get("product_class_code") or option.get("prdct_clsfc_no") or "")
+        name = _item_selection_display_name(option)
+        clauses: list[str] = []
+        params: list[Any] = []
+        if code:
+            clauses.append("IFNULL(detail_product_code, '') = ?")
+            params.append(code)
+            clauses.append("IFNULL(product_class_code, '') = ?")
+            params.append(code[:8] if len(code) >= 8 else code)
+        if class_code:
+            clauses.append("IFNULL(product_class_code, '') = ?")
+            params.append(class_code)
+        if name:
+            clauses.append("REPLACE(LOWER(IFNULL(detail_product_name, '')), ' ', '') = ?")
+            params.append(_compact_item_text(name))
+            clauses.append("REPLACE(LOWER(IFNULL(product_class_name, '')), ' ', '') = ?")
+            params.append(_compact_item_text(name))
+        if not clauses:
+            return option
+        sql = f"""
+            SELECT
+                COALESCE(NULLIF(detail_product_name, ''), product_class_name) AS detail_product_name,
+                COALESCE(NULLIF(detail_product_code, ''), product_class_code) AS detail_product_code,
+                product_class_code,
+                product_class_name,
+                active_registered_count,
+                active_third_party_count,
+                active_mas_count,
+                active_general_unit_price_count,
+                active_supplier_count,
+                active_busan_supplier_count,
+                active_contract_types,
+                source_refreshed_at
+            FROM {table}
+            WHERE {' OR '.join(f'({clause})' for clause in clauses)}
+            ORDER BY
+                CAST(IFNULL(active_busan_supplier_count, 0) AS INTEGER) DESC,
+                CAST(IFNULL(active_registered_count, 0) AS INTEGER) DESC,
+                detail_product_name
+            LIMIT 1
+        """
+        row = conn.execute(sql, params).fetchone()
+        if row:
+            enriched = dict(option)
+            enriched.update({key: row[key] for key in row.keys()})
+            source = str(enriched.get("matched_policy_source") or "")
+            if "pps_shopping_mall_item_policy_summary" not in source:
+                enriched["matched_policy_source"] = "+".join(
+                    part for part in (source, "pps_shopping_mall_item_policy_summary") if part
+                )
+            return enriched
+        return option
+
+    try:
+        exact_item_exists = False
+        mall_table = _preferred_object(conn, "pps_shopping_mall_item_policy_summary_fast", "pps_shopping_mall_item_policy_summary")
+        if mall_table:
+            exact_item_exists = conn.execute(
+                f"""
+                SELECT 1
+                FROM {mall_table}
+                WHERE REPLACE(LOWER(IFNULL(detail_product_name, '')), ' ', '') = ?
+                   OR REPLACE(LOWER(IFNULL(product_class_name, '')), ' ', '') = ?
+                LIMIT 1
+                """,
+                (compact, compact),
+            ).fetchone() is not None
+
+        if _object_exists(conn, "procurement_product_alias"):
+            alias_rows = conn.execute(
+                """
+                SELECT
+                    canonical_name,
+                    dtil_prdct_clsfc_no,
+                    prdct_clsfc_no,
+                    domain,
+                    MAX(priority) AS priority,
+                    'procurement_product_alias' AS matched_policy_source
+                FROM procurement_product_alias
+                WHERE IFNULL(is_active, 1) = 1
+                  AND (
+                    alias_normalized = ?
+                    OR REPLACE(LOWER(IFNULL(alias, '')), ' ', '') = ?
+                  )
+                GROUP BY canonical_name, dtil_prdct_clsfc_no, prdct_clsfc_no, domain
+                ORDER BY CAST(MAX(priority) AS INTEGER) DESC, canonical_name
+                LIMIT ?
+                """,
+                (compact, compact, bounded_limit * 2),
+            ).fetchall()
+            distinct_alias_names = {
+                _compact_item_text(row["canonical_name"])
+                for row in alias_rows
+                if str(row["canonical_name"] or "").strip()
+            }
+            if len(distinct_alias_names) >= 2:
+                for row in alias_rows:
+                    add_option(enrich_with_mall(dict(row)))
+
+        if len(options) < bounded_limit and _object_exists(conn, "procurement_product_classification"):
+            parent_rows = conn.execute(
+                """
+                SELECT classification_no, classification_unit, classification_name
+                FROM procurement_product_classification
+                WHERE IFNULL(use_yn, 'Y') = 'Y'
+                  AND classification_unit <= 6
+                  AND REPLACE(LOWER(IFNULL(classification_name, '')), ' ', '') = ?
+                ORDER BY classification_unit DESC, classification_no
+                LIMIT 3
+                """,
+                (compact,),
+            ).fetchall()
+            for parent in parent_rows:
+                child_rows = conn.execute(
+                    """
+                    SELECT
+                        classification_no,
+                        classification_name,
+                        parent_classification_no,
+                        'procurement_product_classification' AS matched_policy_source
+                    FROM procurement_product_classification
+                    WHERE IFNULL(use_yn, 'Y') = 'Y'
+                      AND parent_classification_no = ?
+                      AND classification_unit > ?
+                    ORDER BY classification_unit, classification_name
+                    LIMIT ?
+                    """,
+                    (parent["classification_no"], parent["classification_unit"], bounded_limit * 2),
+                ).fetchall()
+                for row in child_rows:
+                    payload = dict(row)
+                    payload["detail_product_code"] = payload.get("classification_no")
+                    payload["detail_product_name"] = payload.get("classification_name")
+                    payload["product_class_code"] = payload.get("classification_no")
+                    payload["product_class_name"] = payload.get("classification_name")
+                    add_option(enrich_with_mall(payload))
+                    if len(options) >= bounded_limit:
+                        break
+
+        if len(options) < 2 and mall_table and not exact_item_exists:
+            rows = conn.execute(
+                f"""
+                SELECT
+                    COALESCE(NULLIF(detail_product_name, ''), product_class_name) AS detail_product_name,
+                    COALESCE(NULLIF(detail_product_code, ''), product_class_code) AS detail_product_code,
+                    product_class_code,
+                    product_class_name,
+                    active_registered_count,
+                    active_third_party_count,
+                    active_mas_count,
+                    active_general_unit_price_count,
+                    active_supplier_count,
+                    active_busan_supplier_count,
+                    active_contract_types,
+                    source_refreshed_at,
+                    'pps_shopping_mall_item_policy_summary' AS matched_policy_source
+                FROM {mall_table}
+                WHERE IFNULL(detail_product_name, '') LIKE ?
+                   OR IFNULL(product_class_name, '') LIKE ?
+                ORDER BY
+                    CAST(IFNULL(active_busan_supplier_count, 0) AS INTEGER) DESC,
+                    CAST(IFNULL(active_registered_count, 0) AS INTEGER) DESC,
+                    detail_product_name
+                LIMIT ?
+                """,
+                (f"%{text}%", f"%{text}%", bounded_limit),
+            ).fetchall()
+            for row in rows:
+                add_option(dict(row))
+
+        if len(options) < 2:
+            return None
+        return {
+            "status": "needs_item_selection",
+            "query": text,
+            "selection_required": True,
+            "selection_title": f"{text} 세부품명 선택 필요",
+            "message": (
+                f"'{text}'만으로는 세부품명을 하나로 확정할 수 없습니다. "
+                "실제 구매하려는 세부품명을 선택한 뒤 품목정책과 부산업체 후보를 다시 판정해야 합니다."
+            ),
+            "selection_options": options[:bounded_limit],
+            "meta": {
+                "keyword": text,
+                "source": "procurement_product_alias/procurement_product_classification/pps_shopping_mall_item_policy_summary",
+                "cache_mode": "local_view_db",
+            },
+        }
+    except Exception:
+        return None
+    finally:
+        conn.close()
+
+
 def search_facility_material_policy(keyword: str, *, limit: int = 5) -> dict[str, Any] | None:
     """Read facility material price dictionary facts.
 
@@ -797,11 +1054,29 @@ def search_shopping_mall_item_policy(keyword: str, *, limit: int = 5) -> dict[st
             return None
         terms = _terms(text, "shopping_mall")
         where, params = _like_where(search_columns, terms)
-        select_sql = ", ".join(_select_expr(col, available) for col in _SHOPPING_MALL_ITEM_POLICY_COLUMNS)
-        order_parts = [
-            "CASE WHEN IFNULL(detail_product_name, '') = ? THEN 0 WHEN IFNULL(detail_product_name, '') LIKE ? THEN 1 ELSE 2 END",
-        ]
-        order_params: list[Any] = [text, f"{text}%"]
+        select_parts: list[str] = []
+        for col in _SHOPPING_MALL_ITEM_POLICY_COLUMNS:
+            if col == "detail_product_name" and "detail_product_name" in available and "product_class_name" in available:
+                select_parts.append("COALESCE(NULLIF(detail_product_name, ''), product_class_name) AS detail_product_name")
+            else:
+                select_parts.append(_select_expr(col, available))
+        select_sql = ", ".join(select_parts)
+        if "product_class_name" in available:
+            order_parts = [
+                """
+                CASE
+                    WHEN IFNULL(detail_product_name, '') = ? OR IFNULL(product_class_name, '') = ? THEN 0
+                    WHEN IFNULL(detail_product_name, '') LIKE ? OR IFNULL(product_class_name, '') LIKE ? THEN 1
+                    ELSE 2
+                END
+                """,
+            ]
+            order_params: list[Any] = [text, text, f"{text}%", f"{text}%"]
+        else:
+            order_parts = [
+                "CASE WHEN IFNULL(detail_product_name, '') = ? THEN 0 WHEN IFNULL(detail_product_name, '') LIKE ? THEN 1 ELSE 2 END",
+            ]
+            order_params = [text, f"{text}%"]
         for count_col in (
             "active_third_party_count",
             "active_mas_count",

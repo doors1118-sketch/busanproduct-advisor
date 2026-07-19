@@ -877,6 +877,73 @@ def test_company_db_product_aliases_include_stainless_band_variants():
     assert "스테인리스밴드" in terms
 
 
+def test_company_db_item_selection_options_use_alias_and_mall_summary(tmp_path, monkeypatch):
+    db_path = tmp_path / "chatbot_company.db"
+    conn = sqlite3.connect(db_path)
+    conn.executescript(
+        """
+        CREATE TABLE procurement_product_alias (
+            alias TEXT,
+            alias_normalized TEXT,
+            canonical_name TEXT,
+            dtil_prdct_clsfc_no TEXT,
+            prdct_clsfc_no TEXT,
+            domain TEXT,
+            priority INTEGER,
+            is_active INTEGER
+        );
+        CREATE TABLE pps_shopping_mall_item_policy_summary_fast (
+            detail_product_code TEXT,
+            detail_product_name TEXT,
+            product_class_code TEXT,
+            product_class_name TEXT,
+            active_registered_count INTEGER,
+            active_third_party_count INTEGER,
+            active_mas_count INTEGER,
+            active_general_unit_price_count INTEGER,
+            active_supplier_count INTEGER,
+            active_busan_supplier_count INTEGER,
+            active_contract_types TEXT,
+            source_refreshed_at TEXT
+        );
+        """
+    )
+    conn.executemany(
+        """
+        INSERT INTO procurement_product_alias
+        (alias, alias_normalized, canonical_name, dtil_prdct_clsfc_no, prdct_clsfc_no, domain, priority, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+        """,
+        [
+            ("컴퓨터", "컴퓨터", "데스크톱컴퓨터", "4321150701", "43211507", "computer_equipment", 100),
+            ("컴퓨터", "컴퓨터", "노트북컴퓨터", "4321150301", "43211503", "computer_equipment", 99),
+        ],
+    )
+    conn.executemany(
+        """
+        INSERT INTO pps_shopping_mall_item_policy_summary_fast
+        (detail_product_code, detail_product_name, product_class_code, product_class_name,
+         active_registered_count, active_third_party_count, active_mas_count, active_general_unit_price_count,
+         active_supplier_count, active_busan_supplier_count, active_contract_types, source_refreshed_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, '2026-07-19')
+        """,
+        [
+            ("4321150701", "데스크톱컴퓨터", "43211507", "데스크톱컴퓨터", 1723, 1344, 379, 23, 0, "mas,third_party_unit_price"),
+            ("4321150301", "노트북컴퓨터", "43211503", "노트북컴퓨터", 142, 94, 48, 8, 0, "mas,third_party_unit_price"),
+        ],
+    )
+    conn.commit()
+    conn.close()
+    monkeypatch.setenv("CHATBOT_COMPANY_DB_PATH", str(db_path))
+
+    result = company_db.search_item_selection_options("컴퓨터", limit=10)
+
+    assert result is not None
+    assert result["status"] == "needs_item_selection"
+    assert [item["detail_product_name"] for item in result["selection_options"]] == ["데스크톱컴퓨터", "노트북컴퓨터"]
+    assert result["selection_options"][0]["active_registered_count"] == 1723
+
+
 def test_vendor_product_policy_checks_use_normalized_product_terms(monkeypatch):
     calls = []
 
@@ -1399,6 +1466,76 @@ def test_vendor_item_policy_summary_requires_detail_selection_for_generic_comput
         "컴퓨터서버",
         "노트북컴퓨터",
     ]
+
+
+def test_vendor_item_policy_summary_uses_db_item_selection_options(monkeypatch):
+    def fake_search_item_selection_options(keyword, limit=12):
+        if keyword != "의자":
+            return None
+        return {
+            "selection_title": "의자 세부품명 선택 필요",
+            "message": "'의자'만으로는 세부품명을 하나로 확정할 수 없습니다.",
+            "meta": {"source": "procurement_product_classification"},
+            "selection_options": [
+                {
+                    "detail_product_code": "5611210201",
+                    "detail_product_name": "작업용의자",
+                    "active_registered_count": 27283,
+                    "active_busan_supplier_count": 5,
+                    "matched_policy_source": "pps_shopping_mall_item_policy_summary",
+                },
+                {
+                    "detail_product_code": "5610154201",
+                    "detail_product_name": "접이식의자",
+                    "active_registered_count": 7393,
+                    "active_busan_supplier_count": 4,
+                    "matched_policy_source": "pps_shopping_mall_item_policy_summary",
+                },
+            ],
+        }
+
+    monkeypatch.setattr(
+        api_server,
+        "_vendor_import_company_db",
+        lambda: SimpleNamespace(search_item_selection_options=fake_search_item_selection_options),
+    )
+
+    summary = api_server._vendor_item_policy_summary(
+        "의자 구매",
+        [{"detail_product_code": "5611210201", "detail_product_name": "작업용의자", "matched_policy_source": "product_policy_summary"}],
+        requested=True,
+    )
+
+    assert summary["status"] == "needs_item_selection"
+    assert summary["selection_title"] == "의자 세부품명 선택 필요"
+    assert [item["detail_product_name"] for item in summary["selection_options"]] == ["작업용의자", "접이식의자"]
+    assert summary["selection_options"][0]["shopping_mall_active_busan_supplier_count"] == "5"
+
+
+def test_vendor_db_item_selection_terms_do_not_widen_specific_phrase(monkeypatch):
+    calls = []
+
+    def fake_search_item_selection_options(keyword, limit=12):
+        calls.append(keyword)
+        if keyword == "컴퓨터":
+            return {
+                "selection_title": "컴퓨터 세부품명 선택 필요",
+                "message": "컴퓨터는 세부품명 선택이 필요합니다.",
+                "selection_options": [
+                    {"detail_product_name": "데스크톱컴퓨터", "detail_product_code": "4321150701"},
+                    {"detail_product_name": "노트북컴퓨터", "detail_product_code": "4321150301"},
+                ],
+            }
+        return None
+
+    monkeypatch.setattr(
+        api_server,
+        "_vendor_import_company_db",
+        lambda: SimpleNamespace(search_item_selection_options=fake_search_item_selection_options),
+    )
+
+    assert api_server._vendor_db_item_disambiguation("데스크톱 컴퓨터 구매") is None
+    assert calls == ["데스크톱 컴퓨터"]
 
 
 def test_vendor_payload_blocks_generic_camera_candidates(monkeypatch):

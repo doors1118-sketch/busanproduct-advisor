@@ -985,6 +985,68 @@ def _vendor_item_disambiguation(q: str) -> dict[str, object] | None:
     return None
 
 
+def _vendor_item_selection_terms(q: str) -> list[str]:
+    text = _vendor_intent_text(q)
+    text = re.sub(r"\d+[,\d]*(억|천만|백만|만)?원?", " ", text)
+    text = re.sub(r"[?!.]", " ", text)
+    raw_tokens = [
+        token
+        for token in re.findall(r"[가-힣A-Za-z0-9]+", text)
+        if token and token not in _VENDOR_QUERY_STOPWORDS and not token.isdigit()
+    ]
+    terms: list[str] = []
+    if raw_tokens:
+        phrase = " ".join(raw_tokens).strip()
+        if phrase:
+            terms.append(phrase)
+        # If the user gave only one meaningful item word such as "의자" or
+        # "컴퓨터", it is safe to ask the DB whether that word expands to
+        # several detail items. For multi-word phrases, do not fall back to a
+        # broad component like "컴퓨터" because that would undo a concrete query
+        # such as "데스크톱 컴퓨터".
+        if len(raw_tokens) == 1:
+            terms.append(raw_tokens[0])
+    cleaned: list[str] = []
+    for term in terms:
+        compact_term = _vendor_compact(term)
+        if compact_term and term not in cleaned:
+            cleaned.append(term)
+    return cleaned
+
+
+def _vendor_db_item_disambiguation(q: str) -> dict[str, object] | None:
+    try:
+        company_db = _vendor_import_company_db()
+        search_item_selection_options = getattr(company_db, "search_item_selection_options", None)
+    except Exception:
+        return None
+    if not callable(search_item_selection_options):
+        return None
+    seen_terms: set[str] = set()
+    for term in _vendor_item_selection_terms(q):
+        compact_term = _vendor_compact(term)
+        if not compact_term or compact_term in seen_terms:
+            continue
+        seen_terms.add(compact_term)
+        try:
+            data = search_item_selection_options(term, limit=20)
+        except Exception:
+            data = None
+        options = (data or {}).get("selection_options") or []
+        if len(options) >= 2:
+            return {
+                "key": "db_item_hierarchy",
+                "title": str(data.get("selection_title") or f"{term} 세부품명 선택 필요"),
+                "message": str(
+                    data.get("message")
+                    or f"'{term}'만으로는 세부품명을 하나로 확정할 수 없습니다. 실제 구매하려는 세부품명을 선택해야 합니다."
+                ),
+                "selection_options": options,
+                "source": str(((data.get("meta") or {}).get("source")) or "item_dictionary_db"),
+            }
+    return None
+
+
 def _vendor_intent_text(q: str) -> str:
     text = str(q or "")
     typo_aliases = {
@@ -3724,6 +3786,37 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
                 "selection_query": item["detail_product_name"],
                 "matched_policy_source": item["matched_policy_source"],
             })
+        db_disambiguation = _vendor_db_item_disambiguation(q)
+        for option in list((db_disambiguation or {}).get("selection_options") or []):
+            if not isinstance(option, dict):
+                continue
+            detail_name = _vendor_join(option.get("detail_product_name") or option.get("selection_query"))
+            compact_name = _vendor_compact(detail_name)
+            if not detail_name:
+                continue
+            if exact_option_names:
+                if compact_name not in exact_option_names:
+                    continue
+            elif selection_markers and not any(marker in compact_name for marker in selection_markers):
+                continue
+            if any(marker in compact_name for marker in exclude_markers):
+                continue
+            if compact_name in seen_selection_names:
+                continue
+            seen_selection_names.add(compact_name)
+            selection_options.append({
+                "detail_product_code": _vendor_join(option.get("detail_product_code")),
+                "detail_product_name": detail_name,
+                "selection_query": _vendor_join(option.get("selection_query")) or detail_name,
+                "matched_policy_source": _vendor_join(option.get("matched_policy_source")),
+                "busan_company_product_count": _vendor_join(option.get("busan_company_product_count")),
+                "shopping_mall_active_registered_count": _vendor_join(option.get("active_registered_count") or option.get("shopping_mall_active_registered_count")),
+                "shopping_mall_active_third_party_count": _vendor_join(option.get("active_third_party_count") or option.get("shopping_mall_active_third_party_count")),
+                "shopping_mall_active_mas_count": _vendor_join(option.get("active_mas_count") or option.get("shopping_mall_active_mas_count")),
+                "shopping_mall_active_supplier_count": _vendor_join(option.get("active_supplier_count") or option.get("shopping_mall_active_supplier_count")),
+                "shopping_mall_active_busan_supplier_count": _vendor_join(option.get("active_busan_supplier_count") or option.get("shopping_mall_active_busan_supplier_count")),
+                "shopping_mall_active_contract_types": _vendor_join(option.get("active_contract_types") or option.get("shopping_mall_active_contract_types")),
+            })
         return {
             "status": "needs_item_selection",
             "query": q,
@@ -3741,6 +3834,51 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
             "shopping_mall_active_registered_count": 0,
             "matched_products": matched_products,
         }
+    db_disambiguation = _vendor_db_item_disambiguation(q)
+    if db_disambiguation:
+        selection_options: list[dict[str, str]] = []
+        seen_selection_names: set[str] = set()
+        for option in list(db_disambiguation.get("selection_options") or []):
+            if not isinstance(option, dict):
+                continue
+            detail_name = _vendor_join(option.get("detail_product_name") or option.get("selection_query"))
+            if not detail_name:
+                continue
+            compact_name = _vendor_compact(detail_name)
+            if compact_name in seen_selection_names:
+                continue
+            seen_selection_names.add(compact_name)
+            selection_options.append({
+                "detail_product_code": _vendor_join(option.get("detail_product_code")),
+                "detail_product_name": detail_name,
+                "selection_query": _vendor_join(option.get("selection_query")) or detail_name,
+                "matched_policy_source": _vendor_join(option.get("matched_policy_source")) or _vendor_join(db_disambiguation.get("source")),
+                "busan_company_product_count": _vendor_join(option.get("busan_company_product_count")),
+                "shopping_mall_active_registered_count": _vendor_join(option.get("active_registered_count") or option.get("shopping_mall_active_registered_count")),
+                "shopping_mall_active_third_party_count": _vendor_join(option.get("active_third_party_count") or option.get("shopping_mall_active_third_party_count")),
+                "shopping_mall_active_mas_count": _vendor_join(option.get("active_mas_count") or option.get("shopping_mall_active_mas_count")),
+                "shopping_mall_active_supplier_count": _vendor_join(option.get("active_supplier_count") or option.get("shopping_mall_active_supplier_count")),
+                "shopping_mall_active_busan_supplier_count": _vendor_join(option.get("active_busan_supplier_count") or option.get("shopping_mall_active_busan_supplier_count")),
+                "shopping_mall_active_contract_types": _vendor_join(option.get("active_contract_types") or option.get("shopping_mall_active_contract_types")),
+            })
+        if len(selection_options) >= 2:
+            return {
+                "status": "needs_item_selection",
+                "query": q,
+                "message": str(db_disambiguation["message"]),
+                "selection_title": str(db_disambiguation["title"]),
+                "selection_required": True,
+                "selection_options": selection_options,
+                "sme_competition_product": "세부품명 선택 후 판정",
+                "direct_production_certificate": "세부품명 선택 후 판정",
+                "cooperative_purchase_route": "세부품명 선택 후 판정",
+                "shopping_mall_contract_basis_level": "item_selection_required",
+                "shopping_mall_contract_basis_label": "세부품명 선택 필요",
+                "shopping_mall_contract_basis_explanation": str(db_disambiguation["message"]),
+                "shopping_mall_busan_supplier_count": 0,
+                "shopping_mall_active_registered_count": 0,
+                "matched_products": matched_products,
+            }
     if sme_status == "해당":
         direct_label = "직접생산증명서 세부품명·유효기간 확인 필요"
         cooperative_label = "조합추천/소기업 공동사업제품 수의계약 경로 검토 가능"
