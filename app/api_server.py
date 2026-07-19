@@ -931,6 +931,42 @@ _VENDOR_AMBIGUOUS_PRODUCT_RULES = (
             "아래 세부품명 후보를 선택한 뒤 품목정책과 부산업체 후보를 다시 판정해야 합니다."
         ),
     },
+    {
+        "key": "computer_type",
+        "generic_markers": ("컴퓨터",),
+        "specific_markers": (
+            "데스크톱",
+            "데스크탑",
+            "노트북",
+            "랩톱",
+            "랩탑",
+            "서버",
+            "컴퓨터서버",
+            "일체형",
+            "태블릿",
+            "컴퓨터책상",
+        ),
+        "search_terms": (
+            "데스크톱컴퓨터",
+            "노트북컴퓨터",
+            "컴퓨터서버",
+            "일체형컴퓨터",
+            "태블릿컴퓨터",
+            "컴퓨터",
+        ),
+        "option_exact_names": (
+            "데스크톱컴퓨터",
+            "노트북컴퓨터",
+            "컴퓨터서버",
+            "일체형컴퓨터",
+            "태블릿컴퓨터",
+        ),
+        "title": "컴퓨터 종류 선택 필요",
+        "message": (
+            "'컴퓨터'만으로는 데스크톱컴퓨터·노트북컴퓨터·컴퓨터서버 등 세부품명을 확정할 수 없습니다. "
+            "아래 세부품명 후보를 선택한 뒤 품목정책과 부산업체 후보를 다시 판정해야 합니다."
+        ),
+    },
 )
 
 
@@ -3660,6 +3696,11 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
             for marker in tuple(disambiguation.get("exclude_option_markers") or ())
             if marker
         )
+        exact_option_names = tuple(
+            _vendor_compact(name)
+            for name in tuple(disambiguation.get("option_exact_names") or ())
+            if name
+        )
         selection_options: list[dict[str, str]] = []
         seen_selection_names: set[str] = set()
         for item in matched_products:
@@ -3667,7 +3708,10 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
             compact_name = _vendor_compact(detail_name)
             if not detail_name:
                 continue
-            if selection_markers and not any(marker in compact_name for marker in selection_markers):
+            if exact_option_names:
+                if compact_name not in exact_option_names:
+                    continue
+            elif selection_markers and not any(marker in compact_name for marker in selection_markers):
                 continue
             if any(marker in compact_name for marker in exclude_markers):
                 continue

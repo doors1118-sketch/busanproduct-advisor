@@ -1356,6 +1356,51 @@ def test_vendor_item_policy_summary_filters_generic_camera_accessories():
     ]
 
 
+def test_vendor_item_policy_summary_requires_detail_selection_for_generic_computer():
+    checks = [
+        {
+            "detail_product_code": "4321150701",
+            "detail_product_name": "데스크톱컴퓨터",
+            "matched_policy_source": "product_policy_summary",
+            "is_sme_competition_product": "1",
+        },
+        {
+            "detail_product_code": "5612150801",
+            "detail_product_name": "컴퓨터책상",
+            "matched_policy_source": "pps_shopping_mall_item_policy_summary",
+            "is_sme_competition_product": "",
+        },
+        {
+            "detail_product_code": "4321150102",
+            "detail_product_name": "컴퓨터서버",
+            "matched_policy_source": "pps_shopping_mall_item_policy_summary",
+            "is_sme_competition_product": "",
+        },
+        {
+            "detail_product_code": "55121718",
+            "detail_product_name": "데스크톱컴퓨터, 아이엠펀, SB2120, Intel Core i3 2120(3.3GHz), 모니터제외",
+            "matched_policy_source": "facility_material_price_file",
+            "is_sme_competition_product": "",
+        },
+        {
+            "detail_product_code": "4321150301",
+            "detail_product_name": "노트북컴퓨터",
+            "matched_policy_source": "pps_shopping_mall_item_policy_summary",
+            "is_sme_competition_product": "",
+        },
+    ]
+
+    summary = api_server._vendor_item_policy_summary("컴퓨터 구매", checks, requested=True)
+
+    assert summary["status"] == "needs_item_selection"
+    assert summary["selection_title"] == "컴퓨터 종류 선택 필요"
+    assert [item["detail_product_name"] for item in summary["selection_options"]] == [
+        "데스크톱컴퓨터",
+        "컴퓨터서버",
+        "노트북컴퓨터",
+    ]
+
+
 def test_vendor_payload_blocks_generic_camera_candidates(monkeypatch):
     monkeypatch.setattr(
         api_server,
