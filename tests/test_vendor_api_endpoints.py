@@ -191,7 +191,7 @@ def test_vendor_recommendation_search_endpoint(monkeypatch):
     assert body["purchase_route_guidance"]["purchase_route_basis_level"] == "no_central_procurement_evidence"
     mas_card = next(card for card in body["purchase_route_guidance"]["route_cards"] if card["route_id"] == "shopping_mall_mas")
     assert mas_card["route_priority"] == "reference"
-    assert "계약유형 확인 필요" in mas_card["practical_note"]
+    assert "조달청 단가계약 근거 미확인" in mas_card["practical_note"]
     assert body["purchase_route_guidance"]["required_checks"]
     assert "purchase_route_fit_summary" in body["rows"][0]
 
@@ -323,7 +323,7 @@ def test_vendor_purchase_route_guidance_does_not_promote_desktop_mas_without_con
     mas_card = next(card for card in guidance["route_cards"] if card["route_id"] == "shopping_mall_mas")
     assert mas_card["route_priority"] == "reference"
     assert mas_card["basis_level"] == "no_central_procurement_evidence"
-    assert "계약유형 확인 필요" in mas_card["practical_note"]
+    assert "조달청 단가계약 근거 미확인" in mas_card["practical_note"]
 
 
 def test_vendor_purchase_route_guidance_promotes_confirmed_third_party_unit_price():
@@ -427,7 +427,7 @@ def test_vendor_purchase_route_guidance_keeps_material_purchase_on_mas_route():
 
     assert guidance["primary_route"]["route_id"] == "mas"
     assert guidance["primary_route"]["status"] == "candidate_evidence_only"
-    assert guidance["title"] == "MAS/다수공급자계약"
+    assert guidance["title"] == "다수공급자계약(MAS)"
 
 
 def test_vendor_query_plan_adds_construction_license_terms():

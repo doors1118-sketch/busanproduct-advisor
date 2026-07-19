@@ -3273,19 +3273,19 @@ def _vendor_policy_contract_signal(
     has_confirmed_contract = any((third_party_count, mas_count, general_unit_price_count))
     if third_party_count > 0:
         basis_level = "confirmed_third_party_unit_price"
-        basis_label = "제3자단가계약 품목 확인"
+        basis_label = "제3자단가계약 품목으로 확인"
         basis_explanation = "조달청 종합쇼핑몰 품목 마스터에서 계약유형이 제3자단가계약으로 확인됩니다."
     elif mas_count > 0:
         basis_level = "confirmed_mas"
-        basis_label = "다수공급자계약(MAS) 품목 확인"
+        basis_label = "다수공급자계약(MAS) 품목으로 확인"
         basis_explanation = "조달청 종합쇼핑몰 품목 마스터에서 계약유형이 다수공급자계약(MAS)으로 확인됩니다."
     elif general_unit_price_count > 0:
         basis_level = "confirmed_general_unit_price"
-        basis_label = "일반단가계약 품목 확인"
+        basis_label = "일반단가계약 품목으로 확인"
         basis_explanation = "조달청 종합쇼핑몰 품목 마스터에서 일반단가계약 유형이 확인됩니다."
     elif registered_count > 0:
         basis_level = "shopping_mall_registered_only"
-        basis_label = "종합쇼핑몰 등록 확인"
+        basis_label = "종합쇼핑몰 등록 품목이나 계약유형 확인 필요"
         basis_explanation = "종합쇼핑몰 등록 품목은 확인되지만 제3자단가·MAS·일반단가 계약유형은 별도 확인이 필요합니다."
     elif candidate_row_evidence_count > 0:
         basis_level = "candidate_row_evidence_only"
@@ -4462,7 +4462,7 @@ def _vendor_priority_route_cards(
             else:
                 status = "needs_lookup"
                 route_priority = "reference"
-                user_label = "계약유형 확인 필요"
+                user_label = "조달청 단가계약 근거 미확인"
                 reason = (
                     "현재 DB 기준 조달청 단가계약·MAS·종합쇼핑몰 등록 근거가 확정되지 않았습니다. "
                     "지역업체 직접계약, 2인 이상 견적, 입찰공고 조건 설계를 우선 대안으로 검토합니다."
@@ -4472,13 +4472,13 @@ def _vendor_priority_route_cards(
                 if not has_local_shopping_supplier:
                     status = "no_local_supplier"
                     route_priority = "primary"
-                    user_label = "제3자단가계약 확인 / 부산 공급업체 미확인"
+                    user_label = "제3자단가계약 품목으로 확인 / 부산 공급업체 미확인"
                     reason = (
                         f"{basis_explanation} 다만 현재 부산 쇼핑몰 공급업체 근거가 확인되지 않습니다. "
                         "조달청 납품요구 가능성, 조달청 입찰 가능성, 지역업체 대안 경로를 분리해서 검토해야 합니다."
                     )
                 else:
-                    user_label = "제3자단가계약 확인"
+                    user_label = "제3자단가계약 품목으로 확인"
                     reason = f"{basis_explanation} 부산 공급업체 근거가 있으면 조달청 납품요구 경로를 먼저 확인합니다."
             elif status in {"needs_lookup", "no_candidate_found"}:
                 route_priority = "reference"
@@ -4754,7 +4754,7 @@ def _vendor_purchase_route_guidance(
             mas_priority = "reference"
         add_card(
             "mas",
-            "MAS/다수공급자계약",
+            "다수공급자계약(MAS)",
             mas_status,
             mas_reason,
             ["제3자단가계약 여부", "MAS 계약상태", "계약기간", "납품조건", "2단계 경쟁 필요 여부"],
