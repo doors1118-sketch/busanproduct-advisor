@@ -297,7 +297,7 @@ def test_vendor_purchase_route_guidance_prioritizes_direct_and_mas_requirements(
     assert "sme_direct_production" in route_ids
     assert "mas" in route_ids
     assert "중소기업자간 경쟁제품 해당(DB 기준)" in badge_labels
-    assert "직접생산 확인 필요" in badge_labels
+    assert "직접생산 확인 필요 품목" in badge_labels
 
 
 def test_vendor_purchase_route_guidance_does_not_promote_desktop_mas_without_contract_type():
@@ -1905,7 +1905,7 @@ def test_vendor_purchase_route_guidance_separates_item_master_and_candidate_supp
     assert guidance["shopping_mall_busan_supplier_count"] == 0
     assert guidance["shopping_mall_candidate_exact_supplier_count"] == 1
     assert guidance["shopping_mall_local_supplier_basis"] == "candidate_exact_evidence"
-    assert "업체별 MAS/쇼핑몰 부산근거 수동확인" in badge_labels
+    assert "MAS/쇼핑몰 부산업체 존재 확인(DB기준)" in badge_labels
     assert "부산 MAS/쇼핑몰 공급업체 미확인" not in badge_labels
     assert "물품식별번호와 계약상태를 수동 확인" in guidance["primary_route"]["reason"]
 

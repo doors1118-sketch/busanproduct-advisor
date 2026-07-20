@@ -5333,13 +5333,13 @@ def _vendor_purchase_route_guidance(
     if has_confirmed_contract and not has_local_shopping_supplier:
         badges.append({"label": "부산 MAS/쇼핑몰 공급업체 미확인", "tone": "warn"})
     elif has_confirmed_contract and local_supplier_basis == "candidate_exact_evidence":
-        badges.append({"label": "업체별 MAS/쇼핑몰 부산근거 수동확인", "tone": "warn"})
+        badges.append({"label": "MAS/쇼핑몰 부산업체 존재 확인(DB기준)", "tone": "info"})
     if construction_terms:
         badges.append({"label": "공사 면허/시공능력 검토", "tone": "good" if row_has_construction else "warn"})
     if requirements["is_sme_competition_product"]:
         badges.append({"label": "중소기업자간 경쟁제품 해당(DB 기준)", "tone": "warn"})
     if requirements["requires_direct_production"]:
-        badges.append({"label": "직접생산 확인 필요", "tone": "warn" if not row_has_direct else "good"})
+        badges.append({"label": "직접생산 확인 필요 품목", "tone": "warn" if not row_has_direct else "good"})
     if row_has_mas and (not has_confirmed_contract or has_local_shopping_supplier):
         badges.append({"label": "조달청 다수공급자계약(MAS) 지역업체 존재", "tone": "info"})
     if row_has_shopping and (not has_confirmed_contract or has_local_shopping_supplier):
