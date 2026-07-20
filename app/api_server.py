@@ -3451,6 +3451,8 @@ def _vendor_policy_contract_signal(
             candidate_row_evidence_count += 1
 
     has_confirmed_contract = any((third_party_count, mas_count, general_unit_price_count))
+    item_master_no_local_supplier = item_master_used and registered_count > 0 and busan_supplier_count == 0
+    candidate_exact_counts_as_local_supplier = candidate_row_evidence_count > 0 and not item_master_no_local_supplier
     if third_party_count > 0:
         basis_level = "confirmed_third_party_unit_price"
         basis_label = "제3자단가계약 품목으로 확인"
@@ -3492,12 +3494,14 @@ def _vendor_policy_contract_signal(
         "busan_supplier_count": busan_supplier_count,
         "candidate_row_evidence_count": candidate_row_evidence_count,
         "contract_types": contract_types,
-        "has_local_shopping_supplier": busan_supplier_count > 0 or candidate_row_evidence_count > 0,
+        "has_local_shopping_supplier": busan_supplier_count > 0 or candidate_exact_counts_as_local_supplier,
         "local_supplier_basis": (
             "item_master_busan_supplier"
             if busan_supplier_count > 0
+            else "candidate_conflict_with_item_master"
+            if candidate_row_evidence_count > 0 and item_master_no_local_supplier
             else "candidate_exact_evidence"
-            if candidate_row_evidence_count > 0
+            if candidate_exact_counts_as_local_supplier
             else "none"
         ),
     }
@@ -3508,6 +3512,12 @@ def _vendor_local_supplier_basis_text(contract_signal: dict[str, object]) -> str
     exact_count = int(contract_signal.get("candidate_row_evidence_count") or 0)
     if busan_count > 0:
         return f"품목 마스터 기준 부산 쇼핑몰/MAS 공급업체 {busan_count}개가 확인됩니다."
+    if contract_signal.get("local_supplier_basis") == "candidate_conflict_with_item_master":
+        return (
+            f"품목 마스터 기준 부산 쇼핑몰/MAS 공급업체는 0개이나, 후보 DB에는 요청 세부품명과 일치하는 "
+            f"부산 MAS/쇼핑몰 후보 근거가 {exact_count}개 남아 있습니다. 원천 간 차이가 있으므로 "
+            "계약 전 나라장터에서 물품식별번호, 계약상태, 공급업체 유효 여부를 수동 확인해야 합니다."
+        )
     if exact_count > 0:
         return (
             f"업체별 후보 DB 기준 요청 세부품명과 일치하는 부산 MAS/쇼핑몰 등록 업체가 {exact_count}개 확인됩니다. "
