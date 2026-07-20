@@ -162,6 +162,12 @@ def test_vendor_recommendation_search_endpoint(monkeypatch):
     assert body["budget_label"] == "4,500만원"
     assert body["total_candidate_count"] == 1
     assert body["visible_candidate_count"] == 1
+    assert body["candidate_composition"]["basis_label"] == "전체 후보 기준"
+    assert body["candidate_composition"]["total_registered_candidates"] == 1
+    assert body["candidate_composition"]["direct_production_count"] == 1
+    assert body["candidate_composition"]["shopping_mall_mas_count"] == 1
+    assert body["candidate_composition"]["policy_company_count"] == 1
+    assert body["candidate_composition"]["women_company_count"] == 1
     assert body["rows"][0]["company_name"] == "Busan Test Vendor"
     assert "직접생산증명서 확인" in body["rows"][0]["contract_review_types"]
     assert body["rows"][0]["direct_production_certificate_status"] == "직접생산증명서 정보 있음"

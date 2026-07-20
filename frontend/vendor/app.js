@@ -407,8 +407,12 @@ function primaryMatchedProduct(summary, checks) {
 
 function buildRouteNarrative(payload, primary, summary, checks) {
   const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+  const composition = payload?.candidate_composition || {};
   const query = valueText(payload?.query, "입력 품목");
-  const totalCandidateCount = numberOrZero(payload?.total_candidate_count || payload?.count || rows.length);
+  const totalCandidateCount = Math.max(
+    numberOrZero(composition.total_registered_candidates),
+    numberOrZero(payload?.total_candidate_count || payload?.count || rows.length),
+  );
   const visibleCandidateCount = numberOrZero(payload?.visible_candidate_count || rows.length || payload?.count);
   const product = primaryMatchedProduct(summary, checks);
   const productName = valueText(product?.detail_product_name || product?.name, "");
@@ -441,8 +445,9 @@ function buildRouteNarrative(payload, primary, summary, checks) {
     numberOrZero(product?.shopping_mall_active_supplier_count),
   );
   const policyCounts = policyCandidateCounts(rows);
-  const directRows = countRows(rows, (row) => Boolean(directEvidence(row)));
-  const mallRows = countRows(rows, (row) => Boolean(masEvidence(row) || shoppingEvidence(row)));
+  const directRows = Math.max(numberOrZero(composition.direct_production_count), countRows(rows, (row) => Boolean(directEvidence(row))));
+  const mallRows = Math.max(numberOrZero(composition.shopping_mall_mas_count), countRows(rows, (row) => Boolean(masEvidence(row) || shoppingEvidence(row))));
+  const policyTotal = Math.max(numberOrZero(composition.policy_company_count), policyCounts.total);
   const lines = [];
 
   const addLine = (label, text, tone) => {
@@ -523,15 +528,18 @@ function buildRouteNarrative(payload, primary, summary, checks) {
 
   addLine(
     "업체 현황",
-    `조달청 등록 부산 지역업체 후보는 총 ${totalCandidateCount.toLocaleString("ko-KR")}개이며, 이 중 DB상 조건 일치도가 높은 상위 ${visibleCandidateCount.toLocaleString("ko-KR")}개를 화면에 표시합니다. 화면 후보 기준 직접생산 보유 업체는 ${directRows.toLocaleString("ko-KR")}개, 종합쇼핑몰/MAS 등록 지역업체는 ${mallRows.toLocaleString("ko-KR")}개, 정책기업은 ${policyCounts.total.toLocaleString("ko-KR")}개입니다.`,
+    `조달청 등록 부산 지역업체 후보는 총 ${totalCandidateCount.toLocaleString("ko-KR")}개이며, 이 중 DB상 조건 일치도가 높은 상위 ${visibleCandidateCount.toLocaleString("ko-KR")}개를 화면에 표시합니다. 전체 후보 기준 직접생산 보유 업체는 ${directRows.toLocaleString("ko-KR")}개, 종합쇼핑몰/MAS 등록 지역업체는 ${mallRows.toLocaleString("ko-KR")}개, 정책기업은 ${policyTotal.toLocaleString("ko-KR")}개입니다.`,
     "good",
   );
 
-  if (policyCounts.total) {
+  if (policyTotal) {
+    const womenCount = Math.max(numberOrZero(composition.women_company_count), policyCounts.women);
+    const disabledCount = Math.max(numberOrZero(composition.disabled_company_count), policyCounts.disabled);
+    const socialCount = Math.max(numberOrZero(composition.social_enterprise_count), policyCounts.social);
     const policyBreakdown = [
-      policyCounts.women ? `여성기업 ${policyCounts.women}개` : "",
-      policyCounts.disabled ? `장애인기업 ${policyCounts.disabled}개` : "",
-      policyCounts.social ? `사회적기업 ${policyCounts.social}개` : "",
+      womenCount ? `여성기업 ${womenCount}개` : "",
+      disabledCount ? `장애인기업 ${disabledCount}개` : "",
+      socialCount ? `사회적기업 ${socialCount}개` : "",
       policyCounts.severeDisabled ? `중증장애인 생산품 ${policyCounts.severeDisabled}개` : "",
     ].filter(Boolean).join(", ");
     addLine(
@@ -547,6 +555,86 @@ function buildRouteNarrative(payload, primary, summary, checks) {
     "caution",
   );
   return lines;
+}
+
+function buildCandidateComposition(payload) {
+  const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+  const composition = payload?.candidate_composition || {};
+  const fallbackPolicy = policyCandidateCounts(rows);
+  const total = Math.max(
+    numberOrZero(composition.total_registered_candidates),
+    numberOrZero(payload?.total_candidate_count || payload?.count || rows.length),
+  );
+  const direct = Math.max(numberOrZero(composition.direct_production_count), countRows(rows, (row) => Boolean(directEvidence(row))));
+  const mall = Math.max(numberOrZero(composition.shopping_mall_mas_count), countRows(rows, (row) => Boolean(masEvidence(row) || shoppingEvidence(row))));
+  const policy = Math.max(numberOrZero(composition.policy_company_count), fallbackPolicy.total);
+  const women = Math.max(numberOrZero(composition.women_company_count), fallbackPolicy.women);
+  const disabled = Math.max(numberOrZero(composition.disabled_company_count), fallbackPolicy.disabled);
+  const social = Math.max(numberOrZero(composition.social_enterprise_count), fallbackPolicy.social);
+  const maxValue = Math.max(total, direct, mall, policy, 1);
+  const percent = (value) => {
+    if (!value) return 0;
+    return Math.max(8, Math.min(100, Math.round((value / maxValue) * 100)));
+  };
+  return {
+    basisLabel: valueText(composition.basis_label, composition.basis ? "전체 후보 기준" : "화면 후보 기준"),
+    items: [
+      {
+        label: "조달청 등록 지역업체",
+        value: total,
+        detail: "검색 조건에 걸린 부산 업체 후보",
+        tone: "total",
+      },
+      {
+        label: "직생 보유 지역업체",
+        value: direct,
+        detail: "직접생산확인증명서 보유",
+        tone: "direct",
+      },
+      {
+        label: "쇼핑몰/MAS 지역업체",
+        value: mall,
+        detail: "조달청 종합쇼핑몰 또는 MAS 등록",
+        tone: "mall",
+      },
+      {
+        label: "정책기업",
+        value: policy,
+        detail: [
+          women ? `여성 ${women}` : "",
+          social ? `사회적 ${social}` : "",
+          disabled ? `장애인 ${disabled}` : "",
+        ].filter(Boolean).join(" · ") || "여성·사회적·장애인 여부",
+        tone: "policy",
+      },
+    ].map((item) => ({ ...item, percent: percent(item.value) })),
+  };
+}
+
+function renderCandidateComposition(payload) {
+  const composition = buildCandidateComposition(payload);
+  const hasAny = composition.items.some((item) => item.value > 0);
+  if (!hasAny) return "";
+  return `
+    <section class="vendor-composition-panel" aria-label="지역업체 후보 구성">
+      <div class="vendor-composition-head">
+        <b>지역업체 후보 구성</b>
+        <small>${escapeHtml(composition.basisLabel)}</small>
+      </div>
+      <div class="vendor-composition-grid">
+        ${composition.items.map((item) => `
+          <article class="vendor-composition-item ${escapeHtml(item.tone)}" style="--value:${item.percent}%">
+            <div>
+              <span>${escapeHtml(item.label)}</span>
+              <strong>${item.value.toLocaleString("ko-KR")}개</strong>
+            </div>
+            <div class="composition-bar" aria-hidden="true"><i></i></div>
+            <p>${escapeHtml(item.detail)}</p>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+  `;
 }
 
 function routeDecisionLine(label, value, tone = "neutral") {
@@ -674,11 +762,13 @@ function renderRouteDecision(payload, cards) {
   const checks = Array.isArray(payload?.product_policy_checks) ? payload.product_policy_checks : [];
   const primary = guide.primary_route || cards[0] || {};
   const narrativeLines = buildRouteNarrative(payload, primary, summary, checks);
+  const compositionPanel = renderCandidateComposition(payload);
 
   els.routeDecisionPanel.innerHTML = `
     <article class="route-narrative-card">
       <span>실무 요약</span>
       <strong>${escapeHtml(valueText(primary.label || guide.title, "직접계약/입찰공고 검토"))}</strong>
+      ${compositionPanel}
       <ol class="route-narrative-list">
         ${narrativeLines.map((line) => `
           <li class="${escapeHtml(line.tone)}">

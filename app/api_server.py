@@ -2468,6 +2468,69 @@ def _vendor_rows_to_csv_bytes(rows: list[dict[str, str]]) -> bytes:
     return output.getvalue().encode("utf-8-sig")
 
 
+def _vendor_candidate_composition_summary(rows: list[dict[str, str | int]], total_candidate_count: int) -> dict[str, object]:
+    def has_direct(row: dict[str, str | int]) -> bool:
+        return (
+            _vendor_is_truthy(row.get("direct_production_match"))
+            or _vendor_is_truthy(row.get("direct_production_certificate_products"))
+            or _vendor_is_truthy(row.get("direct_production_summary"))
+            or _vendor_is_truthy(row.get("direct_production_flags"))
+        )
+
+    def has_mall_or_mas(row: dict[str, str | int]) -> bool:
+        return (
+            _vendor_is_truthy(row.get("mas_match"))
+            or _vendor_is_truthy(row.get("shopping_mall_match"))
+            or _vendor_is_truthy(row.get("mas_product_summary"))
+            or _vendor_is_truthy(row.get("shopping_mall_product_summary"))
+            or _vendor_is_truthy(row.get("has_mas"))
+            or _vendor_is_truthy(row.get("has_shopping_mall"))
+        )
+
+    def policy_text(row: dict[str, str | int]) -> str:
+        labels = _vendor_label_values(row.get("policy_subtypes"), _VENDOR_POLICY_LABELS)
+        return " ".join([
+            str(row.get("policy_subtypes") or ""),
+            str(row.get("policy_company_labels") or ""),
+            " ".join(labels),
+        ]).lower()
+
+    policy_count = 0
+    women_count = 0
+    disabled_count = 0
+    social_count = 0
+    for row in rows:
+        text = policy_text(row)
+        if not text.strip():
+            continue
+        policy_count += 1
+        if "women_company" in text or "여성기업" in text:
+            women_count += 1
+        if "disabled_company" in text or "장애인기업" in text or "중증장애인" in text:
+            disabled_count += 1
+        if (
+            "social_enterprise" in text
+            or "pre_social_enterprise" in text
+            or "사회적기업" in text
+            or "예비사회적" in text
+            or "사회적 협동조합" in text
+            or "사회적협동조합" in text
+        ):
+            social_count += 1
+
+    return {
+        "basis": "all_matched_candidates_before_visible_limit",
+        "basis_label": "전체 후보 기준",
+        "total_registered_candidates": int(total_candidate_count or len(rows)),
+        "direct_production_count": sum(1 for row in rows if has_direct(row)),
+        "shopping_mall_mas_count": sum(1 for row in rows if has_mall_or_mas(row)),
+        "policy_company_count": policy_count,
+        "women_company_count": women_count,
+        "disabled_company_count": disabled_count,
+        "social_enterprise_count": social_count,
+    }
+
+
 def _vendor_recommendation_payload(
     q: str,
     *,
@@ -2488,11 +2551,13 @@ def _vendor_recommendation_payload(
     rows = _vendor_apply_construction_evidence(rows, q)
     rows = _vendor_filter_rows_for_policy_item(rows, product_policy_checks)
     total_candidate_count = len(rows)
+    candidate_composition = _vendor_candidate_composition_summary(rows, total_candidate_count)
     rows = rows[:requested_limit]
     item_policy_summary = _vendor_item_policy_summary(q, product_policy_checks, requested=product_policy_requested)
     if item_policy_summary.get("status") == "needs_item_selection":
         rows = []
         total_candidate_count = 0
+        candidate_composition = _vendor_candidate_composition_summary([], 0)
     zero_result_status = _vendor_zero_result_status(
         q,
         rows,
@@ -2518,6 +2583,7 @@ def _vendor_recommendation_payload(
         "count": len(rows),
         "total_candidate_count": total_candidate_count,
         "visible_candidate_count": len(rows),
+        "candidate_composition": candidate_composition,
         "columns": VENDOR_RECOMMENDATION_COLUMNS,
         "rows": rows,
         "search_plan": _vendor_query_plan(q),
