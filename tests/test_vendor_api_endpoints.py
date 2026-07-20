@@ -441,6 +441,30 @@ def test_vendor_purchase_route_guidance_keeps_material_purchase_on_mas_route():
     assert guidance["title"] == "다수공급자계약(MAS)"
 
 
+def test_vendor_purchase_route_guidance_prefers_plain_information_communication_as_construction():
+    rows = [
+        api_server._vendor_recommendation_row({
+            **_sample_vendor_row(),
+            "license_or_business_type": "정보통신공사업",
+            "construction_capacity_summary": "정보통신공사업 / 1200000000",
+            "mas_product_summary": "통신장비 / MAS / active",
+            "has_mas": "true",
+        })
+    ]
+
+    guidance = api_server._vendor_purchase_route_guidance(
+        "정보통신 업체 추천",
+        rows,
+        [],
+        {"status": "not_requested"},
+    )
+
+    assert guidance["primary_route"]["route_id"] == "construction_license"
+    assert guidance["title"] == "공사 면허/시공능력 검토"
+    assert all(card["route_id"] not in {"mas", "shopping_mall", "third_party_unit_price"} for card in guidance["route_cards"])
+    assert "지역제한 입찰 가능 여부" in guidance["required_checks"]
+
+
 def test_vendor_query_plan_adds_construction_license_terms():
     cases = [
         ("금속창호공사 업체 추천", "금속창호공사업"),
@@ -448,6 +472,8 @@ def test_vendor_query_plan_adds_construction_license_terms():
         ("상하수도설비공사 부산업체", "상하수도설비공사업"),
         ("실내건축공사 가능한 업체", "실내건축공사업"),
         ("전기공사 가능한 부산업체", "전기공사업"),
+        ("정보통신 업체 추천", "정보통신공사업"),
+        ("정보통신 구축 업체", "정보통신공사업"),
         ("정보통신공사 면허 업체", "정보통신공사업"),
         ("소방시설공사 시공능력 업체", "전문소방시설공사업"),
         ("기계설비공사 지역업체", "기계설비공사업"),
@@ -2009,6 +2035,32 @@ def test_vendor_purchase_route_guidance_does_not_promote_generic_mas_for_service
     badge_labels = [badge["label"] for badge in guidance["badges"]]
     assert not any("MAS" in label for label in badge_labels)
     assert not any("\ub098\ub77c\uc7a5\ud130" in label for label in badge_labels)
+
+
+def test_vendor_purchase_route_guidance_keeps_information_communication_service_when_explicit():
+    rows = [
+        api_server._vendor_recommendation_row({
+            **_sample_vendor_row(),
+            "company_id": "info-service",
+            "company_name": "정보통신용역후보",
+            "license_or_business_type": "소프트웨어사업자(컴퓨터관련서비스사업)",
+            "main_products": "정보통신 유지보수용역",
+            "mas_product_summary": "과거 MAS 근거",
+            "shopping_mall_product_summary": "과거 쇼핑몰 근거",
+            "has_mas": "true",
+            "has_shopping_mall": "true",
+        })
+    ]
+
+    guidance = api_server._vendor_purchase_route_guidance(
+        "정보통신 유지보수용역 업체",
+        rows,
+        [],
+        {"status": "not_requested"},
+    )
+
+    assert guidance["primary_route"]["route_id"] == "service_contract_review"
+    assert all(card["route_id"] not in {"mas", "shopping_mall", "third_party_unit_price"} for card in guidance["route_cards"])
 
 
 def test_vendor_purchase_route_guidance_treats_fire_inspection_as_service():

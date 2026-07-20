@@ -1470,6 +1470,44 @@ def _vendor_construction_compact(value: str) -> str:
     return re.sub(r"[\sㆍ·\.\-/_,()]+", "", str(value or "")).lower()
 
 
+def _vendor_has_explicit_service_route_intent(q: str) -> bool:
+    compact = _vendor_compact(q)
+    return any(marker in compact for marker in (
+        "용역",
+        "서비스",
+        "위탁",
+        "대행",
+        "유지보수",
+        "운영관리",
+        "점검",
+        "안전관리",
+        "관리대행",
+        "감리",
+        "설계",
+        "청소",
+        "방역",
+        "소독",
+        "교육훈련",
+        "학술연구",
+        "원가계산",
+    ))
+
+
+def _vendor_prefers_information_communication_construction(q: str) -> bool:
+    compact = _vendor_compact(q)
+    if _vendor_has_explicit_service_route_intent(q):
+        return False
+    return any(marker in compact for marker in (
+        "정보통신",
+        "정보통신설비",
+        "정보통신망",
+        "통신설비",
+        "통신망",
+        "네트워크구축",
+        "네트워크공사",
+    ))
+
+
 def _vendor_requested_construction_terms(q: str) -> list[str]:
     compact = _vendor_construction_compact(q)
     terms: list[str] = []
@@ -1478,6 +1516,10 @@ def _vendor_requested_construction_terms(q: str) -> list[str]:
             for license_name in licenses:
                 if license_name not in terms:
                     terms.append(license_name)
+    if _vendor_prefers_information_communication_construction(q):
+        for license_name in ("정보통신공사업", "정보통신공사"):
+            if license_name not in terms:
+                terms.append(license_name)
     if any(marker in compact for marker in ("상하수도", "상수도설비", "하수도설비")):
         terms = [
             term
@@ -4841,9 +4883,14 @@ def _vendor_policy_tool_results(
 
 def _vendor_contract_object_for_route(q: str, construction_terms: list[str]) -> str:
     compact = _vendor_compact(q)
+    explicit_service_route = _vendor_has_explicit_service_route_intent(q)
     if construction_terms and not _vendor_has_construction_material_intent(q):
+        if explicit_service_route:
+            return "service"
         return "construction"
     if "공사" in compact and not _vendor_has_construction_material_intent(q):
+        if explicit_service_route:
+            return "service"
         return "construction"
     service_terms = _vendor_requested_service_terms(q)
     if service_terms:
@@ -5272,9 +5319,9 @@ def _vendor_purchase_route_guidance(
             "공사 면허/시공능력 검토",
             "candidate_found" if row_has_construction else "needs_check",
             "입력 질의가 공사업 면허 또는 공사 시공 조건으로 해석됩니다.",
-            ["공사 종류", "요구 면허", "시공능력평가금액", "입찰공고/직접계약 가능 여부"],
-            "공사는 품목 구매가 아니라 면허·실적·시공능력 기준으로 후보를 좁히는 경로입니다.",
-            ["요구 면허와 시공능력평가금액을 먼저 확인", "공사 내용이 공사용자재 직접구매 대상과 연결되는지 별도 확인"],
+            ["공사 종류", "요구 면허", "시공능력평가금액", "현장소재지", "지역제한 입찰 가능 여부", "입찰공고/직접계약 가능 여부"],
+            "공사는 품목 구매가 아니라 면허·실적·시공능력 기준으로 후보를 좁히는 경로입니다. 지역제한 가능성은 현장소재지, 추정가격, 발주기관 적용 법령을 함께 확인해야 합니다.",
+            ["요구 면허와 시공능력평가금액을 먼저 확인", "현장소재지 기준 지역제한 입찰 가능 여부 확인", "공사 내용이 공사용자재 직접구매 대상과 연결되는지 별도 확인"],
             route_priority="reference" if _vendor_has_construction_material_intent(q) else "primary",
         )
     if service_route_primary and not has_confirmed_contract:
@@ -5284,8 +5331,8 @@ def _vendor_purchase_route_guidance(
             "candidate_found" if rows else "needs_check",
             "입력 질의가 용역으로 해석되며, 현재 DB 기준 조달청 단가계약/MAS 품목 근거가 확정되지 않았습니다.",
             ["용역 범위", "업종·면허·인력 요건", "수행실적", "지역제한 가능 여부", "수의계약/입찰공고 가능 여부"],
-            "용역은 물품식별번호보다 과업 범위, 업종·면허, 수행실적, 발주기관 적용 법령을 먼저 확인해야 합니다.",
-            ["후보업체의 실제 수행 가능 용역 확인", "수의계약 가능 금액과 견적 요건 확인", "지역제한 또는 평가항목 적용 가능성 확인"],
+            "용역은 물품식별번호보다 과업 범위, 업종·면허, 수행실적, 발주기관 적용 법령을 먼저 확인해야 합니다. 지역제한은 용역 성격과 추정가격에 따라 가능 여부가 달라집니다.",
+            ["후보업체의 실제 수행 가능 용역 확인", "수의계약 가능 금액과 견적 요건 확인", "지역제한 입찰 또는 지역업체 평가항목 적용 가능성 확인"],
             route_priority="primary",
         )
     if product_route_allowed and (requirements["has_mas_route"] or has_confirmed_contract or row_has_mas):
