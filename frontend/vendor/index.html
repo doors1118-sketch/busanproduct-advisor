@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>지능형 지역상생 계약 지원 시스템 | 지역업체 후보 조회</title>
-    <link rel="stylesheet" href="./styles.css?v=20260720-composition-chart" />
+    <link rel="stylesheet" href="./styles.css?v=20260720-card-products" />
   </head>
   <body>
     <div class="app-shell">
@@ -34,7 +34,7 @@
                 <span class="source-row">
                   <strong>정책기업(여성/사회적/장애인)</strong>
                   <strong>소상공인 우선구매</strong>
-                  <strong>중기간경쟁/공사용자재</strong>
+                  <strong>중기경쟁/공사용자재</strong>
                   <strong>조합추천/공동사업</strong>
                 </span>
               </div>
@@ -96,7 +96,7 @@
               <button type="button" data-query="비디오프로젝터 구매 가능한 부산업체 후보">비디오프로젝터</button>
               <button type="button" data-query="보안캠 업체 후보를 찾아줘. 정책기업 여부까지 같이">보안캠</button>
               <button type="button" data-query="도로 포장공사 업체 추천해줘">도로 포장공사</button>
-              <button type="button" data-query="책상 중기간경쟁제품이면 부산업체 후보를 보여줘">책상</button>
+              <button type="button" data-query="책상 중소기업자간 경쟁제품이면 부산업체 후보를 보여줘">책상</button>
               <button type="button" data-query="복층유리와 상하수도설비공사 둘 다 가능한 업체 찾아줘">혼합질의</button>
             </div>
 
@@ -137,7 +137,7 @@
               <p class="kicker">후보업체</p>
                 <h2>상위 후보 10개와 업체별 근거</h2>
             </div>
-              <a id="download-link" class="secondary-button disabled" href="#" aria-disabled="true">전체 XLSX</a>
+              <a id="download-link" class="secondary-button disabled" href="#" aria-disabled="true">조달청 등록 전체 지역업체 XLSX</a>
             </div>
             <div id="candidate-list" class="candidate-list" aria-live="polite">
               <article class="empty-panel">
@@ -220,6 +220,10 @@
         </header>
         <div class="candidate-body">
           <div class="badge-row card-badges"></div>
+          <div class="candidate-primary-products">
+            <span>대표품목</span>
+            <strong class="candidate-primary-products-text"></strong>
+          </div>
           <div class="candidate-alert">
             <div>
               <span>계약 전 확인</span>
@@ -265,6 +269,6 @@
       </section>
     </div>
 
-    <script src="./app.js?v=20260720-supplier-basis-copy"></script>
+    <script src="./app.js?v=20260720-card-products"></script>
   </body>
 </html>

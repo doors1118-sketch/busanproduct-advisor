@@ -1821,6 +1821,30 @@ select:focus {
   padding: 6px 8px;
 }
 
+.candidate-primary-products {
+  background: #f8fafc;
+  border: 1px solid var(--line-soft);
+  border-left: 4px solid var(--teal);
+  border-radius: 9px;
+  display: grid;
+  gap: 5px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+}
+
+.candidate-primary-products span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.candidate-primary-products strong {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
 .feature-strip {
   display: grid;
   gap: 8px;

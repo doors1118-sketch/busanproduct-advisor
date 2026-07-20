@@ -138,6 +138,63 @@ function directEvidence(row) {
   );
 }
 
+function cleanEvidenceValue(value) {
+  return valueText(value, "")
+    .replace(/\bvalid\s*~?\s*\d{4}-\d{2}-\d{2}/gi, "")
+    .replace(/\bactive\b/gi, "")
+    .replace(/win_win_cooperation_product/gi, "상생협력제품")
+    .replace(/_/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s*\/\s*$/g, "")
+    .trim();
+}
+
+function displayEvidenceList(value, fallback = "") {
+  const seen = new Set();
+  const items = splitValues(cleanEvidenceValue(value))
+    .map((item) => item
+      .replace(/^직접생산\s*일치:\s*/g, "")
+      .replace(/^MAS\s*일치:\s*/g, "")
+      .replace(/^종합쇼핑몰\s*일치:\s*/g, "")
+      .replace(/\s{2,}/g, " ")
+      .trim())
+    .filter((item) => {
+      if (!item || seen.has(item)) return false;
+      seen.add(item);
+      return true;
+    });
+  return items.length ? items.slice(0, 4).join(" · ") : fallback;
+}
+
+function displayCertifiedLabels(row) {
+  return displayEvidenceList(row.certified_product_labels);
+}
+
+function displayDirectEvidence(row) {
+  return displayEvidenceList(directEvidence(row));
+}
+
+function displayMasEvidence(row) {
+  return displayEvidenceList(masEvidence(row));
+}
+
+function displayShoppingEvidence(row) {
+  return displayEvidenceList(shoppingEvidence(row));
+}
+
+function displayProcurementEvidence(row) {
+  return [
+    displayDirectEvidence(row),
+    displayMasEvidence(row),
+    displayShoppingEvidence(row),
+    historyEvidence(row),
+    policyCompanyTags(row).join(" · "),
+    displayCertifiedLabels(row),
+    valueText(row.sme_competition_product_label, ""),
+    valueText(row.cooperative_purchase_route_label, ""),
+  ].filter(Boolean).join(" / ");
+}
+
 function masEvidence(row) {
   return firstPositive(row.mas_match, row.mas_status_label);
 }
@@ -184,10 +241,10 @@ function compactFeatureTags(row) {
   const features = [];
   const policyTags = policyCompanyTags(row);
   const policy = policyTags.length ? policyTags.join(" · ") : valueText(row.policy_company_labels, "");
-  const cert = valueText(row.certified_product_labels, "");
-  const direct = directEvidence(row);
-  const mas = masEvidence(row);
-  const shopping = shoppingEvidence(row);
+  const cert = displayCertifiedLabels(row);
+  const direct = displayDirectEvidence(row);
+  const mas = displayMasEvidence(row);
+  const shopping = displayShoppingEvidence(row);
   const history = historyEvidence(row);
   const license = constructionEvidence(row) || valueText(row.license_status_label, "");
   const sme = valueText(row.sme_competition_product_label, "");
@@ -203,7 +260,7 @@ function compactFeatureTags(row) {
   if (shopping) features.push(["쇼핑몰", shopping, "info"]);
   if (history) features.push(["수행이력", history, toneFor(history)]);
   if (license) features.push(["면허", license, toneFor(license)]);
-  if (sme) features.push(["중기간", sme, toneFor(sme)]);
+  if (sme) features.push(["중기경쟁제품", sme, toneFor(sme)]);
   if (coop) features.push(["조합", coop, toneFor(coop)]);
   if (venture) features.push(["벤처나라", venture, toneFor(venture)]);
 
@@ -248,18 +305,18 @@ function evidenceItems(row) {
     ["품목·검색 근거", firstPositive(row.requested_item_evidence_summary, row.matched_query_label, row.main_products) || "요청 품목 근거 확인 필요", toneFor(row.requested_item_evidence_summary)],
     ["구매수단 적합성", valueText(row.purchase_route_fit_summary, "지역업체 구매 지원 근거는 별도 확인 필요"), toneFor(row.purchase_route_fit_summary)],
     ["과거 수행이력", historyEvidence(row) || "유사 계약 수행이력 근거 없음", historyEvidence(row) ? "info" : "warn"],
-    ["직접생산", directEvidence(row) || "직접생산 근거 없음 또는 확인 필요", directEvidence(row) ? "good" : "warn"],
-    ["MAS/종합쇼핑몰", [masEvidence(row), shoppingEvidence(row)].filter(Boolean).join(" · ") || "등록 근거 없음 또는 확인 필요", masEvidence(row) || shoppingEvidence(row) ? "good" : "warn"],
+    ["직접생산", displayDirectEvidence(row) || "직접생산 근거 없음 또는 확인 필요", directEvidence(row) ? "good" : "warn"],
+    ["MAS/종합쇼핑몰", [displayMasEvidence(row), displayShoppingEvidence(row)].filter(Boolean).join(" · ") || "등록 근거 없음 또는 확인 필요", masEvidence(row) || shoppingEvidence(row) ? "good" : "warn"],
     ["면허·시공능력", constructionEvidence(row) || firstPositive(row.license_or_business_type) || "면허·시공능력 확인 필요", constructionEvidence(row) ? "good" : "info"],
     ["정책기업", policyCompanyTags(row).join(" · ") || valueText(row.policy_company_labels, "") || "여성·사회적·장애인기업 여부 근거 없음", policyCompanyTags(row).length || valueText(row.policy_company_labels, "") ? "good" : "info"],
-    ["기술개발·인증", valueText(row.certified_product_labels, "") || "인증제품 근거 없음 또는 확인 필요", valueText(row.certified_product_labels, "") ? "good" : "info"],
+    ["기술개발·인증", displayCertifiedLabels(row) || "인증제품 근거 없음 또는 확인 필요", valueText(row.certified_product_labels, "") ? "good" : "info"],
   ];
 }
 
 function checkItems(row) {
   const checks = splitValues(row.recommended_checks);
-  if (!directEvidence(row) && /중기간|직접생산/.test(valueText(row.sme_competition_product_label, ""))) {
-    checks.push("중기간 경쟁제품이면 직접생산확인증명서 세부품명과 유효기간 확인");
+  if (!directEvidence(row) && /중기간|중소기업자간|직접생산/.test(valueText(row.sme_competition_product_label, ""))) {
+    checks.push("중소기업자간 경쟁제품이면 직접생산확인증명서 세부품명과 유효기간 확인");
   }
   if (!masEvidence(row) && !shoppingEvidence(row)) {
     checks.push("조달청 종합쇼핑몰 또는 MAS 등록 여부 별도 확인");
@@ -463,7 +520,7 @@ function buildRouteNarrative(payload, primary, summary, checks) {
     );
     addLine(
       "선택 후보",
-      `선택 가능한 매칭품목은 ${selectionOptions.map((item) => item.name).join(", ")}입니다. 선택 후 중기간 경쟁제품, 직접생산, 쇼핑몰/MAS, 부산업체 후보를 다시 계산합니다.`,
+      `선택 가능한 매칭품목은 ${selectionOptions.map((item) => item.name).join(", ")}입니다. 선택 후 중소기업자간 경쟁제품, 직접생산, 쇼핑몰/MAS, 부산업체 후보를 다시 계산합니다.`,
       "route",
     );
     addLine(
@@ -869,7 +926,7 @@ function renderItemPolicySummary(payload) {
         : "품목정책 확인 필요";
   const statusTone = status === "matched" ? "good" : status === "not_requested" ? "info" : "warn";
   const facts = [
-    ["중기간 경쟁제품", summary.sme_competition_product],
+    ["중소기업자간 경쟁제품", summary.sme_competition_product],
     ["직접생산 필요", summary.direct_production_certificate],
     ["조합추천/공동사업", summary.cooperative_purchase_route],
   ]
@@ -950,7 +1007,7 @@ function renderSummary(payload, rows) {
 
   els.summaryCount.textContent = `${count.toLocaleString("ko-KR")}개`;
   els.summaryDesc.textContent = count
-    ? `화면에는 근거 충족도가 높은 상위 ${Math.min(DISPLAY_LIMIT, rows.length)}개를 표시합니다. 전체 후보는 XLSX로 내려받아 검토하세요.`
+    ? `화면에는 근거 충족도가 높은 상위 ${Math.min(DISPLAY_LIMIT, rows.length)}개를 표시합니다. 조달청 등록 전체 지역업체는 XLSX로 내려받아 검토하세요.`
     : "조건에 맞는 후보가 없습니다. 검색어를 품목명 또는 면허명 중심으로 바꿔보세요.";
   if (!count && zeroStatus.message) {
     els.summaryDesc.textContent = zeroStatus.message;
@@ -965,7 +1022,7 @@ function renderSummary(payload, rows) {
           ? `확인 필요 ${needs}개`
           : "-";
   els.summaryRoute.textContent = basisLabel || (routeEvidence ? `근거 있음 ${routeEvidence}개` : "확인 필요");
-  els.summaryDownload.textContent = count ? "XLSX 받기" : "대기";
+  els.summaryDownload.textContent = count ? "조달청 등록 전체 지역업체 XLSX" : "대기";
 }
 
 function formatHistoryKrw(value) {
@@ -1095,6 +1152,9 @@ function renderCandidate(row, index) {
   const badgeRow = node.querySelector(".card-badges");
   buildBadges(row).slice(0, 6).forEach((item) => badgeRow.appendChild(item));
 
+  const primaryProducts = splitValues(row.main_products).slice(0, 4).join(", ") || "대표품목 확인 필요";
+  node.querySelector(".candidate-primary-products-text").textContent = truncate(primaryProducts, 120);
+
   const featureStrip = document.createElement("div");
   featureStrip.className = "feature-strip";
   compactFeatureTags(row).slice(0, 4).forEach(([label, value, tone]) => {
@@ -1130,7 +1190,7 @@ function renderCandidate(row, index) {
   node.querySelector(".main-products").textContent = truncate(splitValues(row.main_products).join(", "), 220);
   node.querySelector(".licenses").textContent = truncate(splitValues(row.license_or_business_type).join(", "), 260);
   node.querySelector(".procurement-evidence").textContent = truncate(
-    [directEvidence(row), masEvidence(row), shoppingEvidence(row), historyEvidence(row), policyEvidence(row)].filter(Boolean).join(" / ") || "조달 근거 확인 필요",
+    displayProcurementEvidence(row) || "조달 근거 확인 필요",
     260,
   );
   node.querySelector(".checks").textContent = truncate(checks.join(" / "), 260);
