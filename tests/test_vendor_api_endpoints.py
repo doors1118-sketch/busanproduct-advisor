@@ -2008,3 +2008,31 @@ def test_vendor_purchase_route_guidance_does_not_promote_generic_mas_for_service
     badge_labels = [badge["label"] for badge in guidance["badges"]]
     assert not any("MAS" in label for label in badge_labels)
     assert not any("\ub098\ub77c\uc7a5\ud130" in label for label in badge_labels)
+
+
+def test_vendor_purchase_route_guidance_treats_fire_inspection_as_service():
+    rows = [
+        api_server._vendor_recommendation_row({
+            **_sample_vendor_row(),
+            "company_id": "fire-service",
+            "company_name": "소방점검후보",
+            "license_or_business_type": "소방시설관리업",
+            "main_products": "소방시설점검",
+            "mas_product_summary": "과거 MAS 근거",
+            "shopping_mall_product_summary": "과거 쇼핑몰 근거",
+            "has_mas": "true",
+            "has_shopping_mall": "true",
+        })
+    ]
+
+    guidance = api_server._vendor_purchase_route_guidance(
+        "소방시설점검 업체",
+        rows,
+        [],
+        {"status": "not_requested"},
+    )
+
+    assert guidance["primary_route"]["route_id"] == "service_contract_review"
+    assert all(card["route_id"] not in {"mas", "shopping_mall"} for card in guidance["route_cards"])
+    badge_labels = [badge["label"] for badge in guidance["badges"]]
+    assert not any("MAS" in label or "쇼핑몰" in label for label in badge_labels)

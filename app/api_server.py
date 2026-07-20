@@ -4845,7 +4845,27 @@ def _vendor_contract_object_for_route(q: str, construction_terms: list[str]) -> 
         return "construction"
     if "공사" in compact and not _vendor_has_construction_material_intent(q):
         return "construction"
-    if any(term in compact for term in ("용역", "과업", "위탁", "유지보수", "청소", "방역", "설계", "교육훈련", "학술연구", "원가계산")):
+    service_terms = _vendor_requested_service_terms(q)
+    if service_terms:
+        return "service"
+    if any(term in compact for term in (
+        "용역",
+        "과업",
+        "위탁",
+        "대행",
+        "점검",
+        "안전관리",
+        "관리대행",
+        "유지보수",
+        "청소",
+        "방역",
+        "소독",
+        "설계",
+        "감리",
+        "교육훈련",
+        "학술연구",
+        "원가계산",
+    )):
         return "service"
     return "goods"
 

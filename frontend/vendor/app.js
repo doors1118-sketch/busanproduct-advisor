@@ -10,6 +10,14 @@ const API_BASE_URL =
 const MONITORING_API_BASE_URL = (params.get("monitoring") || "https://busanproduct.co.kr").replace(/\/$/, "");
 
 const DISPLAY_LIMIT = 10;
+const PRODUCT_ROUTE_IDS = new Set([
+  "third_party_unit_price",
+  "mas",
+  "shopping_mall_mas",
+  "shopping_mall",
+  "general_unit_price",
+  "open_market_or_bid",
+]);
 
 function todayKstDateText() {
   return new Intl.DateTimeFormat("ko-KR", {
@@ -427,6 +435,31 @@ function countRows(rows, predicate) {
   }).length;
 }
 
+function activeRouteIds(payload) {
+  const guide = payload?.purchase_route_guidance || {};
+  const ids = new Set();
+  const primaryId = valueText(guide.primary_route?.route_id, "");
+  if (primaryId) ids.add(primaryId);
+  (Array.isArray(guide.route_cards) ? guide.route_cards : []).forEach((card) => {
+    const routeId = valueText(card?.route_id, "");
+    if (routeId) ids.add(routeId);
+  });
+  return ids;
+}
+
+function routeDomainMode(payload) {
+  const ids = activeRouteIds(payload);
+  if (ids.has("service_contract_review")) return "service";
+  if (ids.has("construction_license") && ![...ids].some((routeId) => PRODUCT_ROUTE_IDS.has(routeId))) {
+    return "construction";
+  }
+  return "goods";
+}
+
+function shouldShowProductPolicy(payload) {
+  return routeDomainMode(payload) === "goods";
+}
+
 function policyCandidateCounts(rows) {
   const counts = {
     total: 0,
@@ -505,6 +538,9 @@ function buildRouteNarrative(payload, primary, summary, checks) {
   const directRows = Math.max(numberOrZero(composition.direct_production_count), countRows(rows, (row) => Boolean(directEvidence(row))));
   const mallRows = Math.max(numberOrZero(composition.shopping_mall_mas_count), countRows(rows, (row) => Boolean(masEvidence(row) || shoppingEvidence(row))));
   const policyTotal = Math.max(numberOrZero(composition.policy_company_count), policyCounts.total);
+  const routeMode = routeDomainMode(payload);
+  const licenseRows = countRows(rows, (row) => Boolean(constructionEvidence(row) || valueText(row.license_or_business_type, "")));
+  const historyRows = countRows(rows, (row) => Boolean(historyEvidence(row)));
   const lines = [];
 
   const addLine = (label, text, tone) => {
@@ -527,6 +563,52 @@ function buildRouteNarrative(payload, primary, summary, checks) {
     addLine(
       "계약 전 확인",
       "세부 유형 또는 세부품명 확정 전에는 후보업체를 확정하지 않습니다. 선택 후 표시되는 업체와 원천자료를 다시 확인하세요.",
+      "caution",
+    );
+    return lines;
+  }
+
+  if (routeMode !== "goods") {
+    const isService = routeMode === "service";
+    addLine(
+      isService ? "용역 분류" : "공사 분류",
+      isService
+        ? `${query}은(는) 용역으로 해석됩니다. 조달청 제3자단가계약, MAS/종합쇼핑몰, 중소기업자간 경쟁제품 안내 대상이 아니므로 과업 범위, 업종·면허, 수행이력 기준으로 지역업체 후보를 조회했습니다.`
+        : `${query}은(는) 공사·면허 질의로 해석됩니다. 물품 구매경로가 아니라 요구 면허, 시공능력, 수행이력 기준으로 지역업체 후보를 조회했습니다.`,
+      "info",
+    );
+    addLine(
+      isService ? "검토 기준" : "면허 기준",
+      isService
+        ? "용역 계약은 물품식별번호보다 과업지시서의 업무 범위, 요구 업종·면허, 인력·장비 요건, 수행실적, 발주기관 적용 법령을 먼저 확인해야 합니다."
+        : "공사는 공고의 공종, 요구 면허, 주력분야, 시공능력평가금액, 공동도급 가능 여부를 먼저 확인해야 합니다.",
+      "route",
+    );
+    addLine(
+      "업체 현황",
+      `조달청 등록 부산 지역업체 후보는 총 ${totalCandidateCount.toLocaleString("ko-KR")}개이며, 이 중 DB상 조건 일치도가 높은 상위 ${visibleCandidateCount.toLocaleString("ko-KR")}개를 화면에 표시합니다. 전체 후보 기준 업종·면허 정보가 있는 업체는 ${licenseRows.toLocaleString("ko-KR")}개, 과거 수행이력이 확인되는 업체는 ${historyRows.toLocaleString("ko-KR")}개, 정책기업은 ${policyTotal.toLocaleString("ko-KR")}개입니다.`,
+      "good",
+    );
+
+    if (policyTotal) {
+      const womenCount = Math.max(numberOrZero(composition.women_company_count), policyCounts.women);
+      const disabledCount = Math.max(numberOrZero(composition.disabled_company_count), policyCounts.disabled);
+      const socialCount = Math.max(numberOrZero(composition.social_enterprise_count), policyCounts.social);
+      const policyBreakdown = [
+        womenCount ? `여성기업 ${womenCount}개` : "",
+        disabledCount ? `장애인기업 ${disabledCount}개` : "",
+        socialCount ? `사회적기업 ${socialCount}개` : "",
+      ].filter(Boolean).join(", ");
+      addLine(
+        "정책기업",
+        `정책기업 후보는 ${policyBreakdown || `${policyTotal}개`}입니다. 용역의 정책기업 수의계약은 추정가격 1억원 이하 범위에서 검토 가능성이 있으나, 발주기관 적용 법령, 계약목적, 자격요건과 인증 유효기간은 별도 확인해야 합니다.`,
+        "policy",
+      );
+    }
+
+    addLine(
+      "계약 전 확인",
+      "아래 후보업체는 확정 추천이 아니라 DB상 조건 일치도가 높은 검토 대상입니다. 최종 계약 가능 여부는 과업지시서, 원천자료, 법령해석 탭에서 재확인하세요.",
       "caution",
     );
     return lines;
@@ -629,11 +711,44 @@ function buildCandidateComposition(payload) {
   const women = Math.max(numberOrZero(composition.women_company_count), fallbackPolicy.women);
   const disabled = Math.max(numberOrZero(composition.disabled_company_count), fallbackPolicy.disabled);
   const social = Math.max(numberOrZero(composition.social_enterprise_count), fallbackPolicy.social);
-  const maxValue = Math.max(total, direct, mall, policy, 1);
+  const routeMode = routeDomainMode(payload);
+  const license = countRows(rows, (row) => Boolean(constructionEvidence(row) || valueText(row.license_or_business_type, "")));
+  const history = countRows(rows, (row) => Boolean(historyEvidence(row)));
+  const isProduct = routeMode === "goods";
+  const maxValue = Math.max(total, direct, mall, policy, license, history, 1);
   const percent = (value) => {
     if (!value) return 0;
     return Math.max(8, Math.min(100, Math.round((value / maxValue) * 100)));
   };
+  const domainItems = isProduct
+    ? [
+        {
+          label: "직생 보유 지역업체",
+          value: direct,
+          detail: "직접생산확인증명서 보유",
+          tone: "direct",
+        },
+        {
+          label: "쇼핑몰/MAS 지역업체",
+          value: mall,
+          detail: "조달청 종합쇼핑몰 또는 MAS 등록",
+          tone: "mall",
+        },
+      ]
+    : [
+        {
+          label: routeMode === "service" ? "업종·면허 정보 보유" : "공사 면허·시공능력",
+          value: license,
+          detail: routeMode === "service" ? "용역 업종·면허 후보" : "공사업 면허·시공능력 후보",
+          tone: "direct",
+        },
+        {
+          label: "과거 수행이력",
+          value: history,
+          detail: "유사 계약 수행이력 보유",
+          tone: "mall",
+        },
+      ];
   return {
     basisLabel: valueText(composition.basis_label, composition.basis ? "전체 후보 기준" : "화면 후보 기준"),
     items: [
@@ -643,18 +758,7 @@ function buildCandidateComposition(payload) {
         detail: "검색 조건에 걸린 부산 업체 후보",
         tone: "total",
       },
-      {
-        label: "직생 보유 지역업체",
-        value: direct,
-        detail: "직접생산확인증명서 보유",
-        tone: "direct",
-      },
-      {
-        label: "쇼핑몰/MAS 지역업체",
-        value: mall,
-        detail: "조달청 종합쇼핑몰 또는 MAS 등록",
-        tone: "mall",
-      },
+      ...domainItems,
       {
         label: "정책기업",
         value: policy,
@@ -896,6 +1000,10 @@ function renderRouteGuide(payload) {
   const guide = payload?.purchase_route_guidance || {};
   const cards = Array.isArray(guide.route_cards) ? guide.route_cards : [];
   const badges = Array.isArray(guide.badges) ? guide.badges : [];
+  const routeMode = routeDomainMode(payload);
+  const visibleBadges = shouldShowProductPolicy(payload)
+    ? badges
+    : badges.filter((item) => !/(제3자|다수공급자|MAS|쇼핑몰|중소기업자간|직접생산|단가계약|품목)/.test(valueText(item?.label, "")));
 
   els.routeTitle.textContent = cards.length ? "지역업체 구매 지원 방안과 후보 대안" : "지역업체 후보 검토";
   els.routeNotice.textContent =
@@ -907,8 +1015,13 @@ function renderRouteGuide(payload) {
   }
 
   els.routeBadges.innerHTML = "";
-  if (badges.length) {
-    badges.forEach((item) => els.routeBadges.appendChild(tag(item.label || "확인 필요", item.tone || "info")));
+  if (visibleBadges.length) {
+    visibleBadges.forEach((item) => els.routeBadges.appendChild(tag(item.label || "확인 필요", item.tone || "info")));
+  } else if (routeMode === "service") {
+    els.routeBadges.appendChild(tag("용역 업종·면허 검토", "info"));
+    els.routeBadges.appendChild(tag("과업범위·수행이력 확인", "neutral"));
+  } else if (routeMode === "construction") {
+    els.routeBadges.appendChild(tag("공사 면허·시공능력 검토", "info"));
   } else if (cards.length) {
     cards.slice(0, 4).forEach((item) => els.routeBadges.appendChild(tag(item.label || item.route_id, item.status === "candidate_found" ? "info" : "warn")));
   }
@@ -916,6 +1029,12 @@ function renderRouteGuide(payload) {
 
 function renderItemPolicySummary(payload) {
   if (!els.itemPolicyPanel) return;
+  if (!shouldShowProductPolicy(payload)) {
+    els.itemPolicyPanel.innerHTML = "";
+    els.itemPolicyPanel.hidden = true;
+    return;
+  }
+  els.itemPolicyPanel.hidden = false;
   const summary = payload?.item_policy_summary || {};
   const checks = Array.isArray(payload?.product_policy_checks) ? payload.product_policy_checks : [];
   const matchedProducts = Array.isArray(summary.matched_products) ? summary.matched_products : [];
@@ -1008,6 +1127,7 @@ function renderSummary(payload, rows) {
   const routeEvidence = rows.filter((row) => directEvidence(row) || masEvidence(row) || shoppingEvidence(row) || policyEvidence(row)).length;
   const guide = payload?.purchase_route_guidance || {};
   const basisLabel = valueText(guide.purchase_route_basis_label, "");
+  const routeMode = routeDomainMode(payload);
   const zeroStatus = zeroResultStatus(payload);
 
   els.summaryCount.textContent = `${count.toLocaleString("ko-KR")}개`;
@@ -1026,7 +1146,12 @@ function renderSummary(payload, rows) {
         : needs
           ? `확인 필요 ${needs}개`
           : "-";
-  els.summaryRoute.textContent = basisLabel || (routeEvidence ? `근거 있음 ${routeEvidence}개` : "확인 필요");
+  els.summaryRoute.textContent =
+    routeMode === "service"
+      ? "용역 후보 검토"
+      : routeMode === "construction"
+        ? "면허 후보 검토"
+        : basisLabel || (routeEvidence ? `근거 있음 ${routeEvidence}개` : "확인 필요");
   els.summaryDownload.textContent = count ? "조달청 등록 전체 지역업체 XLSX" : "대기";
 }
 
