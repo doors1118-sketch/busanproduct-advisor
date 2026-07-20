@@ -3940,6 +3940,7 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
         "shopping_mall_contract_basis_explanation": contract_signal["basis_explanation"],
         "shopping_mall_busan_supplier_count": contract_signal["busan_supplier_count"],
         "shopping_mall_active_registered_count": contract_signal["registered_count"],
+        "shopping_mall_active_supplier_count": contract_signal["supplier_count"],
         "matched_products": matched_products,
     }
 
@@ -5314,6 +5315,7 @@ def _vendor_purchase_route_guidance(
         "shopping_mall_candidate_exact_supplier_count": contract_signal["candidate_row_evidence_count"],
         "shopping_mall_local_supplier_basis": contract_signal["local_supplier_basis"],
         "shopping_mall_active_registered_count": contract_signal["registered_count"],
+        "shopping_mall_active_supplier_count": contract_signal["supplier_count"],
         "legal_notice": "구매방식 안내는 후보 정보입니다. 최종 계약 가능 여부, 수의계약 가능 한도, 법령 해석은 별도 계약검토/법령해석 절차에서 확인해야 합니다.",
     }
 

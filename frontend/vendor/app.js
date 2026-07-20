@@ -430,8 +430,15 @@ function buildRouteNarrative(payload, primary, summary, checks) {
   const localSupplierBasis = valueText(payload?.purchase_route_guidance?.shopping_mall_local_supplier_basis, "none");
   const mallRegisteredCount = Math.max(
     numberOrZero(payload?.purchase_route_guidance?.shopping_mall_active_registered_count),
+    numberOrZero(summary?.shopping_mall_active_registered_count),
     maxPolicyCount(checks, "shopping_mall_active_registered_count"),
     numberOrZero(product?.shopping_mall_active_registered_count),
+  );
+  const mallSupplierCount = Math.max(
+    numberOrZero(payload?.purchase_route_guidance?.shopping_mall_active_supplier_count),
+    numberOrZero(summary?.shopping_mall_active_supplier_count),
+    maxPolicyCount(checks, "shopping_mall_active_supplier_count"),
+    numberOrZero(product?.shopping_mall_active_supplier_count),
   );
   const policyCounts = policyCandidateCounts(rows);
   const directRows = countRows(rows, (row) => Boolean(directEvidence(row)));
@@ -473,7 +480,7 @@ function buildRouteNarrative(payload, primary, summary, checks) {
   if (isPolicyPositive(summary?.sme_competition_product) || isPolicyPositive(product?.sme_competition_product || product?.is_sme_competition_product)) {
     addLine(
       "필수 확인",
-      `해당 품목은 중소기업자간 경쟁제품입니다(DB 기준). 직접생산확인증명서의 세부품명과 유효기간을 먼저 확인해야 합니다${directSupplierCount ? `; 현재 DB상 직접생산 유효 공급업체 수는 ${directSupplierCount.toLocaleString("ko-KR")}개입니다.` : "."}`,
+      `해당 품목은 중소기업자간 경쟁제품이므로 직접생산확인증명서의 세부품명과 유효기간을 먼저 확인해야 합니다.${directSupplierCount ? ` 현재 DB상 직접생산 유효 공급업체 수는 ${directSupplierCount.toLocaleString("ko-KR")}개입니다.` : ""}`,
       "warn",
     );
   } else if (valueText(summary?.sme_competition_product, "") === "미해당") {
@@ -502,8 +509,8 @@ function buildRouteNarrative(payload, primary, summary, checks) {
         : "조달청 종합쇼핑몰";
     const routeText = localMallEvidence
       ? localSupplierBasis === "candidate_exact_evidence"
-        ? `${routeName}에서 요청 세부품명과 일치하는 부산 지역업체 세부근거가 ${candidateExactSupplierCount.toLocaleString("ko-KR")}개 확인됩니다. 다만 품목 마스터의 부산 공급업체 집계는 0이므로 계약 전 나라장터에서 물품식별번호, 계약상태, 공급업체 유효 여부를 수동 확인해야 합니다.`
-        : `${routeName}에서 요청 세부품명과 일치하는 부산 지역업체 등록 근거가 ${localMallEvidence.toLocaleString("ko-KR")}개 확인됩니다. 품목 마스터 기준은 '${basis}'이며, 전체 쇼핑몰 등록 근거는 ${mallRegisteredCount.toLocaleString("ko-KR")}개입니다.`
+        ? `${routeName}에서 요청 세부품명과 일치하는 부산 지역업체가 ${candidateExactSupplierCount.toLocaleString("ko-KR")}개 확인됩니다. 다만 품목 마스터의 부산 공급업체 집계는 0이므로 계약 전 나라장터에서 물품식별번호, 계약상태, 공급업체 유효 여부를 수동 확인해야 합니다.`
+        : `${routeName}에서 요청 세부품명과 일치하는 부산 지역업체가 ${localMallEvidence.toLocaleString("ko-KR")}개 확인됩니다. 품목 마스터 기준은 '${basis}'입니다.${mallRegisteredCount ? ` 전국 기준 쇼핑몰 등록 건수는 ${mallRegisteredCount.toLocaleString("ko-KR")}건입니다.` : ""}${mallSupplierCount ? ` 전국 기준 공급업체 수는 ${mallSupplierCount.toLocaleString("ko-KR")}개입니다.` : ""}`
       : isMasRoute
         ? "다수공급자계약(MAS) 품목으로 확인됩니다. 원칙적으로 조달청 종합쇼핑몰/MAS 2단계경쟁 경로를 우선 확인해야 합니다. 다만 현재 DB 기준 이 세부품명으로 등록된 부산 MAS/쇼핑몰 공급업체가 확인되지 않거나, 필요한 규격·조건을 MAS로 충족하기 어려운 경우에는 조달청 입찰 또는 발주기관 일반입찰 가능성을 계약부서와 별도 검토해야 합니다."
         : `${routeName} 품목으로 확인됩니다. 다만 현재 DB 기준 이 세부품명으로 등록된 부산 MAS/쇼핑몰 공급업체는 확인되지 않습니다. 중소기업자간 경쟁제품이 아니면 직접생산 필수 품목으로 보지 않으므로, 조달등록 부산 유통사·제조사를 직접계약 또는 입찰공고 대안으로 함께 검토할 수 있습니다.`;
@@ -515,8 +522,8 @@ function buildRouteNarrative(payload, primary, summary, checks) {
   }
 
   addLine(
-    "업체 근거",
-    `조회된 지역업체 후보는 총 ${totalCandidateCount.toLocaleString("ko-KR")}개이며, 이 중 근거 충족도가 높은 상위 ${visibleCandidateCount.toLocaleString("ko-KR")}개를 화면에 추천합니다. 화면 후보 중 직접생산 근거 ${directRows.toLocaleString("ko-KR")}개, MAS/종합쇼핑몰 근거 ${mallRows.toLocaleString("ko-KR")}개, 정책기업 근거 ${policyCounts.total.toLocaleString("ko-KR")}개가 확인됩니다.`,
+    "업체 현황",
+    `조달청 등록 부산 지역업체 후보는 총 ${totalCandidateCount.toLocaleString("ko-KR")}개이며, 이 중 DB상 조건 일치도가 높은 상위 ${visibleCandidateCount.toLocaleString("ko-KR")}개를 화면에 표시합니다. 화면 후보 기준 직접생산 보유 업체는 ${directRows.toLocaleString("ko-KR")}개, 종합쇼핑몰/MAS 등록 지역업체는 ${mallRows.toLocaleString("ko-KR")}개, 정책기업은 ${policyCounts.total.toLocaleString("ko-KR")}개입니다.`,
     "good",
   );
 
@@ -536,7 +543,7 @@ function buildRouteNarrative(payload, primary, summary, checks) {
 
   addLine(
     "계약 전 확인",
-    "아래 후보업체는 확정 추천이 아니라 DB 근거 충족도가 높은 검토 대상입니다. 최종 계약 가능 여부는 원천자료와 법령해석 탭에서 재확인하세요.",
+    "아래 후보업체는 확정 추천이 아니라 DB상 조건 일치도가 높은 검토 대상입니다. 최종 계약 가능 여부는 원천자료와 법령해석 탭에서 재확인하세요.",
     "caution",
   );
   return lines;
