@@ -1906,6 +1906,8 @@ def test_vendor_purchase_route_guidance_separates_item_master_and_candidate_supp
     assert guidance["shopping_mall_candidate_exact_supplier_count"] == 1
     assert guidance["shopping_mall_local_supplier_basis"] == "candidate_exact_evidence"
     assert "MAS/쇼핑몰 부산업체 존재 확인(DB기준)" in badge_labels
+    assert "조달청 다수공급자계약(MAS) 지역업체 존재" not in badge_labels
+    assert "조달청 나라장터 지역업체 존재" not in badge_labels
     assert "부산 MAS/쇼핑몰 공급업체 미확인" not in badge_labels
     assert "물품식별번호와 계약상태를 수동 확인" in guidance["primary_route"]["reason"]
 

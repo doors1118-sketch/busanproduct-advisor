@@ -5340,9 +5340,13 @@ def _vendor_purchase_route_guidance(
         badges.append({"label": "중소기업자간 경쟁제품 해당(DB 기준)", "tone": "warn"})
     if requirements["requires_direct_production"]:
         badges.append({"label": "직접생산 확인 필요 품목", "tone": "warn" if not row_has_direct else "good"})
-    if row_has_mas and (not has_confirmed_contract or has_local_shopping_supplier):
+    show_specific_shopping_badges = (
+        not has_confirmed_contract
+        or (has_local_shopping_supplier and local_supplier_basis != "candidate_exact_evidence")
+    )
+    if row_has_mas and show_specific_shopping_badges:
         badges.append({"label": "조달청 다수공급자계약(MAS) 지역업체 존재", "tone": "info"})
-    if row_has_shopping and (not has_confirmed_contract or has_local_shopping_supplier):
+    if row_has_shopping and show_specific_shopping_badges:
         badges.append({"label": "조달청 나라장터 지역업체 존재", "tone": "info"})
     if row_has_policy:
         badges.append({"label": "정책기업 수의계약 검토 가능", "tone": "good"})
