@@ -417,6 +417,9 @@ def test_vendor_purchase_route_guidance_prioritizes_construction_intent_over_mas
     assert guidance["primary_route"]["route_id"] == "construction_license"
     assert guidance["title"] == "공사 면허/시공능력 검토"
     assert any(badge["label"] == "공사 면허/시공능력 검토" for badge in guidance["badges"])
+    badge_labels = [badge["label"] for badge in guidance["badges"]]
+    assert not any("MAS" in label for label in badge_labels)
+    assert not any("\ub098\ub77c\uc7a5\ud130" in label for label in badge_labels)
 
 
 def test_vendor_purchase_route_guidance_keeps_material_purchase_on_mas_route():
@@ -1959,3 +1962,6 @@ def test_vendor_purchase_route_guidance_does_not_promote_generic_mas_for_service
 
     assert guidance["primary_route"]["route_id"] == "service_contract_review"
     assert all(card["route_id"] != "mas" for card in guidance["route_cards"])
+    badge_labels = [badge["label"] for badge in guidance["badges"]]
+    assert not any("MAS" in label for label in badge_labels)
+    assert not any("\ub098\ub77c\uc7a5\ud130" in label for label in badge_labels)

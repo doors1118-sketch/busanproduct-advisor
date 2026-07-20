@@ -5341,8 +5341,12 @@ def _vendor_purchase_route_guidance(
     if requirements["requires_direct_production"]:
         badges.append({"label": "직접생산 확인 필요 품목", "tone": "warn" if not row_has_direct else "good"})
     show_specific_shopping_badges = (
-        not has_confirmed_contract
-        or (has_local_shopping_supplier and local_supplier_basis != "candidate_exact_evidence")
+        not service_route_primary
+        and not construction_route_primary
+        and (
+            not has_confirmed_contract
+            or (has_local_shopping_supplier and local_supplier_basis != "candidate_exact_evidence")
+        )
     )
     if row_has_mas and show_specific_shopping_badges:
         badges.append({"label": "조달청 다수공급자계약(MAS) 지역업체 존재", "tone": "info"})
