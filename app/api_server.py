@@ -3510,8 +3510,8 @@ def _vendor_local_supplier_basis_text(contract_signal: dict[str, object]) -> str
         return f"품목 마스터 기준 부산 쇼핑몰/MAS 공급업체 {busan_count}개가 확인됩니다."
     if exact_count > 0:
         return (
-            f"업체별 세부근거에서 요청 세부품명과 일치하는 부산 MAS/쇼핑몰 공급업체 {exact_count}개가 확인됩니다. "
-            "다만 품목 마스터의 부산 공급업체 집계는 0이므로 계약 전 나라장터에서 물품식별번호와 계약상태를 수동 확인해야 합니다."
+            f"업체별 후보 DB 기준 요청 세부품명과 일치하는 부산 MAS/쇼핑몰 등록 업체가 {exact_count}개 확인됩니다. "
+            "이 수치는 품목별 쇼핑몰 공급업체 집계와 차이가 있으므로 계약 전 나라장터에서 물품식별번호와 계약상태를 수동 확인해야 합니다."
         )
     return (
         "현재 DB 기준 해당 세부품명으로 조달청 쇼핑몰/MAS에 등록된 부산 공급업체가 확인되지 않습니다. "

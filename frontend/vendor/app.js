@@ -514,7 +514,7 @@ function buildRouteNarrative(payload, primary, summary, checks) {
         : "조달청 종합쇼핑몰";
     const routeText = localMallEvidence
       ? localSupplierBasis === "candidate_exact_evidence"
-        ? `${routeName}에서 요청 세부품명과 일치하는 부산 지역업체가 ${candidateExactSupplierCount.toLocaleString("ko-KR")}개 확인됩니다. 다만 품목 마스터의 부산 공급업체 집계는 0이므로 계약 전 나라장터에서 물품식별번호, 계약상태, 공급업체 유효 여부를 수동 확인해야 합니다.`
+        ? `${routeName}에서 요청 세부품명과 일치하는 부산 지역업체가 ${candidateExactSupplierCount.toLocaleString("ko-KR")}개 확인됩니다. 이 수치는 업체별 후보 DB 기준이며 품목별 쇼핑몰 공급업체 집계와 차이가 있으므로, 계약 전 나라장터에서 물품식별번호, 계약상태, 공급업체 유효 여부를 수동 확인해야 합니다.`
         : `${routeName}에서 요청 세부품명과 일치하는 부산 지역업체가 ${localMallEvidence.toLocaleString("ko-KR")}개 확인됩니다. 품목 마스터 기준은 '${basis}'입니다.${mallRegisteredCount ? ` 전국 기준 쇼핑몰 등록 건수는 ${mallRegisteredCount.toLocaleString("ko-KR")}건입니다.` : ""}${mallSupplierCount ? ` 전국 기준 공급업체 수는 ${mallSupplierCount.toLocaleString("ko-KR")}개입니다.` : ""}`
       : isMasRoute
         ? "다수공급자계약(MAS) 품목으로 확인됩니다. 원칙적으로 조달청 종합쇼핑몰/MAS 2단계경쟁 경로를 우선 확인해야 합니다. 다만 현재 DB 기준 이 세부품명으로 등록된 부산 MAS/쇼핑몰 공급업체가 확인되지 않거나, 필요한 규격·조건을 MAS로 충족하기 어려운 경우에는 조달청 입찰 또는 발주기관 일반입찰 가능성을 계약부서와 별도 검토해야 합니다."
