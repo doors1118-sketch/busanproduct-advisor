@@ -177,7 +177,7 @@ def test_vendor_recommendation_search_endpoint(monkeypatch):
     assert body["rows"][0]["business_status_freshness_label"] == "최신 검증"
     assert body["rows"][0]["policy_company_labels"] == "여성기업"
     assert body["rows"][0]["certified_product_labels"] == "혁신제품"
-    assert body["rows"][0]["sme_competition_product_label"] == "해당 가능"
+    assert body["rows"][0]["sme_competition_product_label"] == "해당"
     assert "예산 4,500만원 입력됨" in body["rows"][0]["budget_review_hint"]
     assert "계약방법 확정은 계약검토 서비스로 분리" in body["rows"][0]["budget_review_hint"]
     assert "MAS/쇼핑몰 계약상태" in body["rows"][0]["recommended_checks"]
@@ -290,6 +290,7 @@ def test_vendor_purchase_route_guidance_prioritizes_direct_and_mas_requirements(
     badge_labels = {badge["label"] for badge in guidance["badges"]}
     assert "sme_direct_production" in route_ids
     assert "mas" in route_ids
+    assert "중소기업자간 경쟁제품 해당(DB 기준)" in badge_labels
     assert "직접생산 확인 필요" in badge_labels
 
 

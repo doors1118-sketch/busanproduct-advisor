@@ -2764,7 +2764,7 @@ def _vendor_is_closed_or_suspended(row: dict[str, str]) -> bool:
 
 def _vendor_sme_competition_row_label(row: dict[str, str]) -> str:
     if row.get("is_sme_competition_product") == "true" or _vendor_contains_any(row, ["procurement_attributes"], ("sme", "competition", "중소기업자간")):
-        return "해당 가능"
+        return "해당"
     return "DB 등록정보 없음"
 
 
@@ -5270,7 +5270,7 @@ def _vendor_purchase_route_guidance(
     if construction_terms:
         badges.append({"label": "공사 면허/시공능력 검토", "tone": "good" if row_has_construction else "warn"})
     if requirements["is_sme_competition_product"]:
-        badges.append({"label": "중기간 경쟁제품 가능성", "tone": "warn"})
+        badges.append({"label": "중소기업자간 경쟁제품 해당(DB 기준)", "tone": "warn"})
     if requirements["requires_direct_production"]:
         badges.append({"label": "직접생산 확인 필요", "tone": "warn" if not row_has_direct else "good"})
     if row_has_mas and (not has_confirmed_contract or has_local_shopping_supplier):

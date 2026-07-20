@@ -473,7 +473,7 @@ function buildRouteNarrative(payload, primary, summary, checks) {
   if (isPolicyPositive(summary?.sme_competition_product) || isPolicyPositive(product?.sme_competition_product || product?.is_sme_competition_product)) {
     addLine(
       "필수 확인",
-      `해당 품목은 중소기업자간 경쟁제품 가능성이 있으므로 직접생산확인증명서의 세부품명과 유효기간을 먼저 확인해야 합니다${directSupplierCount ? `; 현재 DB상 직접생산 유효 공급업체 수는 ${directSupplierCount.toLocaleString("ko-KR")}개입니다.` : "."}`,
+      `해당 품목은 중소기업자간 경쟁제품입니다(DB 기준). 직접생산확인증명서의 세부품명과 유효기간을 먼저 확인해야 합니다${directSupplierCount ? `; 현재 DB상 직접생산 유효 공급업체 수는 ${directSupplierCount.toLocaleString("ko-KR")}개입니다.` : "."}`,
       "warn",
     );
   } else if (valueText(summary?.sme_competition_product, "") === "미해당") {
