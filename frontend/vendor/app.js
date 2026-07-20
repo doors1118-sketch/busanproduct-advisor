@@ -1435,6 +1435,7 @@ async function loadMonitoringSummary() {
 }
 
 async function loadShoppingLeakage() {
+  if (!els.leakageList || !els.leakageUpdated) return;
   try {
     const response = await fetch(`${MONITORING_API_BASE_URL}/api/leakage/shopping`, { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
