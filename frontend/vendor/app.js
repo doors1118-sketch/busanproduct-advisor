@@ -513,19 +513,20 @@ function buildRouteNarrative(payload, primary, summary, checks) {
 
   const selectionOptions = itemSelectionOptions(summary, checks);
   if (selectionOptions.length) {
+    const selectionTitle = valueText(summary?.selection_title, "세부 유형/품목 선택 필요");
     addLine(
-      "세부품명 선택",
-      valueText(summary?.message, `${query}은(는) 복수 세부품명으로 나뉘므로 실제 구매 품목을 먼저 선택해야 합니다.`),
+      selectionTitle,
+      valueText(summary?.message, `${query}은(는) 복수 유형 또는 품목으로 나뉘므로 실제 발주 대상을 먼저 선택해야 합니다.`),
       "warn",
     );
     addLine(
       "선택 후보",
-      `선택 가능한 매칭품목은 ${selectionOptions.map((item) => item.name).join(", ")}입니다. 선택 후 중소기업자간 경쟁제품, 직접생산, 쇼핑몰/MAS, 부산업체 후보를 다시 계산합니다.`,
+      `선택 가능한 항목은 ${selectionOptions.map((item) => item.name).join(", ")}입니다. 선택 후 필요한 면허·업종, 품목정책, 부산업체 후보를 다시 계산합니다.`,
       "route",
     );
     addLine(
       "계약 전 확인",
-      "세부품명번호가 확정되기 전에는 후보업체를 표시하지 않습니다. 세부품명 확정 후 표시되는 업체와 원천자료를 다시 확인하세요.",
+      "세부 유형 또는 세부품명 확정 전에는 후보업체를 확정하지 않습니다. 선택 후 표시되는 업체와 원천자료를 다시 확인하세요.",
       "caution",
     );
     return lines;
@@ -726,6 +727,8 @@ function itemSelectionOptions(summary, checks = []) {
         code,
         name,
         query: valueText(item.selection_query || name, name),
+        kind: valueText(item.selection_kind || item.option_type || item.category, ""),
+        description: valueText(item.description, ""),
         source: valueText(item.matched_policy_source || reference.matched_policy_source, ""),
         busanProductCount: numberOrZero(reference.busan_company_product_count),
         shoppingSupplierCount: Math.max(
@@ -743,29 +746,31 @@ function renderItemSelectionOptions(summary, checks = [], mode = "panel") {
   if (!options.length) return "";
   const title =
     mode === "search"
-      ? valueText(summary?.selection_title, "세부품명 선택 필요")
+      ? valueText(summary?.selection_title, "세부 유형/품목 선택 필요")
       : mode === "empty"
-        ? "세부품명 선택 후 다시 조회"
-        : "매칭품목 선택";
+        ? "세부 유형/품목 선택 후 다시 조회"
+        : "매칭 항목 선택";
   const description =
     mode === "search"
-      ? valueText(summary?.message, "검색어만으로는 세부품명을 확정할 수 없습니다. 실제 구매하려는 품목을 선택하세요.")
+      ? valueText(summary?.message, "검색어만으로는 세부 유형이나 세부품명을 확정할 수 없습니다. 실제 발주 대상을 선택하세요.")
       : mode === "empty"
-        ? "현재 검색어는 범위가 넓어 업체 후보를 표시하지 않습니다. 실제 구매하려는 세부품명을 선택하면 품목정책과 부산업체 후보를 다시 계산합니다."
-        : "아래 세부품명 중 실제 구매 대상에 가까운 항목을 선택하면 해당 품목 기준으로 다시 조회합니다.";
+        ? "현재 검색어는 범위가 넓어 업체 후보를 표시하지 않습니다. 실제 발주 대상을 선택하면 구매방식과 부산업체 후보를 다시 계산합니다."
+        : "아래 항목 중 실제 발주 대상에 가까운 항목을 선택하면 해당 기준으로 다시 조회합니다.";
   return `
     <div class="item-selection-box ${mode === "empty" ? "is-empty" : ""} ${mode === "search" ? "is-search" : ""}">
       <div class="item-selection-copy">
         <strong>${escapeHtml(title)}</strong>
         <span>${escapeHtml(description)}</span>
       </div>
-      <div class="item-selection-list" role="list" aria-label="세부품명 선택">
+      <div class="item-selection-list" role="list" aria-label="세부 유형 또는 품목 선택">
         ${options.map((option) => {
           const meta = [
+            option.kind,
             option.code ? `세부품명번호 ${option.code}` : "",
             option.busanProductCount ? `부산 조달업체 ${option.busanProductCount.toLocaleString("ko-KR")}개` : "",
             option.shoppingSupplierCount ? `쇼핑몰 공급 ${option.shoppingSupplierCount.toLocaleString("ko-KR")}개` : "",
-          ].filter(Boolean).join(" · ") || valueText(option.source, "품목정책 재판정");
+            option.description,
+          ].filter(Boolean).join(" · ") || valueText(option.source, "재판정");
           return `
             <button type="button" class="item-selection-button" data-item-selection-query="${escapeHtml(option.query)}" role="listitem">
               <span>${escapeHtml(option.name)}</span>
@@ -918,7 +923,7 @@ function renderItemPolicySummary(payload) {
   const selectionRequired = status === "needs_item_selection" || summary.selection_required === true;
   const statusLabel =
     selectionRequired
-      ? valueText(summary.selection_title, "세부 품목 선택 필요")
+      ? valueText(summary.selection_title, "세부 유형/품목 선택 필요")
       : status === "matched"
       ? "품목정책 DB 매칭"
       : status === "not_requested"
@@ -958,7 +963,7 @@ function renderItemPolicySummary(payload) {
       </div>
       <span class="tag ${statusTone}">${escapeHtml(selectionRequired ? "선택 필요" : status === "matched" ? "근거 있음" : "확인 필요")}</span>
     </div>
-    ${selectionRequired ? `<p class="policy-selection-notice">${escapeHtml(valueText(summary.message, "실제 구매하려는 세부품명을 선택해 주세요."))}</p>` : ""}
+    ${selectionRequired ? `<p class="policy-selection-notice">${escapeHtml(valueText(summary.message, "실제 발주하려는 세부 유형 또는 세부품명을 선택해 주세요."))}</p>` : ""}
     <div class="policy-fact-grid">${facts}</div>
     ${
       productRows.length || sourceRows.length

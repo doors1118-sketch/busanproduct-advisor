@@ -466,6 +466,10 @@ def test_vendor_query_plan_adds_service_license_terms():
         ("소독방역 용역 업체", "소독업"),
         ("청사 청소용역 업체", "건물위생관리업"),
         ("정보시스템 유지보수 업체", "소프트웨어사업자(컴퓨터관련서비스사업)"),
+        ("소방 안전 점검 업체", "소방시설관리업"),
+        ("소방안전점검 업체", "소방시설관리업"),
+        ("소방 안전 관리 대행 업체", "소방안전관리대행"),
+        ("소방안전관리대행 업체", "소방안전관리대행"),
     ]
     for query, expected in cases:
         plan = api_server._vendor_query_plan(query)
@@ -1332,7 +1336,45 @@ def test_vendor_purchase_route_waits_for_detail_item_selection():
 
     assert guidance["primary_route"]["route_id"] == "item_selection_required"
     assert guidance["item_policy_status"] == "needs_item_selection"
-    assert guidance["badges"][0]["label"] == "품목 선택 필요"
+    assert guidance["badges"][0]["label"] == "세부 유형/품목 선택 필요"
+
+
+def test_vendor_generic_fire_query_requires_domain_selection():
+    summary = api_server._vendor_item_policy_summary("소방", [], requested=True)
+
+    assert summary["status"] == "needs_item_selection"
+    assert summary["selection_title"] == "소방 세부 유형 선택 필요"
+    assert [item["detail_product_name"] for item in summary["selection_options"]] == [
+        "소방시설공사",
+        "소방시설점검",
+        "소방안전관리대행",
+        "소방용품",
+    ]
+
+
+def test_vendor_payload_blocks_generic_fire_candidates(monkeypatch):
+    calls = []
+
+    def fake_rows(q, region="부산", limit=100, budget_krw=None):
+        calls.append(q)
+        return [{**_sample_vendor_row(), "matched_source": "product"}]
+
+    monkeypatch.setattr(api_server, "_vendor_recommendation_rows", fake_rows)
+    monkeypatch.setattr(
+        api_server,
+        "_vendor_product_policy_checks",
+        lambda q, limit=5: [{"detail_product_name": "소방선", "matched_policy_source": "product_policy_summary"}],
+    )
+
+    payload = api_server._vendor_recommendation_payload("소방", limit=10)
+
+    assert calls == []
+    assert payload["count"] == 0
+    assert payload["rows"] == []
+    assert payload["item_policy_summary"]["status"] == "needs_item_selection"
+    assert payload["item_policy_summary"]["selection_title"] == "소방 세부 유형 선택 필요"
+    assert payload["zero_result_status"]["status"] == "item_selection_required"
+    assert payload["purchase_route_guidance"]["primary_route"]["label"] == "소방 세부 유형 선택 필요"
 
 
 def test_vendor_payload_blocks_generic_telephone_candidates(monkeypatch):

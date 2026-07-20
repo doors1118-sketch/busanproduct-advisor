@@ -1047,6 +1047,131 @@ def _vendor_db_item_disambiguation(q: str) -> dict[str, object] | None:
     return None
 
 
+_VENDOR_DOMAIN_SELECTION_RULES: tuple[dict[str, object], ...] = (
+    {
+        "key": "fire_domain",
+        "generic_markers": ("소방",),
+        "specific_markers": (
+            "소방시설공사",
+            "소방공사",
+            "소방 설비 공사",
+            "소방시설점검",
+            "소방시설 점검",
+            "소방점검",
+            "소방 안전 점검",
+            "소방안전점검",
+            "소방시설관리",
+            "소방시설 관리",
+            "소방안전관리",
+            "소방 안전 관리",
+            "소방안전관리대행",
+            "소방 안전 관리 대행",
+            "소방관리대행",
+            "소방 용품",
+            "소방용품",
+            "소화기",
+            "소방차",
+            "소방선",
+        ),
+        "title": "소방 세부 유형 선택 필요",
+        "message": (
+            "'소방'만으로는 공사·점검용역·안전관리대행·물품 구매 중 어느 업무인지 확정할 수 없습니다. "
+            "실제 발주하려는 유형을 선택한 뒤 지역업체 후보를 다시 조회해야 합니다."
+        ),
+        "options": (
+            {
+                "detail_product_name": "소방시설공사",
+                "selection_query": "소방시설공사",
+                "selection_kind": "공사·면허",
+                "matched_policy_source": "domain_selection:construction_license",
+                "description": "전문/일반소방시설공사업 등 면허와 시공능력 기준으로 후보를 조회합니다.",
+            },
+            {
+                "detail_product_name": "소방시설점검",
+                "selection_query": "소방시설점검",
+                "selection_kind": "용역",
+                "matched_policy_source": "domain_selection:service_license",
+                "description": "소방시설 점검·관리업 관련 업종과 과거 수행이력을 기준으로 후보를 조회합니다.",
+            },
+            {
+                "detail_product_name": "소방안전관리대행",
+                "selection_query": "소방안전관리대행",
+                "selection_kind": "용역",
+                "matched_policy_source": "domain_selection:service_license",
+                "description": "소방안전관리 대행 업무와 관련 업종을 기준으로 후보를 조회합니다.",
+            },
+            {
+                "detail_product_name": "소방용품",
+                "selection_query": "소방용품",
+                "selection_kind": "물품",
+                "matched_policy_source": "domain_selection:product",
+                "description": "소화기·소방장비 등 물품 구매인 경우 세부품명 기준으로 다시 확인합니다.",
+            },
+        ),
+    },
+)
+
+
+def _vendor_domain_disambiguation(q: str) -> dict[str, object] | None:
+    compact = _vendor_compact(q)
+    if not compact:
+        return None
+    for rule in _VENDOR_DOMAIN_SELECTION_RULES:
+        if not any(_vendor_compact(marker) in compact for marker in rule["generic_markers"]):
+            continue
+        if any(_vendor_compact(marker) in compact for marker in rule["specific_markers"]):
+            continue
+        return dict(rule)
+    return None
+
+
+def _vendor_selection_required_summary(
+    q: str,
+    disambiguation: dict[str, object],
+    *,
+    matched_products: list[dict[str, str]] | None = None,
+) -> dict[str, object]:
+    options: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for option in disambiguation.get("options") or ():
+        if not isinstance(option, dict):
+            continue
+        name = _vendor_join(option.get("detail_product_name") or option.get("selection_query"))
+        query = _vendor_join(option.get("selection_query")) or name
+        if not name or not query:
+            continue
+        key = _vendor_compact(query)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        options.append({
+            "detail_product_code": _vendor_join(option.get("detail_product_code")),
+            "detail_product_name": name,
+            "selection_query": query,
+            "selection_kind": _vendor_join(option.get("selection_kind")),
+            "matched_policy_source": _vendor_join(option.get("matched_policy_source")),
+            "description": _vendor_join(option.get("description")),
+        })
+    return {
+        "status": "needs_item_selection",
+        "query": q,
+        "message": str(disambiguation.get("message") or "검색어만으로는 세부 유형을 확정할 수 없습니다. 실제 발주 유형을 선택해야 합니다."),
+        "selection_title": str(disambiguation.get("title") or "세부 유형 선택 필요"),
+        "selection_required": True,
+        "selection_kind": str(disambiguation.get("key") or "domain_selection"),
+        "selection_options": options,
+        "sme_competition_product": "세부 유형 선택 후 판정",
+        "direct_production_certificate": "세부 유형 선택 후 판정",
+        "cooperative_purchase_route": "세부 유형 선택 후 판정",
+        "shopping_mall_contract_basis_level": "selection_required",
+        "shopping_mall_contract_basis_label": "세부 유형 선택 필요",
+        "shopping_mall_contract_basis_explanation": str(disambiguation.get("message") or ""),
+        "shopping_mall_busan_supplier_count": 0,
+        "shopping_mall_active_registered_count": 0,
+        "matched_products": matched_products or [],
+    }
+
+
 def _vendor_intent_text(q: str) -> str:
     text = str(q or "")
     typo_aliases = {
@@ -1279,8 +1404,32 @@ _VENDOR_SERVICE_LICENSE_GROUPS: tuple[tuple[tuple[str, ...], tuple[str, ...]], .
         ("전기안전관리", "전기안전관리대행", "전기공사업"),
     ),
     (
-        ("소방시설점검", "소방시설 점검", "소방점검", "소방시설관리"),
-        ("전문소방시설공사업", "일반소방시설공사업", "소방시설", "소방"),
+        (
+            "소방시설점검",
+            "소방시설 점검",
+            "소방점검",
+            "소방 점검",
+            "소방안전점검",
+            "소방 안전 점검",
+            "소방시설관리",
+            "소방시설 관리",
+            "소방안전관리",
+            "소방 안전 관리",
+            "소방안전관리대행",
+            "소방 안전 관리 대행",
+            "소방관리대행",
+            "소방 관리 대행",
+        ),
+        (
+            "소방시설관리업",
+            "소방시설점검",
+            "소방안전관리",
+            "소방안전관리대행",
+            "전문소방시설공사업",
+            "일반소방시설공사업",
+            "소방시설",
+            "소방",
+        ),
     ),
     (
         ("건축물안전점검", "건축물 안전점검", "시설물안전점검", "정밀안전점검"),
@@ -2541,10 +2690,11 @@ def _vendor_recommendation_payload(
 ) -> dict:
     normalized_budget = _normalize_budget_krw(budget_krw)
     requested_limit = max(1, min(int(limit or 30), 100))
+    domain_disambiguation = _vendor_domain_disambiguation(q)
     evidence_pool_limit = max(requested_limit, min(max(requested_limit + 25, 30), 100))
-    rows = _vendor_recommendation_rows(q, region=region, limit=evidence_pool_limit, budget_krw=normalized_budget)
-    product_policy_requested = bool(include_product_policy and _vendor_should_check_product_policy(q))
-    product_policy_limit = 12 if _vendor_item_disambiguation(q) else 5
+    rows = [] if domain_disambiguation else _vendor_recommendation_rows(q, region=region, limit=evidence_pool_limit, budget_krw=normalized_budget)
+    product_policy_requested = bool(include_product_policy and _vendor_should_check_product_policy(q) and not domain_disambiguation)
+    product_policy_limit = 12 if _vendor_item_disambiguation(q) or domain_disambiguation else 5
     product_policy_checks = _vendor_product_policy_checks(q, limit=product_policy_limit) if product_policy_requested else []
     _vendor_log_item_policy_miss(q, product_policy_checks, requested=product_policy_requested)
     rows = _vendor_apply_item_evidence(rows, q, product_policy_checks)
@@ -3785,6 +3935,9 @@ def _vendor_item_bool(value) -> bool | None:
 
 
 def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, str]], *, requested: bool) -> dict[str, object]:
+    domain_disambiguation = _vendor_domain_disambiguation(q)
+    if domain_disambiguation:
+        return _vendor_selection_required_summary(q, domain_disambiguation)
     if not requested:
         return {
             "status": "not_requested",
@@ -4037,17 +4190,18 @@ def _vendor_zero_result_status(
             "next_actions": [],
         }
     if item_policy_summary and item_policy_summary.get("status") == "needs_item_selection":
+        selection_title = str(item_policy_summary.get("selection_title") or "세부 유형/품목 선택 필요")
         return {
             "status": "item_selection_required",
-            "label": "세부품명 선택 필요",
+            "label": selection_title,
             "message": str(
                 item_policy_summary.get("message")
-                or "세부품명을 선택한 뒤 품목정책과 구매방식을 다시 판정해야 합니다."
+                or "세부 유형이나 세부품명을 선택한 뒤 구매방식과 후보업체를 다시 판정해야 합니다."
             ),
             "next_actions": [
-                "실제 구매하려는 세부품명 선택",
-                "세부품명번호 10자리 확인",
-                "세부품명 확정 후 업체 후보 재조회",
+                "실제 발주하려는 세부 유형 또는 세부품명 선택",
+                "품목이면 세부품명번호 10자리 확인",
+                "선택값 확정 후 업체 후보 재조회",
             ],
         }
     construction_terms = _vendor_requested_construction_terms(q)
@@ -4906,36 +5060,50 @@ def _vendor_purchase_route_guidance(
     if item_policy_summary.get("status") == "needs_item_selection":
         message = str(
             item_policy_summary.get("message")
-            or "세부품명을 선택한 뒤 품목정책과 구매방식을 다시 판정해야 합니다."
+            or "세부 유형이나 세부품명을 선택한 뒤 구매방식과 후보업체를 다시 판정해야 합니다."
         )
+        selection_title = str(item_policy_summary.get("selection_title") or "세부 유형/품목 선택 필요")
+        selection_is_domain = str(item_policy_summary.get("selection_kind") or "").startswith("fire_domain")
         selection_card = {
             "route_id": "item_selection_required",
-            "label": "세부 품목 선택 필요",
+            "label": selection_title,
             "status": "needs_item_selection",
             "reason": message,
-            "required_checks": ["정확한 세부품명", "세부품명번호 10자리", "구매 규격·용도"],
-            "practical_note": "세부품명 선택 전에는 중기간·직접생산·조달청 구매경로를 확정하지 않습니다.",
-            "next_actions": ["품목정책 판정 영역에서 실제 구매하려는 세부품명 선택"],
+            "required_checks": (
+                ["공사·용역·물품 중 실제 발주 유형", "필요 면허·업종", "계약명 또는 과업 범위"]
+                if selection_is_domain
+                else ["정확한 세부품명", "세부품명번호 10자리", "구매 규격·용도"]
+            ),
+            "practical_note": (
+                "세부 유형 선택 전에는 면허·업종·품목정책과 후보업체 순위를 확정하지 않습니다."
+                if selection_is_domain
+                else "세부품명 선택 전에는 중기간·직접생산·조달청 구매경로를 확정하지 않습니다."
+            ),
+            "next_actions": ["검색창 아래 선택지에서 실제 발주하려는 항목 선택"],
             "route_priority": "primary",
             "basis_level": "item_selection_required",
             "basis_explanation": message,
         }
         return {
-            "title": "세부 품목 선택 필요",
+            "title": selection_title,
             "primary_route": selection_card,
             "route_cards": [selection_card],
-            "badges": [{"label": "품목 선택 필요", "tone": "warn"}],
+            "badges": [{"label": selection_title, "tone": "warn"}],
             "required_checks": list(selection_card["required_checks"]),
-            "ranking_basis": ["세부품명 선택 전에는 구매방식과 업체 순위를 확정하지 않음"],
+            "ranking_basis": ["세부 유형/품목 선택 전에는 구매방식과 업체 순위를 확정하지 않음"],
             "item_policy_status": "needs_item_selection",
             "purchase_route_basis_level": "item_selection_required",
-            "purchase_route_basis_label": "세부품명 선택 필요",
+            "purchase_route_basis_label": selection_title,
             "purchase_route_basis_explanation": message,
             "shopping_mall_busan_supplier_count": 0,
             "shopping_mall_candidate_exact_supplier_count": 0,
             "shopping_mall_local_supplier_basis": "none",
             "shopping_mall_active_registered_count": 0,
-            "legal_notice": "세부품명번호 10자리를 확정한 뒤 현행 품목정책과 계약 가능 여부를 재확인해야 합니다.",
+            "legal_notice": (
+                "세부 유형을 확정한 뒤 관련 면허·업종·과업범위와 계약 가능 여부를 재확인해야 합니다."
+                if selection_is_domain
+                else "세부품명번호 10자리를 확정한 뒤 현행 품목정책과 계약 가능 여부를 재확인해야 합니다."
+            ),
         }
     requirements = _vendor_policy_route_requirements(product_policy_checks)
     contract_signal = _vendor_policy_contract_signal(product_policy_checks, rows)
@@ -5492,6 +5660,10 @@ def _vendor_should_check_product_policy(q: str) -> bool:
     service_markers = (
         "용역",
         "공사",
+        "점검",
+        "대행",
+        "안전관리",
+        "관리대행",
         "경비",
         "청소",
         "번역",
