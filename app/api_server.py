@@ -5138,6 +5138,7 @@ def _vendor_purchase_route_guidance(
     service_route_primary = contract_object == "service"
     construction_material_intent = _vendor_has_construction_material_intent(q)
     construction_route_primary = bool(construction_terms) and not construction_material_intent
+    product_route_allowed = not service_route_primary and not construction_route_primary
     strict_policy_item_identity = _vendor_has_policy_item_code_identity(product_policy_checks)
     row_has_direct = any(
         _vendor_is_truthy(row.get("direct_production_match"))
@@ -5287,7 +5288,7 @@ def _vendor_purchase_route_guidance(
             ["후보업체의 실제 수행 가능 용역 확인", "수의계약 가능 금액과 견적 요건 확인", "지역제한 또는 평가항목 적용 가능성 확인"],
             route_priority="primary",
         )
-    if requirements["has_mas_route"] or has_confirmed_contract or (row_has_mas and not service_route_primary):
+    if product_route_allowed and (requirements["has_mas_route"] or has_confirmed_contract or row_has_mas):
         if basis_level == "confirmed_third_party_unit_price":
             central_route_id = "third_party_unit_price"
             central_route_title = "제3자단가계약"
@@ -5348,7 +5349,7 @@ def _vendor_purchase_route_guidance(
             basis_level_override=basis_level,
             basis_explanation=str(contract_signal["basis_explanation"]),
         )
-    if requirements["has_shopping_route"] or has_registered_item or (row_has_shopping and not service_route_primary):
+    if product_route_allowed and (requirements["has_shopping_route"] or has_registered_item or row_has_shopping):
         if has_registered_item and not has_confirmed_contract:
             shopping_status = "registered_only"
             shopping_reason = (
@@ -5396,7 +5397,7 @@ def _vendor_purchase_route_guidance(
             basis_level_override="local_vendor_alternative",
             basis_explanation="부산 쇼핑몰 공급업체가 없을 때 지역업체 활용 가능성을 검토하기 위한 대안입니다.",
         )
-    if requirements["is_sme_competition_product"] or requirements["requires_direct_production"]:
+    if product_route_allowed and (requirements["is_sme_competition_product"] or requirements["requires_direct_production"]):
         add_card(
             "sme_direct_production",
             "중소기업자간 경쟁제품/직접생산",

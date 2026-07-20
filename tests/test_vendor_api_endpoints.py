@@ -416,6 +416,7 @@ def test_vendor_purchase_route_guidance_prioritizes_construction_intent_over_mas
 
     assert guidance["primary_route"]["route_id"] == "construction_license"
     assert guidance["title"] == "공사 면허/시공능력 검토"
+    assert all(card["route_id"] not in {"mas", "shopping_mall", "third_party_unit_price"} for card in guidance["route_cards"])
     assert any(badge["label"] == "공사 면허/시공능력 검토" for badge in guidance["badges"])
     badge_labels = [badge["label"] for badge in guidance["badges"]]
     assert not any("MAS" in label for label in badge_labels)
