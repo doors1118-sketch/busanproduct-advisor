@@ -4003,16 +4003,11 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
 
     matched_products: list[dict[str, str]] = []
     sme_values: list[bool] = []
-    direct_supplier_counts: list[int] = []
     contract_signal = _vendor_policy_contract_signal(product_policy_checks)
     for item in product_policy_checks:
         sme_flag = _vendor_item_bool(item.get("is_sme_competition_product"))
         if sme_flag is not None:
             sme_values.append(sme_flag)
-        try:
-            direct_supplier_counts.append(int(str(item.get("direct_production_valid_supplier_count") or "0").replace(",", "")))
-        except ValueError:
-            pass
         matched_products.append({
             "detail_product_code": _vendor_join(item.get("detail_product_code")),
             "detail_product_name": _vendor_join(item.get("detail_product_name")),
@@ -4041,7 +4036,6 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
         sme_status = "미해당"
     else:
         sme_status = "확인 필요"
-    direct_count = max(direct_supplier_counts) if direct_supplier_counts else 0
     disambiguation = _vendor_item_disambiguation(q)
     if disambiguation:
         raw_selection_markers = (
@@ -4194,8 +4188,6 @@ def _vendor_item_policy_summary(q: str, product_policy_checks: list[dict[str, st
         direct_label = "품목 매칭상 직접생산증명서 의무 여부 확인 필요"
         cooperative_label = "중소기업자간 경쟁제품 해당 여부 확인 필요"
         message = "검색 품목은 DB 매칭값만으로 중소기업자간 경쟁제품 해당 여부를 확정하지 못했습니다. 세부품명번호 기준 재확인이 필요합니다."
-    if direct_count:
-        direct_label = f"{direct_label} / 유효 공급업체 수: {direct_count}"
     if any(str(item.get("matched_policy_source") or "") == "facility_material_price_file" for item in product_policy_checks):
         message = f"{message} 시설공통자재 가격정보 파일에 등록된 품목이 포함되어 있으므로, 현행 가격게시 여부와 계약수단을 함께 확인해야 합니다."
 

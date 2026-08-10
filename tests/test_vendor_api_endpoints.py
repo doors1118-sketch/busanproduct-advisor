@@ -220,6 +220,23 @@ def test_vendor_item_policy_summary_marks_explicit_non_sme_as_not_applicable():
     assert summary["direct_production_certificate"] == "DB 기준 직접생산 의무 미확인"
 
 
+def test_vendor_item_policy_summary_keeps_policy_supplier_count_out_of_operator_label():
+    checks = [{
+        "detail_product_code": "4319150401",
+        "detail_product_name": "유선전화기",
+        "matched_policy_source": "product_policy_summary_fast",
+        "is_sme_competition_product": "1",
+        "direct_production_valid_supplier_count": "37",
+        "busan_company_product_count": "1",
+    }]
+
+    summary = api_server._vendor_item_policy_summary("유선전화기", checks, requested=True)
+
+    assert summary["status"] == "matched"
+    assert "유효 공급업체 수" not in summary["direct_production_certificate"]
+    assert summary["matched_products"][0]["direct_production_valid_supplier_count"] == "37"
+
+
 def test_vendor_purchase_route_guidance_uses_direct_or_bid_when_only_company_product_count_exists():
     rows = [{**_sample_vendor_row(), "has_mas": "", "has_shopping_mall": ""}]
     checks = [{
