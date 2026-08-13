@@ -26,7 +26,6 @@ if [ -n "$ADMIN_HEALTH_TOKEN" ]; then
 fi
 
 curl -fsS --max-time 5 "${AUTH_HEADER[@]}" http://127.0.0.1:8001/health > /dev/null || true
-curl -fsS --max-time 8 "${AUTH_HEADER[@]}" http://127.0.0.1:8001/rag/status > /dev/null || true
 curl -fsS --max-time 8 "${ADMIN_HEADER[@]}" 'http://127.0.0.1:8001/admin/health/routing?recent_limit=20' > /dev/null || true
 
 echo "warmup health done"
