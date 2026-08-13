@@ -23,7 +23,6 @@ Required production assets:
 
 The legacy systemd unit files were removed from this branch so a normal deploy
 cannot accidentally re-enable the retired services. See the integrated handover
-in `doors1118-sketch/busan-city-local-products`, branch
+in the private `doors1118-sketch/busan-guarantee-dashboard` repository, branch
 `codex/cloud-continuity-20260813`, for the verified server state and rollback
 boundary.
-
