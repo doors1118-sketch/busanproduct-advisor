@@ -47,6 +47,7 @@ _PRIORITY_LABELS = {
 _ROUTE_TITLE_SHORT_LABELS = {
     "general_small_value_direct": "일반 1인견적",
     "two_quote_small_value": "지역제한 2인견적",
+    "third_party_unit_price": "제3자단가계약 물품",
     "shopping_mall_mas": "종합쇼핑몰(MAS) 직접구매",
     "sme_competition_direct_production": "중기간경쟁/직접생산",
     "innovation_product": "혁신제품",
@@ -81,6 +82,7 @@ _CANDIDATE_TYPE_ORDER = [
 ]
 
 _ROUTE_DISPLAY_ORDER = {
+    "third_party_unit_price": 4,
     "shopping_mall_mas": 5,
     "two_quote_small_value": 20,
     "policy_company_one_quote": 30,
@@ -155,6 +157,7 @@ def _count_matching_raw_candidates(row: dict, item_name: str, candidate_type: st
 def _tool_counts(tool_results: list[dict] | None, item_name: str = "") -> dict[str, int | None]:
     counts: dict[str, int | None] = {
         "shopping_mall": None,
+        "third_party_unit_price": None,
         "local_company": None,
         "local_license_company": None,
         "policy_company": None,
@@ -173,6 +176,9 @@ def _tool_counts(tool_results: list[dict] | None, item_name: str = "") -> dict[s
         if "shopping_mall" in name:
             count = relevant_count(row, count, "shopping_mall_supplier")
             counts["shopping_mall"] = max(counts["shopping_mall"] or 0, count or 0)
+        elif "third_party_unit_price" in name or "third_party" in name or "제3자단가" in name:
+            count = relevant_count(row, count, "shopping_mall_supplier")
+            counts["third_party_unit_price"] = max(counts["third_party_unit_price"] or 0, count or 0)
         elif "company_by_license" in name:
             count = relevant_count(row, count, "local_procurement_company")
             counts["local_license_company"] = max(counts["local_license_company"] or 0, count or 0)
@@ -443,6 +449,59 @@ def _mas_route_status(
     )
 
 
+def _agency_procurement_obligation_note(agency_type: str | None) -> str:
+    agency = (agency_type or "").lower()
+    if agency in {"national_agency", "national_gov", "central_government"}:
+        return "국가기관은 1억원 이상 물품·용역 및 단가계약 물품이 조달청 구매 검토 대상입니다."
+    if agency in {"local_government", "local_gov"}:
+        return "지방자치단체와 교육기관은 단가계약 물품이면 조달청 구매 검토 대상입니다."
+    if agency in {"public_corporation", "public_enterprise", "public_agency"}:
+        return "공기업·준정부기관은 중기간 경쟁제품 고시금액 이상 등 별도 위탁 기준과 기관 내부규정 확인이 필요합니다."
+    return "기관유형에 따라 조달청구매 대상 여부가 달라지므로 국가기관·지방자치단체·공기업/준정부기관 구분을 확인해야 합니다."
+
+
+def _third_party_unit_price_status(
+    *,
+    candidate_count: int | None,
+    agency_type: str | None,
+) -> tuple[str, str, str, str, str]:
+    agency_note = _agency_procurement_obligation_note(agency_type)
+    if candidate_count and candidate_count > 0:
+        return (
+            "candidate_found",
+            f"제3자단가 근거 {candidate_count}건",
+            (
+                "공식 쇼핑몰/계약상품 원천에서 계약유형이 제3자단가계약으로 확인되는 물품은 "
+                "조달청 종합쇼핑몰 납품요구 경로를 먼저 확인합니다. "
+                f"{agency_note}"
+            ),
+            "primary",
+            "",
+        )
+    if candidate_count == 0:
+        return (
+            "no_candidate_found",
+            "제3자단가 근거 미확인",
+            (
+                "현재 후보 DB에서는 제3자단가계약 계약유형이 확인되지 않았습니다. "
+                "MAS·일반 쇼핑몰 등록 또는 수요기관 직접구매 가능성을 분리해서 봐야 합니다."
+            ),
+            "reference",
+            "제3자단가 계약유형 근거 없음",
+        )
+    return (
+        "needs_lookup",
+        "조달청 단가계약 근거 미확인",
+        (
+            "품목명만으로는 제3자단가계약 여부를 확정하지 않습니다. "
+            "조달청 종합쇼핑몰 품목 등록 내역의 계약유형, 물품식별번호, 계약기간을 확인해야 합니다. "
+            f"{agency_note}"
+        ),
+        "reference",
+        "",
+    )
+
+
 def build_purchase_route_cards(
     *,
     amount: int | None,
@@ -471,6 +530,10 @@ def build_purchase_route_cards(
         amount=amount,
         item_name=item_name,
         candidate_count=counts["shopping_mall"],
+    )
+    third_status, third_label, third_meaning, third_priority, third_exclusion = _third_party_unit_price_status(
+        candidate_count=counts.get("third_party_unit_price"),
+        agency_type=agency_type,
     )
     if (
         shopping_status == "mas_direct_check"
@@ -514,6 +577,21 @@ def build_purchase_route_cards(
             legal_refs=["지방계약법 시행령 제25조", "지방계약법 시행령 제30조", "지방자치단체 입찰 및 계약집행기준 수의계약 운영요령"],
             candidate_table_types=("local_procurement_company",),
             candidate_lookup_policy="local_company",
+        ),
+        _card(
+            route_id="third_party_unit_price",
+            title="제3자단가계약 물품",
+            status=third_status,
+            user_label=third_label,
+            practical_meaning=third_meaning,
+            required_checks=["계약유형=제3자단가계약", "물품식별번호", "계약기간/계약상태", "납품요구 가능 여부", "기관유형별 조달청구매 대상 여부"],
+            evidence_topics=["third_party_unit_price", "shopping_mall", "central_procurement"],
+            route_priority=third_priority,
+            display_policy="brief" if third_status == "no_candidate_found" else "show",
+            legal_refs=["조달사업에 관한 법률 제11조", "조달사업에 관한 법률 시행령 제11조", "조달사업에 관한 법률 제12조", "조달청 종합쇼핑몰 품목 등록 내역"],
+            candidate_table_types=("shopping_mall_supplier",),
+            candidate_lookup_policy="shopping_mall",
+            exclusion_reason=third_exclusion,
         ),
         _card(
             route_id="shopping_mall_mas",
