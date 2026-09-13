@@ -1272,7 +1272,7 @@ function renderCandidate(row, index) {
   const node = els.template.content.cloneNode(true);
   const card = node.querySelector(".candidate-card");
   if (index === 0) card.classList.add("is-top");
-  node.querySelector(".rank").innerHTML = `<span>후보</span><strong>${String(index + 1).padStart(2, "0")}</strong>`;
+  node.querySelector(".rank").remove();
   node.querySelector(".candidate-name").textContent = valueText(row.company_name, "업체명 미확인");
   node.querySelector(".candidate-location").textContent = [row.location, row.detail_address].map((item) => valueText(item, "")).filter(Boolean).join(" · ") || "소재지 확인 필요";
   node.querySelector(".basis-level").textContent = basisLevel(row);
