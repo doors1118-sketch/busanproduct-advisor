@@ -1276,8 +1276,7 @@ function renderCandidate(row, index) {
   node.querySelector(".candidate-name").textContent = valueText(row.company_name, "업체명 미확인");
   node.querySelector(".candidate-location").textContent = [row.location, row.detail_address].map((item) => valueText(item, "")).filter(Boolean).join(" · ") || "소재지 확인 필요";
   node.querySelector(".basis-level").textContent = basisLevel(row);
-  const reviewScore = Number(row.review_score);
-  node.querySelector(".score-pill").textContent = Number.isFinite(reviewScore) && reviewScore > 0 ? reviewScore.toLocaleString("ko-KR") : "미산정";
+  node.querySelector(".candidate-score-line").remove();
 
   const badgeRow = node.querySelector(".card-badges");
   buildBadges(row).slice(0, 6).forEach((item) => badgeRow.appendChild(item));

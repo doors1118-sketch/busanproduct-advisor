@@ -43,19 +43,23 @@ function render(row, index) {
 }
 
 for (const index of [0, 1, 9]) {
-  test(`candidate ${index + 1}: no ordinal badge, details and score preserved`, () => {
+  test(`candidate ${index + 1}: no ordinal or score display, details preserved`, () => {
     const row = Object.freeze({ company_name: "검증업체", review_score: 123, location: "부산광역시", main_products: "비디오프로젝터" });
     const fields = render(row, index);
     assert.equal(fields.get(".rank").removed, true);
     assert.equal(fields.get(".rank").innerHTML, "");
     assert.equal(fields.get(".candidate-name").textContent, row.company_name);
-    assert.equal(fields.get(".score-pill").textContent, "123");
+    assert.equal(fields.get(".candidate-score-line")?.removed, true);
+    assert.equal(fields.has(".score-pill"), false);
+    assert.equal(row.review_score, 123);
     assert.equal(fields.get(".candidate-location").textContent, row.location);
     assert.equal(fields.get(".candidate-primary-products-text").textContent, row.main_products);
     assert.equal(fields.get(".candidate-actions-slot").children[0].children[0].textContent, "과거 수주 이력 보기");
   });
 }
 
-test("missing score still displays the existing fallback", () => {
-  assert.equal(render({ company_name: "미산정업체" }, 9).get(".score-pill").textContent, "미산정");
+test("missing score does not display a score or fallback", () => {
+  const fields = render({ company_name: "미산정업체" }, 9);
+  assert.equal(fields.get(".candidate-score-line")?.removed, true);
+  assert.equal(fields.has(".score-pill"), false);
 });
